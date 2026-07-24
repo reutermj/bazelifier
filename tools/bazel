@@ -1,0 +1,74 @@
+#!/bin/bash -e
+
+# Determine OS type
+OS="$(uname -s)"
+case "$OS" in
+    Linux)
+        OS="linux"
+        ;;
+    Darwin)
+        OS="darwin"
+        ;;
+    *)
+        echo "Unsupported operating system: $OS"
+        exit 1
+        ;;
+esac
+
+# Determine architecture
+ARCH="$(uname -m)"
+case "$ARCH" in
+    x86_64)
+        ARCH="amd64"
+        ;;
+    arm64|aarch64)
+        ARCH="arm64"
+        ;;
+    *)
+        echo "Unsupported architecture: $ARCH"
+        exit 1
+        ;;
+esac
+
+# Construct the path to the Bazelisk binary
+DIRNAME=$(dirname $(readlink -f "$0"))
+BAZELISK_BINARY="${DIRNAME}/bazelisk-${OS}-${ARCH}"
+
+# Check for --update-bazelisk flag
+if [ "$1" = "--update-bazelisk" ]; then
+    echo "Updating bazelisk binaries..."
+
+    CURRENT_VERSION=$("$BAZELISK_BINARY" version | head -n1 | sed 's/Bazelisk version: //')
+    echo "Current version: $CURRENT_VERSION"
+
+    LATEST_VERSION=$(gh release view --repo bazelbuild/bazelisk --json tagName -q .tagName)
+    echo "Latest version: $LATEST_VERSION"
+
+    if [ "$CURRENT_VERSION" = "$LATEST_VERSION" ]; then
+        echo "Already at latest version!"
+        exit 0
+    fi
+
+    rm -f "${DIRNAME}"/bazelisk-*
+
+    gh release download "$LATEST_VERSION" \
+        --repo bazelbuild/bazelisk \
+        --pattern "bazelisk-linux-*" \
+        --pattern "bazelisk-darwin-*" \
+        --pattern "bazelisk-windows-*" \
+        --dir "$DIRNAME"
+
+    chmod +x "${DIRNAME}"/bazelisk-linux-* "${DIRNAME}"/bazelisk-darwin-*
+
+    echo "Successfully updated to $LATEST_VERSION"
+    exit 0
+fi
+
+# Check if the binary exists
+if [ ! -x "$BAZELISK_BINARY" ]; then
+    echo "Bazelisk binary not found or not executable: $BAZELISK_BINARY"
+    exit 1
+fi
+
+# Run the Bazelisk binary
+exec "$BAZELISK_BINARY" "$@"

@@ -1,0 +1,30 @@
+module(
+    name = "bazelifier",
+    version = "0.0.0",
+)
+
+# Hermetic C/C++ toolchain (LLVM-based). Backs the Rust toolchain below and,
+# longer term, is the intended path for hermetically building/verifying the
+# C/C++ output of converted CMake projects. See
+# docs/architecture/build-verification.md.
+bazel_dep(name = "llvm", version = "0.8.14")
+
+# Rust toolchain + crate_universe for the translator itself. See
+# docs/architecture/overview.md for where this fits in the pipeline.
+bazel_dep(name = "rules_rs", version = "0.0.98")
+bazel_dep(name = "platforms", version = "1.1.0")
+
+toolchains = use_extension("@rules_rs//rs/toolchains:module_extension.bzl", "toolchains")
+toolchains.toolchain(
+    edition = "2024",
+    version = "1.92.0",
+)
+use_repo(toolchains, "default_rust_toolchains")
+
+rules_rust = use_extension("@rules_rs//rs:rules_rust.bzl", "rules_rust")
+use_repo(rules_rust, "rules_rust")
+
+register_toolchains(
+    "@default_rust_toolchains//:all",
+    "@llvm//toolchain:all",
+)
