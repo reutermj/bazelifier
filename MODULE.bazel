@@ -3,11 +3,11 @@ module(
     version = "0.0.0",
 )
 
-# Hermetic C/C++ toolchain (LLVM-based). Backs the Rust toolchain below and,
-# longer term, is the intended path for hermetically building/verifying the
-# C/C++ output of converted CMake projects. See
+# Hermetic C/C++ toolchain (LLVM-based). Backs the Rust toolchain below and
+# builds the C/C++ output of converted CMake projects hermetically. See
 # docs/architecture/build-verification.md.
 bazel_dep(name = "llvm", version = "0.8.14")
+bazel_dep(name = "rules_cc", version = "0.2.22")
 
 # Rust toolchain + crate_universe for the translator itself. See
 # docs/architecture/overview.md for where this fits in the pipeline.
@@ -28,6 +28,18 @@ register_toolchains(
     "@default_rust_toolchains//:all",
     "@llvm//toolchain:all",
 )
+
+# Third-party crates for the translator (translator/Cargo.toml). rules_rs
+# only supports Cargo.lock-based resolution (no MODULE.bazel-only crate.spec
+# form), so translator/Cargo.lock is a real, cargo-generated lockfile.
+crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")
+crate.from_cargo(
+    name = "crates",
+    cargo_lock = "//translator:Cargo.lock",
+    cargo_toml = "//translator:Cargo.toml",
+    platform_triples = ["x86_64-unknown-linux-gnu"],
+)
+use_repo(crate, "crates")
 
 # BUILD file linting/formatting. See docs/architecture/bazel-codegen.md.
 bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.3", dev_dependency = True)

@@ -29,6 +29,14 @@ sequence.
   new runbook.
 - `examples/` — worked examples showing the format filled in, for reference
   (not necessarily tied to a real in-progress conversion).
+- `maintenance/` — runbooks for recurring repo/tooling maintenance tasks
+  that aren't CMake translation gaps (e.g. regenerating a lockfile) but are
+  still the kind of non-obvious, easy-to-forget procedure worth capturing
+  in a consistent, agent-readable format. These don't fit
+  [TEMPLATE.md](TEMPLATE.md)'s translation-specific fields (source
+  project/location, translator stage) — adapt the section headers to fit
+  (trigger, gap, what was tried, resolution) rather than forcing the
+  CMake-specific frame.
 
 ## Lifecycle
 

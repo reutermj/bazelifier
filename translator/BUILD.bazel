@@ -1,0 +1,21 @@
+load("@crates//:defs.bzl", "all_crate_deps")
+load("@rules_rs//rs:rust_binary.bzl", "rust_binary")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+rust_binary(
+    name = "bazelifier",
+    srcs = [
+        "src/cmake_api.rs",
+        "src/codegen.rs",
+        "src/main.rs",
+        "src/model.rs",
+    ],
+    edition = "2024",
+    deps = all_crate_deps(normal = True),
+)
+
+rust_test(
+    name = "bazelifier_test",
+    crate = ":bazelifier",
+    edition = "2024",
+)

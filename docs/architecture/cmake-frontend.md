@@ -13,14 +13,28 @@ The initial target is CMake projects that generate Ninja build files
   CMake File API query results) as a source of ground truth for what
   actually gets built.
 
-**Open question:** how much weight to put on parsing `CMakeLists.txt`
-directly (understanding CMake-the-language: variables, functions,
-`if()`/generator expressions) versus leaning on CMake's own generated
-artifacts (File API, Ninja graph) as the primary source of truth, with
-`CMakeLists.txt` parsing used mainly to recover intent (target names,
-visibility, structure) that the generated output doesn't preserve well.
-This is a foundational decision and should be settled with real fixtures
-before too much translator code depends on one direction.
+**Decision:** the frontend uses the CMake File API (`codemodel-v2`) as its
+primary source of truth. The translator configures the project (`cmake -B
+<dir> -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON`, requesting the
+`codemodel-v2` File API query) and reads the resulting reply JSON for
+targets, their type, sources, include paths, compile definitions, and link
+dependencies — all already resolved by CMake itself (generator expressions
+evaluated, `if()`/variables/`find_package()` already accounted for). This
+avoids re-implementing CMake-the-language, at the cost of requiring a real
+`cmake` invocation in the pipeline (not yet hermetic on the CMake side —
+see [build-verification.md](build-verification.md)) and tying translation
+to a given CMake version's File API schema.
+
+`compile_commands.json` (emitted alongside the File API reply) is *not* a
+second parsing path — it's reserved for build-verification: cross-checking
+that the flags Bazel actually compiles with match what CMake/Ninja would
+have used, catching drift the File API's more abstract "compile groups"
+could mask.
+
+Direct `CMakeLists.txt` parsing is not used for correctness, but may be
+revisited later purely to recover source-level intent the File API
+discards (comments, variable names, original target grouping/ordering) for
+more idiomatic codegen. Not needed for the first fixture.
 
 ## What the frontend needs to produce
 
