@@ -28,3 +28,6 @@ register_toolchains(
     "@default_rust_toolchains//:all",
     "@llvm//toolchain:all",
 )
+
+# BUILD file linting/formatting. See docs/architecture/bazel-codegen.md.
+bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.3", dev_dependency = True)

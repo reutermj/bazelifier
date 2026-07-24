@@ -14,6 +14,23 @@ Covers how bazelifier turns the internal build-graph model (see
   the runbook process (see [runbook-interface.md](runbook-interface.md))
   rather than silently emitting something wrong or overly conservative.
 
+## Formatting and linting
+
+Generated (and hand-written) `BUILD`/`MODULE.bazel`/`.bzl` files are checked
+and formatted with [buildifier](https://github.com/keith/buildifier-prebuilt),
+via `bazel_dep(name = "buildifier_prebuilt", ..., dev_dependency = True)` in
+`MODULE.bazel`. Two root targets:
+
+- `bazel run //:buildifier` — formats/fixes files in place.
+- `bazel test //:buildifier_check` — fails (non-destructively) if anything
+  needs formatting; intended for CI.
+
+This applies to the repo's own Bazel files today, and should also apply to
+the translator's *generated* output once codegen exists — i.e. pass
+generated `BUILD` files through buildifier before writing them out, so
+output is always idiomatically formatted rather than relying on a human to
+run it afterward.
+
 ## Open questions
 
 - **Rule set / ruleset dependencies:** which Bazel rulesets do we standardize
@@ -22,9 +39,6 @@ Covers how bazelifier turns the internal build-graph model (see
 - **WORKSPACE vs `MODULE.bazel`:** assume Bzlmod (`MODULE.bazel`) as the
   default target given it's the current Bazel direction, but confirm before
   committing.
-- **Formatting:** should output be passed through `buildifier` as a
-  post-processing step? Likely yes — capture the decision here once wired
-  up.
 
 This doc is intentionally thin until there's real codegen to describe —
 expand it as the translator grows rather than speculating ahead of the code.

@@ -1,0 +1,20 @@
+load("@buildifier_prebuilt//:rules.bzl", "buildifier", "buildifier_test")
+
+# bazel run //:buildifier -- to format/fix BUILD, MODULE.bazel, and .bzl files in place.
+buildifier(
+    name = "buildifier",
+    exclude_patterns = ["./.git/*"],
+    lint_mode = "fix",
+    mode = "fix",
+)
+
+# bazel test //:buildifier_check -- fails if any file needs formatting/lint fixes.
+buildifier_test(
+    name = "buildifier_check",
+    size = "small",
+    exclude_patterns = ["./.git/*"],
+    lint_mode = "warn",
+    mode = "diff",
+    no_sandbox = True,
+    workspace = "//:MODULE.bazel",
+)
