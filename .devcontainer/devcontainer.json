@@ -1,0 +1,38 @@
+{
+  "name": "toolchains_cc",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "moby": true,
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "latest"
+    },
+    "ghcr.io/devcontainers-extra/features/apt-packages:1": {
+      "packages": "cmake,ninja-build"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "BazelBuild.vscode-bazel",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "Anthropic.claude-code",
+        "mhutchie.git-graph",
+        "ms-vscode.cmake-tools",
+        "github.vscode-github-actions",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}:${containerEnv:PATH}:${containerEnv:HOME}/.local/bin"
+  },
+  "postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash",
+  "remoteUser": "vscode"
+}
