@@ -7,6 +7,19 @@ confidently translate, it stops and produces a runbook instead of guessing.
 See [docs/runbooks/](../runbooks/) for the actual template and examples.
 This doc covers the design intent.
 
+**Distinct from `needs_attention/`:** the first real per-conversion
+escalation the translator implements (a library with headers but no
+public `FILE_SET` — see [cmake-frontend.md](cmake-frontend.md)) does *not*
+write into `docs/runbooks/`. It writes a `needs_attention/<NNN>-<slug>.md`
+file into that specific conversion's *own* output tree
+(`translator/src/needs_attention.rs`), using a similar
+gap/context/expected-output shape but framed as follow-up work for
+whoever picks up that converted project — not as documentation of
+bazelifier's own interface. `docs/runbooks/` remains the place to document
+*bazelifier's own* escalation contract (for people building the
+translator); `needs_attention/` is what the translator actually emits at
+runtime, per conversion.
+
 ## Why runbooks (vs. just calling an agent API directly)
 
 We're starting with markdown runbooks, consumed by a human handing them to

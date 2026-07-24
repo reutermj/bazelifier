@@ -16,7 +16,14 @@ Covers how bazelifier turns the internal build-graph model (see
   reviewed and maintained by people, not treated as a black box.
 - Prefer native Bazel rules (`cc_library`, `cc_binary`, `cc_test`, etc.) over
   custom genrule-wrapping of the original build system wherever the
-  translator can confidently produce them.
+  translator can confidently produce them. Implemented: `cc_binary`
+  (CMake `EXECUTABLE`) and `cc_library` (`STATIC_LIBRARY`/`SHARED_LIBRARY`
+  — codegen doesn't currently distinguish the two, since Bazel's
+  `cc_library` picks static/dynamic linking per-consumer rather than
+  per-declaration). `cc_library` gets `srcs`, `hdrs` (only file-set-public
+  headers — see [cmake-frontend.md](cmake-frontend.md)), `includes`
+  (the target's own, not inherited ones — transitive via Bazel), and
+  `deps` (resolved sibling target names, rendered as `":name"`).
 - Where the translator can't confidently produce a native rule, fall back to
   the runbook process (see [runbook-interface.md](runbook-interface.md))
   rather than silently emitting something wrong or overly conservative.
@@ -30,26 +37,35 @@ Covers how bazelifier turns the internal build-graph model (see
 
 ## Generated module layout
 
-For a CMake project with one target, the translator currently produces:
+For a CMake project with one or more targets, the translator currently
+produces:
 
 ```
 <out_module>/
   MODULE.bazel        module(name=...) [+ version, if CMAKE_PROJECT_VERSION
                        was set] + bazel_dep(rules_cc, llvm) +
                        register_toolchains
-  BUILD.bazel          the user-facing converted output (e.g. cc_binary)
+  BUILD.bazel          the user-facing converted output (cc_binary/cc_library)
   src/...              copied CMake project sources
+  include/...          copied CMake project sources (any directory layout
+                       the CMakeLists.txt uses is preserved as-is)
   ground_truth/
     BUILD.bazel        exports_files(...) only — NOT part of the
                        user-facing output, validation-only (see
                        build-verification.md)
-    <artifact>          the real cmake+ninja-built binary
+    <artifact>          the real cmake+ninja-built binary/library
+  needs_attention/
+    <NNN>-<slug>.md     present only if the translator hit a gap for
+                       THIS conversion it couldn't confidently resolve
+                       — see cmake-frontend.md's needs_attention/ section
+                       and runbook-interface.md
 ```
 
 `ground_truth/` is deliberately a separate nested package (its own
 `BUILD.bazel`) rather than exported from the top-level `BUILD.bazel`, so
 validation-only targets never appear in what a user actually checks into
-their own repo.
+their own repo. `needs_attention/` is plain markdown, not a Bazel package
+at all — nothing in it is meant to be loaded/built.
 
 ## Formatting and linting
 

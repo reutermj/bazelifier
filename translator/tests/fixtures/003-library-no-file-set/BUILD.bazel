@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# This fixture deliberately exercises the needs_attention/ escalation path
+# (a library with plain, non-FILE_SET headers and a consumer) — see
+# docs/architecture/cmake-frontend.md and
+# docs/architecture/build-verification.md. Its validation_workspace test
+# is expected to fail (gated on the unresolved needs_attention item) until
+# the underlying CMake project is fixed to declare a public FILE_SET.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob(["src/**"]),
+    expected_targets = ["hello"],
+    module_name = "library_no_file_set",
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

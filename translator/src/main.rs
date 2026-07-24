@@ -1,6 +1,7 @@
 mod cmake_api;
 mod codegen;
 mod model;
+mod needs_attention;
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -41,6 +42,37 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
     fs::write(args.out_module.join("BUILD.bazel"), generated.build_bazel)?;
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, &graph)?;
+    write_needs_attention(&args.out_module, &graph)?;
+
+    Ok(())
+}
+
+/// Writes one `needs_attention/<NNN>-<slug>.md` file per gap the
+/// translator could not confidently resolve for this specific conversion
+/// — distinct from bazelifier's own docs/runbooks/ interface docs, this
+/// is actionable follow-up for whoever picks up the converted project.
+/// See docs/architecture/runbook-interface.md.
+///
+/// The directory (with a glob-based `exports_files`-equivalent
+/// `filegroup`) is always created, even with zero items: validation
+/// tooling (see docs/architecture/build-verification.md) checks this
+/// directory for any files at test-runtime to decide whether to gate on
+/// triage before running the ground-truth comparison, which only works if
+/// `@<module>//needs_attention:all` is always a valid, buildable label
+/// regardless of whether there's anything in it.
+fn write_needs_attention(out_module: &Path, graph: &model::BuildGraph) -> std::io::Result<()> {
+    let dir = out_module.join("needs_attention");
+    fs::create_dir_all(&dir)?;
+
+    for (i, item) in graph.needs_attention.iter().enumerate() {
+        let filename = format!("{:03}-{}.md", i + 1, needs_attention::slugify(&item.title));
+        fs::write(dir.join(filename), needs_attention::render(item))?;
+    }
+
+    fs::write(
+        dir.join("BUILD.bazel"),
+        "filegroup(\n    name = \"all\",\n    srcs = glob(\n        [\"*.md\"],\n        allow_empty = True,\n    ),\n    visibility = [\"//visibility:public\"],\n)\n",
+    )?;
 
     Ok(())
 }

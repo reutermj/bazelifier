@@ -50,12 +50,20 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
 fn render_build_bazel(graph: &BuildGraph) -> String {
     let mut out = String::new();
 
-    if graph
+    let has_binary = graph
         .targets
         .iter()
-        .any(|t| t.kind == TargetKind::Executable)
-    {
-        out.push_str("load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")\n\n");
+        .any(|t| t.kind == TargetKind::Executable);
+    let has_library = graph.targets.iter().any(|t| t.kind == TargetKind::Library);
+
+    if has_binary {
+        out.push_str("load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")\n");
+    }
+    if has_library {
+        out.push_str("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")\n");
+    }
+    if has_binary || has_library {
+        out.push('\n');
     }
 
     for (i, target) in graph.targets.iter().enumerate() {
@@ -63,28 +71,80 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
             out.push('\n');
         }
         match target.kind {
-            TargetKind::Executable => render_cc_binary(&mut out, &target.name, &target.sources),
+            TargetKind::Executable => render_cc_binary(
+                &mut out,
+                &target.name,
+                &target.sources,
+                &target.dependencies,
+            ),
+            TargetKind::Library => render_cc_library(
+                &mut out,
+                &target.name,
+                &target.sources,
+                &target.public_headers,
+                &target.dependencies,
+                &target.includes,
+            ),
         }
     }
 
     out
 }
 
-fn render_cc_binary(out: &mut String, name: &str, sources: &[String]) {
-    out.push_str("cc_binary(\n");
-    out.push_str(&format!("    name = \"{name}\",\n"));
-    out.push_str("    srcs = [\n");
-    for src in sources {
-        out.push_str(&format!("        \"{src}\",\n"));
+fn render_string_list(out: &mut String, attr: &str, items: &[String]) {
+    if items.is_empty() {
+        return;
+    }
+    out.push_str(&format!("    {attr} = [\n"));
+    for item in items {
+        out.push_str(&format!("        \"{item}\",\n"));
     }
     out.push_str("    ],\n");
-    // Public by default: a converted module is meant to be depended on,
-    // both by bazelifier's own validation tooling and, as more projects
-    // get converted, by other converted modules (matching how CMake
-    // targets are typically visible project-wide unless the project opts
-    // into something narrower — CMake has no per-target visibility
-    // concept of its own to translate).
-    out.push_str("    visibility = [\"//visibility:public\"],\n");
+}
+
+fn render_deps(out: &mut String, deps: &[String]) {
+    if deps.is_empty() {
+        return;
+    }
+    out.push_str("    deps = [\n");
+    for dep in deps {
+        out.push_str(&format!("        \":{dep}\",\n"));
+    }
+    out.push_str("    ],\n");
+}
+
+// Public by default: a converted module is meant to be depended on, both
+// by bazelifier's own validation tooling and, as more projects get
+// converted, by other converted modules (matching how CMake targets are
+// typically visible project-wide unless the project opts into something
+// narrower — CMake has no per-target visibility concept of its own to
+// translate).
+const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
+
+fn render_cc_binary(out: &mut String, name: &str, sources: &[String], deps: &[String]) {
+    out.push_str("cc_binary(\n");
+    out.push_str(&format!("    name = \"{name}\",\n"));
+    render_string_list(out, "srcs", sources);
+    render_deps(out, deps);
+    out.push_str(PUBLIC_VISIBILITY);
+    out.push_str(")\n");
+}
+
+fn render_cc_library(
+    out: &mut String,
+    name: &str,
+    sources: &[String],
+    public_headers: &[String],
+    deps: &[String],
+    includes: &[String],
+) {
+    out.push_str("cc_library(\n");
+    out.push_str(&format!("    name = \"{name}\",\n"));
+    render_string_list(out, "srcs", sources);
+    render_string_list(out, "hdrs", public_headers);
+    render_string_list(out, "includes", includes);
+    render_deps(out, deps);
+    out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
 }
 
@@ -94,18 +154,21 @@ mod tests {
     use crate::model::{ModuleInfo, Target};
 
     fn graph(version: Option<&str>) -> BuildGraph {
-        BuildGraph {
-            module: ModuleInfo {
+        BuildGraph::new(
+            ModuleInfo {
                 name: "hello_world".to_string(),
                 version: version.map(str::to_string),
             },
-            targets: vec![Target {
+            vec![Target {
                 name: "hello".to_string(),
                 kind: TargetKind::Executable,
                 sources: vec!["src/main.cpp".to_string()],
+                public_headers: vec![],
+                dependencies: vec![],
+                includes: vec![],
                 artifacts: vec!["hello".to_string()],
             }],
-        }
+        )
     }
 
     #[test]
@@ -116,6 +179,46 @@ mod tests {
             "load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")\n\n\
              cc_binary(\n    name = \"hello\",\n    srcs = [\n        \"src/main.cpp\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
         );
+    }
+
+    #[test]
+    fn renders_cc_library_with_hdrs_and_deps() {
+        let graph = BuildGraph::new(
+            ModuleInfo {
+                name: "lib_example".to_string(),
+                version: None,
+            },
+            vec![
+                Target {
+                    name: "greet".to_string(),
+                    kind: TargetKind::Library,
+                    sources: vec!["src/greet.cpp".to_string()],
+                    public_headers: vec!["include/greet.hpp".to_string()],
+                    dependencies: vec![],
+                    includes: vec!["include".to_string()],
+                    artifacts: vec!["libgreet.a".to_string()],
+                },
+                Target {
+                    name: "hello".to_string(),
+                    kind: TargetKind::Executable,
+                    sources: vec!["src/main.cpp".to_string()],
+                    public_headers: vec![],
+                    dependencies: vec!["greet".to_string()],
+                    includes: vec![],
+                    artifacts: vec!["hello".to_string()],
+                },
+            ],
+        );
+
+        let rendered = render(&graph).build_bazel;
+        assert!(rendered.contains("load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")"));
+        assert!(rendered.contains("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")"));
+        assert!(rendered.contains(
+            "cc_library(\n    name = \"greet\",\n    srcs = [\n        \"src/greet.cpp\",\n    ],\n    hdrs = [\n        \"include/greet.hpp\",\n    ],\n    includes = [\n        \"include\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
+        ));
+        assert!(rendered.contains(
+            "cc_binary(\n    name = \"hello\",\n    srcs = [\n        \"src/main.cpp\",\n    ],\n    deps = [\n        \":greet\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
+        ));
     }
 
     #[test]

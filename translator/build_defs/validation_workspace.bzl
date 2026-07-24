@@ -78,8 +78,16 @@ _root_module_bazel = rule(
 _SH_TEST_TEMPLATE = """sh_test(
     name = "{test_name}",
     srcs = ["compare_runtime_output.sh"],
-    args = ["$(location @{module_name}//:{target_name})", "$(location @{module_name}//ground_truth:{target_name})"],
-    data = ["@{module_name}//:{target_name}", "@{module_name}//ground_truth:{target_name}"],
+    args = [
+        "$(location @{module_name}//:{target_name})",
+        "$(location @{module_name}//ground_truth:{target_name})",
+        "{module_name}+/needs_attention",
+    ],
+    data = [
+        "@{module_name}//:{target_name}",
+        "@{module_name}//ground_truth:{target_name}",
+        "@{module_name}//needs_attention:all",
+    ],
 )
 """
 
@@ -123,11 +131,20 @@ def _combined_mtree_impl(ctx):
     out = ctx.actions.declare_file(ctx.attr.name + ".mtree")
 
     # mtree(5) is a plain-text, line-delimited format (one entry per line,
-    # `#mtree` header optional per-file) — safe to concatenate.
+    # `#mtree` header optional per-file) — safe to concatenate. Each
+    # per-fixture mtree independently synthesizes a "fixtures type=dir"
+    # parent-directory entry (mtree_mutate's package_dir does this for
+    # every path component — see tar.bzl's default.awk), so concatenating
+    # N fixtures declares that same shared parent directory N times.
+    # bsdtar doesn't dedupe that itself and produces a spurious nested
+    # fixtures/fixtures/ directory — `awk '!seen[$0]++'` drops exact
+    # duplicate lines (safe here: every field, including timestamps, is
+    # produced deterministically by the same rule, so a real difference
+    # would only ever come from an actual distinct entry, never noise).
     ctx.actions.run_shell(
         outputs = [out],
         inputs = ctx.files.mtrees + ctx.files.extra_files,
-        command = "cat {mtrees} > {out}".format(
+        command = "cat {mtrees} | awk '!seen[$0]++' > {out}".format(
             mtrees = " ".join([f.path for f in ctx.files.mtrees]),
             out = out.path,
         ),

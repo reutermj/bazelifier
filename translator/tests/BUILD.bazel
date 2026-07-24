@@ -7,5 +7,7 @@ validation_workspace(
     name = "validation_workspace",
     fixtures = [
         "//translator/tests/fixtures/001-hello-world:converted",
+        "//translator/tests/fixtures/002-with-library:converted",
+        "//translator/tests/fixtures/003-library-no-file-set:converted",
     ],
 )

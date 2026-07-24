@@ -68,6 +68,19 @@ level. What must match is behavior.
 
 Implemented today:
 
+- **`needs_attention/` gate.** Before comparing anything, the generated
+  `sh_test` checks the fixture's `needs_attention/` directory (see
+  [cmake-frontend.md](cmake-frontend.md)) for any unresolved items. If any
+  exist, the test fails immediately, printing their full content, and the
+  comparison below never runs. This is deliberate, not a shortcut: a
+  conversion with an open `needs_attention` item can still happen to build
+  and behave correctly today (see `003-library-no-file-set`, where
+  `includes`' looser exposure means the build works despite the header
+  visibility gap) — if the comparison ran anyway and passed, it would read
+  as "this is fine," masking a real, unresolved translation gap. The gate
+  forces triage first: an agent (or human) is expected to resolve the
+  flagged issue and re-run the conversion so `needs_attention/` comes back
+  empty before the equivalence check means anything.
 - **Runtime output comparison** (`translator/build_defs/compare_runtime_output.sh`,
   wired up as a generated `sh_test` per target): run the ground-truth
   binary and the Bazel-built binary, diff stdout, stderr, and exit code.
@@ -91,6 +104,19 @@ building against a fixture with nothing to differentiate):
   ours.
 - **Target inventory**: every CMake codemodel target has a corresponding
   Bazel target that built. Cheap, but only catches gross omissions.
+
+## Fixtures
+
+- `001-hello-world` — single `cc_binary`, no dependencies.
+- `002-with-library` — a library with a properly declared public `FILE_SET`
+  header; exercises `cc_library` codegen (`hdrs`, `includes`, `deps`) end
+  to end. Passes both the gate and the comparison.
+- `003-library-no-file-set` — deliberately exercises the `needs_attention/`
+  gate: a library with plain (non-`FILE_SET`) headers and a consumer.
+  Expected to **fail** `bazel test` until the underlying `CMakeLists.txt`
+  is fixed to declare a public `FILE_SET` and the fixture is
+  re-converted — this is the intended, correct behavior, not a bug in the
+  fixture.
 
 ## Why unpack it (rather than validate in-tree)
 

@@ -1,13 +1,49 @@
 #!/usr/bin/env bash
-# Compares the ground-truth (real cmake+ninja) binary's runtime behavior
-# against the Bazel-built binary for the same CMake target: stdout,
-# stderr, and exit code must match. See
-# docs/architecture/build-verification.md — this is NOT a binary-identical
-# check, only a behavioral-equivalence check.
+# Gates on unresolved needs_attention/ items, then compares the
+# ground-truth (real cmake+ninja) binary's runtime behavior against the
+# Bazel-built binary for the same CMake target: stdout, stderr, and exit
+# code must match. See docs/architecture/build-verification.md — this is
+# NOT a binary-identical check, only a behavioral-equivalence check.
+#
+# needs_attention/ means the translator could not confidently resolve
+# something for THIS conversion (see
+# docs/architecture/cmake-frontend.md's needs_attention/ section) — an
+# agent is expected to triage and resolve it before this comparison is
+# meaningful (a conversion can happen to still build/run despite an open
+# needs_attention item, which would otherwise mask the real gap). So this
+# script fails loud, printing the item(s) to fix, rather than silently
+# running the comparison anyway.
 set -uo pipefail
 
-ground_truth_bin="$1"
-bazel_bin="$2"
+bazel_bin="$1"
+ground_truth_bin="$2"
+# The needs_attention/ dir's runfiles-relative path (e.g.
+# "with_library+/needs_attention"), NOT a $(locations) expansion — Bazel's
+# $(locations) can't expand to zero files, which needs_attention/ often
+# legitimately does. @module//needs_attention:all is still a `data` dep
+# (see validation_workspace.bzl) so its files land in runfiles; found here
+# via the test's own runfiles root instead.
+needs_attention_relative_dir="$3"
+
+runfiles_root="${TEST_SRCDIR:-$0.runfiles}"
+needs_attention_dir="${runfiles_root}/${needs_attention_relative_dir}"
+needs_attention_files=()
+if [[ -d "${needs_attention_dir}" ]]; then
+  for f in "${needs_attention_dir}"/*.md; do
+    [[ -e "${f}" ]] && needs_attention_files+=("${f}")
+  done
+fi
+
+if [[ "${#needs_attention_files[@]}" -gt 0 ]]; then
+  echo "FAIL: unresolved needs_attention item(s) — triage these before validating:"
+  echo
+  for f in "${needs_attention_files[@]}"; do
+    echo "===== ${f} ====="
+    cat "${f}"
+    echo
+  done
+  exit 1
+fi
 
 tmpdir="${TEST_TMPDIR:-.}"
 ground_truth_stderr="${tmpdir}/ground_truth_stderr"
