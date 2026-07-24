@@ -1,0 +1,11 @@
+load("//translator/build_defs:validation_workspace.bzl", "validation_workspace")
+
+# Packages every converted fixture into one tarball with a root MODULE.bazel
+# that depends on all of them. See docs/architecture/build-verification.md
+# and translator/build_defs/validation_workspace.bzl.
+validation_workspace(
+    name = "validation_workspace",
+    fixtures = [
+        "//translator/tests/fixtures/001-hello-world:converted",
+    ],
+)

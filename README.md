@@ -1,6 +1,8 @@
 # bazelifier
 
-bazelifier converts existing build scripts into Bazel `BUILD` files. It pairs a
+bazelifier converts existing build scripts into standalone Bazel modules —
+a project's own `MODULE.bazel` and `BUILD.bazel`, ready to check into that
+project's own repo with no dependency on bazelifier itself. It pairs a
 deterministic translator with AI-agent assistance for the cases the
 translator can't handle mechanically.
 
@@ -10,21 +12,25 @@ Autotools, Meson, ...) over time.
 
 ## How it works
 
-1. **Deterministic translator** — parses the source build system (e.g. a
-   CMake project's `CMakeLists.txt` files) and mechanically emits Bazel
-   `BUILD` files for the patterns it recognizes.
+1. **Deterministic translator** — discovers a CMake project's targets via
+   the CMake File API and mechanically emits a **standalone Bazel module**
+   for it (its own `MODULE.bazel` + `BUILD.bazel`, copied sources) for the
+   patterns it recognizes. It also runs the project's real build to
+   capture ground-truth artifacts for verification.
 2. **Agent fallback via runbooks** — when the translator hits something it
    doesn't know how to handle (an unsupported generator expression, a custom
    command, an unusual dependency shape), it emits a **runbook**: a
    structured description of the gap. An AI coding agent (e.g. Claude Code)
    reads the runbook and provides the missing translation, which feeds back
    into the pipeline.
-3. **Build + test verification** — a conversion is only considered successful
-   once the generated Bazel targets build *and* the project's existing tests
-   pass under Bazel. Build verification is done through Bazel itself where
-   possible; see [docs/architecture/build-verification.md](docs/architecture/build-verification.md)
-   for the plan to become fully hermetic (native `cmake`/`ninja` rules
-   running under Bazel, eventually compatible with remote execution).
+3. **Independence + equivalence verification** — a conversion is only
+   considered successful once the generated module builds with **no
+   reference back to bazelifier's own workspace** (verified by packaging it
+   into a tarball, unpacking it completely outside this repo, and building
+   from there) *and* behaves equivalently to the original CMake build (not
+   necessarily binary-identical — currently a runtime output comparison
+   against the captured ground truth). See
+   [docs/architecture/build-verification.md](docs/architecture/build-verification.md).
 
 ## Status
 

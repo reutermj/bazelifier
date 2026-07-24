@@ -11,6 +11,7 @@ rust_binary(
         "src/model.rs",
     ],
     edition = "2024",
+    visibility = ["//translator/build_defs:__pkg__"],
     deps = all_crate_deps(normal = True),
 )
 

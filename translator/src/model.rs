@@ -14,9 +14,28 @@ pub struct Target {
     pub kind: TargetKind,
     /// Source file paths, relative to the CMake project root.
     pub sources: Vec<String>,
+    /// Build-output artifact paths (e.g. the built binary), relative to
+    /// the CMake build directory. Used to locate ground-truth artifacts
+    /// for validation — see docs/architecture/build-verification.md.
+    pub artifacts: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+/// Identifies the standalone Bazel module the translator produces for a
+/// CMake project (its own `MODULE.bazel`, independent of bazelifier's own).
+/// See docs/architecture/bazel-codegen.md.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModuleInfo {
+    /// Derived from CMake's `project()` name.
+    pub name: String,
+    /// `CMAKE_PROJECT_VERSION`, when the CMake project's `project()` call
+    /// specified a `VERSION`. `None` when it didn't — Bazel's `module()`
+    /// does not require a version, so codegen omits it rather than
+    /// fabricating one.
+    pub version: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildGraph {
+    pub module: ModuleInfo,
     pub targets: Vec<Target>,
 }

@@ -17,9 +17,14 @@ source build system files (e.g. CMakeLists.txt)
         │
         ▼
  ┌─────────────────────┐
- │ Deterministic        │  Rust. Parses the source build description into
- │ translator            │  an internal model, mechanically emits Bazel
- │                       │  BUILD files for recognized patterns.
+ │ Deterministic        │  Rust. Discovers targets via the CMake File API,
+ │ translator            │  also runs the real build to capture ground-truth
+ │                       │  artifacts. Mechanically emits a STANDALONE Bazel
+ │                       │  module for recognized patterns — its own
+ │                       │  MODULE.bazel + BUILD.bazel, not a package inside
+ │                       │  bazelifier's own workspace. See
+ │                       │  docs/architecture/build-verification.md for why
+ │                       │  that distinction is the whole point.
  └──────────┬────────────┘
             │ construct not understood
             ▼
@@ -31,15 +36,22 @@ source build system files (e.g. CMakeLists.txt)
             │ agent (e.g. Claude Code) resolves the gap
             ▼
  ┌─────────────────────┐
- │ Generated Bazel       │  BUILD files + any needed toolchain/rule glue.
- │ BUILD files           │
+ │ Standalone Bazel      │  MODULE.bazel + BUILD.bazel + copied sources +
+ │ module (per project)  │  ground_truth/ (real cmake+ninja-built
+ │                       │  artifacts, for validation only — never part of
+ │                       │  the user-facing output).
  └──────────┬────────────┘
-            │
+            │ (for our own fixtures) packaged into a validation tarball
+            │ alongside every other converted fixture, with a root
+            │ MODULE.bazel depending on all of them
             ▼
  ┌─────────────────────┐
- │ Build + test          │  `bazel build` / `bazel test` against the
- │ verification          │  generated targets. Success = builds AND the
- │                       │  project's existing tests pass under Bazel.
+ │ Build + equivalence   │  Unpacked completely outside this repo. `bazel
+ │ verification          │  build`/`bazel test` from the unpacked root
+ │                       │  proves the module is independent (no reference
+ │                       │  back to bazelifier) AND functionally equivalent
+ │                       │  to the CMake build (runtime output comparison
+ │                       │  today; more checks planned).
  └───────────────────────┘
 ```
 
@@ -57,9 +69,17 @@ source build system files (e.g. CMakeLists.txt)
 
 A conversion is successful when:
 
-1. The generated Bazel targets build successfully.
-2. The project's existing test suite passes when run under Bazel (`bazel
-   test`), giving behavioral parity confidence — not just "it compiles."
+1. The output is a **standalone Bazel module** that builds with no
+   reference back to bazelifier's own workspace — see
+   [build-verification.md](build-verification.md) for why this is checked
+   explicitly (by unpacking a packaged tarball outside this repo) rather
+   than assumed.
+2. The generated module is **functionally equivalent** to the original
+   CMake project. We are not targeting binary compatibility — see
+   [build-verification.md](build-verification.md) for the specific
+   equivalence checks (runtime output comparison today; compile-command
+   and symbol comparison, and running the project's own CTest/GoogleTest
+   suite, planned as fixtures grow to exercise them).
 
 **Open question:** how do we define "existing test suite" precisely across
 different CMake projects (CTest, GoogleTest, ad hoc scripts, etc.)? Likely

@@ -5,6 +5,13 @@ Covers how bazelifier turns the internal build-graph model (see
 
 ## Goals
 
+- Emit a **standalone Bazel module**, not just a `BUILD.bazel` — every
+  conversion gets its own `MODULE.bazel` (`bazel_dep`s on `rules_cc`,
+  `llvm`, etc., plus `register_toolchains`) so the output builds with no
+  reference back to bazelifier's own workspace. See
+  [build-verification.md](build-verification.md) for why this is the whole
+  point and how it's actually verified (unpacked and built completely
+  outside this repo).
 - Emit idiomatic, human-readable `BUILD` files — output is meant to be
   reviewed and maintained by people, not treated as a black box.
 - Prefer native Bazel rules (`cc_library`, `cc_binary`, `cc_test`, etc.) over
@@ -13,6 +20,36 @@ Covers how bazelifier turns the internal build-graph model (see
 - Where the translator can't confidently produce a native rule, fall back to
   the runbook process (see [runbook-interface.md](runbook-interface.md))
   rather than silently emitting something wrong or overly conservative.
+- Generated targets default to `visibility = ["//visibility:public"]`: a
+  converted module is meant to be depended on — both by bazelifier's own
+  validation tooling, and, as more projects get converted, by other
+  converted modules (a converted library's module can become a real
+  `bazel_dep` of a converted app's module). CMake has no per-target
+  visibility concept of its own to translate, so there's no source-level
+  signal to narrow this from.
+
+## Generated module layout
+
+For a CMake project with one target, the translator currently produces:
+
+```
+<out_module>/
+  MODULE.bazel        module(name=...) [+ version, if CMAKE_PROJECT_VERSION
+                       was set] + bazel_dep(rules_cc, llvm) +
+                       register_toolchains
+  BUILD.bazel          the user-facing converted output (e.g. cc_binary)
+  src/...              copied CMake project sources
+  ground_truth/
+    BUILD.bazel        exports_files(...) only — NOT part of the
+                       user-facing output, validation-only (see
+                       build-verification.md)
+    <artifact>          the real cmake+ninja-built binary
+```
+
+`ground_truth/` is deliberately a separate nested package (its own
+`BUILD.bazel`) rather than exported from the top-level `BUILD.bazel`, so
+validation-only targets never appear in what a user actually checks into
+their own repo.
 
 ## Formatting and linting
 
@@ -33,12 +70,17 @@ run it afterward.
 
 ## Open questions
 
-- **Rule set / ruleset dependencies:** which Bazel rulesets do we standardize
-  on for C/C++ (`rules_cc`, bare native rules, etc.)? Needs a decision once
-  we're generating real output.
-- **WORKSPACE vs `MODULE.bazel`:** assume Bzlmod (`MODULE.bazel`) as the
-  default target given it's the current Bazel direction, but confirm before
-  committing.
+- **Rule set / ruleset dependencies:** `rules_cc` is used today; needs
+  revisiting as more target kinds (libraries, tests) get added.
+- **Pinned toolchain versions:** `RULES_CC_VERSION`/`LLVM_VERSION` in
+  `translator/src/codegen.rs` are hardcoded constants — there's no
+  per-project toolchain-selection mechanism yet. Fine for now (one set of
+  fixtures, one toolchain), but will need a real design once fixtures need
+  different C++ standards/toolchain requirements.
+- **Module versioning beyond the top-level project:** only
+  `CMAKE_PROJECT_VERSION` (the top-level `project()`'s version) is read
+  today — see [cmake-frontend.md](cmake-frontend.md).
 
-This doc is intentionally thin until there's real codegen to describe —
-expand it as the translator grows rather than speculating ahead of the code.
+This doc is intentionally thin until there's more real codegen to
+describe — expand it as the translator grows rather than speculating ahead
+of the code.

@@ -1,0 +1,4 @@
+# Marks this directory as a package so convert_cmake_project.bzl and
+# validation_workspace.bzl can be loaded from other packages.
+
+exports_files(["compare_runtime_output.sh"])
