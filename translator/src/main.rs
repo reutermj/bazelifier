@@ -5,6 +5,7 @@ mod needs_attention;
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 
 use clap::Parser;
 
@@ -45,7 +46,29 @@ struct Args {
     deliverable_root: Option<PathBuf>,
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> ExitCode {
+    if let Err(error) = run() {
+        eprintln!("{}", report(error.as_ref()));
+        return ExitCode::FAILURE;
+    }
+    ExitCode::SUCCESS
+}
+
+/// Formats a fatal error for the terminal, via `Display`.
+///
+/// Returning `Result<_, Box<dyn Error>>` from `main` looks like it does
+/// this already, but Rust's termination path formats the error with
+/// `Debug`. Every `Display` impl in the crate was therefore dead code, and
+/// the messages written to be read by a human — `cmake_api::Error`'s, which
+/// passes CMake's own multi-line stderr straight through — arrived as a
+/// single escaped blob wrapped in struct syntax. That is the output a user
+/// gets for the most common failure there is, a CMake project that doesn't
+/// configure.
+fn report(error: &dyn std::error::Error) -> String {
+    format!("error: {error}")
+}
+
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let deliverable_root = args.deliverable_root.as_ref().unwrap_or(&args.source_dir);
@@ -180,4 +203,58 @@ fn copy_referenced_sources(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The regression this guards: `{error:?}` here instead of `{error}`
+    // silently reverts every Display impl in the crate to dead code, and
+    // nothing else in the suite would notice.
+    #[test]
+    fn report_formats_with_display_not_debug() {
+        let error = cmake_api::Error::CmakeConfigureFailed {
+            stderr: "CMake Error at CMakeLists.txt:3 (add_executable):\n  Cannot find source \
+                     file:\n\n    does_not_exist.cpp\n"
+                .to_string(),
+        };
+
+        let reported = report(&error);
+
+        assert!(reported.contains("cmake configure failed:\n"));
+        assert!(reported.contains("Cannot find source file"));
+        // Debug would name the variant and escape the newlines into one line.
+        assert!(
+            !reported.contains("CmakeConfigureFailed"),
+            "Debug formatting leaked into the message:\n{reported}"
+        );
+        assert!(
+            !reported.contains("\\n"),
+            "newlines were escaped rather than printed:\n{reported}"
+        );
+    }
+
+    #[test]
+    fn report_covers_every_error_variant_readably() {
+        let variants: Vec<Box<dyn std::error::Error>> = vec![
+            Box::new(cmake_api::Error::NoProject),
+            Box::new(cmake_api::Error::CmakeBuildFailed {
+                stderr: "ninja: build stopped\n".to_string(),
+            }),
+            Box::new(cmake_api::Error::SourceDirOutsideDeliverableRoot {
+                source_dir: "/a/proj".to_string(),
+                deliverable_root: "/b".to_string(),
+            }),
+        ];
+
+        for error in &variants {
+            let reported = report(error.as_ref());
+            assert!(reported.starts_with("error: "), "{reported}");
+            assert!(
+                !reported.contains('{'),
+                "looks like Debug struct syntax, not a sentence:\n{reported}"
+            );
+        }
+    }
 }
