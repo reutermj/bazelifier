@@ -405,15 +405,26 @@ fn to_target(
     let mut sources = Vec::new();
     let mut public_headers = Vec::new();
     let mut generated_sources = Vec::new();
+    let mut out_of_tree_sources = Vec::new();
     let mut has_unclassified_headers = false;
     for source in &reply.sources {
-        // A generated source is an absolute path into the CMake build
-        // directory. Emitting it verbatim would bake the build machine's
-        // filesystem layout into the generated BUILD.bazel and produce a
-        // label Bazel can't resolve, so it's escalated instead — the
-        // translator has no way to know what produces the file.
+        // The translator can't produce a generated file, and has no way to
+        // know what does.
         if source.is_generated {
             generated_sources.push(source.path.clone());
+            continue;
+        }
+
+        // CMake reports a source path relative to the top-level source
+        // directory ONLY when the file is inside it; anything else comes
+        // through as an absolute path. Emitting one verbatim would bake this
+        // machine's filesystem layout into the generated BUILD.bazel and
+        // produce something Bazel can't resolve as a label — and the file
+        // isn't in the copied module either, since only the source dir is
+        // copied. Same invariant `strip_project_prefix` enforces for include
+        // directories.
+        if !is_project_relative(&source.path) {
+            out_of_tree_sources.push(source.path.clone());
             continue;
         }
 
@@ -455,6 +466,12 @@ fn to_target(
         needs_attention.push(generated_sources_needs_attention(
             &reply.name,
             &generated_sources,
+        ));
+    }
+    if !out_of_tree_sources.is_empty() {
+        needs_attention.push(out_of_tree_sources_needs_attention(
+            &reply.name,
+            &out_of_tree_sources,
         ));
     }
 
@@ -895,6 +912,77 @@ mod tests {
     }
 
     #[test]
+    fn is_project_relative_accepts_paths_inside_the_project() {
+        assert!(is_project_relative("src/main.cpp"));
+        assert!(is_project_relative("include/greet.hpp"));
+    }
+
+    // CMake only reports a project-relative path when the file is inside
+    // the top-level source dir — an absolute path means it isn't, and a
+    // `..` component would escape the module root the same way.
+    #[test]
+    fn is_project_relative_rejects_paths_outside_the_project() {
+        assert!(!is_project_relative("/abs/shared/helper.cpp"));
+        assert!(!is_project_relative("../shared/helper.cpp"));
+        assert!(!is_project_relative("src/../../escape.cpp"));
+    }
+
+    // An ordinary (non-generated) source outside the source tree —
+    // `add_executable(app ../shared/helper.cpp)`. isGenerated is false here,
+    // so classifying on that flag alone would let the absolute path through.
+    #[test]
+    fn to_target_excludes_out_of_tree_sources_and_escalates() {
+        let reply = TargetReply {
+            name: "app".to_string(),
+            cmake_type: "EXECUTABLE".to_string(),
+            sources: vec![
+                TargetSource {
+                    path: "src/main.cpp".to_string(),
+                    file_set_index: None,
+                    is_generated: false,
+                },
+                TargetSource {
+                    path: "/abs/shared/helper.cpp".to_string(),
+                    file_set_index: None,
+                    is_generated: false,
+                },
+            ],
+            file_sets: vec![],
+            dependencies: vec![],
+            artifacts: vec![TargetArtifact {
+                path: "app".to_string(),
+            }],
+            compile_groups: vec![],
+            backtrace_graph: empty_backtrace_graph(),
+        };
+
+        let (target, needs_attention) = to_target(
+            reply,
+            TargetKind::Executable,
+            &std::collections::HashMap::new(),
+            false,
+            "/proj",
+        );
+
+        assert_eq!(
+            target.sources,
+            vec!["src/main.cpp".to_string()],
+            "an absolute path must never reach srcs"
+        );
+        assert_eq!(needs_attention.len(), 1);
+        assert!(
+            needs_attention[0].gap.contains("/abs/shared/helper.cpp"),
+            "{}",
+            needs_attention[0].gap
+        );
+        assert!(
+            needs_attention[0]
+                .title
+                .contains("outside the project directory")
+        );
+    }
+
+    #[test]
     fn target_kind_maps_supported_cmake_types() {
         assert_eq!(target_kind("EXECUTABLE"), Some(TargetKind::Executable));
         assert_eq!(target_kind("STATIC_LIBRARY"), Some(TargetKind::Library));
@@ -955,6 +1043,63 @@ mod tests {
     fn unsupported_type_guidance_falls_back_for_unknown_types() {
         let guidance = unsupported_type_guidance("SOMETHING_NEW");
         assert!(guidance.contains("no mapping in the translator yet"));
+    }
+}
+
+/// Whether a File API source path can become a Bazel source label in the
+/// generated module. CMake only reports a path relative to the top-level
+/// source directory when the file is actually inside it, so an absolute
+/// path means the file lives outside the project being converted. `..`
+/// components are rejected defensively — they'd escape the module root the
+/// same way, and a label can't express them either.
+fn is_project_relative(path: &str) -> bool {
+    let path = Path::new(path);
+    !path.is_absolute()
+        && !path
+            .components()
+            .any(|c| matches!(c, std::path::Component::ParentDir))
+}
+
+/// Escalates sources that live outside the CMake project's top-level source
+/// directory. See `is_project_relative`.
+fn out_of_tree_sources_needs_attention(target_name: &str, out_of_tree: &[String]) -> NeedsAttention {
+    let title = format!("Target '{target_name}' has sources outside the project directory");
+    NeedsAttention {
+        gap: format!(
+            "Target '{target_name}' compiles {} source file(s) that live outside the CMake \
+             project's top-level source directory:\n\n{}\n\nThey were left out of the \
+             generated rule's `srcs`. The File API reports such files as absolute paths (it \
+             only uses project-relative paths for files inside the source tree), which is \
+             neither a valid Bazel label nor portable — it would bake this machine's \
+             filesystem layout into output that is meant to be checked into someone else's \
+             repo. The files are also absent from the generated module, since only the \
+             project's own source directory is copied into it.",
+            out_of_tree.len(),
+            out_of_tree
+                .iter()
+                .map(|p| format!("- `{p}`"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+        context: format!(
+            "This usually means the CMakeLists.txt reaches into a sibling directory (e.g. \
+             `../shared/util.cpp`) or names an absolute path. '{target_name}' is missing \
+             whatever those files contribute, so it will fail to link if anything references \
+             their symbols. Two shapes of answer: vendor the files into the converted module \
+             and list them in `srcs`, or — usually better, and the direction this project is \
+             built for — convert the directory that owns them into its own Bazel module and \
+             depend on it, which is exactly what the validation workspace's cross-module \
+             `bazel_dep` wiring exists to support (see \
+             docs/architecture/build-verification.md)."
+        ),
+        expected_output: format!(
+            "Make each file above reachable from '{target_name}' by a relative Bazel label — \
+             either vendored into this module or supplied by a `deps` edge on another \
+             module — and wire it into the generated `BUILD.bazel`. Resolve this in the \
+             GENERATED output only — do NOT edit the project's CMakeLists.txt to move or \
+             inline the files."
+        ),
+        title,
     }
 }
 

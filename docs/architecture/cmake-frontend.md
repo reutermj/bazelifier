@@ -130,11 +130,29 @@ Currently implemented triggers:
   `cmake_api.rs::unsupported_target_needs_attention`.
 - **Generated sources** — a target consumes a source CMake produces during
   the build (`isGenerated`), such as an `add_custom_command()` output or
-  the objects an `OBJECT_LIBRARY` splices into its consumers. These are
-  reported as absolute paths into the CMake build directory, so they are
-  excluded from the generated `srcs` — emitting one verbatim would bake the
-  build machine's filesystem layout into the output and produce a label
-  Bazel cannot resolve. See `cmake_api.rs::generated_sources_needs_attention`.
+  the objects an `OBJECT_LIBRARY` splices into its consumers. The
+  translator cannot produce the file and has no way to know what does. See
+  `cmake_api.rs::generated_sources_needs_attention`.
+- **Out-of-tree sources** — a target compiles a file outside the project's
+  top-level source directory (`../shared/util.cpp`, or an absolute path).
+  See `cmake_api.rs::out_of_tree_sources_needs_attention`.
+
+### Source paths are only conditionally relative
+
+The File API reports `sources[].path` **relative to the top-level source
+directory only when the file is actually inside it**; anything else comes
+through as an absolute path. So a source path cannot be passed through to a
+generated `srcs` unvalidated — an absolute path is not a usable Bazel
+label, it bakes the build machine's filesystem layout into output meant to
+be checked into someone else's repo, and the file isn't in the generated
+module anyway, since only the project's own source directory is copied.
+
+`is_project_relative` enforces this for every source (rejecting `..`
+components too, which would escape the module root the same way) — the same
+invariant `strip_project_prefix` already enforced for include directories.
+Note that `isGenerated` is *not* a sufficient test on its own: an ordinary,
+non-generated source in a sibling directory is reported absolute and
+carries no flag distinguishing it.
 
 ### Skipping a target without breaking its dependents
 
