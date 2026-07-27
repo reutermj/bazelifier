@@ -130,12 +130,62 @@ Currently implemented triggers:
   `cmake_api.rs::unsupported_target_needs_attention`.
 - **Generated sources** — a target consumes a source CMake produces during
   the build (`isGenerated`), such as an `add_custom_command()` output or
-  the objects an `OBJECT_LIBRARY` splices into its consumers. The
-  translator cannot produce the file and has no way to know what does. See
+  the objects an `OBJECT_LIBRARY` splices into its consumers. See
   `cmake_api.rs::generated_sources_needs_attention`.
-- **Out-of-tree sources** — a target compiles a file outside the project's
-  top-level source directory (`../shared/util.cpp`, or an absolute path).
-  See `cmake_api.rs::out_of_tree_sources_needs_attention`.
+- **Sources the module cannot reach** — a target compiles a file the
+  translator could not place inside the generated module. See
+  `cmake_api.rs::sources_outside_deliverable_needs_attention`.
+
+### What actually makes an input a problem: reproducibility
+
+The criterion is **not** where a file sits on the machine that ran the
+conversion. It is whether the file can be reproduced from the source
+deliverable — the tarball, checkout, or directory the project ships. That
+framing is deliberately version-control agnostic: a tarball is a perfectly
+valid way to deliver source code, so nothing here consults git, and
+nothing should.
+
+Three tiers fall out of it, and they want different responses:
+
+1. **In the deliverable, outside the CMake source directory** — e.g. a
+   sibling `../shared/util.cpp` that ships alongside the project. Nothing
+   is wrong: the file is reproducible and should be handled gracefully,
+   without escalating at all. The translator does not manage this yet,
+   because it roots a module at the CMake source directory rather than
+   deriving the root from the referenced file set (see below).
+2. **Not in the deliverable, but derivable from it** — generated sources.
+   Also legitimate: the recipe ships with the project. This is a
+   translator **capability gap**, not a project defect — the escalation
+   says so explicitly, because "your generated file is a problem" is the
+   wrong message to send about a normal build construct.
+3. **Neither in the deliverable nor derivable from it** — an absolute path
+   into a system location, a machine-local checkout, a prebuilt artifact.
+   This is the only tier that indicates something genuinely wrong: the
+   build has an input that cannot be reproduced from what the project
+   ships, and no conversion can be faithful while that holds.
+
+Tiers 1 and 3 are indistinguishable to the translator today — both surface
+as a path it cannot place in the module — so the escalation puts the
+question to whoever resolves it rather than guessing. **Planned:** derive a
+module's root from the files the build actually references, capped by an
+explicitly declared deliverable root, which resolves tier 1 mechanically
+and leaves tier 3 as the only escalation.
+
+### Only referenced files enter the module
+
+`main.rs::copy_referenced_sources` copies exactly the files the build graph
+names — every target's `sources` and `public_headers` — rather than
+recursively copying the source directory. The output is a Bazel module, not
+a mirror of the CMake project.
+
+Besides keeping `.git/`, stale build outputs and editor scratch files out
+of a converted module, this makes the module reproducible by construction:
+every file in it traces to a build-graph reference. A file that exists in
+the source tree but is not part of the build — a gitignored leftover, an
+artifact of an earlier in-source build — cannot silently become part of the
+deliverable. That property needs no knowledge of version control. The
+project's own `CMakeLists.txt` is not copied either; nothing in the
+generated module builds from it.
 
 ### Source paths are only conditionally relative
 

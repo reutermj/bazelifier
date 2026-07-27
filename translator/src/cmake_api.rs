@@ -405,7 +405,7 @@ fn to_target(
     let mut sources = Vec::new();
     let mut public_headers = Vec::new();
     let mut generated_sources = Vec::new();
-    let mut out_of_tree_sources = Vec::new();
+    let mut sources_outside_deliverable = Vec::new();
     let mut has_unclassified_headers = false;
     for source in &reply.sources {
         // The translator can't produce a generated file, and has no way to
@@ -424,7 +424,7 @@ fn to_target(
         // copied. Same invariant `strip_project_prefix` enforces for include
         // directories.
         if !model::is_module_relative(&source.path) {
-            out_of_tree_sources.push(source.path.clone());
+            sources_outside_deliverable.push(source.path.clone());
             continue;
         }
 
@@ -468,10 +468,10 @@ fn to_target(
             &generated_sources,
         ));
     }
-    if !out_of_tree_sources.is_empty() {
-        needs_attention.push(out_of_tree_sources_needs_attention(
+    if !sources_outside_deliverable.is_empty() {
+        needs_attention.push(sources_outside_deliverable_needs_attention(
             &reply.name,
-            &out_of_tree_sources,
+            &sources_outside_deliverable,
         ));
     }
 
@@ -931,7 +931,7 @@ mod tests {
     // `add_executable(app ../shared/helper.cpp)`. isGenerated is false here,
     // so classifying on that flag alone would let the absolute path through.
     #[test]
-    fn to_target_excludes_out_of_tree_sources_and_escalates() {
+    fn to_target_excludes_sources_outside_deliverable_and_escalates() {
         let reply = TargetReply {
             name: "app".to_string(),
             cmake_type: "EXECUTABLE".to_string(),
@@ -975,10 +975,13 @@ mod tests {
             "{}",
             needs_attention[0].gap
         );
+        assert!(needs_attention[0].title.contains("cannot reach"));
+        // The resolution turns on whether the file ships with the project,
+        // not on where it happens to sit on this machine.
         assert!(
-            needs_attention[0]
-                .title
-                .contains("outside the project directory")
+            needs_attention[0].context.contains("source deliverable"),
+            "{}",
+            needs_attention[0].context
         );
     }
 
@@ -1046,44 +1049,58 @@ mod tests {
     }
 }
 
-/// Escalates sources that live outside the CMake project's top-level source
-/// directory. See `model::is_module_relative`.
-fn out_of_tree_sources_needs_attention(target_name: &str, out_of_tree: &[String]) -> NeedsAttention {
-    let title = format!("Target '{target_name}' has sources outside the project directory");
+/// Escalates sources the translator could not place inside the generated
+/// module. The question that decides the resolution is whether the file is
+/// part of the source deliverable — see the tier discussion in
+/// docs/architecture/cmake-frontend.md.
+fn sources_outside_deliverable_needs_attention(
+    target_name: &str,
+    outside_deliverable: &[String],
+) -> NeedsAttention {
+    let title = format!("Target '{target_name}' has sources the module cannot reach");
     NeedsAttention {
         gap: format!(
-            "Target '{target_name}' compiles {} source file(s) that live outside the CMake \
-             project's top-level source directory:\n\n{}\n\nThey were left out of the \
-             generated rule's `srcs`. The File API reports such files as absolute paths (it \
-             only uses project-relative paths for files inside the source tree), which is \
-             neither a valid Bazel label nor portable — it would bake this machine's \
-             filesystem layout into output that is meant to be checked into someone else's \
-             repo. The files are also absent from the generated module, since only the \
-             project's own source directory is copied into it.",
-            out_of_tree.len(),
-            out_of_tree
+            "Target '{target_name}' compiles {} source file(s) that the translator could not \
+             place inside the generated module:\n\n{}\n\nThey were left out of the generated \
+             rule's `srcs`. The translator roots a converted module at the CMake project's \
+             top-level source directory, and a Bazel label cannot refer to anything above its \
+             own module root, so these files have nowhere to live in the output as it is \
+             currently laid out.",
+            outside_deliverable.len(),
+            outside_deliverable
                 .iter()
                 .map(|p| format!("- `{p}`"))
                 .collect::<Vec<_>>()
                 .join("\n")
         ),
         context: format!(
-            "This usually means the CMakeLists.txt reaches into a sibling directory (e.g. \
-             `../shared/util.cpp`) or names an absolute path. '{target_name}' is missing \
-             whatever those files contribute, so it will fail to link if anything references \
-             their symbols. Two shapes of answer: vendor the files into the converted module \
-             and list them in `srcs`, or — usually better, and the direction this project is \
-             built for — convert the directory that owns them into its own Bazel module and \
-             depend on it, which is exactly what the validation workspace's cross-module \
+            "The question that decides what to do here is NOT where the file sits on this \
+             machine — it is whether the file is part of the source deliverable being \
+             converted (the tarball, checkout, or directory the project ships as its \
+             sources).\n\n\
+             If it IS part of the deliverable — typically a sibling directory like \
+             `../shared/` that ships alongside the project — then nothing is wrong with the \
+             project. The file is reproducible, and this is a translator limitation: module \
+             roots are not yet derived from the referenced file set, so the translator cannot \
+             widen the module to include it. Resolve it by vendoring the file into this \
+             module, or by converting the directory that owns it into its own Bazel module \
+             and depending on that, which is what the validation workspace's cross-module \
              `bazel_dep` wiring exists to support (see \
-             docs/architecture/build-verification.md)."
+             docs/architecture/build-verification.md).\n\n\
+             If it is NOT part of the deliverable — an absolute path into a system location, \
+             a checkout that only exists on the machine that ran the conversion, a prebuilt \
+             artifact — then the gap is real: this build has an input that cannot be \
+             reproduced from what the project ships, and no conversion can be faithful while \
+             that is true. Vendoring the file is then the only honest fix.\n\n\
+             Either way '{target_name}' is missing whatever those files contribute, so it \
+             will fail to link if anything references their symbols."
         ),
         expected_output: format!(
-            "Make each file above reachable from '{target_name}' by a relative Bazel label — \
-             either vendored into this module or supplied by a `deps` edge on another \
-             module — and wire it into the generated `BUILD.bazel`. Resolve this in the \
-             GENERATED output only — do NOT edit the project's CMakeLists.txt to move or \
-             inline the files."
+            "State which of the two cases above applies for each file, then make it reachable \
+             from '{target_name}' by a relative Bazel label — vendored into this module, or \
+             supplied by a `deps` edge on another module — and wire it into the generated \
+             `BUILD.bazel`. Resolve this in the GENERATED output only — do NOT edit the \
+             project's CMakeLists.txt to move or inline the files."
         ),
         title,
     }
@@ -1099,9 +1116,8 @@ fn generated_sources_needs_attention(target_name: &str, generated: &[String]) ->
             "CMake reports {} source(s) for target '{target_name}' that it generates during \
              the build rather than reading from the project tree:\n\n{}\n\nThey were left out \
              of the generated `cc_*` rule's `srcs`. The File API reports them as absolute \
-             paths into the CMake build directory, so emitting them verbatim would bake this \
-             machine's filesystem layout into the output and produce labels Bazel cannot \
-             resolve. The translator has no way to determine what produces them.",
+             paths into the CMake build directory and does not say what produces them, so the \
+             translator has nothing it could point `srcs` at.",
             generated.len(),
             generated
                 .iter()
@@ -1110,14 +1126,21 @@ fn generated_sources_needs_attention(target_name: &str, generated: &[String]) ->
                 .join("\n")
         ),
         context: format!(
-            "'{target_name}' is therefore missing whatever these files contribute. Two common \
-             causes: an `add_custom_command()` that produces a source, which maps to a \
-             `genrule` whose output feeds this target's `srcs`; or a `$<TARGET_OBJECTS:...>` \
-             expansion from an `OBJECT_LIBRARY`, in which case the paths above are `.o` files \
-             and the real fix is translating that library — look for a separate \
-             needs_attention item naming it, and resolving that one likely resolves this too. \
-             Note the build may still LINK if nothing references the missing symbols, so a \
-             green build does not by itself mean this was handled."
+            "This is a translator capability gap, not a problem with the project. A generated \
+             file is a perfectly legitimate build input: it is reproducible, because the \
+             recipe that produces it ships with the sources. What the translator cannot yet do \
+             is translate that recipe, so it has nothing to point `srcs` at. Nothing here \
+             needs to be removed or worked around — the recipe needs expressing in \
+             Bazel.\n\n\
+             Two common causes: an `add_custom_command()` that produces a source, which maps \
+             to a `genrule` whose output feeds this target's `srcs`; or a \
+             `$<TARGET_OBJECTS:...>` expansion from an `OBJECT_LIBRARY`, in which case the \
+             paths above are `.o` files and the real fix is translating that library — look \
+             for a separate needs_attention item naming it, and resolving that one likely \
+             resolves this too.\n\n\
+             '{target_name}' is missing whatever these files contribute. Note the build may \
+             still LINK if nothing references the missing symbols, so a green build does not \
+             by itself mean this was handled."
         ),
         expected_output: format!(
             "Identify what produces each file above and express it in the generated \

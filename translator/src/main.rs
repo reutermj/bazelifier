@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let graph = cmake_api::discover(&args.source_dir, &args.build_dir)?;
     let generated = codegen::render(&graph);
 
-    copy_sources(&args.source_dir, &args.out_module)?;
+    copy_referenced_sources(&args.source_dir, &args.out_module, &graph)?;
     fs::write(
         args.out_module.join("MODULE.bazel"),
         generated.module_bazel,
@@ -118,25 +118,48 @@ fn copy_ground_truth_artifacts(
     Ok(())
 }
 
-/// Copies the CMake project's source files into the output module
-/// directory, so the generated BUILD.bazel has something to build against.
-fn copy_sources(source_dir: &Path, out_dir: &Path) -> std::io::Result<()> {
+/// Copies exactly the files the converted build graph references — every
+/// target's `sources` and `public_headers` — preserving their layout
+/// relative to the module root.
+///
+/// Deliberately NOT a recursive copy of the source directory. The output is
+/// a Bazel module, not a mirror of the CMake project, and a file belongs in
+/// it because something in the build graph named it. Copying a directory
+/// wholesale instead pulls in whatever else happens to be sitting there —
+/// `.git/`, stale build outputs, editor scratch files — and, on a real
+/// project, a great deal of it.
+///
+/// This also makes the module reproducible by construction: everything in
+/// it traces to a build-graph reference, so a file that is present in the
+/// source tree but not part of the build (a gitignored leftover, an
+/// artifact from an earlier in-source build) cannot silently become part of
+/// the deliverable. That property holds without the translator knowing
+/// anything about version control — see docs/architecture/cmake-frontend.md.
+///
+/// Note the CMake project's own `CMakeLists.txt` is therefore not copied:
+/// nothing in the generated module builds from it.
+fn copy_referenced_sources(
+    source_dir: &Path,
+    out_dir: &Path,
+    graph: &model::BuildGraph,
+) -> std::io::Result<()> {
     fs::create_dir_all(out_dir)?;
-    copy_dir_recursive(source_dir, out_dir)
-}
 
-fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
-    for entry in fs::read_dir(src)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        let dst_path = dst.join(entry.file_name());
-        if path.is_dir() {
-            fs::create_dir_all(&dst_path)?;
-            copy_dir_recursive(&path, &dst_path)?;
-        } else {
-            fs::copy(&path, &dst_path)?;
+    // A file can be referenced by more than one target (e.g. the same
+    // source compiled into both a static and a shared library).
+    let mut copied = std::collections::HashSet::new();
+    for target in &graph.targets {
+        for relative in target.sources.iter().chain(target.public_headers.iter()) {
+            if !copied.insert(relative.as_str()) {
+                continue;
+            }
+            let dst = out_dir.join(relative);
+            if let Some(parent) = dst.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(source_dir.join(relative), &dst)?;
         }
     }
+
     Ok(())
 }

@@ -51,9 +51,12 @@ produces:
                        was set] + bazel_dep(rules_cc, llvm) +
                        register_toolchains
   BUILD.bazel          the user-facing converted output (cc_binary/cc_library)
-  src/...              copied CMake project sources
-  include/...          copied CMake project sources (any directory layout
-                       the CMakeLists.txt uses is preserved as-is)
+  src/...              only the source files the build graph references,
+  include/...          at their original paths relative to the module root.
+                       NOT a recursive copy of the CMake project directory,
+                       and the project's own CMakeLists.txt is not among
+                       them — see cmake-frontend.md's "only referenced files
+                       enter the module"
   ground_truth/
     BUILD.bazel        exports_files(...) only — NOT part of the
                        user-facing output, validation-only (see
