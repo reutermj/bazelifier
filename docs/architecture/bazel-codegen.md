@@ -72,6 +72,43 @@ validation-only targets never appear in what a user actually checks into
 their own repo. `needs_attention/` is plain markdown, not a Bazel package
 at all — nothing in it is meant to be loaded/built.
 
+## Every emitted path must be module-relative
+
+A converted module is meant to be checked into someone else's repo, so no
+path in its generated files may reference the machine that produced it.
+The CMake File API makes this easy to get wrong: it reports a source path
+relative to the project **only when the file is inside it**, and absolute
+otherwise (see [cmake-frontend.md](cmake-frontend.md)).
+
+`model::is_module_relative` is the single definition of that contract — it
+rejects absolute paths and `..` components — and the frontend uses it to
+decide what to escalate. Codegen then enforces it again in
+`render_path_list`, which every path-valued attribute goes through:
+
+- It is the **last point every path passes through**, so it catches paths
+  from any frontend field, including ones added later, rather than only
+  the cases a test enumerated. Two separate bugs (an `OBJECT_LIBRARY`'s
+  generated `.o` paths, and ordinary sources in a sibling directory)
+  reached `srcs` as absolute paths before it existed, each needing its own
+  targeted fix.
+- It **panics rather than degrading**. A violation here is a translator
+  bug, not bad input — input gaps go to `needs_attention/`. Failing loudly
+  with no `BUILD.bazel` written beats emitting a module that is silently
+  non-portable.
+- It is a real `assert!`, not a `debug_assert!`, because Bazel only catches
+  *part* of this downstream. An absolute path in a **label** attribute
+  (`srcs`, `hdrs`, `deps`) is an analysis error — verified on Bazel 9.2.0:
+  `target names may not start with '/'`. But `includes` is a plain string
+  list, and `includes = ["/abs/path"]` **builds successfully**. That module
+  then works on the machine that generated it and nowhere else, which is
+  exactly the "green for the wrong reason" outcome
+  [build-verification.md](build-verification.md#why-unpack-it-rather-than-validate-in-tree)
+  is about. So the check cannot be left to Bazel.
+
+Because the assert is always on, every real conversion exercises it — the
+fixtures don't need a separate "no absolute paths" assertion, since the
+translator refuses to produce such output in the first place.
+
 ## Formatting and linting
 
 Generated (and hand-written) `BUILD`/`MODULE.bazel`/`.bzl` files are checked

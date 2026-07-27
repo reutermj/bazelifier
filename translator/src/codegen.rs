@@ -4,7 +4,7 @@
 //! must build on its own, with no reference back to bazelifier's own
 //! MODULE.bazel/toolchains.
 
-use crate::model::{BuildGraph, TargetKind};
+use crate::model::{self, BuildGraph, TargetKind};
 
 // Pinned versions for the toolchain/rules every generated module currently
 // depends on. Hardcoded for now since the translator has no per-project
@@ -103,6 +103,37 @@ fn render_string_list(out: &mut String, attr: &str, items: &[String]) {
     out.push_str("    ],\n");
 }
 
+/// Renders a path-valued attribute, enforcing
+/// [`model::is_module_relative`] on every entry.
+///
+/// This is the last point every path in the generated output passes
+/// through, which makes it the one place a guard catches paths from *any*
+/// frontend field — including ones added later — rather than only the
+/// cases some test happened to enumerate. Two separate bugs (an
+/// `OBJECT_LIBRARY`'s generated `.o` paths, and ordinary sources in a
+/// sibling directory) both reached `srcs` as absolute paths before this
+/// existed.
+///
+/// A violation is a translator bug, not bad user input — user-input gaps
+/// go to `needs_attention/` instead — so this panics rather than
+/// degrading. It is deliberately a real `assert!` and not a
+/// `debug_assert!`: the failure it prevents is silently non-portable
+/// output, and Bazel does not catch that for string attributes like
+/// `includes` (only for label attributes). The cost is a couple of string
+/// comparisons per emitted path.
+fn render_path_list(out: &mut String, attr: &str, paths: &[String]) {
+    for path in paths {
+        assert!(
+            model::is_module_relative(path),
+            "codegen emitted a non-module-relative path in `{attr}`: {path:?}. \
+             Paths in the generated module must be relative to its root — the frontend \
+             should have excluded this one and escalated it via needs_attention/ instead. \
+             See model::is_module_relative."
+        );
+    }
+    render_string_list(out, attr, paths);
+}
+
 fn render_deps(out: &mut String, deps: &[String]) {
     if deps.is_empty() {
         return;
@@ -136,8 +167,8 @@ fn render_cc_binary(
 ) {
     out.push_str("cc_binary(\n");
     out.push_str(&format!("    name = \"{name}\",\n"));
-    render_string_list(out, "srcs", sources);
-    render_string_list(out, "includes", includes);
+    render_path_list(out, "srcs", sources);
+    render_path_list(out, "includes", includes);
     render_deps(out, deps);
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
@@ -153,9 +184,9 @@ fn render_cc_library(
 ) {
     out.push_str("cc_library(\n");
     out.push_str(&format!("    name = \"{name}\",\n"));
-    render_string_list(out, "srcs", sources);
-    render_string_list(out, "hdrs", public_headers);
-    render_string_list(out, "includes", includes);
+    render_path_list(out, "srcs", sources);
+    render_path_list(out, "hdrs", public_headers);
+    render_path_list(out, "includes", includes);
     render_deps(out, deps);
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
@@ -296,6 +327,111 @@ mod tests {
                 rendered.contains("    includes = [\n        \"inc\",\n    ],\n"),
                 "{kind:?} dropped its own include dirs:\n{rendered}"
             );
+        }
+    }
+
+    fn graph_with(kind: TargetKind, mutate: impl FnOnce(&mut Target)) -> BuildGraph {
+        let mut target = Target {
+            name: "t".to_string(),
+            kind,
+            sources: vec!["src/t.cpp".to_string()],
+            public_headers: vec![],
+            dependencies: vec![],
+            includes: vec![],
+            artifacts: vec![],
+        };
+        mutate(&mut target);
+        BuildGraph::new(
+            ModuleInfo {
+                name: "m".to_string(),
+                version: None,
+            },
+            vec![target],
+        )
+    }
+
+    // One case per path-valued attribute. `srcs`/`hdrs` are Bazel *label*
+    // attributes, so an absolute path there is at least an analysis error
+    // downstream; `includes` is a plain string list that Bazel accepts
+    // silently (verified against Bazel 9.2.0), which is why codegen has to
+    // be the thing that refuses it.
+    #[test]
+    #[should_panic(expected = "non-module-relative path in `srcs`")]
+    fn absolute_path_in_srcs_is_refused() {
+        render(&graph_with(TargetKind::Executable, |t| {
+            t.sources = vec!["/abs/build/generated.cpp".to_string()]
+        }));
+    }
+
+    #[test]
+    #[should_panic(expected = "non-module-relative path in `hdrs`")]
+    fn absolute_path_in_hdrs_is_refused() {
+        render(&graph_with(TargetKind::Library, |t| {
+            t.public_headers = vec!["/abs/include/greet.hpp".to_string()]
+        }));
+    }
+
+    #[test]
+    #[should_panic(expected = "non-module-relative path in `includes`")]
+    fn absolute_path_in_includes_is_refused() {
+        render(&graph_with(TargetKind::Library, |t| {
+            t.includes = vec!["/abs/include".to_string()]
+        }));
+    }
+
+    // A relative path can still escape the module root, and unlike an
+    // absolute path it looks harmless.
+    #[test]
+    #[should_panic(expected = "non-module-relative path in `srcs`")]
+    fn parent_escaping_path_in_srcs_is_refused() {
+        render(&graph_with(TargetKind::Executable, |t| {
+            t.sources = vec!["../shared/helper.cpp".to_string()]
+        }));
+    }
+
+    // The positive half: nothing in a fully-populated, well-formed graph
+    // renders as an absolute path. Guards against a future attribute being
+    // added that bypasses render_path_list.
+    #[test]
+    fn well_formed_graph_renders_no_absolute_paths() {
+        let graph = BuildGraph::new(
+            ModuleInfo {
+                name: "m".to_string(),
+                version: Some("1.0.0".to_string()),
+            },
+            vec![
+                Target {
+                    name: "lib".to_string(),
+                    kind: TargetKind::Library,
+                    sources: vec!["src/lib.cpp".to_string()],
+                    public_headers: vec!["include/lib.hpp".to_string()],
+                    dependencies: vec![],
+                    includes: vec!["include".to_string()],
+                    artifacts: vec!["liblib.a".to_string()],
+                },
+                Target {
+                    name: "app".to_string(),
+                    kind: TargetKind::Executable,
+                    sources: vec!["src/main.cpp".to_string()],
+                    public_headers: vec![],
+                    dependencies: vec!["lib".to_string()],
+                    includes: vec!["inc".to_string()],
+                    artifacts: vec!["app".to_string()],
+                },
+            ],
+        );
+
+        let rendered = render(&graph);
+        for (what, text) in [
+            ("BUILD.bazel", &rendered.build_bazel),
+            ("MODULE.bazel", &rendered.module_bazel),
+        ] {
+            for quoted in text.split('"').skip(1).step_by(2) {
+                assert!(
+                    !quoted.starts_with('/') || quoted.starts_with("//"),
+                    "{what} contains an absolute path: {quoted:?}"
+                );
+            }
         }
     }
 

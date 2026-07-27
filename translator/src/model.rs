@@ -1,6 +1,30 @@
 //! Internal build-graph model shared between the CMake frontend and Bazel codegen.
 //! See docs/architecture/cmake-frontend.md and docs/architecture/bazel-codegen.md.
 
+use std::path::{Component, Path};
+
+/// Whether `path` satisfies the contract every path-valued field of
+/// [`Target`] is required to meet: relative to the converted module's root,
+/// and not escaping it.
+///
+/// This is the single invariant standing between the translator and
+/// non-portable output. The CMake File API reports a source path relative
+/// to the project only when the file is actually inside it and absolute
+/// otherwise, so an unvalidated passthrough bakes the build machine's
+/// filesystem layout into a module that is supposed to be checked into
+/// someone else's repo.
+///
+/// Bazel only catches part of this on its own: an absolute path in a
+/// *label* attribute (`srcs`, `hdrs`, `deps`) is an analysis error, but
+/// `includes` is a plain string list and an absolute path there is
+/// accepted silently — the module then builds on the machine that
+/// generated it and nowhere else. Hence the check lives here and is
+/// enforced at codegen, not left to Bazel.
+pub fn is_module_relative(path: &str) -> bool {
+    let path = Path::new(path);
+    !path.is_absolute() && !path.components().any(|c| matches!(c, Component::ParentDir))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TargetKind {
     Executable,

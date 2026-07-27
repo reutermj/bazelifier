@@ -12,7 +12,7 @@ use std::process::Command;
 
 use serde::Deserialize;
 
-use crate::model::{BuildGraph, ModuleInfo, NeedsAttention, Target, TargetKind};
+use crate::model::{self, BuildGraph, ModuleInfo, NeedsAttention, Target, TargetKind};
 
 #[derive(Debug)]
 pub enum Error {
@@ -423,7 +423,7 @@ fn to_target(
         // isn't in the copied module either, since only the source dir is
         // copied. Same invariant `strip_project_prefix` enforces for include
         // directories.
-        if !is_project_relative(&source.path) {
+        if !model::is_module_relative(&source.path) {
             out_of_tree_sources.push(source.path.clone());
             continue;
         }
@@ -912,19 +912,19 @@ mod tests {
     }
 
     #[test]
-    fn is_project_relative_accepts_paths_inside_the_project() {
-        assert!(is_project_relative("src/main.cpp"));
-        assert!(is_project_relative("include/greet.hpp"));
+    fn is_module_relative_accepts_paths_inside_the_project() {
+        assert!(model::is_module_relative("src/main.cpp"));
+        assert!(model::is_module_relative("include/greet.hpp"));
     }
 
     // CMake only reports a project-relative path when the file is inside
     // the top-level source dir — an absolute path means it isn't, and a
     // `..` component would escape the module root the same way.
     #[test]
-    fn is_project_relative_rejects_paths_outside_the_project() {
-        assert!(!is_project_relative("/abs/shared/helper.cpp"));
-        assert!(!is_project_relative("../shared/helper.cpp"));
-        assert!(!is_project_relative("src/../../escape.cpp"));
+    fn is_module_relative_rejects_paths_outside_the_project() {
+        assert!(!model::is_module_relative("/abs/shared/helper.cpp"));
+        assert!(!model::is_module_relative("../shared/helper.cpp"));
+        assert!(!model::is_module_relative("src/../../escape.cpp"));
     }
 
     // An ordinary (non-generated) source outside the source tree —
@@ -1046,22 +1046,8 @@ mod tests {
     }
 }
 
-/// Whether a File API source path can become a Bazel source label in the
-/// generated module. CMake only reports a path relative to the top-level
-/// source directory when the file is actually inside it, so an absolute
-/// path means the file lives outside the project being converted. `..`
-/// components are rejected defensively — they'd escape the module root the
-/// same way, and a label can't express them either.
-fn is_project_relative(path: &str) -> bool {
-    let path = Path::new(path);
-    !path.is_absolute()
-        && !path
-            .components()
-            .any(|c| matches!(c, std::path::Component::ParentDir))
-}
-
 /// Escalates sources that live outside the CMake project's top-level source
-/// directory. See `is_project_relative`.
+/// directory. See `model::is_module_relative`.
 fn out_of_tree_sources_needs_attention(target_name: &str, out_of_tree: &[String]) -> NeedsAttention {
     let title = format!("Target '{target_name}' has sources outside the project directory");
     NeedsAttention {
