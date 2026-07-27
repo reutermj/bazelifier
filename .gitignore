@@ -1,6 +1,12 @@
 # Bazel output symlinks
 /bazel-*
 
+# Cargo build output. No Bazel build produces this — it only appears when
+# someone runs `cargo` directly in translator/, which is a supported thing
+# to do (see docs/runbooks/001-regenerate-translator-cargo-lock.md) and
+# used to leave hundreds of untracked artifacts behind.
+/translator/target/
+
 # Bazel local user config
 /.bazelrc.user
 
