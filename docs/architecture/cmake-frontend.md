@@ -87,12 +87,20 @@ dependency's include dirs automatically through its `deps` edge, without
 the frontend needing to duplicate that inheritance itself.
 
 Note this doesn't give the same encapsulation as a hand-written
-`hdrs`-only `cc_library`: Bazel's `includes` is a `-I`-style search path,
-so it exposes every file under that directory to consumers, not just
-declared `hdrs` — this actually matches CMake's own looser semantics (a
-consumer can `#include` any header under an include directory, declared
-public or not), so it's a faithful translation, just not a stricter one
-than the source project had.
+`hdrs`-only `cc_library` — but not for the reason it might appear. Bazel
+does not enforce the `hdrs`/`srcs` split by default at all: a header in a
+dependency's `srcs` is still propagated as an input to dependents' compile
+actions, so consumers can `#include` it whether or not it was declared in
+`hdrs`. `includes` only supplies the `-I`-style search path that decides
+how the `#include` is *spelled*; it is not what exposes the file. Either
+way this matches CMake's own looser semantics (a consumer can `#include`
+any header under an include directory, declared public or not), so it's a
+faithful translation, just not a stricter one than the source project had.
+
+See
+[build-verification.md](build-verification.md#header-visibility-is-not-enforced-by-default)
+for the experiment establishing this, and the open question about whether
+the hermetic `llvm` toolchain's `layering_check` changes it.
 
 ## The `needs_attention/` mechanism
 
@@ -111,6 +119,15 @@ no public `FILE_SET` declaration, **and** at least one other target
 depends on it (a library nothing depends on has no consumer that could
 need an exposed header, so it's not worth flagging). See
 `cmake_api.rs::header_visibility_needs_attention`.
+
+**Resolutions go in the generated output, never in the source project.**
+An agent resolves a `needs_attention` item by editing the generated
+`BUILD.bazel` (here, moving the right headers into `hdrs`) — not by adding
+a `FILE_SET` to the project's `CMakeLists.txt`. The source build files are
+the input being translated; changing them to make one project convert
+cleanly leaves the translator no better at the next project with the same
+shape, which is the actual goal. This holds for real projects as much as
+for fixtures.
 
 ## Known hard cases (expect to escalate via `needs_attention/`)
 

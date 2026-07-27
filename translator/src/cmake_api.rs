@@ -757,21 +757,27 @@ fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
             "'{target_name}' has at least one dependent target, meaning some other target \
              likely needs to #include one or more of this library's headers. Its generated \
              `cc_library` currently has an empty `hdrs` (all header-like sources were placed \
-             in `srcs`). Note this conversion likely still BUILDS: if '{target_name}' also has \
-             a `target_include_directories()`-derived `includes` entry, Bazel's `includes` \
-             exposes every file under that directory to consumers (a -I-style search path), \
-             not just declared `hdrs` — matching CMake's own looser semantics, where a \
-             consumer can #include any header in an include directory whether or not it's the \
-             library's 'real' public interface. So the gap here is weaker encapsulation and an \
-             unclear public/private boundary, not necessarily a build failure."
+             in `srcs`). Note this conversion very likely still BUILDS: Bazel does not enforce \
+             the hdrs/srcs split by default — a header listed in a dependency's `srcs` is \
+             still propagated as an input to dependents' compile actions, so consumers can \
+             #include it regardless. (`includes` only supplies the -I search path that \
+             determines how the #include is spelled; it is not what exposes the file.) This \
+             matches CMake's own looser semantics, where a consumer can #include any header \
+             in an include directory whether or not it's the library's 'real' public \
+             interface. So the gap here is weaker encapsulation and an unclear public/private \
+             boundary, not necessarily a build failure — which is exactly why it needs \
+             explicit triage rather than being inferred from a green build. See \
+             docs/architecture/build-verification.md's 'Header visibility is not enforced by \
+             default'."
         ),
         expected_output: format!(
             "Determine which of '{target_name}''s header files are actually part of its \
-             public interface (consumed by dependents via #include), move those from `srcs` \
-             to `hdrs` in the generated `BUILD.bazel`, and consider adding a `target_sources \
-             ... FILE_SET ... TYPE HEADERS` declaration to the original CMakeLists.txt so \
-             future conversions of this project resolve this automatically with proper \
-             hdrs/srcs separation instead of relying on `includes`' looser exposure."
+             public interface (consumed by dependents via #include) and move those from \
+             `srcs` to `hdrs` in the generated `BUILD.bazel`. Resolve this in the GENERATED \
+             output only — do NOT edit the project's CMakeLists.txt. The source build files \
+             are the input being translated: adding a `FILE_SET` upstream would make this \
+             particular project convert cleanly while leaving the translator just as unable \
+             to handle the next project that has the same shape."
         ),
         title,
     }

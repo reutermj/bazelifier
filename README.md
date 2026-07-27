@@ -17,12 +17,14 @@ Autotools, Meson, ...) over time.
    for it (its own `MODULE.bazel` + `BUILD.bazel`, copied sources) for the
    patterns it recognizes. It also runs the project's real build to
    capture ground-truth artifacts for verification.
-2. **Agent fallback via runbooks** — when the translator hits something it
+2. **Agent stage via runbooks** — when the translator hits something it
    doesn't know how to handle (an unsupported generator expression, a custom
    command, an unusual dependency shape), it emits a **runbook**: a
    structured description of the gap. An AI coding agent (e.g. Claude Code)
    reads the runbook and provides the missing translation, which feeds back
-   into the pipeline.
+   into the pipeline. This is a stage of the pipeline, not a fallback beside
+   it — the thing being built and tested is "translator + agent," and an
+   unresolved gap means the conversion isn't finished.
 3. **Independence + equivalence verification** — a conversion is only
    considered successful once the generated module builds with **no
    reference back to bazelifier's own workspace** (verified by packaging it
@@ -31,6 +33,11 @@ Autotools, Meson, ...) over time.
    necessarily binary-identical — currently a runtime output comparison
    against the captured ground truth). See
    [docs/architecture/build-verification.md](docs/architecture/build-verification.md).
+
+A conversion is always resolved by changing what bazelifier **emits**,
+never by editing the project's own build files. Converting a build system
+involves judgement calls at many points; the equivalence checks are the
+contract, not reproducibility of the process.
 
 ## Status
 

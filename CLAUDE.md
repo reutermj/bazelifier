@@ -21,7 +21,10 @@ Autotools, Meson, ...).
 2. When the translator can't handle something, it emits a **runbook** — a
    structured markdown description of the gap (what construct wasn't
    understood, what context is available, what output is expected). An
-   agent reads the runbook and produces the missing translation.
+   agent reads the runbook and produces the missing translation. The agent
+   is a **stage of the pipeline**, not a fallback beside it: what's under
+   test is "translator + agent," so an unresolved gap is an unfinished
+   conversion and **green is the only passing state**.
 3. A conversion is verified two ways, both automated:
    - **Independence**: the generated module, packaged into a tarball with
      every other fixture and unpacked completely outside this repo, must
@@ -130,6 +133,24 @@ source in every fixture build.
   the template in `docs/runbooks/`, not an ad hoc error message. Keep the
   schema in mind even while it's markdown-first — it's expected to become
   machine-consumable later.
+- **Never edit input build files to make a conversion succeed.** A
+  fixture's `CMakeLists.txt` (and a real project's, later) is immutable
+  test input. If the translator can't handle a construct, fix the
+  translator or the runbook — adding a `FILE_SET`, restructuring targets,
+  or otherwise "cleaning up" the source to make it translate is not a
+  resolution, because it leaves the next project with the same shape just
+  as broken. Resolutions always land in the **generated** output.
+- **A red fixture is a bug, not a feature.** No fixture is "expected to
+  fail." If `bazel test` is red in the unpacked validation workspace, the
+  agent stage hasn't resolved a `needs_attention` item yet — that's work
+  to do, not documented behavior. Don't add prose describing a red test as
+  intended.
+- **The pipeline is deliberately non-hermetic**, and that's a modelling
+  choice, not a defect: converting a build system involves judgement calls,
+  and the equivalence checks (not reproducibility of the process) are the
+  contract. Don't redesign the agent stage out of the loop in the name of
+  determinism. This is separate from the requirement that *generated
+  output* build hermetically, which still holds.
 
 ## When you learn something non-obvious
 

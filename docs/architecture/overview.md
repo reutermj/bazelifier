@@ -52,8 +52,22 @@ source build system files (e.g. CMakeLists.txt)
  │                       │  back to bazelifier) AND functionally equivalent
  │                       │  to the CMake build (runtime output comparison
  │                       │  today; more checks planned).
- └───────────────────────┘
+ └──────────┬────────────┘
+            │ unresolved needs_attention/ items → agent resolves them in
+            │ the generated BUILD.bazel and the build is re-run
+            └──────────────► (loop back to verification, until green)
 ```
+
+The agent is **inside** the loop, not a fallback beside it. What this
+pipeline validates is that a deterministic translator plus an agent can
+convert a project — so an unresolved gap is an unfinished run, and green
+is the only passing state. Judgement calls are expected at several points;
+the equivalence checks, not reproducibility of the process, are the
+contract. Note this makes the pipeline deliberately non-hermetic, which is
+an accepted modelling choice rather than a defect to design out.
+
+Source build files are never edited to make a conversion succeed — see
+[build-verification.md](build-verification.md#the-input-cmake-is-immutable).
 
 ## Components
 

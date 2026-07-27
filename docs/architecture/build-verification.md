@@ -57,12 +57,34 @@ level. What must match is behavior.
    - A root `BUILD.bazel` is also generated, containing one `sh_test` per
      expected target per fixture (see "Equivalence checks"), aggregated
      into a `test_suite`.
-3. **Unpack and validate, fully outside this repo.** The tarball is
-   extracted into a plain directory with no connection to bazelifier's own
-   `MODULE.bazel`. From that directory's root, `bazel build //...` /
+3. **Unpack, fully outside this repo.** The tarball is extracted into a
+   plain directory with no connection to bazelifier's own `MODULE.bazel`.
+   From that directory's root, `bazel build //...` /
    `bazel test //:all_ground_truth_comparisons` resolves every fixture as
    a real Bzlmod dependency and builds/tests it. This is the step that
    actually proves independence — see "Why unpack it" below.
+4. **Agent triage.** Any fixture that emitted `needs_attention/` items is
+   an unfinished conversion. An agent reads each item and resolves it by
+   editing the *generated* `BUILD.bazel` in the unpacked workspace, then
+   the build and tests are re-run. This repeats until the suite is green.
+   The agent stage is part of the pipeline under test, not a manual
+   escape hatch: what these fixtures validate is that **the translator
+   plus an agent** can convert a CMake project, not that the translator
+   can do it alone.
+
+The unit under test is the whole pipeline. **Green is the only passing
+state** — a red fixture means the agent stage has not (or could not)
+resolve a gap, which is a result to act on, never a documented outcome.
+
+### The input CMake is immutable
+
+Fixture `CMakeLists.txt` files are test inputs and are **never edited to
+make a conversion succeed**. A pattern the translator can't handle (like
+`003-library-no-file-set`'s plain, non-`FILE_SET` headers) is a real
+shape found in real projects — the goal is a translator and runbooks
+robust enough to handle it, not a corpus curated down to the subset that
+happens to convert cleanly. "Fix the CMake" is never the resolution to a
+`needs_attention` item.
 
 ## Equivalence checks
 
@@ -74,13 +96,16 @@ Implemented today:
   exist, the test fails immediately, printing their full content, and the
   comparison below never runs. This is deliberate, not a shortcut: a
   conversion with an open `needs_attention` item can still happen to build
-  and behave correctly today (see `003-library-no-file-set`, where
-  `includes`' looser exposure means the build works despite the header
-  visibility gap) — if the comparison ran anyway and passed, it would read
+  and behave correctly today (see `003-library-no-file-set`, where the
+  build works despite the header visibility gap because Bazel doesn't
+  enforce `hdrs`/`srcs` — see "Header visibility is not enforced by
+  default" below) — if the comparison ran anyway and passed, it would read
   as "this is fine," masking a real, unresolved translation gap. The gate
-  forces triage first: an agent (or human) is expected to resolve the
-  flagged issue and re-run the conversion so `needs_attention/` comes back
-  empty before the equivalence check means anything.
+  forces triage first: the agent stage (step 4 above) resolves the flagged
+  issue **in the unpacked workspace's generated `BUILD.bazel`** and the
+  build is re-run, so `needs_attention/` comes back empty before the
+  equivalence check means anything. An unresolved item is an unfinished
+  conversion, not an accepted outcome.
 - **Runtime output comparison** (`translator/build_defs/compare_runtime_output.sh`,
   wired up as a generated `sh_test` per target): run the ground-truth
   binary and the Bazel-built binary, diff stdout, stderr, and exit code.
@@ -111,12 +136,58 @@ building against a fixture with nothing to differentiate):
 - `002-with-library` — a library with a properly declared public `FILE_SET`
   header; exercises `cc_library` codegen (`hdrs`, `includes`, `deps`) end
   to end. Passes both the gate and the comparison.
-- `003-library-no-file-set` — deliberately exercises the `needs_attention/`
-  gate: a library with plain (non-`FILE_SET`) headers and a consumer.
-  Expected to **fail** `bazel test` until the underlying `CMakeLists.txt`
-  is fixed to declare a public `FILE_SET` and the fixture is
-  re-converted — this is the intended, correct behavior, not a bug in the
-  fixture.
+- `003-library-no-file-set` — exercises the `needs_attention/` gate and the
+  agent stage: a library with plain (non-`FILE_SET`) headers and a
+  consumer. The translator can't tell which headers are public, so it
+  escalates rather than guessing; the agent is expected to resolve the
+  item by populating `hdrs` in the generated `BUILD.bazel`. Passes once
+  that resolution lands. Its `CMakeLists.txt` is deliberately left
+  without a `FILE_SET` **permanently** — that's the input shape under
+  test.
+
+  Note this fixture still *builds* with an empty `hdrs`, so a green build
+  alone does not prove the agent resolved it correctly — see "Header
+  visibility is not enforced by default" below.
+
+## Header visibility is not enforced by default
+
+Bazel does **not** enforce the `hdrs`/`srcs` split for C++ headers by
+default. A header listed only in a dependency's `srcs` is still propagated
+as an input to a dependent's compile action, so the dependent can
+`#include` it and the build succeeds.
+
+Verified directly (Bazel 9.2.0, autodetected host toolchain, sandboxed):
+
+| dep declares header | `includes` set | consumer's `#include` | result |
+| --- | --- | --- | --- |
+| in `srcs` | yes | `"a.hpp"` | builds |
+| in `srcs` | **no** | `"case_b/b.hpp"` | builds |
+| **in no target** | yes | `"c.hpp"` | **fails**: `No such file or directory` |
+
+The second and third rows are the informative pair: propagation comes from
+the header being declared in *some* target's `srcs`/`hdrs`, not from the
+`includes` attribute. `includes` only supplies a `-I` search path, which is
+useless on its own — row three has the path and still fails because the
+file was never an action input.
+
+Consequences for this project:
+
+- `hdrs` vs `srcs` in generated output is **documentation, not
+  enforcement**. Getting it wrong degrades the public/private boundary
+  without breaking the build.
+- Therefore a green build does not prove a `needs_attention` header-
+  visibility item was resolved *correctly* — only that it was resolved
+  somehow. An agent that deleted the item without touching `hdrs` would
+  also go green. Whether to add a structural assertion on the generated
+  `BUILD.bazel` is still open.
+- Bazel's `layering_check` feature *does* enforce the split, but it
+  requires module maps and a supporting (clang-based) toolchain and is off
+  by default. **Open:** the table above was produced with the autodetected
+  host toolchain (which resolved to `gcc`), not the hermetic `llvm`
+  toolchain the fixtures actually build with. If `llvm` enables
+  `layering_check`, `003-library-no-file-set` may fail to compile outright
+  rather than build-with-degraded-encapsulation, which would change the
+  gate's rationale. Needs verification against the real toolchain.
 
 ## Why unpack it (rather than validate in-tree)
 

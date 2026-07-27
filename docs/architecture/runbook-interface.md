@@ -47,6 +47,12 @@ while the format is still stabilizing.
   able to pick the pipeline back up (e.g. by incorporating a hand-authored
   snippet of Bazel, or a new mapping rule) without re-running the entire
   conversion from scratch.
+- **Resolvable in the generated output only.** A runbook must always be
+  answerable by changing what bazelifier emits. "Edit the source
+  `CMakeLists.txt` so it translates cleanly" is never a valid resolution —
+  the source build files are the input being translated. If a gap looks
+  resolvable only by changing the input, that's a signal the translator or
+  the runbook needs to get smarter, not that the project is malformed.
 
 ## Open questions
 
