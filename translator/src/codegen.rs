@@ -75,6 +75,7 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
                 &mut out,
                 &target.name,
                 &target.sources,
+                &target.includes,
                 &target.dependencies,
             ),
             TargetKind::Library => render_cc_library(
@@ -121,10 +122,22 @@ fn render_deps(out: &mut String, deps: &[String]) {
 // translate).
 const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
 
-fn render_cc_binary(out: &mut String, name: &str, sources: &[String], deps: &[String]) {
+// `includes` matters just as much for an executable as for a library: an
+// `add_executable` target with its own `target_include_directories()` needs
+// the `-I` path to compile at all. It isn't only relevant to targets that
+// get depended on — Bazel's transitivity means a *consumer* inherits a
+// dependency's `includes`, but nothing supplies a target's own.
+fn render_cc_binary(
+    out: &mut String,
+    name: &str,
+    sources: &[String],
+    includes: &[String],
+    deps: &[String],
+) {
     out.push_str("cc_binary(\n");
     out.push_str(&format!("    name = \"{name}\",\n"));
     render_string_list(out, "srcs", sources);
+    render_string_list(out, "includes", includes);
     render_deps(out, deps);
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
@@ -219,6 +232,71 @@ mod tests {
         assert!(rendered.contains(
             "cc_binary(\n    name = \"hello\",\n    srcs = [\n        \"src/main.cpp\",\n    ],\n    deps = [\n        \":greet\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
         ));
+    }
+
+    // An executable with its own `target_include_directories()` (and no
+    // dependencies to inherit include dirs from) — the frontend already
+    // resolves this correctly (see cmake_api.rs's
+    // own_include_dirs_excludes_inherited_and_dedupes, which asserts it for
+    // an EXECUTABLE reply); this is the codegen half of the same path.
+    // Exercised end to end by tests/fixtures/004-binary-private-include.
+    #[test]
+    fn renders_cc_binary_with_own_includes() {
+        let graph = BuildGraph::new(
+            ModuleInfo {
+                name: "binary_private_include".to_string(),
+                version: None,
+            },
+            vec![Target {
+                name: "app".to_string(),
+                kind: TargetKind::Executable,
+                sources: vec!["src/main.cpp".to_string(), "inc/cfg.hpp".to_string()],
+                public_headers: vec![],
+                dependencies: vec![],
+                includes: vec!["inc".to_string()],
+                artifacts: vec!["app".to_string()],
+            }],
+        );
+
+        let rendered = render(&graph).build_bazel;
+        assert!(
+            rendered.contains(
+                "cc_binary(\n    name = \"app\",\n    srcs = [\n        \"src/main.cpp\",\n        \"inc/cfg.hpp\",\n    ],\n    includes = [\n        \"inc\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
+            ),
+            "cc_binary dropped its own include dirs:\n{rendered}"
+        );
+    }
+
+    // Structural guard: a target's own include dirs must survive codegen for
+    // EVERY target kind, not just the ones a test happens to cover. The
+    // original bug was precisely that `Target.includes` was populated for
+    // executables and then only ever read by the cc_library renderer, so a
+    // new TargetKind could silently reintroduce it.
+    #[test]
+    fn renders_own_includes_for_every_target_kind() {
+        for kind in [TargetKind::Executable, TargetKind::Library] {
+            let graph = BuildGraph::new(
+                ModuleInfo {
+                    name: "m".to_string(),
+                    version: None,
+                },
+                vec![Target {
+                    name: "t".to_string(),
+                    kind: kind.clone(),
+                    sources: vec!["src/t.cpp".to_string()],
+                    public_headers: vec![],
+                    dependencies: vec![],
+                    includes: vec!["inc".to_string()],
+                    artifacts: vec![],
+                }],
+            );
+
+            let rendered = render(&graph).build_bazel;
+            assert!(
+                rendered.contains("    includes = [\n        \"inc\",\n    ],\n"),
+                "{kind:?} dropped its own include dirs:\n{rendered}"
+            );
+        }
     }
 
     #[test]

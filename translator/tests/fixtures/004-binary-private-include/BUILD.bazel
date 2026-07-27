@@ -1,0 +1,21 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Exercises an executable's own include directory surviving codegen (see this
+# fixture's CMakeLists.txt). Unlike 003, this fixture emits no
+# needs_attention/ item — the header-visibility escalation only applies to
+# library targets — so it's a pure build + runtime-equivalence check with no
+# agent stage involved.
+#
+# The glob must cover inc/** as well as src/**: the header has to be an
+# action input, not just a path on the -I line.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "inc/**",
+    ]),
+    expected_targets = ["app"],
+    module_name = "binary_private_include",
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

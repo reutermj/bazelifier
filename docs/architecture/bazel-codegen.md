@@ -24,6 +24,11 @@ Covers how bazelifier turns the internal build-graph model (see
   headers — see [cmake-frontend.md](cmake-frontend.md)), `includes`
   (the target's own, not inherited ones — transitive via Bazel), and
   `deps` (resolved sibling target names, rendered as `":name"`).
+  `cc_binary` gets `srcs`, `includes`, and `deps` — `includes` is not a
+  library-only concern, since Bazel's transitivity supplies a *consumer*
+  with its dependencies' include dirs but never a target with its own (see
+  `004-binary-private-include` in
+  [build-verification.md](build-verification.md#fixtures)).
 - Where the translator can't confidently produce a native rule, fall back to
   the runbook process (see [runbook-interface.md](runbook-interface.md))
   rather than silently emitting something wrong or overly conservative.

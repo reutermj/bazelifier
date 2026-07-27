@@ -148,6 +148,13 @@ building against a fixture with nothing to differentiate):
   Note this fixture still *builds* with an empty `hdrs`, so a green build
   alone does not prove the agent resolved it correctly — see "Header
   visibility is not enforced by default" below.
+- `004-binary-private-include` — an executable with its own
+  `target_include_directories()` and no dependencies. Covers the one path
+  where nothing else can supply an include dir: Bazel propagates a
+  dependency's `includes` transitively (which is what `002` exercises), but
+  nothing supplies a target's *own*, so dropping it produces a module that
+  fails to compile. Emits no `needs_attention/` item — that escalation is
+  library-only — so this is a pure build + equivalence check.
 
 ## Header visibility is not enforced by default
 
