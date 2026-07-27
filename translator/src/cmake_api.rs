@@ -291,14 +291,30 @@ fn read_codemodel_reply(
     let mut targets = Vec::new();
     let mut needs_attention = Vec::new();
 
-    // Collect which target ids have at least one dependent, to decide
-    // whether a library with no public headers is worth flagging — a
-    // library nothing depends on has no consumer that could need a header
-    // it isn't exposing. See docs/architecture/cmake-frontend.md.
-    let mut has_dependents: std::collections::HashSet<String> = std::collections::HashSet::new();
-    for reply in replies_by_id.values() {
+    // Reverse the dependency edges once: target id -> ids of the targets
+    // naming it as a dependency. Two questions read off this, and both are
+    // asked below per target:
+    //
+    //  - does anything depend on it at all? (a library nothing depends on
+    //    has no consumer that could need a header it isn't exposing, so an
+    //    unexposed header there isn't worth flagging — see
+    //    docs/architecture/cmake-frontend.md)
+    //  - which *surviving* targets depend on it? (an escalation for a
+    //    skipped target has to name the targets whose edge was dropped)
+    //
+    // Walked over configuration.targets rather than the HashMap so the
+    // order recorded in an escalation is deterministic across runs.
+    let mut dependents_of: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
+    for target_ref in &configuration.targets {
+        let Some(reply) = replies_by_id.get(&target_ref.id) else {
+            continue;
+        };
         for dep in &reply.dependencies {
-            has_dependents.insert(dep.id.clone());
+            dependents_of
+                .entry(dep.id.clone())
+                .or_default()
+                .push(target_ref.id.clone());
         }
     }
 
@@ -317,27 +333,19 @@ fn read_codemodel_reply(
         })
         .collect();
 
-    // Which surviving targets name each untranslatable one. Built by
-    // walking configuration.targets (not the HashMap) so the order recorded
-    // in the escalation is deterministic across runs.
-    let mut dependents_of: std::collections::HashMap<String, Vec<String>> =
-        std::collections::HashMap::new();
-    for target_ref in &configuration.targets {
-        let Some(reply) = replies_by_id.get(&target_ref.id) else {
-            continue;
-        };
-        if untranslatable.contains_key(&target_ref.id) {
-            continue;
-        }
-        for dep in &reply.dependencies {
-            if untranslatable.contains_key(&dep.id) {
-                dependents_of
-                    .entry(dep.id.clone())
-                    .or_default()
-                    .push(reply.name.clone());
-            }
-        }
-    }
+    // The names of the targets depending on `id` that were themselves
+    // translated. A skipped target's escalation lists these as the edges it
+    // cost; an edge from one skipped target to another was never going to be
+    // emitted, so it isn't one.
+    let surviving_dependents = |id: &str| -> Vec<String> {
+        dependents_of
+            .get(id)
+            .into_iter()
+            .flatten()
+            .filter(|dependent| !untranslatable.contains_key(*dependent))
+            .filter_map(|dependent| id_to_name.get(dependent).cloned())
+            .collect()
+    };
 
     // Names, not ids — a surviving target's `dependencies` have already been
     // resolved from opaque ids back to names by the time they're filtered.
@@ -355,17 +363,14 @@ fn read_codemodel_reply(
             needs_attention.push(unsupported_target_needs_attention(
                 &reply.name,
                 cmake_type,
-                dependents_of
-                    .get(&target_ref.id)
-                    .map(Vec::as_slice)
-                    .unwrap_or_default(),
+                &surviving_dependents(&target_ref.id),
             ));
             continue;
         }
 
         let kind = target_kind(&reply.cmake_type)
             .expect("untranslatable targets were filtered out above");
-        let is_depended_on = has_dependents.contains(&target_ref.id);
+        let is_depended_on = dependents_of.contains_key(&target_ref.id);
         let (mut target, attention) =
             to_target(reply, kind, &id_to_name, is_depended_on);
 
@@ -1156,6 +1161,32 @@ mod tests {
         );
     }
 
+    // The escalation has to name the knob that resolves the common case.
+    // Its guidance long outlived the limitation it described: it told the
+    // agent module roots were "not yet derived from the referenced file
+    // set" and that vendoring was the only fix, for several commits after
+    // derived module roots and --deliverable-root landed. Nothing caught it
+    // because no test read the text.
+    #[test]
+    fn sources_outside_deliverable_escalation_points_at_the_deliverable_root() {
+        let item = sources_outside_deliverable_needs_attention(
+            "app",
+            &["/elsewhere/vendor/blob.cpp".to_string()],
+        );
+
+        assert!(
+            item.context.contains("deliverable-root"),
+            "the resolution for a file that ships with the project is to widen the \
+             deliverable root; the escalation must say so:\n{}",
+            item.context
+        );
+        assert!(
+            !item.context.contains("not yet derived"),
+            "describes a limitation the translator no longer has:\n{}",
+            item.context
+        );
+    }
+
     // System include dirs land outside the module and have no `includes`
     // translation — dropping them is correct, and is not a gap.
     #[test]
@@ -1249,10 +1280,11 @@ fn sources_outside_deliverable_needs_attention(
         gap: format!(
             "Target '{target_name}' compiles {} source file(s) that the translator could not \
              place inside the generated module:\n\n{}\n\nThey were left out of the generated \
-             rule's `srcs`. The translator roots a converted module at the CMake project's \
-             top-level source directory, and a Bazel label cannot refer to anything above its \
-             own module root, so these files have nowhere to live in the output as it is \
-             currently laid out.",
+             rule's `srcs`. The module's root is derived, not assumed: it is the deepest \
+             directory containing both the CMake project and everything the build references \
+             from inside the declared DELIVERABLE ROOT. These files sit outside that \
+             deliverable root, so the module was not widened to cover them — and a Bazel \
+             label cannot refer to anything above its own module root.",
             outside_deliverable.len(),
             outside_deliverable
                 .iter()
@@ -1267,13 +1299,18 @@ fn sources_outside_deliverable_needs_attention(
              sources).\n\n\
              If it IS part of the deliverable — typically a sibling directory like \
              `../shared/` that ships alongside the project — then nothing is wrong with the \
-             project. The file is reproducible, and this is a translator limitation: module \
-             roots are not yet derived from the referenced file set, so the translator cannot \
-             widen the module to include it. Resolve it by vendoring the file into this \
-             module, or by converting the directory that owns it into its own Bazel module \
-             and depending on that, which is what the validation workspace's cross-module \
-             `bazel_dep` wiring exists to support (see \
-             docs/architecture/build-verification.md).\n\n\
+             project, and nothing is wrong with the translator either: the deliverable root \
+             was simply declared too narrowly. It is set by `--deliverable-root` (or the \
+             `deliverable_root` attribute on `convert_cmake_project`) and defaults to the \
+             CMake project directory, which is why a sibling directory falls outside it \
+             unless you say otherwise. Re-running the conversion with a root that contains \
+             both the project and these files widens the module to cover them, rewrites every \
+             path relative to the new root, and emits no escalation at all. That is the \
+             intended resolution here, and it requires no edit to the generated output. \
+             Failing that — if the files ship separately rather than in one deliverable — \
+             convert the directory that owns them into its own Bazel module and depend on it, \
+             which is what the validation workspace's cross-module `bazel_dep` wiring exists \
+             to support (see docs/architecture/build-verification.md).\n\n\
              If it is NOT part of the deliverable — an absolute path into a system location, \
              a checkout that only exists on the machine that ran the conversion, a prebuilt \
              artifact — then the gap is real: this build has an input that cannot be \
@@ -1283,11 +1320,14 @@ fn sources_outside_deliverable_needs_attention(
              will fail to link if anything references their symbols."
         ),
         expected_output: format!(
-            "State which of the two cases above applies for each file, then make it reachable \
-             from '{target_name}' by a relative Bazel label — vendored into this module, or \
-             supplied by a `deps` edge on another module — and wire it into the generated \
-             `BUILD.bazel`. Resolve this in the GENERATED output only — do NOT edit the \
-             project's CMakeLists.txt to move or inline the files."
+            "State which of the two cases above applies for each file. For the first, re-run \
+             the conversion with a deliverable root wide enough to contain the files and \
+             confirm the escalation is gone — do not hand-patch the generated `BUILD.bazel` \
+             to paper over a root that was declared too narrowly. For the second, make each \
+             file reachable from '{target_name}' by a relative Bazel label — vendored into \
+             this module, or supplied by a `deps` edge on another module — and wire it into \
+             the generated `BUILD.bazel`. Either way, do NOT edit the project's CMakeLists.txt \
+             to move or inline the files."
         ),
         title,
     }

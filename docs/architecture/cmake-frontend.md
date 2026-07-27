@@ -215,11 +215,19 @@ through as an absolute path. So a source path cannot be passed through to a
 generated `srcs` unvalidated — an absolute path is not a usable Bazel
 label, it bakes the build machine's filesystem layout into output meant to
 be checked into someone else's repo, and the file isn't in the generated
-module anyway, since only the project's own source directory is copied.
+module anyway unless it was copied there.
 
-`is_project_relative` enforces this for every source (rejecting `..`
-components too, which would escape the module root the same way) — the same
-invariant `strip_project_prefix` already enforced for include directories.
+Two pieces handle this, and they are not redundant with each other:
+
+- `rebase_to_module_root` (above) resolves every path against the derived
+  module root, keeping what lands inside it and escalating what doesn't.
+  This is where the decision is made.
+- `model::is_module_relative` is the single definition of what "inside"
+  means — relative, with no `..` components. Codegen re-checks it on every
+  emitted path in `render_path_list` and panics on a violation, so a
+  frontend field that forgets to rebase can't reach the output silently.
+  See [bazel-codegen.md](bazel-codegen.md#every-emitted-path-must-be-module-relative).
+
 Note that `isGenerated` is *not* a sufficient test on its own: an ordinary,
 non-generated source in a sibling directory is reported absolute and
 carries no flag distinguishing it.

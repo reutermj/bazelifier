@@ -4,7 +4,7 @@
 //! must build on its own, with no reference back to bazelifier's own
 //! MODULE.bazel/toolchains.
 
-use crate::model::{self, BuildGraph, TargetKind};
+use crate::model::{self, BuildGraph, Target, TargetKind};
 
 // Pinned versions for the toolchain/rules every generated module currently
 // depends on. Hardcoded for now since the translator has no per-project
@@ -70,23 +70,7 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         if i > 0 {
             out.push('\n');
         }
-        match target.kind {
-            TargetKind::Executable => render_cc_binary(
-                &mut out,
-                &target.name,
-                &target.sources,
-                &target.includes,
-                &target.dependencies,
-            ),
-            TargetKind::Library => render_cc_library(
-                &mut out,
-                &target.name,
-                &target.sources,
-                &target.public_headers,
-                &target.dependencies,
-                &target.includes,
-            ),
-        }
+        render_cc_rule(&mut out, target);
     }
 
     out
@@ -153,41 +137,37 @@ fn render_deps(out: &mut String, deps: &[String]) {
 // translate).
 const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
 
-// `includes` matters just as much for an executable as for a library: an
-// `add_executable` target with its own `target_include_directories()` needs
-// the `-I` path to compile at all. It isn't only relevant to targets that
-// get depended on — Bazel's transitivity means a *consumer* inherits a
-// dependency's `includes`, but nothing supplies a target's own.
-fn render_cc_binary(
-    out: &mut String,
-    name: &str,
-    sources: &[String],
-    includes: &[String],
-    deps: &[String],
-) {
-    out.push_str("cc_binary(\n");
-    out.push_str(&format!("    name = \"{name}\",\n"));
-    render_path_list(out, "srcs", sources);
-    render_path_list(out, "includes", includes);
-    render_deps(out, deps);
-    out.push_str(PUBLIC_VISIBILITY);
-    out.push_str(")\n");
-}
+/// Renders the `cc_binary`/`cc_library` for one target.
+///
+/// Both kinds emit the same attributes, in the same order, from the same
+/// [`Target`] fields — `hdrs` is the only difference — so they share one
+/// renderer rather than being two functions taking parallel `&[String]`
+/// arguments. That earlier shape let the same two attributes be passed in
+/// a different order by each function (`includes` before `deps` in one,
+/// after it in the other), which nothing but the call site's own ordering
+/// prevented from being transposed.
+///
+/// `includes` matters just as much for an executable as for a library: an
+/// `add_executable` target with its own `target_include_directories()`
+/// needs the `-I` path to compile at all. It isn't only relevant to
+/// targets that get depended on — Bazel's transitivity means a *consumer*
+/// inherits a dependency's `includes`, but nothing supplies a target's own.
+fn render_cc_rule(out: &mut String, target: &Target) {
+    let rule = match target.kind {
+        TargetKind::Executable => "cc_binary",
+        TargetKind::Library => "cc_library",
+    };
 
-fn render_cc_library(
-    out: &mut String,
-    name: &str,
-    sources: &[String],
-    public_headers: &[String],
-    deps: &[String],
-    includes: &[String],
-) {
-    out.push_str("cc_library(\n");
-    out.push_str(&format!("    name = \"{name}\",\n"));
-    render_path_list(out, "srcs", sources);
-    render_path_list(out, "hdrs", public_headers);
-    render_path_list(out, "includes", includes);
-    render_deps(out, deps);
+    out.push_str(&format!("{rule}(\n"));
+    out.push_str(&format!("    name = \"{}\",\n", target.name));
+    render_path_list(out, "srcs", &target.sources);
+    // `hdrs` is a `cc_library`-only attribute; `cc_binary` has none, and
+    // Bazel rejects it as an unknown attribute rather than ignoring it.
+    if target.kind == TargetKind::Library {
+        render_path_list(out, "hdrs", &target.public_headers);
+    }
+    render_path_list(out, "includes", &target.includes);
+    render_deps(out, &target.dependencies);
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
 }
@@ -195,7 +175,7 @@ fn render_cc_library(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{ModuleInfo, Target};
+    use crate::model::ModuleInfo;
 
     fn graph(version: Option<&str>) -> BuildGraph {
         BuildGraph::new(
@@ -328,6 +308,26 @@ mod tests {
                 "{kind:?} dropped its own include dirs:\n{rendered}"
             );
         }
+    }
+
+    // `cc_binary` and `cc_library` share one renderer, so the one attribute
+    // that is NOT shared needs pinning: `cc_binary` has no `hdrs` attribute
+    // and Bazel fails analysis on an unknown one. CMake will happily accept
+    // `target_sources(<exe> PUBLIC FILE_SET ... TYPE HEADERS ...)`, so a
+    // populated `public_headers` on an executable is reachable input, not a
+    // hypothetical.
+    #[test]
+    fn cc_binary_never_renders_hdrs() {
+        let rendered = render(&graph_with(TargetKind::Executable, |t| {
+            t.public_headers = vec!["include/api.hpp".to_string()]
+        }))
+        .build_bazel;
+
+        assert!(rendered.contains("cc_binary("), "{rendered}");
+        assert!(
+            !rendered.contains("hdrs"),
+            "cc_binary has no hdrs attribute; Bazel rejects it:\n{rendered}"
+        );
     }
 
     fn graph_with(kind: TargetKind, mutate: impl FnOnce(&mut Target)) -> BuildGraph {
