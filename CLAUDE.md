@@ -18,13 +18,16 @@ Autotools, Meson, ...).
    `BUILD.bazel`, not a package inside bazelifier's own workspace. That
    distinction is the whole point — see
    [docs/architecture/build-verification.md](docs/architecture/build-verification.md).
-2. When the translator can't handle something, it emits a **runbook** — a
-   structured markdown description of the gap (what construct wasn't
-   understood, what context is available, what output is expected). An
-   agent reads the runbook and produces the missing translation. The agent
-   is a **stage of the pipeline**, not a fallback beside it: what's under
-   test is "translator + agent," so an unresolved gap is an unfinished
-   conversion and **green is the only passing state**.
+2. When the translator can't handle something, it writes a
+   **`needs_attention/<NNN>-<slug>.md`** item into that conversion's own
+   output tree — a structured markdown description of the gap (what
+   construct wasn't understood, what context is available, what output is
+   expected). An agent reads the item and produces the missing
+   translation. The agent is a **stage of the pipeline**, not a fallback
+   beside it: what's under test is "translator + agent," so an unresolved
+   gap is an unfinished conversion and **green is the only passing
+   state**. See
+   [docs/architecture/needs-attention-interface.md](docs/architecture/needs-attention-interface.md).
 3. A conversion is verified two ways, both automated:
    - **Independence**: the generated module, packaged into a tarball with
      every other fixture and unpacked completely outside this repo, must
@@ -52,7 +55,12 @@ source in every fixture build.
 - `translator/` — the Rust translator crate:
   - `src/cmake_api.rs` — CMake File API frontend; also runs the real build
     to capture ground-truth artifacts.
-  - `src/codegen.rs` — renders the generated `MODULE.bazel` + `BUILD.bazel`.
+  - `src/codegen.rs` — renders every Bazel file the translator emits: the
+    module's `MODULE.bazel` + `BUILD.bazel`, and the small ones for
+    `ground_truth/` and `needs_attention/`. If you're writing Bazel syntax
+    from Rust, it goes here.
+  - `src/needs_attention.rs` — the translator → agent handoff: the text of
+    every escalation, plus its markdown rendering.
   - `src/model.rs` — shared internal build-graph model.
   - `src/main.rs` — CLI: writes the standalone module (sources +
     generated files + `ground_truth/`) to an output directory.
@@ -76,10 +84,10 @@ source in every fixture build.
 - `translator/tests/BUILD.bazel` — calls `validation_workspace`, listing
   every fixture. Add new fixtures here.
 - `docs/architecture/` — design docs, one per major component/decision area.
-- `docs/runbooks/` — the runbook template and example runbooks. This is the
-  interface contract between the deterministic translator and an agent.
-  `docs/runbooks/maintenance/` holds recurring repo-maintenance runbooks
-  (non-CMake-translation gaps, e.g. regenerating `translator/Cargo.lock`).
+- `docs/runbooks/` — recurring **repo-maintenance** procedures (e.g.
+  regenerating `translator/Cargo.lock`). Nothing here is emitted by the
+  translator; the translator → agent contract is
+  `docs/architecture/needs-attention-interface.md`.
 - `docs/lore/` — write here when you discover something non-obvious that
   cost real effort to figure out (a CMake quirk, a Bazel toolchain gotcha, a
   reason an approach was abandoned). This is tribal knowledge that isn't
@@ -99,7 +107,7 @@ source in every fixture build.
   directly. `translator/Cargo.toml` + `translator/Cargo.lock` exist only
   because `rules_rs`'s `crate.from_cargo` extension requires a real
   cargo-generated lockfile as its dependency-resolution input — see
-  [docs/runbooks/maintenance/001-regenerate-translator-cargo-lock.md](docs/runbooks/maintenance/001-regenerate-translator-cargo-lock.md)
+  [docs/runbooks/001-regenerate-translator-cargo-lock.md](docs/runbooks/001-regenerate-translator-cargo-lock.md)
   before touching either file. Regenerating `Cargo.lock` requires a local
   `cargo` (installed via rustup on this machine already); no Bazel build
   ever invokes that local toolchain.
@@ -128,15 +136,21 @@ source in every fixture build.
   `buildifier` (`bazel run //:buildifier` to fix, `bazel test
   //:buildifier_check` to verify) — see
   [docs/architecture/bazel-codegen.md](docs/architecture/bazel-codegen.md).
-- **Runbooks are a real interface, not a scratch file.** When the
-  translator can't resolve something, it should produce a runbook matching
-  the template in `docs/runbooks/`, not an ad hoc error message. Keep the
-  schema in mind even while it's markdown-first — it's expected to become
-  machine-consumable later.
+- **`needs_attention/` is a real interface, not a scratch file.** When the
+  translator can't resolve something, it should emit a `needs_attention`
+  item matching the fixed section structure in
+  `translator/src/needs_attention.rs`, not an ad hoc error message. Keep
+  the schema in mind even while it's markdown-first — it's expected to
+  become machine-consumable later. The item's *text* is output too: when
+  the translator gains a capability, grep the escalations for the
+  limitation it just removed, and pin substantive guidance with a test.
+  See
+  [docs/architecture/needs-attention-interface.md](docs/architecture/needs-attention-interface.md).
 - **Never edit input build files to make a conversion succeed.** A
   fixture's `CMakeLists.txt` (and a real project's, later) is immutable
   test input. If the translator can't handle a construct, fix the
-  translator or the runbook — adding a `FILE_SET`, restructuring targets,
+  translator or the escalation text — adding a `FILE_SET`, restructuring
+  targets,
   or otherwise "cleaning up" the source to make it translate is not a
   resolution, because it leaves the next project with the same shape just
   as broken. Resolutions always land in the **generated** output.

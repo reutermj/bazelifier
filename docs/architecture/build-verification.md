@@ -81,7 +81,7 @@ resolve a gap, which is a result to act on, never a documented outcome.
 Fixture `CMakeLists.txt` files are test inputs and are **never edited to
 make a conversion succeed**. A pattern the translator can't handle (like
 `003-library-no-file-set`'s plain, non-`FILE_SET` headers) is a real
-shape found in real projects — the goal is a translator and runbooks
+shape found in real projects — the goal is a translator and escalations
 robust enough to handle it, not a corpus curated down to the subset that
 happens to convert cleanly. "Fix the CMake" is never the resolution to a
 `needs_attention` item.

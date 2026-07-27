@@ -172,6 +172,39 @@ fn render_cc_rule(out: &mut String, target: &Target) {
     out.push_str(")\n");
 }
 
+/// Renders the `BUILD.bazel` for the generated module's `needs_attention/`
+/// directory.
+///
+/// The directory is a Bazel package even when it holds no items, so
+/// `@<module>//needs_attention:all` is always a valid label — the
+/// validation tooling depends on it unconditionally and inspects its
+/// contents at test-runtime (see docs/architecture/build-verification.md).
+/// Hence `allow_empty = True`, which is the whole reason this can't just
+/// be an `exports_files`.
+pub fn render_needs_attention_build_bazel() -> String {
+    "filegroup(\n    name = \"all\",\n    srcs = glob(\n        [\"*.md\"],\n        \
+     allow_empty = True,\n    ),\n    visibility = [\"//visibility:public\"],\n)\n"
+        .to_string()
+}
+
+/// Renders the `BUILD.bazel` for the generated module's `ground_truth/`
+/// directory, exporting the real cmake+ninja-built artifacts so the
+/// equivalence tests can reference them (e.g.
+/// `@<module>//ground_truth:hello`).
+///
+/// Deliberately its own nested package rather than entries in the module's
+/// top-level `BUILD.bazel`: validation-only targets must never appear in
+/// what a user checks into their own repo. See
+/// docs/architecture/build-verification.md.
+pub fn render_ground_truth_build_bazel(artifacts: &[String]) -> String {
+    let exports = artifacts
+        .iter()
+        .map(|p| format!("\"{p}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("exports_files([{exports}])\n")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -433,6 +466,30 @@ mod tests {
                 );
             }
         }
+    }
+
+    // The empty case is the one that matters: the validation tooling
+    // depends on `@<module>//needs_attention:all` unconditionally, so a
+    // conversion with nothing to triage still has to produce a package
+    // whose glob is legal.
+    #[test]
+    fn needs_attention_build_bazel_globs_allow_empty() {
+        let rendered = render_needs_attention_build_bazel();
+        assert!(rendered.contains("name = \"all\""), "{rendered}");
+        assert!(rendered.contains("allow_empty = True"), "{rendered}");
+    }
+
+    #[test]
+    fn ground_truth_build_bazel_exports_every_artifact() {
+        let rendered =
+            render_ground_truth_build_bazel(&["hello".to_string(), "libgreet.a".to_string()]);
+        assert_eq!(rendered, "exports_files([\"hello\", \"libgreet.a\"])\n");
+    }
+
+    // A fixture whose targets produce no artifacts still gets the package.
+    #[test]
+    fn ground_truth_build_bazel_handles_no_artifacts() {
+        assert_eq!(render_ground_truth_build_bazel(&[]), "exports_files([])\n");
     }
 
     #[test]

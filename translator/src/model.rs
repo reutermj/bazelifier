@@ -78,10 +78,9 @@ pub struct ModuleInfo {
 }
 
 /// A gap the translator could not confidently resolve for a specific
-/// conversion — written into the output tree's `needs_attention/` (see
-/// docs/architecture/runbook-interface.md) for whoever picks up this
-/// converted project to address, distinct from bazelifier's own
-/// docs/runbooks/ interface docs.
+/// conversion — written into the output tree's `needs_attention/` for
+/// whoever picks up this converted project to address. See
+/// docs/architecture/needs-attention-interface.md.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NeedsAttention {
     pub title: String,

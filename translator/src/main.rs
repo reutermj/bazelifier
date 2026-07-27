@@ -89,18 +89,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// Writes one `needs_attention/<NNN>-<slug>.md` file per gap the
-/// translator could not confidently resolve for this specific conversion
-/// — distinct from bazelifier's own docs/runbooks/ interface docs, this
-/// is actionable follow-up for whoever picks up the converted project.
-/// See docs/architecture/runbook-interface.md.
+/// translator could not confidently resolve for this specific conversion:
+/// actionable follow-up for whoever picks up the converted project. See
+/// docs/architecture/needs-attention-interface.md.
 ///
-/// The directory (with a glob-based `exports_files`-equivalent
-/// `filegroup`) is always created, even with zero items: validation
-/// tooling (see docs/architecture/build-verification.md) checks this
-/// directory for any files at test-runtime to decide whether to gate on
-/// triage before running the ground-truth comparison, which only works if
-/// `@<module>//needs_attention:all` is always a valid, buildable label
-/// regardless of whether there's anything in it.
+/// The directory and its `BUILD.bazel` are always written, even with zero
+/// items — see `codegen::render_needs_attention_build_bazel` for why the
+/// empty case has to remain a valid Bazel package.
 fn write_needs_attention(out_module: &Path, graph: &model::BuildGraph) -> std::io::Result<()> {
     let dir = out_module.join("needs_attention");
     fs::create_dir_all(&dir)?;
@@ -112,7 +107,7 @@ fn write_needs_attention(out_module: &Path, graph: &model::BuildGraph) -> std::i
 
     fs::write(
         dir.join("BUILD.bazel"),
-        "filegroup(\n    name = \"all\",\n    srcs = glob(\n        [\"*.md\"],\n        allow_empty = True,\n    ),\n    visibility = [\"//visibility:public\"],\n)\n",
+        codegen::render_needs_attention_build_bazel(),
     )?;
 
     Ok(())
@@ -120,10 +115,9 @@ fn write_needs_attention(out_module: &Path, graph: &model::BuildGraph) -> std::i
 
 /// Copies the real cmake+ninja-built artifacts (e.g. each target's built
 /// binary) into `<out_module>/ground_truth/`, alongside a small
-/// `BUILD.bazel` exporting them (`exports_files`), so they're
-/// referenceable (e.g. `@<module>//ground_truth:hello`) for validating
-/// that the Bazel build is functionally equivalent, without exposing
-/// validation-only targets in the user-facing top-level BUILD.bazel — see
+/// `BUILD.bazel` exporting them (`codegen::render_ground_truth_build_bazel`)
+/// so they're referenceable (e.g. `@<module>//ground_truth:hello`) when
+/// validating that the Bazel build is functionally equivalent — see
 /// docs/architecture/build-verification.md.
 fn copy_ground_truth_artifacts(
     build_dir: &Path,
@@ -146,14 +140,9 @@ fn copy_ground_truth_artifacts(
         }
     }
 
-    let exports = artifact_paths
-        .iter()
-        .map(|p| format!("\"{p}\""))
-        .collect::<Vec<_>>()
-        .join(", ");
     fs::write(
         ground_truth_dir.join("BUILD.bazel"),
-        format!("exports_files([{exports}])\n"),
+        codegen::render_ground_truth_build_bazel(&artifact_paths),
     )?;
 
     Ok(())

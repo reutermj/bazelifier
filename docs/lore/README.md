@@ -19,7 +19,10 @@ only in someone's head or get re-discovered painfully by the next person
 - Design decisions and current architecture — that's
   [docs/architecture/](../architecture/).
 - Step-by-step instructions for resolving a specific translation gap —
-  that's a [runbook](../runbooks/).
+  that's a `needs_attention/` item the translator emits (see
+  [needs-attention-interface.md](../architecture/needs-attention-interface.md)).
+- A repeatable repo-maintenance procedure — that's a
+  [runbook](../runbooks/).
 - Anything easily re-derived by reading the current code.
 
 ## Format

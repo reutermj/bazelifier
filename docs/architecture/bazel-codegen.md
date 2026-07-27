@@ -29,9 +29,10 @@ Covers how bazelifier turns the internal build-graph model (see
   with its dependencies' include dirs but never a target with its own (see
   `004-binary-private-include` in
   [build-verification.md](build-verification.md#fixtures)).
-- Where the translator can't confidently produce a native rule, fall back to
-  the runbook process (see [runbook-interface.md](runbook-interface.md))
-  rather than silently emitting something wrong or overly conservative.
+- Where the translator can't confidently produce a native rule, escalate via
+  `needs_attention/` (see
+  [needs-attention-interface.md](needs-attention-interface.md)) rather than
+  silently emitting something wrong or overly conservative.
 - Generated targets default to `visibility = ["//visibility:public"]`: a
   converted module is meant to be depended on — both by bazelifier's own
   validation tooling, and, as more projects get converted, by other
@@ -73,7 +74,7 @@ alongside `shared/helper.cpp`). Everything below is relative to that root.
     <NNN>-<slug>.md     present only if the translator hit a gap for
                        THIS conversion it couldn't confidently resolve
                        — see cmake-frontend.md's needs_attention/ section
-                       and runbook-interface.md
+                       and needs-attention-interface.md
 ```
 
 `ground_truth/` is deliberately a separate nested package (its own

@@ -29,9 +29,10 @@ source build system files (e.g. CMakeLists.txt)
             │ construct not understood
             ▼
  ┌─────────────────────┐
- │ Runbook               │  Structured markdown (see docs/runbooks/)
- │ (gap description)     │  describing what wasn't understood and what's
- │                       │  needed.
+ │ needs_attention/      │  Structured markdown (see
+ │ item (gap description)│  docs/architecture/needs-attention-interface.md)
+ │                       │  describing what wasn't understood and what's
+ │                       │  needed, written into the module's own output.
  └──────────┬────────────┘
             │ agent (e.g. Claude Code) resolves the gap
             ▼
@@ -74,8 +75,9 @@ Source build files are never edited to make a conversion succeed — see
 - **Translator (Rust):** owns parsing the source build system and codegen
   of Bazel files. See [cmake-frontend.md](cmake-frontend.md) and
   [bazel-codegen.md](bazel-codegen.md).
-- **Runbook interface:** the contract for escalating unhandled constructs to
-  an agent. See [runbook-interface.md](runbook-interface.md).
+- **`needs_attention/` interface:** the contract for escalating unhandled
+  constructs to an agent. See
+  [needs-attention-interface.md](needs-attention-interface.md).
 - **Verification:** how we confirm a conversion is actually correct, and the
   plan to make that hermetic. See [build-verification.md](build-verification.md).
 

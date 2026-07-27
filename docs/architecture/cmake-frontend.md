@@ -107,12 +107,9 @@ the hermetic `llvm` toolchain's `layering_check` changes it.
 When the translator can't confidently resolve something for a *specific*
 conversion, it writes a `needs_attention/<NNN>-<slug>.md` file into the
 output tree (`translator/src/needs_attention.rs`) — actionable follow-up
-for whoever picks up that converted project. This is deliberately **not**
-called a "runbook": `docs/runbooks/` in this repo documents bazelifier's
-own general escalation contract (for people building the translator);
-`needs_attention/` is per-conversion, project-specific guidance, closer to
-a to-do list than an interface spec. See
-[runbook-interface.md](runbook-interface.md) for how the two relate.
+for whoever picks up that converted project. See
+[needs-attention-interface.md](needs-attention-interface.md) for the
+format and the design intent behind it.
 
 Currently implemented triggers:
 

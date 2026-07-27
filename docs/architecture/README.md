@@ -9,9 +9,9 @@ growing a single monolithic design doc.
 - [overview.md](overview.md) — system overview and pipeline
 - [cmake-frontend.md](cmake-frontend.md) — parsing/understanding CMake input
 - [bazel-codegen.md](bazel-codegen.md) — emitting Bazel `BUILD` files
-- [runbook-interface.md](runbook-interface.md) — the translator ↔ agent
-  handoff contract (see also [docs/runbooks/](../runbooks/) for the actual
-  templates/examples)
+- [needs-attention-interface.md](needs-attention-interface.md) — the
+  translator → agent handoff contract: what the translator emits when it
+  can't convert something, and what a resolution has to look like
 - [build-verification.md](build-verification.md) — how conversions get
   verified (build + test), and the path toward hermetic, remote-execution-
   friendly verification

@@ -1,54 +1,40 @@
-# Runbooks
+# Maintenance runbooks
 
-A runbook is how the deterministic translator hands off a translation gap
-to an AI agent. When the translator encounters a construct in the source
-build system (e.g. CMake) that it can't confidently convert to Bazel on its
-own, it produces a runbook describing the gap instead of guessing or
-silently emitting something wrong.
+Procedures for maintaining **this repo** that are non-obvious, easy to
+forget, and recur — the kind of thing that otherwise gets re-derived
+painfully every time. Written to be followed by a human or an agent.
 
-See [docs/architecture/runbook-interface.md](../architecture/runbook-interface.md)
-for the design rationale. This directory holds the concrete format.
+These are about bazelifier's own tooling and build wiring. They have
+nothing to do with converting a CMake project.
+
+> **Not the translator → agent interface.** When the translator can't
+> convert something, it does *not* write here. It writes a
+> `needs_attention/<NNN>-<slug>.md` file into that conversion's own output
+> tree — see
+> [docs/architecture/needs-attention-interface.md](../architecture/needs-attention-interface.md).
 
 ## Format
 
-Runbooks are markdown files following [TEMPLATE.md](TEMPLATE.md). They're
-written to be human/agent-readable now, with section structure consistent
-enough to become machine-parseable later without a redesign — don't add
-freeform sections that break that.
+One file per procedure, `<NNN>-<short-slug>.md`. Numbering just keeps
+ordering stable; it isn't meaningful. Sections that have proven useful:
 
-## Naming
+- **Status / Trigger** — when to re-run this.
+- **Gap** — what doesn't work on its own, and why (cite the actual source
+  you read, not a README summary — see
+  [CLAUDE.md](../../CLAUDE.md)'s convention on investigating fetched Bazel
+  repos locally).
+- **What was tried** — the approaches that didn't pan out, so nobody
+  retries them.
+- **Resolution** — the commands that actually work, and how to verify.
 
-`docs/runbooks/<project>/<NNN>-<short-slug>.md`, e.g.
-`docs/runbooks/examples/001-generator-expression-in-custom-command.md`.
-Numbering is per-project, just to keep ordering stable; it's not a global
-sequence.
+Adapt as the procedure needs; consistency matters more than the exact
+headings.
 
-## Directory layout
+## When to write one instead of lore
 
-- [TEMPLATE.md](TEMPLATE.md) — the runbook template. Copy this to start a
-  new runbook.
-- `examples/` — worked examples showing the format filled in, for reference
-  (not necessarily tied to a real in-progress conversion).
-- `maintenance/` — runbooks for recurring repo/tooling maintenance tasks
-  that aren't CMake translation gaps (e.g. regenerating a lockfile) but are
-  still the kind of non-obvious, easy-to-forget procedure worth capturing
-  in a consistent, agent-readable format. These don't fit
-  [TEMPLATE.md](TEMPLATE.md)'s translation-specific fields (source
-  project/location, translator stage) — adapt the section headers to fit
-  (trigger, gap, what was tried, resolution) rather than forcing the
-  CMake-specific frame.
+- A **runbook** is a procedure you re-run: it has a trigger and steps.
+- [docs/lore/](../lore/) is for a *discovery* — a surprising behavior or an
+  abandoned approach, where the value is understanding, not a checklist.
 
-## Lifecycle
-
-1. Translator hits an unhandled construct, fills in the template as best it
-   can (context, what it tried, why it stopped) → this is now an "open"
-   runbook.
-2. An agent picks up the runbook, resolves the gap, and records the
-   resolution in the runbook's `## Resolution` section.
-3. The resolution feeds back into the pipeline (exact mechanism TBD — see
-   the open question in
-   [runbook-interface.md](../architecture/runbook-interface.md)).
-
-If you resolve a runbook and learn something non-obvious in the process
-that will help future conversions, consider whether it belongs in
-[docs/lore/](../lore/) as well.
+If you resolve a runbook and learn something non-obvious on the way, the
+discovery half belongs in lore even though the procedure stays here.

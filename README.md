@@ -17,14 +17,15 @@ Autotools, Meson, ...) over time.
    for it (its own `MODULE.bazel` + `BUILD.bazel`, copied sources) for the
    patterns it recognizes. It also runs the project's real build to
    capture ground-truth artifacts for verification.
-2. **Agent stage via runbooks** — when the translator hits something it
-   doesn't know how to handle (an unsupported generator expression, a custom
-   command, an unusual dependency shape), it emits a **runbook**: a
-   structured description of the gap. An AI coding agent (e.g. Claude Code)
-   reads the runbook and provides the missing translation, which feeds back
-   into the pipeline. This is a stage of the pipeline, not a fallback beside
-   it — the thing being built and tested is "translator + agent," and an
-   unresolved gap means the conversion isn't finished.
+2. **Agent stage** — when the translator hits something it doesn't know how
+   to handle (an unsupported generator expression, a custom command, an
+   unusual dependency shape), it writes a **`needs_attention/` item**: a
+   structured description of the gap, placed in that conversion's own
+   output. An AI coding agent (e.g. Claude Code) reads the item and
+   provides the missing translation, which feeds back into the pipeline.
+   This is a stage of the pipeline, not a fallback beside it — the thing
+   being built and tested is "translator + agent," and an unresolved gap
+   means the conversion isn't finished.
 3. **Independence + equivalence verification** — a conversion is only
    considered successful once the generated module builds with **no
    reference back to bazelifier's own workspace** (verified by packaging it
@@ -50,9 +51,10 @@ CMake projects as corpus.
 
 - [CLAUDE.md](CLAUDE.md) — project guide for AI agents working in this repo
   (also available as [AGENTS.md](AGENTS.md))
-- [docs/architecture/](docs/architecture/) — design and component docs
-- [docs/runbooks/](docs/runbooks/) — runbook format and examples for
-  agent-assisted translation
+- [docs/architecture/](docs/architecture/) — design and component docs,
+  including the
+  [translator → agent handoff format](docs/architecture/needs-attention-interface.md)
+- [docs/runbooks/](docs/runbooks/) — maintenance procedures for this repo
 - [docs/lore/](docs/lore/) — non-obvious discoveries and hard-won context
   that isn't captured elsewhere
 
