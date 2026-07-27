@@ -167,6 +167,19 @@ building against a fixture with nothing to differentiate):
   therefore the only thing keeping this red, which is exactly the point.
   Escalation must not depend on the conversion also happening to break;
   otherwise gaps that produce working-but-wrong output go unnoticed.
+- `006-sibling-sources` — a CMake project in `proj/` that compiles sources
+  from `shared/`, a sibling directory shipping in the same deliverable.
+  Exercises a module root **wider than the CMake project directory**: with
+  `deliverable_root` set to the fixture directory, the module roots there
+  and holds `proj/src/main.cpp` alongside `shared/helper.cpp`, all paths
+  module-relative. Emits no `needs_attention/` item — the files are
+  reproducible from what the project ships, so there is no gap to report,
+  which is the property under test.
+
+  The fixture is still one self-contained directory: the deliverable is the
+  fixture, and the CMake project is a subdirectory of it. That keeps the
+  one-directory-per-fixture convention while still placing a source outside
+  the CMake project's own root.
 
 ## Header visibility is not enforced by default
 

@@ -1,0 +1,26 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Exercises a module root wider than the CMake project directory.
+#
+# The CMake project is `proj/`, but it compiles sources from `shared/`, a
+# sibling that ships in the same deliverable. `deliverable_root` is the
+# fixture directory (containing both), so the generated module roots there
+# and holds `proj/src/main.cpp` alongside `shared/helper.cpp` — all paths
+# module-relative, nothing escalated.
+#
+# Note the fixture is still a single self-contained directory: the
+# deliverable is the fixture, and the CMake project is a subdirectory of it.
+# That keeps the "one directory per fixture" convention intact while still
+# putting a source file outside the CMake project's own root.
+convert_cmake_project(
+    name = "converted",
+    srcs = glob([
+        "proj/**",
+        "shared/**",
+    ]),
+    deliverable_root = package_name(),
+    expected_targets = ["app"],
+    module_name = "sibling_sources",
+    source_dir = package_name() + "/proj",
+    visibility = ["//translator/tests:__pkg__"],
+)

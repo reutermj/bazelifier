@@ -45,6 +45,13 @@ Covers how bazelifier turns the internal build-graph model (see
 For a CMake project with one or more targets, the translator currently
 produces:
 
+The module's root is derived rather than assumed to be the CMake project
+directory — see [cmake-frontend.md](cmake-frontend.md). It usually is the
+project directory, but when the build references files from a sibling that
+ships in the same deliverable, the root widens to cover both and the
+project's own sources move under a subdirectory (`proj/src/main.cpp`
+alongside `shared/helper.cpp`). Everything below is relative to that root.
+
 ```
 <out_module>/
   MODULE.bazel        module(name=...) [+ version, if CMAKE_PROJECT_VERSION

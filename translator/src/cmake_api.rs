@@ -7,12 +7,12 @@
 //! of truth rather than parsing CMakeLists.txt directly.
 
 use std::fs;
-use std::path::Path;
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 use serde::Deserialize;
 
-use crate::model::{self, BuildGraph, ModuleInfo, NeedsAttention, Target, TargetKind};
+use crate::model::{BuildGraph, ModuleInfo, NeedsAttention, Target, TargetKind};
 
 #[derive(Debug)]
 pub enum Error {
@@ -21,6 +21,10 @@ pub enum Error {
     CmakeConfigureFailed { stderr: String },
     CmakeBuildFailed { stderr: String },
     NoProject,
+    SourceDirOutsideDeliverableRoot {
+        source_dir: String,
+        deliverable_root: String,
+    },
 }
 
 impl std::fmt::Display for Error {
@@ -35,6 +39,15 @@ impl std::fmt::Display for Error {
                 write!(f, "cmake build failed:\n{stderr}")
             }
             Error::NoProject => write!(f, "codemodel reply contains no project()"),
+            Error::SourceDirOutsideDeliverableRoot {
+                source_dir,
+                deliverable_root,
+            } => write!(
+                f,
+                "the CMake project directory ({source_dir}) is not inside the declared \
+                 deliverable root ({deliverable_root}); the deliverable root must contain \
+                 the project being converted"
+            ),
         }
     }
 }
@@ -169,6 +182,17 @@ struct CacheEntry {
     value: String,
 }
 
+/// A completed discovery pass: the build graph, plus the directory on this
+/// machine that the graph's (module-relative) paths are relative to.
+pub struct Discovery {
+    pub graph: BuildGraph,
+    /// Absolute path to the converted module's root — where
+    /// `copy_referenced_sources` reads the referenced files from. Equal to
+    /// the CMake project directory unless the build referenced files above
+    /// it that still ship with the project; see `rebase_to_module_root`.
+    pub module_root: PathBuf,
+}
+
 /// Configures `source_dir` in `build_dir` via `cmake -G Ninja`, requesting
 /// the codemodel-v2 and cache-v2 File API queries, actually builds the
 /// project (so ground-truth artifacts exist in `build_dir` for validation
@@ -176,12 +200,18 @@ struct CacheEntry {
 /// replies into a `BuildGraph` (including the module name/version the
 /// generated `MODULE.bazel` should use — see
 /// docs/architecture/bazel-codegen.md).
-pub fn discover(source_dir: &Path, build_dir: &Path) -> Result<BuildGraph, Error> {
+pub fn discover(
+    source_dir: &Path,
+    build_dir: &Path,
+    deliverable_root: &Path,
+) -> Result<Discovery, Error> {
     request_file_api_queries(build_dir)?;
     configure(source_dir, build_dir)?;
     build(build_dir)?;
     let reply_dir = build_dir.join(".cmake/api/v1/reply");
-    let (module, targets, needs_attention) = read_codemodel_reply(&reply_dir)?;
+    let deliverable_root = absolutize(deliverable_root)?;
+    let (module, targets, needs_attention, module_root) =
+        read_codemodel_reply(&reply_dir, &deliverable_root)?;
     let version = read_project_version(&reply_dir)?;
 
     let mut graph = BuildGraph::new(
@@ -192,7 +222,7 @@ pub fn discover(source_dir: &Path, build_dir: &Path) -> Result<BuildGraph, Error
         targets,
     );
     graph.needs_attention = needs_attention;
-    Ok(graph)
+    Ok(Discovery { graph, module_root })
 }
 
 fn request_file_api_queries(build_dir: &Path) -> Result<(), Error> {
@@ -237,7 +267,8 @@ fn build(build_dir: &Path) -> Result<(), Error> {
 
 fn read_codemodel_reply(
     reply_dir: &Path,
-) -> Result<(String, Vec<Target>, Vec<NeedsAttention>), Error> {
+    deliverable_root: &Path,
+) -> Result<(String, Vec<Target>, Vec<NeedsAttention>, PathBuf), Error> {
     let index_path = find_reply_file(reply_dir, "codemodel-v2-")?;
     let index: CodemodelIndexReply = serde_json::from_str(&fs::read_to_string(index_path)?)?;
 
@@ -336,7 +367,7 @@ fn read_codemodel_reply(
             .expect("untranslatable targets were filtered out above");
         let is_depended_on = has_dependents.contains(&target_ref.id);
         let (mut target, attention) =
-            to_target(reply, kind, &id_to_name, is_depended_on, &index.paths.source);
+            to_target(reply, kind, &id_to_name, is_depended_on);
 
         // Drop edges to targets that were never emitted. Leaving them would
         // produce a BUILD.bazel referencing a label that doesn't exist,
@@ -351,7 +382,148 @@ fn read_codemodel_reply(
         needs_attention.extend(attention);
     }
 
-    Ok((project.name.clone(), targets, needs_attention))
+    let source_dir = normalize_lexically(Path::new(&index.paths.source));
+    if !source_dir.starts_with(deliverable_root) {
+        return Err(Error::SourceDirOutsideDeliverableRoot {
+            source_dir: source_dir.to_string_lossy().into_owned(),
+            deliverable_root: deliverable_root.to_string_lossy().into_owned(),
+        });
+    }
+
+    let (module_root, rebase_escalations) =
+        rebase_to_module_root(&mut targets, &source_dir, deliverable_root);
+    needs_attention.extend(rebase_escalations);
+
+    Ok((project.name.clone(), targets, needs_attention, module_root))
+}
+
+/// Resolves `.` and `..` textually, without touching the filesystem.
+///
+/// Deliberately not `fs::canonicalize`: under a Bazel sandbox the source
+/// tree is a web of symlinks into the execroot and the output base, and
+/// resolving them would yield paths that are correct on this machine but
+/// meaningless as a description of the module's layout.
+fn normalize_lexically(path: &Path) -> PathBuf {
+    let mut out = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                out.pop();
+            }
+            other => out.push(other.as_os_str()),
+        }
+    }
+    out
+}
+
+fn absolutize(path: &Path) -> std::io::Result<PathBuf> {
+    Ok(normalize_lexically(&std::path::absolute(path)?))
+}
+
+/// Deepest directory containing `base` and every path in `others`.
+fn common_ancestor(base: &Path, others: &[PathBuf]) -> PathBuf {
+    let mut common: Vec<Component> = base.components().collect();
+    for other in others {
+        let shared = common
+            .iter()
+            .zip(other.components())
+            .take_while(|(a, b)| **a == *b)
+            .count();
+        common.truncate(shared);
+    }
+    common.iter().map(|c| c.as_os_str()).collect()
+}
+
+/// Turns a File API path into an absolute one. CMake reports a source path
+/// relative to the project's top-level source directory when the file is
+/// inside it, and absolute otherwise.
+fn resolve_against(path: &str, source_dir: &Path) -> PathBuf {
+    let path = Path::new(path);
+    if path.is_absolute() {
+        normalize_lexically(path)
+    } else {
+        normalize_lexically(&source_dir.join(path))
+    }
+}
+
+/// Chooses the converted module's root and rewrites every path in `targets`
+/// to be relative to it.
+///
+/// The root is the deepest directory containing both the CMake project and
+/// every referenced file that ships with the project — so it is simply the
+/// project directory when nothing reaches outside it (the common case, and
+/// what every fixture but one does), and widens only as far as it must
+/// otherwise. `deliverable_root` caps that widening: a file outside it
+/// cannot be reproduced from what the project ships, so the module is not
+/// grown to swallow it and it is escalated instead. See
+/// docs/architecture/cmake-frontend.md.
+///
+/// Include directories are treated differently from sources on the way
+/// out: one that lands outside the module is a system include path
+/// (`/usr/include`), which has no `includes` translation and is not a gap
+/// worth reporting.
+fn rebase_to_module_root(
+    targets: &mut [Target],
+    source_dir: &Path,
+    deliverable_root: &Path,
+) -> (PathBuf, Vec<NeedsAttention>) {
+    let mut shipped = Vec::new();
+    for target in targets.iter() {
+        for path in target
+            .sources
+            .iter()
+            .chain(&target.public_headers)
+            .chain(&target.includes)
+        {
+            let absolute = resolve_against(path, source_dir);
+            if absolute.starts_with(deliverable_root) {
+                shipped.push(absolute);
+            }
+        }
+    }
+    let module_root = common_ancestor(source_dir, &shipped);
+
+    let mut escalations = Vec::new();
+    for target in targets.iter_mut() {
+        let mut unreachable = Vec::new();
+
+        for list in [&mut target.sources, &mut target.public_headers] {
+            let mut kept = Vec::with_capacity(list.len());
+            for path in list.iter() {
+                let absolute = resolve_against(path, source_dir);
+                match absolute.strip_prefix(&module_root) {
+                    Ok(relative) => kept.push(relative.to_string_lossy().into_owned()),
+                    Err(_) => unreachable.push(absolute.to_string_lossy().into_owned()),
+                }
+            }
+            *list = kept;
+        }
+
+        target.includes = target
+            .includes
+            .iter()
+            .filter_map(|path| {
+                let relative = resolve_against(path, source_dir)
+                    .strip_prefix(&module_root)
+                    .ok()?
+                    .to_string_lossy()
+                    .into_owned();
+                // The module root itself isn't expressible as an `includes`
+                // entry, and adds nothing Bazel doesn't already do.
+                (!relative.is_empty()).then_some(relative)
+            })
+            .collect();
+
+        if !unreachable.is_empty() {
+            escalations.push(sources_outside_deliverable_needs_attention(
+                &target.name,
+                &unreachable,
+            ));
+        }
+    }
+
+    (module_root, escalations)
 }
 
 /// Maps a CMake target type onto the internal model's kind. `None` means
@@ -400,31 +572,16 @@ fn to_target(
     kind: TargetKind,
     id_to_name: &std::collections::HashMap<String, String>,
     is_depended_on: bool,
-    project_source_dir: &str,
 ) -> (Target, Vec<NeedsAttention>) {
     let mut sources = Vec::new();
     let mut public_headers = Vec::new();
     let mut generated_sources = Vec::new();
-    let mut sources_outside_deliverable = Vec::new();
     let mut has_unclassified_headers = false;
     for source in &reply.sources {
         // The translator can't produce a generated file, and has no way to
         // know what does.
         if source.is_generated {
             generated_sources.push(source.path.clone());
-            continue;
-        }
-
-        // CMake reports a source path relative to the top-level source
-        // directory ONLY when the file is inside it; anything else comes
-        // through as an absolute path. Emitting one verbatim would bake this
-        // machine's filesystem layout into the generated BUILD.bazel and
-        // produce something Bazel can't resolve as a label — and the file
-        // isn't in the copied module either, since only the source dir is
-        // copied. Same invariant `strip_project_prefix` enforces for include
-        // directories.
-        if !model::is_module_relative(&source.path) {
-            sources_outside_deliverable.push(source.path.clone());
             continue;
         }
 
@@ -452,7 +609,7 @@ fn to_target(
         .filter_map(|d| id_to_name.get(&d.id).cloned())
         .collect();
 
-    let includes = own_include_dirs(&reply, project_source_dir);
+    let includes = own_include_dirs(&reply);
 
     let mut needs_attention = Vec::new();
     if kind == TargetKind::Library
@@ -466,12 +623,6 @@ fn to_target(
         needs_attention.push(generated_sources_needs_attention(
             &reply.name,
             &generated_sources,
-        ));
-    }
-    if !sources_outside_deliverable.is_empty() {
-        needs_attention.push(sources_outside_deliverable_needs_attention(
-            &reply.name,
-            &sources_outside_deliverable,
         ));
     }
 
@@ -510,7 +661,7 @@ fn looks_like_header(path: &str) -> bool {
 /// `BASE_DIRS`) trace to some other command. Bazel's `includes` is
 /// transitive, so only the target's own dirs need to be captured — a
 /// consuming target already gets them via its `deps` edge.
-fn own_include_dirs(reply: &TargetReply, project_source_dir: &str) -> Vec<String> {
+fn own_include_dirs(reply: &TargetReply) -> Vec<String> {
     let mut seen = std::collections::HashSet::new();
     let mut includes = Vec::new();
 
@@ -520,11 +671,8 @@ fn own_include_dirs(reply: &TargetReply, project_source_dir: &str) -> Vec<String
                 continue;
             }
 
-            let Some(relative) = strip_project_prefix(&include.path, project_source_dir) else {
-                continue;
-            };
-            if seen.insert(relative.clone()) {
-                includes.push(relative);
+            if seen.insert(include.path.clone()) {
+                includes.push(include.path.clone());
             }
         }
     }
@@ -546,20 +694,6 @@ fn is_inherited_via_link_libraries(backtrace: Option<usize>, graph: &BacktraceGr
         .commands
         .get(command_index)
         .is_some_and(|c| c == "target_link_libraries")
-}
-
-/// Strips `project_source_dir` (an absolute path) as a prefix from
-/// `absolute_path`, returning the remainder relative to the project root.
-/// Returns `None` for paths outside the project (e.g. system include
-/// dirs), which are not translatable to a Bazel `includes` entry.
-fn strip_project_prefix(absolute_path: &str, project_source_dir: &str) -> Option<String> {
-    let relative = Path::new(absolute_path)
-        .strip_prefix(project_source_dir)
-        .ok()?;
-    if relative.as_os_str().is_empty() {
-        return None;
-    }
-    Some(relative.to_string_lossy().into_owned())
 }
 
 #[cfg(test)]
@@ -615,27 +749,6 @@ mod tests {
     }
 
     #[test]
-    fn strip_project_prefix_strips_absolute_project_path() {
-        assert_eq!(
-            strip_project_prefix("/tmp/lib-test/include", "/tmp/lib-test"),
-            Some("include".to_string())
-        );
-    }
-
-    #[test]
-    fn strip_project_prefix_none_for_project_root_itself() {
-        assert_eq!(strip_project_prefix("/tmp/lib-test", "/tmp/lib-test"), None);
-    }
-
-    #[test]
-    fn strip_project_prefix_none_for_paths_outside_project() {
-        assert_eq!(
-            strip_project_prefix("/usr/include", "/tmp/lib-test"),
-            None
-        );
-    }
-
-    #[test]
     fn own_include_dirs_excludes_inherited_and_dedupes() {
         let reply = TargetReply {
             name: "hello".to_string(),
@@ -669,10 +782,9 @@ mod tests {
             ),
         };
 
-        assert_eq!(
-            own_include_dirs(&reply, "/proj"),
-            vec!["include".to_string()]
-        );
+        // Absolute at this stage; rebase_to_module_root makes it
+        // module-relative once the module root is known.
+        assert_eq!(own_include_dirs(&reply), vec!["/proj/include".to_string()]);
     }
 
     fn public_file_set() -> Vec<TargetFileSet> {
@@ -716,7 +828,7 @@ mod tests {
         );
 
         let (target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true, "/proj");
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true);
 
         assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
         assert_eq!(
@@ -748,7 +860,7 @@ mod tests {
         );
 
         let (target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true, "/proj");
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true);
 
         // The plain header stays in srcs, NOT silently promoted to hdrs.
         assert_eq!(
@@ -783,7 +895,7 @@ mod tests {
         // this library, so there's no consumer that could need a header
         // it isn't exposing — not worth flagging.
         let (_target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), false, "/proj");
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), false);
 
         assert!(needs_attention.is_empty());
     }
@@ -802,7 +914,7 @@ mod tests {
         );
 
         let (_target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true, "/proj");
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true);
 
         assert!(needs_attention.is_empty());
     }
@@ -831,7 +943,7 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (target, _) = to_target(reply, TargetKind::Executable, &id_to_name, false, "/proj");
+        let (target, _) = to_target(reply, TargetKind::Executable, &id_to_name, false);
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
@@ -870,7 +982,6 @@ mod tests {
             TargetKind::Executable,
             &std::collections::HashMap::new(),
             false,
-            "/proj",
         );
 
         assert_eq!(
@@ -905,7 +1016,6 @@ mod tests {
             TargetKind::Library,
             &std::collections::HashMap::new(),
             false,
-            "/proj",
         );
 
         assert!(needs_attention.is_empty());
@@ -913,8 +1023,8 @@ mod tests {
 
     #[test]
     fn is_module_relative_accepts_paths_inside_the_project() {
-        assert!(model::is_module_relative("src/main.cpp"));
-        assert!(model::is_module_relative("include/greet.hpp"));
+        assert!(crate::model::is_module_relative("src/main.cpp"));
+        assert!(crate::model::is_module_relative("include/greet.hpp"));
     }
 
     // CMake only reports a project-relative path when the file is inside
@@ -922,67 +1032,144 @@ mod tests {
     // `..` component would escape the module root the same way.
     #[test]
     fn is_module_relative_rejects_paths_outside_the_project() {
-        assert!(!model::is_module_relative("/abs/shared/helper.cpp"));
-        assert!(!model::is_module_relative("../shared/helper.cpp"));
-        assert!(!model::is_module_relative("src/../../escape.cpp"));
+        assert!(!crate::model::is_module_relative("/abs/shared/helper.cpp"));
+        assert!(!crate::model::is_module_relative("../shared/helper.cpp"));
+        assert!(!crate::model::is_module_relative("src/../../escape.cpp"));
     }
 
-    // An ordinary (non-generated) source outside the source tree —
-    // `add_executable(app ../shared/helper.cpp)`. isGenerated is false here,
-    // so classifying on that flag alone would let the absolute path through.
-    #[test]
-    fn to_target_excludes_sources_outside_deliverable_and_escalates() {
-        let reply = TargetReply {
+    fn target_with(sources: Vec<&str>, includes: Vec<&str>) -> Target {
+        Target {
             name: "app".to_string(),
-            cmake_type: "EXECUTABLE".to_string(),
-            sources: vec![
-                TargetSource {
-                    path: "src/main.cpp".to_string(),
-                    file_set_index: None,
-                    is_generated: false,
-                },
-                TargetSource {
-                    path: "/abs/shared/helper.cpp".to_string(),
-                    file_set_index: None,
-                    is_generated: false,
-                },
-            ],
-            file_sets: vec![],
+            kind: TargetKind::Executable,
+            sources: sources.into_iter().map(str::to_string).collect(),
+            public_headers: vec![],
             dependencies: vec![],
-            artifacts: vec![TargetArtifact {
-                path: "app".to_string(),
-            }],
-            compile_groups: vec![],
-            backtrace_graph: empty_backtrace_graph(),
-        };
+            includes: includes.into_iter().map(str::to_string).collect(),
+            artifacts: vec![],
+        }
+    }
 
-        let (target, needs_attention) = to_target(
-            reply,
-            TargetKind::Executable,
-            &std::collections::HashMap::new(),
-            false,
-            "/proj",
-        );
-
+    #[test]
+    fn normalize_lexically_resolves_dot_and_parent_components() {
         assert_eq!(
-            target.sources,
-            vec!["src/main.cpp".to_string()],
-            "an absolute path must never reach srcs"
+            normalize_lexically(Path::new("/a/b/../c/./d")),
+            PathBuf::from("/a/c/d")
         );
-        assert_eq!(needs_attention.len(), 1);
+    }
+
+    #[test]
+    fn common_ancestor_of_paths_under_the_base_is_the_base() {
+        assert_eq!(
+            common_ancestor(
+                Path::new("/deliv/proj"),
+                &[
+                    PathBuf::from("/deliv/proj/src/main.cpp"),
+                    PathBuf::from("/deliv/proj/inc/cfg.hpp"),
+                ]
+            ),
+            PathBuf::from("/deliv/proj")
+        );
+    }
+
+    #[test]
+    fn common_ancestor_widens_to_cover_a_sibling_directory() {
+        assert_eq!(
+            common_ancestor(
+                Path::new("/deliv/proj"),
+                &[
+                    PathBuf::from("/deliv/proj/src/main.cpp"),
+                    PathBuf::from("/deliv/shared/helper.cpp"),
+                ]
+            ),
+            PathBuf::from("/deliv")
+        );
+    }
+
+    // The common case: nothing reaches outside the project, so the module
+    // root is the project directory and paths are unchanged.
+    #[test]
+    fn rebase_keeps_module_at_project_when_nothing_reaches_outside() {
+        let mut targets = vec![target_with(vec!["src/main.cpp"], vec!["/deliv/proj/inc"])];
+
+        let (module_root, escalations) = rebase_to_module_root(
+            &mut targets,
+            Path::new("/deliv/proj"),
+            Path::new("/deliv/proj"),
+        );
+
+        assert_eq!(module_root, PathBuf::from("/deliv/proj"));
+        assert_eq!(targets[0].sources, vec!["src/main.cpp".to_string()]);
+        assert_eq!(targets[0].includes, vec!["inc".to_string()]);
+        assert!(escalations.is_empty());
+    }
+
+    // A sibling directory that ships with the project: the module widens to
+    // cover it, every path stays relative, and nothing is escalated —
+    // the file is reproducible, so there is no gap to report.
+    #[test]
+    fn rebase_widens_module_root_to_cover_shipped_sibling_sources() {
+        let mut targets = vec![target_with(
+            vec!["src/main.cpp", "/deliv/shared/helper.cpp"],
+            vec![],
+        )];
+
+        let (module_root, escalations) =
+            rebase_to_module_root(&mut targets, Path::new("/deliv/proj"), Path::new("/deliv"));
+
+        assert_eq!(module_root, PathBuf::from("/deliv"));
+        assert_eq!(
+            targets[0].sources,
+            vec![
+                "proj/src/main.cpp".to_string(),
+                "shared/helper.cpp".to_string()
+            ]
+        );
         assert!(
-            needs_attention[0].gap.contains("/abs/shared/helper.cpp"),
-            "{}",
-            needs_attention[0].gap
+            escalations.is_empty(),
+            "a file that ships with the project is not a gap: {:?}",
+            escalations.iter().map(|e| &e.title).collect::<Vec<_>>()
         );
-        assert!(needs_attention[0].title.contains("cannot reach"));
-        // The resolution turns on whether the file ships with the project,
-        // not on where it happens to sit on this machine.
+    }
+
+    // The cap doing its job: a file outside the deliverable must not drag
+    // the module root out with it, however far up the tree it sits.
+    #[test]
+    fn rebase_refuses_to_widen_past_the_deliverable_root() {
+        let mut targets = vec![target_with(
+            vec!["src/main.cpp", "/elsewhere/vendor/blob.cpp"],
+            vec![],
+        )];
+
+        let (module_root, escalations) = rebase_to_module_root(
+            &mut targets,
+            Path::new("/deliv/proj"),
+            Path::new("/deliv/proj"),
+        );
+
+        assert_eq!(module_root, PathBuf::from("/deliv/proj"));
+        assert_eq!(targets[0].sources, vec!["src/main.cpp".to_string()]);
+        assert_eq!(escalations.len(), 1);
         assert!(
-            needs_attention[0].context.contains("source deliverable"),
+            escalations[0].gap.contains("/elsewhere/vendor/blob.cpp"),
             "{}",
-            needs_attention[0].context
+            escalations[0].gap
         );
+    }
+
+    // System include dirs land outside the module and have no `includes`
+    // translation — dropping them is correct, and is not a gap.
+    #[test]
+    fn rebase_drops_include_dirs_outside_the_module_without_escalating() {
+        let mut targets = vec![target_with(vec!["src/main.cpp"], vec!["/usr/include"])];
+
+        let (_root, escalations) = rebase_to_module_root(
+            &mut targets,
+            Path::new("/deliv/proj"),
+            Path::new("/deliv/proj"),
+        );
+
+        assert!(targets[0].includes.is_empty());
+        assert!(escalations.is_empty());
     }
 
     #[test]

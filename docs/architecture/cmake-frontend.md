@@ -149,10 +149,8 @@ Three tiers fall out of it, and they want different responses:
 
 1. **In the deliverable, outside the CMake source directory** — e.g. a
    sibling `../shared/util.cpp` that ships alongside the project. Nothing
-   is wrong: the file is reproducible and should be handled gracefully,
-   without escalating at all. The translator does not manage this yet,
-   because it roots a module at the CMake source directory rather than
-   deriving the root from the referenced file set (see below).
+   is wrong: the file is reproducible, and the translator handles it by
+   widening the module root (see below) rather than escalating.
 2. **Not in the deliverable, but derivable from it** — generated sources.
    Also legitimate: the recipe ships with the project. This is a
    translator **capability gap**, not a project defect — the escalation
@@ -164,12 +162,34 @@ Three tiers fall out of it, and they want different responses:
    build has an input that cannot be reproduced from what the project
    ships, and no conversion can be faithful while that holds.
 
-Tiers 1 and 3 are indistinguishable to the translator today — both surface
-as a path it cannot place in the module — so the escalation puts the
-question to whoever resolves it rather than guessing. **Planned:** derive a
-module's root from the files the build actually references, capped by an
-explicitly declared deliverable root, which resolves tier 1 mechanically
-and leaves tier 3 as the only escalation.
+### The module root is derived, and the deliverable root caps it
+
+A converted module's root is **not** assumed to be the CMake project
+directory. `cmake_api.rs::rebase_to_module_root` computes it as the deepest
+directory containing both the project and every referenced file that ships
+with it, then rewrites every path relative to that. When nothing reaches
+outside the project — the common case — the root *is* the project
+directory and nothing changes. When the build compiles `../shared/util.cpp`
+from a sibling that ships alongside, the root widens to cover both and the
+paths become `proj/src/main.cpp` and `shared/util.cpp`.
+
+That widening is capped by an explicitly declared **deliverable root**
+(`--deliverable-root`, or the `deliverable_root` attribute on
+`convert_cmake_project`), defaulting to the CMake project directory. It
+answers the question the tiers turn on — what does this project ship? —
+without the translator inferring it. Inference was rejected deliberately:
+it fails silently, and in the direction of packaging too much.
+
+The cap is what separates tier 1 from tier 3, and the same project sorts
+into either depending on what it declares. With the default root, a
+sibling-directory source is unreachable and escalates; declare a root
+containing both and it is simply part of the module. Tier 3 is then
+precisely "referenced from outside what the project ships," which is the
+thing actually worth reporting.
+
+Include directories are handled the same way, with one difference: one that
+ends up outside the module is a system include path (`/usr/include`), which
+has no `includes` translation and is dropped rather than escalated.
 
 ### Only referenced files enter the module
 

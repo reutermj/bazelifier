@@ -21,16 +21,13 @@ def _convert_cmake_project_impl(ctx):
     if not srcs:
         fail("convert_cmake_project: srcs must not be empty")
 
-    # All srcs are expected to share a common source_dir root (the CMake
-    # project's own directory); derive it from the first src's package-
-    # relative dirname rather than requiring it as a separate, redundant
-    # attribute.
     source_dir = ctx.attr.source_dir
 
     args = ctx.actions.args()
     args.add(source_dir)
     args.add("--build-dir", build_scratch.path)
     args.add("--out-module", out_dir.path)
+    args.add("--deliverable-root", ctx.attr.deliverable_root or source_dir)
 
     ctx.actions.run(
         outputs = [out_dir, build_scratch],
@@ -77,6 +74,10 @@ convert_cmake_project = rule(
         "source_dir": attr.string(
             mandatory = True,
             doc = "Path (relative to the execroot) to the CMake project's root directory, i.e. the directory containing its CMakeLists.txt.",
+        ),
+        "deliverable_root": attr.string(
+            default = "",
+            doc = "Path (relative to the execroot) to the root of the source deliverable being converted — the directory the project ships as its sources. The generated module may grow to cover anything the build references inside it, so set this wider than source_dir when the CMake project compiles sources from a sibling directory that ships alongside it. Anything referenced from outside it is escalated via needs_attention/ rather than quietly packaged. Defaults to source_dir, i.e. the project converts on its own.",
         ),
         "module_name": attr.string(
             mandatory = True,

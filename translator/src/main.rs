@@ -27,22 +27,40 @@ struct Args {
     /// Directory to write the generated standalone Bazel module into.
     #[arg(long)]
     out_module: PathBuf,
+
+    /// Root of the source deliverable being converted — the tarball,
+    /// checkout, or directory the project ships as its sources.
+    ///
+    /// The generated module may grow to cover anything the build
+    /// references inside this directory, so a project that compiles a
+    /// sibling directory's sources converts cleanly when the root is set
+    /// wide enough to contain both. Anything referenced from outside it
+    /// cannot be reproduced from what the project ships and is escalated
+    /// instead of quietly packaged.
+    ///
+    /// Deliberately explicit rather than inferred: inference here fails
+    /// silently, and in the direction of packaging too much. Defaults to
+    /// `source_dir`, i.e. the project converts on its own.
+    #[arg(long)]
+    deliverable_root: Option<PathBuf>,
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    let graph = cmake_api::discover(&args.source_dir, &args.build_dir)?;
-    let generated = codegen::render(&graph);
+    let deliverable_root = args.deliverable_root.as_ref().unwrap_or(&args.source_dir);
+    let discovery = cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?;
+    let graph = &discovery.graph;
+    let generated = codegen::render(graph);
 
-    copy_referenced_sources(&args.source_dir, &args.out_module, &graph)?;
+    copy_referenced_sources(&discovery.module_root, &args.out_module, graph)?;
     fs::write(
         args.out_module.join("MODULE.bazel"),
         generated.module_bazel,
     )?;
     fs::write(args.out_module.join("BUILD.bazel"), generated.build_bazel)?;
-    copy_ground_truth_artifacts(&args.build_dir, &args.out_module, &graph)?;
-    write_needs_attention(&args.out_module, &graph)?;
+    copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
+    write_needs_attention(&args.out_module, graph)?;
 
     Ok(())
 }
@@ -119,8 +137,8 @@ fn copy_ground_truth_artifacts(
 }
 
 /// Copies exactly the files the converted build graph references — every
-/// target's `sources` and `public_headers` — preserving their layout
-/// relative to the module root.
+/// target's `sources` and `public_headers` — from the module root, keeping
+/// their layout relative to it.
 ///
 /// Deliberately NOT a recursive copy of the source directory. The output is
 /// a Bazel module, not a mirror of the CMake project, and a file belongs in
@@ -139,7 +157,7 @@ fn copy_ground_truth_artifacts(
 /// Note the CMake project's own `CMakeLists.txt` is therefore not copied:
 /// nothing in the generated module builds from it.
 fn copy_referenced_sources(
-    source_dir: &Path,
+    module_root: &Path,
     out_dir: &Path,
     graph: &model::BuildGraph,
 ) -> std::io::Result<()> {
@@ -157,7 +175,7 @@ fn copy_referenced_sources(
             if let Some(parent) = dst.parent() {
                 fs::create_dir_all(parent)?;
             }
-            fs::copy(source_dir.join(relative), &dst)?;
+            fs::copy(module_root.join(relative), &dst)?;
         }
     }
 
