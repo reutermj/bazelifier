@@ -10,5 +10,6 @@ validation_workspace(
         "//translator/tests/fixtures/002-with-library:converted",
         "//translator/tests/fixtures/003-library-no-file-set:converted",
         "//translator/tests/fixtures/004-binary-private-include:converted",
+        "//translator/tests/fixtures/005-unsupported-target-type:converted",
     ],
 )

@@ -20,7 +20,6 @@ pub enum Error {
     Json(serde_json::Error),
     CmakeConfigureFailed { stderr: String },
     CmakeBuildFailed { stderr: String },
-    UnsupportedTargetType { target: String, cmake_type: String },
     NoProject,
 }
 
@@ -35,10 +34,6 @@ impl std::fmt::Display for Error {
             Error::CmakeBuildFailed { stderr } => {
                 write!(f, "cmake build failed:\n{stderr}")
             }
-            Error::UnsupportedTargetType { target, cmake_type } => write!(
-                f,
-                "target '{target}' has unsupported CMake type '{cmake_type}'"
-            ),
             Error::NoProject => write!(f, "codemodel reply contains no project()"),
         }
     }
@@ -136,6 +131,14 @@ struct TargetSource {
     path: String,
     #[serde(rename = "fileSetIndex")]
     file_set_index: Option<usize>,
+    /// CMake's own flag for a source it produces during the build rather
+    /// than one checked into the project — e.g. an `add_custom_command()`
+    /// output, or the object files an `OBJECT_LIBRARY` splices into its
+    /// consumers. Reported as an ABSOLUTE path into the CMake build
+    /// directory, so it is never a valid Bazel source label.
+    #[serde(default)]
+    #[serde(rename = "isGenerated")]
+    is_generated: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -268,15 +271,98 @@ fn read_codemodel_reply(
         }
     }
 
+    // Targets whose CMake type has no Bazel rule yet. These are escalated
+    // via needs_attention/ rather than aborting the whole conversion — one
+    // unrecognized target must not cost the project every other target it
+    // defines. See docs/architecture/cmake-frontend.md.
+    let untranslatable: std::collections::HashMap<String, String> = configuration
+        .targets
+        .iter()
+        .filter_map(|target_ref| {
+            let reply = replies_by_id.get(&target_ref.id)?;
+            target_kind(&reply.cmake_type)
+                .is_none()
+                .then(|| (target_ref.id.clone(), reply.cmake_type.clone()))
+        })
+        .collect();
+
+    // Which surviving targets name each untranslatable one. Built by
+    // walking configuration.targets (not the HashMap) so the order recorded
+    // in the escalation is deterministic across runs.
+    let mut dependents_of: std::collections::HashMap<String, Vec<String>> =
+        std::collections::HashMap::new();
     for target_ref in &configuration.targets {
-        let reply = replies_by_id.remove(&target_ref.id).unwrap();
+        let Some(reply) = replies_by_id.get(&target_ref.id) else {
+            continue;
+        };
+        if untranslatable.contains_key(&target_ref.id) {
+            continue;
+        }
+        for dep in &reply.dependencies {
+            if untranslatable.contains_key(&dep.id) {
+                dependents_of
+                    .entry(dep.id.clone())
+                    .or_default()
+                    .push(reply.name.clone());
+            }
+        }
+    }
+
+    // Names, not ids — a surviving target's `dependencies` have already been
+    // resolved from opaque ids back to names by the time they're filtered.
+    let untranslatable_names: std::collections::HashSet<String> = untranslatable
+        .keys()
+        .filter_map(|id| id_to_name.get(id).cloned())
+        .collect();
+
+    for target_ref in &configuration.targets {
+        let Some(reply) = replies_by_id.remove(&target_ref.id) else {
+            continue;
+        };
+
+        if let Some(cmake_type) = untranslatable.get(&target_ref.id) {
+            needs_attention.push(unsupported_target_needs_attention(
+                &reply.name,
+                cmake_type,
+                dependents_of
+                    .get(&target_ref.id)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+            ));
+            continue;
+        }
+
+        let kind = target_kind(&reply.cmake_type)
+            .expect("untranslatable targets were filtered out above");
         let is_depended_on = has_dependents.contains(&target_ref.id);
-        let (target, attention) = to_target(reply, &id_to_name, is_depended_on, &index.paths.source)?;
+        let (mut target, attention) =
+            to_target(reply, kind, &id_to_name, is_depended_on, &index.paths.source);
+
+        // Drop edges to targets that were never emitted. Leaving them would
+        // produce a BUILD.bazel referencing a label that doesn't exist,
+        // failing at Bazel *analysis* time with an error far removed from
+        // the real cause — and leaving the agent no workspace to resolve the
+        // escalation in. The lost edges are recorded in the escalation above.
+        target
+            .dependencies
+            .retain(|name| !untranslatable_names.contains(name));
+
         targets.push(target);
         needs_attention.extend(attention);
     }
 
     Ok((project.name.clone(), targets, needs_attention))
+}
+
+/// Maps a CMake target type onto the internal model's kind. `None` means
+/// the translator has no Bazel rule for it yet — the caller escalates via
+/// `needs_attention/` rather than failing the conversion.
+fn target_kind(cmake_type: &str) -> Option<TargetKind> {
+    match cmake_type {
+        "EXECUTABLE" => Some(TargetKind::Executable),
+        "STATIC_LIBRARY" | "SHARED_LIBRARY" => Some(TargetKind::Library),
+        _ => None,
+    }
 }
 
 /// Reads `CMAKE_PROJECT_VERSION` from the cache-v2 reply, when CMake's
@@ -311,25 +397,26 @@ fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<std::path::PathBuf,
 
 fn to_target(
     reply: TargetReply,
+    kind: TargetKind,
     id_to_name: &std::collections::HashMap<String, String>,
     is_depended_on: bool,
     project_source_dir: &str,
-) -> Result<(Target, Vec<NeedsAttention>), Error> {
-    let kind = match reply.cmake_type.as_str() {
-        "EXECUTABLE" => TargetKind::Executable,
-        "STATIC_LIBRARY" | "SHARED_LIBRARY" => TargetKind::Library,
-        other => {
-            return Err(Error::UnsupportedTargetType {
-                target: reply.name,
-                cmake_type: other.to_string(),
-            });
-        }
-    };
-
+) -> (Target, Vec<NeedsAttention>) {
     let mut sources = Vec::new();
     let mut public_headers = Vec::new();
+    let mut generated_sources = Vec::new();
     let mut has_unclassified_headers = false;
     for source in &reply.sources {
+        // A generated source is an absolute path into the CMake build
+        // directory. Emitting it verbatim would bake the build machine's
+        // filesystem layout into the generated BUILD.bazel and produce a
+        // label Bazel can't resolve, so it's escalated instead — the
+        // translator has no way to know what produces the file.
+        if source.is_generated {
+            generated_sources.push(source.path.clone());
+            continue;
+        }
+
         let is_public_header = source
             .file_set_index
             .and_then(|i| reply.file_sets.get(i))
@@ -364,6 +451,12 @@ fn to_target(
     {
         needs_attention.push(header_visibility_needs_attention(&reply.name));
     }
+    if !generated_sources.is_empty() {
+        needs_attention.push(generated_sources_needs_attention(
+            &reply.name,
+            &generated_sources,
+        ));
+    }
 
     let target = Target {
         name: reply.name,
@@ -375,7 +468,7 @@ fn to_target(
         artifacts: reply.artifacts.into_iter().map(|a| a.path).collect(),
     };
 
-    Ok((target, needs_attention))
+    (target, needs_attention)
 }
 
 fn looks_like_header(path: &str) -> bool {
@@ -594,17 +687,19 @@ mod tests {
                 TargetSource {
                     path: "src/greet.cpp".to_string(),
                     file_set_index: None,
+                    is_generated: false,
                 },
                 TargetSource {
                     path: "include/greet.hpp".to_string(),
                     file_set_index: Some(0),
+                    is_generated: false,
                 },
             ],
             public_file_set(),
         );
 
         let (target, needs_attention) =
-            to_target(reply, &std::collections::HashMap::new(), true, "/proj").unwrap();
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true, "/proj");
 
         assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
         assert_eq!(
@@ -624,17 +719,19 @@ mod tests {
                 TargetSource {
                     path: "src/greet.cpp".to_string(),
                     file_set_index: None,
+                    is_generated: false,
                 },
                 TargetSource {
                     path: "src/greet.hpp".to_string(),
                     file_set_index: None,
+                    is_generated: false,
                 },
             ],
             vec![],
         );
 
         let (target, needs_attention) =
-            to_target(reply, &std::collections::HashMap::new(), true, "/proj").unwrap();
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true, "/proj");
 
         // The plain header stays in srcs, NOT silently promoted to hdrs.
         assert_eq!(
@@ -654,10 +751,12 @@ mod tests {
                 TargetSource {
                     path: "src/greet.cpp".to_string(),
                     file_set_index: None,
+                    is_generated: false,
                 },
                 TargetSource {
                     path: "src/greet.hpp".to_string(),
                     file_set_index: None,
+                    is_generated: false,
                 },
             ],
             vec![],
@@ -667,7 +766,7 @@ mod tests {
         // this library, so there's no consumer that could need a header
         // it isn't exposing — not worth flagging.
         let (_target, needs_attention) =
-            to_target(reply, &std::collections::HashMap::new(), false, "/proj").unwrap();
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), false, "/proj");
 
         assert!(needs_attention.is_empty());
     }
@@ -680,12 +779,13 @@ mod tests {
             vec![TargetSource {
                 path: "src/greet.cpp".to_string(),
                 file_set_index: None,
+                is_generated: false,
             }],
             vec![],
         );
 
         let (_target, needs_attention) =
-            to_target(reply, &std::collections::HashMap::new(), true, "/proj").unwrap();
+            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true, "/proj");
 
         assert!(needs_attention.is_empty());
     }
@@ -701,6 +801,7 @@ mod tests {
             sources: vec![TargetSource {
                 path: "src/main.cpp".to_string(),
                 file_set_index: None,
+                is_generated: false,
             }],
             file_sets: vec![],
             dependencies: vec![TargetDependency {
@@ -713,31 +814,277 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (target, _) = to_target(reply, &id_to_name, false, "/proj").unwrap();
+        let (target, _) = to_target(reply, TargetKind::Executable, &id_to_name, false, "/proj");
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
+    // CMake splices an OBJECT_LIBRARY's output into its consumers as a
+    // generated source, reported as an absolute path into the build
+    // directory. Emitting that verbatim would put the build machine's
+    // filesystem layout into the generated BUILD.bazel.
     #[test]
-    fn to_target_rejects_unsupported_target_type() {
+    fn to_target_excludes_generated_sources_and_escalates() {
         let reply = TargetReply {
-            name: "weird".to_string(),
-            cmake_type: "OBJECT_LIBRARY".to_string(),
-            sources: vec![],
+            name: "app".to_string(),
+            cmake_type: "EXECUTABLE".to_string(),
+            sources: vec![
+                TargetSource {
+                    path: "src/main.cpp".to_string(),
+                    file_set_index: None,
+                    is_generated: false,
+                },
+                TargetSource {
+                    path: "/abs/build/CMakeFiles/obj.dir/src/lib.cpp.o".to_string(),
+                    file_set_index: None,
+                    is_generated: true,
+                },
+            ],
             file_sets: vec![],
             dependencies: vec![],
-            artifacts: vec![],
+            artifacts: vec![TargetArtifact {
+                path: "app".to_string(),
+            }],
             compile_groups: vec![],
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let err = to_target(reply, &std::collections::HashMap::new(), false, "/proj").unwrap_err();
-        match err {
-            Error::UnsupportedTargetType { target, cmake_type } => {
-                assert_eq!(target, "weird");
-                assert_eq!(cmake_type, "OBJECT_LIBRARY");
-            }
-            other => panic!("expected UnsupportedTargetType, got {other:?}"),
+        let (target, needs_attention) = to_target(
+            reply,
+            TargetKind::Executable,
+            &std::collections::HashMap::new(),
+            false,
+            "/proj",
+        );
+
+        assert_eq!(
+            target.sources,
+            vec!["src/main.cpp".to_string()],
+            "a generated source must never reach srcs"
+        );
+        assert_eq!(needs_attention.len(), 1);
+        assert!(needs_attention[0].title.contains("app"));
+        assert!(
+            needs_attention[0]
+                .gap
+                .contains("/abs/build/CMakeFiles/obj.dir/src/lib.cpp.o"),
+            "the escalation must name the file that was dropped:\n{}",
+            needs_attention[0].gap
+        );
+    }
+
+    #[test]
+    fn to_target_no_generated_source_escalation_for_ordinary_sources() {
+        let reply = library_reply(
+            vec![TargetSource {
+                path: "src/greet.cpp".to_string(),
+                file_set_index: None,
+                is_generated: false,
+            }],
+            vec![],
+        );
+
+        let (_target, needs_attention) = to_target(
+            reply,
+            TargetKind::Library,
+            &std::collections::HashMap::new(),
+            false,
+            "/proj",
+        );
+
+        assert!(needs_attention.is_empty());
+    }
+
+    #[test]
+    fn target_kind_maps_supported_cmake_types() {
+        assert_eq!(target_kind("EXECUTABLE"), Some(TargetKind::Executable));
+        assert_eq!(target_kind("STATIC_LIBRARY"), Some(TargetKind::Library));
+        assert_eq!(target_kind("SHARED_LIBRARY"), Some(TargetKind::Library));
+    }
+
+    // These are the types actually reachable from a real codemodel reply
+    // (verified against CMake 3.28 with the Ninja generator). An unmapped
+    // type must escalate, never abort the conversion — see
+    // docs/architecture/cmake-frontend.md.
+    #[test]
+    fn target_kind_rejects_types_with_no_bazel_rule_yet() {
+        for cmake_type in [
+            "UTILITY",
+            "OBJECT_LIBRARY",
+            "MODULE_LIBRARY",
+            "INTERFACE_LIBRARY",
+        ] {
+            assert_eq!(
+                target_kind(cmake_type),
+                None,
+                "{cmake_type} should escalate, not translate"
+            );
         }
+    }
+
+    #[test]
+    fn unsupported_target_escalation_names_type_and_target() {
+        let item = unsupported_target_needs_attention("gen_docs", "UTILITY", &[]);
+
+        assert!(item.title.contains("gen_docs"));
+        assert!(item.title.contains("UTILITY"));
+        // Type-specific guidance, not a generic "unsupported" message.
+        assert!(item.context.contains("add_custom_target"));
+        assert!(
+            item.context.contains("No other target"),
+            "an unreferenced target should say so explicitly:\n{}",
+            item.context
+        );
+        assert!(item.expected_output.contains("do NOT edit"));
+    }
+
+    #[test]
+    fn unsupported_target_escalation_records_dropped_dependency_edges() {
+        let item = unsupported_target_needs_attention(
+            "obj",
+            "OBJECT_LIBRARY",
+            &["app".to_string(), "app2".to_string()],
+        );
+
+        // The agent has to know which targets were left incomplete.
+        assert!(item.context.contains("app, app2"), "{}", item.context);
+        assert!(item.context.contains("DROPPED"), "{}", item.context);
+        assert!(item.context.contains("cc_library"), "{}", item.context);
+    }
+
+    #[test]
+    fn unsupported_type_guidance_falls_back_for_unknown_types() {
+        let guidance = unsupported_type_guidance("SOMETHING_NEW");
+        assert!(guidance.contains("no mapping in the translator yet"));
+    }
+}
+
+/// Escalates sources CMake produces during the build rather than reading
+/// from the project tree. Kept out of the generated `srcs` — see the
+/// `is_generated` handling in `to_target`.
+fn generated_sources_needs_attention(target_name: &str, generated: &[String]) -> NeedsAttention {
+    let title = format!("Target '{target_name}' consumes generated sources");
+    NeedsAttention {
+        gap: format!(
+            "CMake reports {} source(s) for target '{target_name}' that it generates during \
+             the build rather than reading from the project tree:\n\n{}\n\nThey were left out \
+             of the generated `cc_*` rule's `srcs`. The File API reports them as absolute \
+             paths into the CMake build directory, so emitting them verbatim would bake this \
+             machine's filesystem layout into the output and produce labels Bazel cannot \
+             resolve. The translator has no way to determine what produces them.",
+            generated.len(),
+            generated
+                .iter()
+                .map(|p| format!("- `{p}`"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+        context: format!(
+            "'{target_name}' is therefore missing whatever these files contribute. Two common \
+             causes: an `add_custom_command()` that produces a source, which maps to a \
+             `genrule` whose output feeds this target's `srcs`; or a `$<TARGET_OBJECTS:...>` \
+             expansion from an `OBJECT_LIBRARY`, in which case the paths above are `.o` files \
+             and the real fix is translating that library — look for a separate \
+             needs_attention item naming it, and resolving that one likely resolves this too. \
+             Note the build may still LINK if nothing references the missing symbols, so a \
+             green build does not by itself mean this was handled."
+        ),
+        expected_output: format!(
+            "Identify what produces each file above and express it in the generated \
+             `BUILD.bazel` — typically a `genrule` (or a `cc_library` replacing the \
+             `OBJECT_LIBRARY`) whose output is wired into '{target_name}'. Resolve this in \
+             the GENERATED output only — do NOT edit the project's CMakeLists.txt."
+        ),
+        title,
+    }
+}
+
+/// Type-specific guidance for an untranslatable target. A generic "this
+/// type isn't supported" tells an agent nothing it couldn't read off the
+/// title; what's actually useful is the shape of the Bazel answer for that
+/// particular CMake construct.
+fn unsupported_type_guidance(cmake_type: &str) -> &'static str {
+    match cmake_type {
+        "UTILITY" => {
+            "`UTILITY` is what `add_custom_target()` produces — a named build step, not a \
+             compiled artifact. Decide first whether it affects the converted output at all: \
+             many utility targets are developer conveniences (docs, formatting, linting) with \
+             no place in a Bazel build, in which case the correct resolution is to confirm \
+             that and emit nothing. If it does produce a file something else consumes, it \
+             maps to a `genrule` (or a custom rule) declaring that file as an output."
+        }
+        "OBJECT_LIBRARY" => {
+            "`OBJECT_LIBRARY` has no direct Bazel equivalent: it exists in CMake to compile a \
+             set of sources once and splice the resulting objects into several targets, \
+             which is a job Bazel's `cc_library` already does. The usual resolution is a \
+             plain `cc_library` with the same `srcs`, depended on normally — Bazel decides \
+             object reuse and static/dynamic linking itself."
+        }
+        "MODULE_LIBRARY" => {
+            "`MODULE_LIBRARY` is a plugin loaded at runtime via `dlopen()`, never linked \
+             against. The closest Bazel equivalent is `cc_binary(linkshared = True)` with the \
+             expected filename, rather than a `cc_library`."
+        }
+        "INTERFACE_LIBRARY" => {
+            "`INTERFACE_LIBRARY` carries no compiled sources — only usage requirements \
+             (include dirs, defines, link flags) for its consumers. It maps to a `cc_library` \
+             with `hdrs`/`includes` and no `srcs`."
+        }
+        _ => {
+            "This CMake target type has no mapping in the translator yet. Determine what the \
+             target contributes to the build and express that with the closest native Bazel \
+             rule."
+        }
+    }
+}
+
+/// Escalates a target whose CMake type the translator has no Bazel rule for.
+/// The conversion continues without it — see the `untranslatable` handling in
+/// `read_codemodel_reply` and docs/architecture/cmake-frontend.md.
+fn unsupported_target_needs_attention(
+    target_name: &str,
+    cmake_type: &str,
+    dependents: &[String],
+) -> NeedsAttention {
+    let title = format!("Target '{target_name}' has unsupported CMake type '{cmake_type}'");
+
+    let dependents_context = if dependents.is_empty() {
+        "No other target in this project depends on it, so no dependency edges were lost."
+            .to_string()
+    } else {
+        format!(
+            "These targets declared a dependency on '{target_name}': {}. That edge was \
+             DROPPED from their generated `deps` — keeping it would emit a label pointing at \
+             a target that was never generated, which fails at Bazel analysis time with an \
+             error far removed from this cause. If '{target_name}' turns out to contribute \
+             symbols or generated files, those targets are incomplete until the edge is \
+             restored alongside whatever rule replaces it.",
+            dependents.join(", ")
+        )
+    };
+
+    NeedsAttention {
+        gap: format!(
+            "Target '{target_name}' has CMake type '{cmake_type}', which the translator has \
+             no Bazel rule for — only `EXECUTABLE`, `STATIC_LIBRARY`, and `SHARED_LIBRARY` \
+             are mapped today. No rule was generated for it. The rest of the project WAS \
+             converted: an unrecognized target is escalated here rather than failing the \
+             whole conversion, so the remaining targets are still usable and this gap stays \
+             scoped to the one construct that caused it."
+        ),
+        context: format!(
+            "{}\n\n{dependents_context}",
+            unsupported_type_guidance(cmake_type)
+        ),
+        expected_output: format!(
+            "Decide what '{target_name}' should become in Bazel and add it to the generated \
+             `BUILD.bazel` — including restoring any dependency edge listed above, if the \
+             replacement rule warrants one. If the correct answer is that it has no Bazel \
+             equivalent, say so explicitly in the resolution rather than silently dropping \
+             it; a deliberate omission and an overlooked one are indistinguishable in the \
+             output otherwise. Resolve this in the GENERATED output only — do NOT edit the \
+             project's CMakeLists.txt."
+        ),
+        title,
     }
 }
 

@@ -114,11 +114,45 @@ own general escalation contract (for people building the translator);
 a to-do list than an interface spec. See
 [runbook-interface.md](runbook-interface.md) for how the two relate.
 
-Currently implemented trigger: a library target has header-like files with
-no public `FILE_SET` declaration, **and** at least one other target
-depends on it (a library nothing depends on has no consumer that could
-need an exposed header, so it's not worth flagging). See
-`cmake_api.rs::header_visibility_needs_attention`.
+Currently implemented triggers:
+
+- **Header visibility** — a library target has header-like files with no
+  public `FILE_SET` declaration, **and** at least one other target depends
+  on it (a library nothing depends on has no consumer that could need an
+  exposed header, so it's not worth flagging). See
+  `cmake_api.rs::header_visibility_needs_attention`.
+- **Unsupported target type** — the target's CMake type has no Bazel rule
+  yet (anything besides `EXECUTABLE`/`STATIC_LIBRARY`/`SHARED_LIBRARY`).
+  The target is skipped and *the rest of the project still converts*; one
+  unrecognized target must not cost the project every other target it
+  defines. The escalation carries type-specific guidance rather than a
+  generic "unsupported" message. See
+  `cmake_api.rs::unsupported_target_needs_attention`.
+- **Generated sources** — a target consumes a source CMake produces during
+  the build (`isGenerated`), such as an `add_custom_command()` output or
+  the objects an `OBJECT_LIBRARY` splices into its consumers. These are
+  reported as absolute paths into the CMake build directory, so they are
+  excluded from the generated `srcs` — emitting one verbatim would bake the
+  build machine's filesystem layout into the output and produce a label
+  Bazel cannot resolve. See `cmake_api.rs::generated_sources_needs_attention`.
+
+### Skipping a target without breaking its dependents
+
+When a target is skipped, any surviving target that named it as a
+dependency has that edge **dropped** from its generated `deps`. Keeping it
+would emit a label pointing at a target that was never generated, which
+fails at Bazel *analysis* time with an error far removed from the real
+cause — and leaves the agent no workspace to resolve the escalation in.
+The dropped edges are listed in the escalation itself, so the information
+isn't lost.
+
+This is a genuine judgement call rather than an obviously-correct
+translation: the File API's `dependencies` list conflates real link
+dependencies with order-only edges from `add_dependencies()`, and nothing
+distinguishes them. An order-only edge contributes nothing to the binary
+and dropping it is harmless; a link edge means the dependent is incomplete
+until the skipped target is translated. The escalation says so explicitly
+rather than the translator guessing which case it's in.
 
 **Resolutions go in the generated output, never in the source project.**
 An agent resolves a `needs_attention` item by editing the generated
@@ -137,9 +171,19 @@ for fixtures.
   obvious Bazel equivalent.
 - Conditional logic driven by `CMakeCache.txt` values or platform detection
   that doesn't map cleanly to Bazel `select()`.
-- `OBJECT_LIBRARY`/`INTERFACE_LIBRARY` target types (not yet recognized —
-  `to_target` returns `UnsupportedTargetType` for anything besides
-  `EXECUTABLE`/`STATIC_LIBRARY`/`SHARED_LIBRARY`).
+- `OBJECT_LIBRARY`/`MODULE_LIBRARY`/`UTILITY` target types — recognized as
+  untranslatable and escalated via `needs_attention/` (see above), not
+  mapped to a Bazel rule yet.
+- `INTERFACE_LIBRARY` is a special case worth knowing about: it does **not
+  appear in the codemodel reply at all** (verified against CMake 3.28 +
+  Ninja), even when another target links it. So the unsupported-type
+  escalation cannot catch it — the translator never sees it. Its usage
+  requirements do reach a consumer's `compileGroups`, but with a backtrace
+  pointing at `target_link_libraries`, so they're classified as inherited
+  and dropped on the assumption a Bazel `deps` edge will supply them —
+  which it won't, because no rule was generated for the interface library.
+  A consumer of a header-only `INTERFACE` library can therefore lose its
+  include dirs silently. Not yet handled.
 
 This list will grow as real fixtures surface real cases — treat it as a
 living list, not a spec.

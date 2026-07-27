@@ -155,6 +155,18 @@ building against a fixture with nothing to differentiate):
   nothing supplies a target's *own*, so dropping it produces a module that
   fails to compile. Emits no `needs_attention/` item — that escalation is
   library-only — so this is a pure build + equivalence check.
+- `005-unsupported-target-type` — exercises the `needs_attention/` gate for
+  a target the translator could not emit **at all** (a `UTILITY` target
+  from `add_custom_target`), plus the agent stage that resolves it. Where
+  `003` escalates an attribute it couldn't populate, this escalates a whole
+  missing target, and asserts the rest of the project still converts.
+
+  The distinguishing property: `app` builds and its runtime output matches
+  ground truth *even with the item open* — the dropped dependency edge is
+  order-only, so it contributes nothing to the binary. The gate is
+  therefore the only thing keeping this red, which is exactly the point.
+  Escalation must not depend on the conversion also happening to break;
+  otherwise gaps that produce working-but-wrong output go unnoticed.
 
 ## Header visibility is not enforced by default
 

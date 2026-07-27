@@ -2,7 +2,14 @@
 
 The runbook is the contract between the deterministic translator and an AI
 agent (e.g. Claude Code). When the translator encounters something it can't
-confidently translate, it stops and produces a runbook instead of guessing.
+confidently translate, it escalates instead of guessing.
+
+Escalating is **per gap, not process-wide**: the translator does not stop.
+It converts everything it does understand and records each thing it
+doesn't, so an unrecognized construct costs the project that construct
+rather than the whole conversion. This follows directly from "one gap per
+runbook" below — a gap that aborted the run couldn't be resolved
+independently of every other gap in the project.
 
 See [docs/runbooks/](../runbooks/) for the actual template and examples.
 This doc covers the design intent.
