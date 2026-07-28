@@ -42,6 +42,14 @@ local_path_override(
 )
 """
 
+# The third arg's `{module_name}+` is Bazel's canonical repo name for a
+# Bzlmod module, which is what names its directory in a test's runfiles
+# tree. The trailing `+` is the separator before a version component that
+# is empty here, because every fixture comes in via local_path_override
+# rather than a registry. It is spelled out rather than $(location)-expanded
+# for the reason compare_runtime_output.sh documents: needs_attention/ is
+# legitimately empty most of the time, and $(location) cannot expand to zero
+# files.
 _SH_TEST_TEMPLATE = """sh_test(
     name = "{test_name}",
     srcs = ["compare_runtime_output.sh"],
@@ -166,7 +174,10 @@ _validation_tree = rule(
             providers = [ConvertedCmakeModuleInfo],
             doc = "convert_cmake_project targets to stage under fixtures/.",
         ),
-        "name_of_root_module": attr.string(mandatory = True),
+        "name_of_root_module": attr.string(
+            mandatory = True,
+            doc = "Name for the generated root MODULE.bazel's own module() declaration. Never referenced by a fixture — the root module is the thing being built from, not depended on — so it only has to be a valid module name.",
+        ),
     },
 )
 

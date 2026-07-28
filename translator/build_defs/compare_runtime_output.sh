@@ -19,6 +19,13 @@
 # an expected steady state. Resolutions go in the generated output; the
 # source CMakeLists.txt is immutable input and is never edited to make a
 # conversion pass. See docs/architecture/build-verification.md.
+#
+# NOTE the deliberate absence of `-e`: a nonzero exit from either binary is
+# data this script compares, not a reason to stop, and `diff -q` reporting a
+# difference is likewise. Under `set -e` the first such case would kill the
+# script before it could report anything, and a ground truth that exits
+# nonzero would never be comparable at all. Failures are surfaced by
+# accumulating `status` instead.
 set -uo pipefail
 
 bazel_bin="$1"

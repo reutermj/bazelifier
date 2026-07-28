@@ -270,6 +270,16 @@ pub fn unsupported_target_needs_attention(
     }
 }
 
+/// Escalates a library whose headers CMake never declared public, so the
+/// translator has no basis for populating `hdrs` — see the
+/// `has_unclassified_headers` check in `to_target`, and
+/// docs/architecture/cmake-frontend.md on why the split can't be guessed.
+///
+/// Unlike the other escalations here, this one flags a conversion that
+/// almost certainly still builds and runs correctly: Bazel does not enforce
+/// the `hdrs`/`srcs` split, so consumers can include the header either way.
+/// The item exists because the gap is invisible in a green build, which is
+/// the case most needing explicit triage rather than least.
 pub fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
     let title = format!("Library '{target_name}' has headers but no public FILE_SET");
     NeedsAttention {

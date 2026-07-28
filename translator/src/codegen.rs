@@ -80,6 +80,15 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     out
 }
 
+/// Renders one list-valued attribute, one item per line.
+///
+/// An empty list emits nothing at all rather than `attr = []`. Every
+/// attribute the translator writes is optional in `rules_cc` and defaults
+/// to empty, so the two mean the same thing to Bazel — and the generated
+/// output is meant to be read and maintained by people, for whom a wall of
+/// empty attributes on every rule is noise. This is what lets
+/// `render_cc_rule` offer every attribute unconditionally and let the
+/// target's own data decide which appear.
 fn render_string_list(out: &mut String, attr: &str, items: &[String]) {
     if items.is_empty() {
         return;

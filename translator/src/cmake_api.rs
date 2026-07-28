@@ -548,6 +548,17 @@ fn read_project_version(reply_dir: &Path) -> Result<Option<String>, Error> {
         .filter(|v| !v.is_empty()))
 }
 
+/// Finds a File API reply by filename prefix, since the replies cannot be
+/// opened by name: CMake documents them as
+/// `<kind>-v<major>-<unspecified>.json`, and the trailing part is CMake's
+/// to choose. The prefix a query asked for (`codemodel-v2-`, `cache-v2-`)
+/// is the whole of the stable part.
+///
+/// Taking the first match is safe only because the translator writes
+/// exactly one query per kind, into a build directory it also created, so
+/// one reply per prefix exists. Resolving names through the reply index
+/// would be the general answer, for a reply directory this translator did
+/// not produce.
 fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<PathBuf, Error> {
     for entry in fs::read_dir(reply_dir)? {
         let entry = entry?;
@@ -638,6 +649,17 @@ fn to_target(
     (target, needs_attention)
 }
 
+/// Whether a plain source looks like a header, by extension. Only ever used
+/// to decide whether a library with no public `FILE_SET` is worth
+/// escalating — nothing is classified or emitted differently on the
+/// strength of it.
+///
+/// Extension is the only signal available: CMake reports these as ordinary
+/// sources precisely because the project never declared them as headers.
+/// The list is therefore conservative, and being wrong is one-directional —
+/// an unlisted extension (`.inc`, `.ipp`, an extensionless C++ header)
+/// means a gap goes unreported, never that a file is misplaced in the
+/// generated output.
 fn looks_like_header(path: &str) -> bool {
     matches!(
         Path::new(path).extension().and_then(|e| e.to_str()),
@@ -680,6 +702,20 @@ fn own_include_dirs(reply: &TargetReply) -> Vec<String> {
     includes
 }
 
+/// Whether an include's backtrace resolves to a `target_link_libraries`
+/// call, i.e. whether a dependency pulled it in rather than the target
+/// declaring it — see `own_include_dirs` for why that is the distinguishing
+/// signal.
+///
+/// The answer takes three hops through the reply's `backtraceGraph`, each
+/// of which can come back empty: an include may carry no backtrace, a node
+/// index may not resolve, and a node may name no command (the graph's root
+/// node has `command: null`). Every one of those falls through to `false`,
+/// i.e. "the target's own" — deliberately the safe direction. Guessing
+/// "own" for something inherited emits a redundant `includes` entry, which
+/// Bazel would have supplied transitively anyway; guessing "inherited" for
+/// something the target actually declared drops the only `-I` path it has,
+/// and it fails to compile with nothing pointing at the cause.
 fn is_inherited_via_link_libraries(backtrace: Option<usize>, graph: &BacktraceGraph) -> bool {
     let Some(node_index) = backtrace else {
         return false;
