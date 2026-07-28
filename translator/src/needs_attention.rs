@@ -329,16 +329,24 @@ mod tests {
     fn unsupported_target_escalation_names_type_and_target() {
         let item = unsupported_target_needs_attention("gen_docs", "UTILITY", &[]);
 
-        assert!(item.title.contains("gen_docs"));
-        assert!(item.title.contains("UTILITY"));
+        assert!(item.title.contains("gen_docs"), "{}", item.title);
+        assert!(item.title.contains("UTILITY"), "{}", item.title);
         // Type-specific guidance, not a generic "unsupported" message.
-        assert!(item.context.contains("add_custom_target"));
+        assert!(
+            item.context.contains("add_custom_target"),
+            "no UTILITY-specific guidance:\n{}",
+            item.context
+        );
         assert!(
             item.context.contains("No other target"),
             "an unreferenced target should say so explicitly:\n{}",
             item.context
         );
-        assert!(item.expected_output.contains("do NOT edit"));
+        assert!(
+            item.expected_output.contains("do NOT edit"),
+            "{}",
+            item.expected_output
+        );
     }
 
     #[test]
@@ -384,6 +392,68 @@ mod tests {
             !item.context.contains("not yet derived"),
             "describes a limitation the translator no longer has:\n{}",
             item.context
+        );
+    }
+
+    // The agent cannot act on "a source was dropped" alone: what it needs is
+    // the Bazel shape to reach for, and the warning that this gap is one a
+    // green build does not clear. Both were unpinned prose until this test.
+    #[test]
+    fn generated_sources_escalation_names_the_bazel_shape_and_the_silent_failure() {
+        let item = generated_sources_needs_attention(
+            "app",
+            &["/abs/build/CMakeFiles/obj.dir/lib.cpp.o".to_string()],
+        );
+
+        assert!(
+            item.gap.contains("/abs/build/CMakeFiles/obj.dir/lib.cpp.o"),
+            "the escalation must name the file that was dropped:\n{}",
+            item.gap
+        );
+        assert!(
+            item.context.contains("genrule"),
+            "the resolution shape for a produced source is a genrule; the escalation \
+             must say so:\n{}",
+            item.context
+        );
+        assert!(
+            item.context.contains("OBJECT_LIBRARY"),
+            "the other common cause is an OBJECT_LIBRARY expansion, whose real fix is a \
+             different item:\n{}",
+            item.context
+        );
+        assert!(
+            item.context.contains("green build"),
+            "this gap can link cleanly when nothing references the missing symbols; \
+             without that warning an agent reads a passing build as a resolution:\n{}",
+            item.context
+        );
+    }
+
+    // The one escalation whose conversion still builds and runs correctly, so
+    // its whole job is explaining why it is worth triaging anyway. If that
+    // explanation is ever trimmed to "populate hdrs", the item becomes
+    // indistinguishable from a false positive and gets dismissed as one.
+    #[test]
+    fn header_visibility_escalation_explains_why_a_green_build_proves_nothing() {
+        let item = header_visibility_needs_attention("greet");
+
+        assert!(
+            item.context.contains("does not enforce"),
+            "the non-obvious fact is that Bazel does not enforce the hdrs/srcs split:\n{}",
+            item.context
+        );
+        assert!(
+            item.context.contains("not what exposes the file"),
+            "propagation comes from the header being in some target's srcs/hdrs, NOT from \
+             `includes` — the intuitive model has this backwards, see \
+             docs/lore/bazel-does-not-enforce-hdrs-vs-srcs.md:\n{}",
+            item.context
+        );
+        assert!(
+            item.expected_output.contains("do NOT edit"),
+            "adding a FILE_SET upstream is not a resolution:\n{}",
+            item.expected_output
         );
     }
 

@@ -96,6 +96,91 @@ should be rejected. It would put `bazel_dep(name = "rules_shell")` into
 every converted module's `MODULE.bazel`, which is user-facing output, for
 a validation-only reason.
 
+## The `needs_attention/` gate can only fail loud, never pass loud
+
+**Status:** open, found by inspection; needs a Bazel run to confirm.
+
+`compare_runtime_output.sh` looks for the fixture's `needs_attention/`
+directory in its runfiles and gates on the `*.md` files it finds. If the
+directory isn't there, the loop is skipped and the script proceeds to the
+comparison — a missing directory and an empty one are the same event.
+
+**The gap:** the path is assembled by hand from `{module_name}+` (see
+`_SH_TEST_TEMPLATE` in `validation_workspace.bzl`) precisely because
+`$(location)` can't expand to zero files. Nothing checks that the
+hand-assembled path resolves. If Bazel ever changes canonical repo naming,
+or a `module_name` drifts, the gate stops looking at anything and every
+fixture goes green through it.
+
+**Why it matters:** the gate is the only check standing between "the
+translator escalated something" and a passing suite —
+`005-unsupported-target-type` exists specifically because its conversion
+builds and matches ground truth with the item still open. A fail-open gate
+is worth less than no gate, because the suite reports success.
+
+Note the direction the evidence points: fixtures with zero items are also
+the fixtures whose `needs_attention:all` filegroup is empty, so they may
+well be taking the missing-directory branch today. The gate has only ever
+been *observed* firing, never passing for a verified reason.
+
+**How to settle it:** confirm whether the directory materializes in
+runfiles for a zero-item fixture (needs a working `bazel test`, blocked
+above). Then make the script fail when the directory is absent —
+`render_needs_attention_build_bazel` guarantees the package always exists,
+so absence means broken wiring, not a clean conversion. Adding the
+directory's `BUILD.bazel` to the filegroup, or a sentinel file, is one way
+to make "always present" true in runfiles too.
+
+## No fixture exercises two of the four escalations, or a project version
+
+**Status:** open.
+
+Fixtures cover header visibility (`003`) and unsupported target types
+(`005`). Neither `generated_sources_needs_attention` nor
+`sources_outside_deliverable_needs_attention` has one — `006` covers the
+*non*-escalating sibling-source case, which is the opposite branch. No
+fixture declares `project(... VERSION ...)`, so `read_project_version` and
+the `MODULE.bazel` version line have never run against real CMake output
+either.
+
+**Why it matters:** the fixture tier is the only one that can contradict
+`cmake_api.rs`'s serde structs about the File API. A wrong
+`#[serde(rename)]` deserializes to a default in silence: rename
+`isGenerated` and generated sources stop being detected, with `srcs`
+quietly gaining an absolute path into a build directory. The unit tests
+cannot catch it — they construct `TargetReply` in Rust, so they only prove
+the code agrees with itself.
+
+**How to settle it:** add a fixture with an `add_custom_command()`-produced
+source, one that references a file outside its `deliverable_root`, and a
+`VERSION` on some existing fixture's `project()`. The first two are
+red-until-the-agent-stage, like `003`/`005`. Expect the generated-source
+escalation to list a phantom `<output>.rule` entry — see
+[docs/lore/cmake-file-api-generated-source-shape.md](docs/lore/cmake-file-api-generated-source-shape.md),
+which probably wants filtering out before a fixture makes an agent read it.
+
+## Nothing tests the code that reads a File API reply
+
+**Status:** open.
+
+`read_codemodel_reply` is where the tested pieces are wired together: it
+builds `translated_names` and `dependents_of`, decides `is_depended_on`,
+filters dropped edges down to *translated* dependents, and raises
+`SourceDirOutsideDeliverableRoot`. Every unit below it is tested; the
+wiring is not, and neither are `read_project_version` or `find_reply_file`.
+`.claude/skills/test-review/scripts/coverage_map.py` reports the full list.
+
+**Why it matters:** `to_target`'s tests take `is_depended_on` as a
+parameter, so the computation that decides it is covered nowhere. Today
+that logic is only exercised by the fixture tier, which is blocked.
+
+**How to settle it:** `read_codemodel_reply` takes a reply directory path —
+the seam is already there. A test can write captured File API JSON into a
+temp directory and call it, which also pins the serde schema against real
+CMake output rather than against our own constructors. Needs either a
+`tempfile` dev-dependency (and a `Cargo.lock` regen, see runbook 001) or a
+hand-rolled temp directory.
+
 ## Wire up the agent stage of the fixture loop
 
 **Status:** open, design settled, mechanics not.

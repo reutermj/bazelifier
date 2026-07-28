@@ -120,12 +120,48 @@ source in every fixture build.
   API, and can be stale. This caught real bugs (e.g. `buildifier_test`'s
   `no_sandbox` requiring a `workspace` attribute, only visible in
   `factory.bzl`).
-- **Test fixtures:** each fixture must actually build both with real
-  CMake+Ninja (ground truth, captured automatically by
-  `convert_cmake_project`) and via the unpacked validation tarball
-  (hermetically, through Bazel) — don't hand-wave either check. Real-world
-  open-source CMake projects will be added as a corpus later — don't
-  assume they exist yet.
+- **Tests come in three tiers, and each one proves something the others
+  can't.** Fix a bug at the lowest tier that can fail on it, and don't
+  mistake a tier's pass for a claim it never made.
+  - *Rust unit tests* (`cd translator && cargo test` for the fast loop;
+    `bazel test //translator:bazelifier_test` is the authority) run over
+    inputs we wrote. They pin decisions — classification, path rebasing,
+    rendering, escalation text — and they are the only tier where asserting
+    a *negative* is cheap. What they cannot do is contradict us: every
+    `#[serde(rename)]`/`#[serde(default)]` in `cmake_api.rs` is a claim
+    about the CMake File API, and a wrong one deserializes to a default in
+    silence.
+  - *Fixture conversion* runs real CMake+Ninja over a real `CMakeLists.txt`,
+    so it is the only tier that can contradict us — and it captures the
+    ground truth automatically. A translator capability isn't finished
+    until a fixture exercises it — unit tests agreeing with each other only
+    proves we are self-consistent. Real-world open-source CMake projects
+    will be added as a corpus later; don't assume they exist yet.
+  - *The unpacked validation workspace* is the only tier that proves
+    independence and functional equivalence, and the only one that runs the
+    generated output as a build rather than as a string. Never validate a
+    fixture in place (above); don't hand-wave either half.
+- **Green has to be earned.** For each test, ask what edit would make it
+  fail — and when the answer isn't obvious, make that edit and watch it go
+  red. The failure this repo keeps producing is a check that passes because
+  it is looking at nothing: `compare_runtime_output.sh`'s `needs_attention/`
+  gate cannot tell an empty directory from a path that doesn't resolve, and
+  `translator/tests/BUILD.bazel`'s fixture list silently omits any fixture
+  nobody added to it. Three corollaries:
+  - **Both directions or neither.** An escalation needs the case that fires
+    it *and* the case that must not — fixture `006-sibling-sources` and
+    `cmake_api.rs`'s `to_target_no_needs_attention_*` tests exist for that,
+    not for coverage. A gate only ever observed failing is
+    indistinguishable from one wired to nothing.
+  - **Assert the claim, print the evidence.** A `contains` over generated
+    text must put that text in the failure message. `assertion failed:
+    item.context.contains(..)` sends the reader to the source to find out
+    what it actually said, which is the one thing the test already knew.
+  - **A comment stating a checkable claim is a test that hasn't been
+    written yet** — the "why goes stale too" corollary below, applied to
+    behavior. `codegen::render`'s ordering rationale ("nothing yet on disk")
+    and `TargetSource::is_generated`'s "reported as an ABSOLUTE path" are
+    assertions about what the code does, not commentary about it.
 - **Build verification direction:** the CMake side still shells out to the
   host's `cmake` (`use_default_shell_env = True` in
   `convert_cmake_project.bzl`) — that's an accepted, current limitation,

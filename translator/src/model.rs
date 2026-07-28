@@ -88,3 +88,27 @@ pub struct BuildGraph {
     pub module: ModuleInfo,
     pub targets: Vec<Target>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_module_relative_accepts_paths_inside_the_module() {
+        assert!(is_module_relative("src/main.cpp"));
+        assert!(is_module_relative("include/greet.hpp"));
+        // The widened-root case: a module rooted above the CMake project
+        // holds the project's own sources under a subdirectory.
+        assert!(is_module_relative("proj/src/main.cpp"));
+    }
+
+    // CMake only reports a project-relative path when the file is inside
+    // the top-level source dir — an absolute path means it isn't, and a
+    // `..` component would escape the module root the same way.
+    #[test]
+    fn is_module_relative_rejects_paths_outside_the_module() {
+        assert!(!is_module_relative("/abs/shared/helper.cpp"));
+        assert!(!is_module_relative("../shared/helper.cpp"));
+        assert!(!is_module_relative("src/../../escape.cpp"));
+    }
+}

@@ -1088,22 +1088,6 @@ mod tests {
         assert!(needs_attention.is_empty());
     }
 
-    #[test]
-    fn is_module_relative_accepts_paths_inside_the_project() {
-        assert!(crate::model::is_module_relative("src/main.cpp"));
-        assert!(crate::model::is_module_relative("include/greet.hpp"));
-    }
-
-    // CMake only reports a project-relative path when the file is inside
-    // the top-level source dir — an absolute path means it isn't, and a
-    // `..` component would escape the module root the same way.
-    #[test]
-    fn is_module_relative_rejects_paths_outside_the_project() {
-        assert!(!crate::model::is_module_relative("/abs/shared/helper.cpp"));
-        assert!(!crate::model::is_module_relative("../shared/helper.cpp"));
-        assert!(!crate::model::is_module_relative("src/../../escape.cpp"));
-    }
-
     fn target_with(sources: Vec<&str>, includes: Vec<&str>) -> Target {
         Target {
             name: "app".to_string(),
