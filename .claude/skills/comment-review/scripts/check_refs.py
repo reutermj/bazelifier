@@ -25,6 +25,12 @@ COMMENT_GLOBS = ["*.rs", "*.bzl", "*.sh", "*.md", "*.bazel", "*.txt"]
 SKIP_DIRS = {".git", "target", "tools", "node_modules", ".beads"}
 SKIP_FILES = {"MODULE.bazel.lock", "Cargo.lock"}
 
+# This skill's own docs name known-dead identifiers on purpose -- they are
+# the fixtures its regression check looks for -- so scanning them reports
+# the fixtures as findings. Skipping the directory keeps the signal clean;
+# the tradeoff is that the skill's own prose is not itself checked.
+SKIP_PATH_FRAGMENTS = (".claude/skills/comment-review",)
+
 # Names that appear in backticks constantly and are never ours to resolve:
 # Bazel rules and attrs, CMake commands and target types, File API fields,
 # Rust std. Kept deliberately short -- over-filtering hides real rot.
@@ -99,6 +105,8 @@ def tracked_files(root: Path):
         if SKIP_DIRS & set(p.relative_to(root).parts):
             continue
         if p.name in SKIP_FILES:
+            continue
+        if any(frag in p.as_posix() for frag in SKIP_PATH_FRAGMENTS):
             continue
         if any(p.match(g) for g in COMMENT_GLOBS):
             yield p

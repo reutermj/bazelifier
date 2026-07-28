@@ -161,6 +161,21 @@ source in every fixture build.
     mirror of an external schema (`cmake_api.rs`'s serde structs describe
     the CMake File API, not our choices). What-then-why is the pattern;
     what alone isn't.
+
+  The same bar decides when a comment is *missing* — not "this function has
+  no doc comment," since most don't need one, but "would a reader have to
+  reconstruct this choice, or would they plausibly *fix* it into a bug?"
+  Silent fallbacks, deliberate omissions and magic strings are where that
+  reconstruction goes wrong: `is_inherited_via_link_libraries`'s three hops
+  all defaulting to "the target's own," `compare_runtime_output.sh` omitting
+  `set -e` on purpose, the `+` in `{module_name}+`.
+
+  And when a comment states what a value *is* — its units, its base
+  directory, when it is populated — that is a checkable claim, so check it.
+  A stale frame of reference is the contradiction this repo keeps
+  producing: `Target.sources` documented against the CMake project root
+  after derived module roots had moved it, with `is_module_relative` twenty
+  lines above already saying otherwise.
 - **`needs_attention/` is a real interface, not a scratch file.** When the
   translator can't resolve something, it should emit a `needs_attention`
   item matching the fixed section structure in
@@ -169,6 +184,10 @@ source in every fixture build.
   become machine-consumable later. The item's *text* is output too: when
   the translator gains a capability, grep the escalations for the
   limitation it just removed, and pin substantive guidance with a test.
+  Because that text ships to an agent working in an unpacked workspace with
+  no access to this repo, it is deliberately self-contained — repetition
+  across items is a feature, and a pass aimed at reducing duplication must
+  leave the escalation strings alone.
   See
   [docs/architecture/needs-attention-interface.md](docs/architecture/needs-attention-interface.md).
 - **Never edit input build files to make a conversion succeed.** A
