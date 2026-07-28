@@ -80,7 +80,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     fs::write(args.out_module.join("MODULE.bazel"), generated.module_bazel)?;
     fs::write(args.out_module.join("BUILD.bazel"), generated.build_bazel)?;
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
-    write_needs_attention(&args.out_module, graph)?;
+    write_needs_attention(&args.out_module, &discovery.needs_attention)?;
 
     Ok(())
 }
@@ -93,11 +93,14 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 /// The directory and its `BUILD.bazel` are always written, even with zero
 /// items — see `codegen::render_needs_attention_build_bazel` for why the
 /// empty case has to remain a valid Bazel package.
-fn write_needs_attention(out_module: &Path, graph: &model::BuildGraph) -> std::io::Result<()> {
+fn write_needs_attention(
+    out_module: &Path,
+    items: &[model::NeedsAttention],
+) -> std::io::Result<()> {
     let dir = out_module.join("needs_attention");
     fs::create_dir_all(&dir)?;
 
-    for (i, item) in graph.needs_attention.iter().enumerate() {
+    for (i, item) in items.iter().enumerate() {
         let filename = format!("{:03}-{}.md", i + 1, needs_attention::slugify(&item.title));
         fs::write(dir.join(filename), needs_attention::render(item))?;
     }

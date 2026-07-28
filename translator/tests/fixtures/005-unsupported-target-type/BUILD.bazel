@@ -1,20 +1,16 @@
 load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
 
-# Exercises the needs_attention/ escalation for an unsupported CMake target
-# type (UTILITY, from add_custom_target) AND the agent stage that resolves
-# it — see docs/architecture/cmake-frontend.md.
+# A UTILITY target (from add_custom_target) the translator cannot emit at
+# all — where 003 escalates an attribute it couldn't populate, this
+# escalates a whole missing target, and asserts the rest of the project
+# still converts.
 #
-# What makes this fixture distinct from 003: the escalation here is about a
-# target the translator did not emit AT ALL, rather than an attribute it
-# couldn't populate. `app` still converts, builds, and produces output
-# matching ground truth even with the item open — the dropped dependency
-# edge is order-only, so it contributes nothing to the binary. That means
-# the needs_attention/ gate is the ONLY thing keeping this red, which is
-# precisely the property under test: escalation must not depend on the
-# conversion also happening to break.
+# `app` builds and matches ground truth even with the item open, so the
+# needs_attention/ gate is the ONLY thing keeping this red — that's the
+# property under test: escalation must not depend on the conversion also
+# happening to break.
 #
-# Green is the expected end state; a red test means the agent stage hasn't
-# done its job.
+# Full rationale: docs/architecture/build-verification.md#fixtures.
 convert_cmake_project(
     name = "converted",
     srcs = ["CMakeLists.txt"] + glob(["src/**"]),

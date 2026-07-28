@@ -48,16 +48,18 @@ def _convert_cmake_project_impl(ctx):
     return [
         DefaultInfo(files = depset([out_dir])),
         ConvertedCmakeModuleInfo(
-            tree_artifact = out_dir,
             module_name = ctx.attr.module_name,
             expected_targets = ctx.attr.expected_targets,
         ),
     ]
 
+# Carries only what packaging can't get from DefaultInfo. The generated
+# module's tree artifact is NOT re-exposed here: consumers reach it as a
+# plain label (mtree_spec's srcs), so a second copy on the provider would
+# just be a way for the two to disagree.
 ConvertedCmakeModuleInfo = provider(
     doc = "Identifies the standalone Bazel module a convert_cmake_project target produced, for use by validation-workspace packaging (see docs/architecture/build-verification.md).",
     fields = {
-        "tree_artifact": "The output tree artifact (a File) containing the generated module.",
         "module_name": "The generated module's name, i.e. the value its MODULE.bazel declares via module(name = ...). Must match, since it's used to wire up local_path_override for validation.",
         "expected_targets": "Names of the CMake executable targets this fixture is expected to produce (see the expected_targets attr doc) — used to generate ground-truth-vs-Bazel runtime comparison tests.",
     },

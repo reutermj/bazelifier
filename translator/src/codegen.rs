@@ -118,15 +118,13 @@ fn render_path_list(out: &mut String, attr: &str, paths: &[String]) {
     render_string_list(out, attr, paths);
 }
 
+/// Renders `deps`, turning each sibling target name into a same-package
+/// Bazel label. Every target a converted module emits lives in that
+/// module's one top-level `BUILD.bazel`, so a dependency is always
+/// `":name"` — there is no cross-package case to handle yet.
 fn render_deps(out: &mut String, deps: &[String]) {
-    if deps.is_empty() {
-        return;
-    }
-    out.push_str("    deps = [\n");
-    for dep in deps {
-        out.push_str(&format!("        \":{dep}\",\n"));
-    }
-    out.push_str("    ],\n");
+    let labels: Vec<String> = deps.iter().map(|dep| format!(":{dep}")).collect();
+    render_string_list(out, "deps", &labels);
 }
 
 // Public by default: a converted module is meant to be depended on, both
@@ -211,12 +209,12 @@ mod tests {
     use crate::model::ModuleInfo;
 
     fn graph(version: Option<&str>) -> BuildGraph {
-        BuildGraph::new(
-            ModuleInfo {
+        BuildGraph {
+            module: ModuleInfo {
                 name: "hello_world".to_string(),
                 version: version.map(str::to_string),
             },
-            vec![Target {
+            targets: vec![Target {
                 name: "hello".to_string(),
                 kind: TargetKind::Executable,
                 sources: vec!["src/main.cpp".to_string()],
@@ -225,7 +223,7 @@ mod tests {
                 includes: vec![],
                 artifacts: vec!["hello".to_string()],
             }],
-        )
+        }
     }
 
     #[test]
@@ -240,12 +238,12 @@ mod tests {
 
     #[test]
     fn renders_cc_library_with_hdrs_and_deps() {
-        let graph = BuildGraph::new(
-            ModuleInfo {
+        let graph = BuildGraph {
+            module: ModuleInfo {
                 name: "lib_example".to_string(),
                 version: None,
             },
-            vec![
+            targets: vec![
                 Target {
                     name: "greet".to_string(),
                     kind: TargetKind::Library,
@@ -265,7 +263,7 @@ mod tests {
                     artifacts: vec!["hello".to_string()],
                 },
             ],
-        );
+        };
 
         let rendered = render(&graph).build_bazel;
         assert!(rendered.contains("load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")"));
@@ -286,12 +284,12 @@ mod tests {
     // Exercised end to end by tests/fixtures/004-binary-private-include.
     #[test]
     fn renders_cc_binary_with_own_includes() {
-        let graph = BuildGraph::new(
-            ModuleInfo {
+        let graph = BuildGraph {
+            module: ModuleInfo {
                 name: "binary_private_include".to_string(),
                 version: None,
             },
-            vec![Target {
+            targets: vec![Target {
                 name: "app".to_string(),
                 kind: TargetKind::Executable,
                 sources: vec!["src/main.cpp".to_string(), "inc/cfg.hpp".to_string()],
@@ -300,7 +298,7 @@ mod tests {
                 includes: vec!["inc".to_string()],
                 artifacts: vec!["app".to_string()],
             }],
-        );
+        };
 
         let rendered = render(&graph).build_bazel;
         assert!(
@@ -319,12 +317,12 @@ mod tests {
     #[test]
     fn renders_own_includes_for_every_target_kind() {
         for kind in [TargetKind::Executable, TargetKind::Library] {
-            let graph = BuildGraph::new(
-                ModuleInfo {
+            let graph = BuildGraph {
+                module: ModuleInfo {
                     name: "m".to_string(),
                     version: None,
                 },
-                vec![Target {
+                targets: vec![Target {
                     name: "t".to_string(),
                     kind: kind.clone(),
                     sources: vec!["src/t.cpp".to_string()],
@@ -333,7 +331,7 @@ mod tests {
                     includes: vec!["inc".to_string()],
                     artifacts: vec![],
                 }],
-            );
+            };
 
             let rendered = render(&graph).build_bazel;
             assert!(
@@ -374,13 +372,13 @@ mod tests {
             artifacts: vec![],
         };
         mutate(&mut target);
-        BuildGraph::new(
-            ModuleInfo {
+        BuildGraph {
+            module: ModuleInfo {
                 name: "m".to_string(),
                 version: None,
             },
-            vec![target],
-        )
+            targets: vec![target],
+        }
     }
 
     // One case per path-valued attribute. `srcs`/`hdrs` are Bazel *label*
@@ -427,12 +425,12 @@ mod tests {
     // added that bypasses render_path_list.
     #[test]
     fn well_formed_graph_renders_no_absolute_paths() {
-        let graph = BuildGraph::new(
-            ModuleInfo {
+        let graph = BuildGraph {
+            module: ModuleInfo {
                 name: "m".to_string(),
                 version: Some("1.0.0".to_string()),
             },
-            vec![
+            targets: vec![
                 Target {
                     name: "lib".to_string(),
                     kind: TargetKind::Library,
@@ -452,7 +450,7 @@ mod tests {
                     artifacts: vec!["app".to_string()],
                 },
             ],
-        );
+        };
 
         let rendered = render(&graph);
         for (what, text) in [

@@ -40,6 +40,19 @@ def _fixture_dir_name(label):
     """
     return label.package.rsplit("/", 1)[-1]
 
+def _write_root_file(ctx, filename, content):
+    """Writes one generated file destined for the tarball's root.
+
+    Declared inside a same-named directory (rather than as a bare file) so
+    its mtree path's basename is already exactly `filename` — mtree_mutate's
+    package_dir prepends a directory prefix, it can't rename a file's
+    basename, so a literal "MODULE.bazel"/"BUILD.bazel" name has to come
+    from the declared path itself.
+    """
+    out = ctx.actions.declare_file(ctx.attr.name + "/" + filename)
+    ctx.actions.write(out, content)
+    return [DefaultInfo(files = depset([out]))]
+
 def _root_module_bazel_impl(ctx):
     deps = []
     for target in ctx.attr.fixtures:
@@ -49,19 +62,10 @@ def _root_module_bazel_impl(ctx):
             fixture_dir = _fixture_dir_name(target.label),
         ))
 
-    content = _ROOT_MODULE_TEMPLATE.format(
+    return _write_root_file(ctx, "MODULE.bazel", _ROOT_MODULE_TEMPLATE.format(
         name = ctx.attr.name_of_root_module,
         deps = "\n".join(deps),
-    )
-
-    # Declared inside a same-named directory (rather than as a bare file)
-    # so its mtree path's basename is already exactly "MODULE.bazel" —
-    # mtree_mutate's package_dir prepends a directory prefix, it can't
-    # rename a file's basename, so a literal "MODULE.bazel" name has to
-    # come from the declared path itself.
-    out = ctx.actions.declare_file(ctx.attr.name + "/MODULE.bazel")
-    ctx.actions.write(out, content)
-    return [DefaultInfo(files = depset([out]))]
+    ))
 
 _root_module_bazel = rule(
     implementation = _root_module_bazel_impl,
@@ -91,9 +95,20 @@ _SH_TEST_TEMPLATE = """sh_test(
 )
 """
 
+_ROOT_BUILD_TEMPLATE = """load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+{tests}
+test_suite(
+    name = "all_ground_truth_comparisons",
+    tests = [
+{test_labels}
+    ],
+)
+"""
+
 def _root_build_bazel_impl(ctx):
     tests = []
-    test_names = []
+    test_labels = []
     for target in ctx.attr.fixtures:
         info = target[ConvertedCmakeModuleInfo]
         for target_name in info.expected_targets:
@@ -103,18 +118,12 @@ def _root_build_bazel_impl(ctx):
                 module_name = info.module_name,
                 target_name = target_name,
             ))
-            test_names.append(test_name)
+            test_labels.append('        ":{}",'.format(test_name))
 
-    content = "load(\"@rules_shell//shell:sh_test.bzl\", \"sh_test\")\n\n"
-    content += "\n".join(tests)
-    content += "\ntest_suite(\n    name = \"all_ground_truth_comparisons\",\n    tests = [\n"
-    for test_name in test_names:
-        content += "        \":{}\",\n".format(test_name)
-    content += "    ],\n)\n"
-
-    out = ctx.actions.declare_file(ctx.attr.name + "/BUILD.bazel")
-    ctx.actions.write(out, content)
-    return [DefaultInfo(files = depset([out]))]
+    return _write_root_file(ctx, "BUILD.bazel", _ROOT_BUILD_TEMPLATE.format(
+        tests = "\n".join(tests),
+        test_labels = "\n".join(test_labels),
+    ))
 
 _root_build_bazel = rule(
     implementation = _root_build_bazel_impl,
@@ -162,6 +171,34 @@ _combined_mtree = rule(
     },
 )
 
+def _entry_mtree(name, src, strip_prefix, package_dir = None):
+    """Declares the spec+mutate pair placing one entry into the tarball.
+
+    Returns the label of the mutated mtree. Every entry needs its own pair
+    rather than one shared `mtree_spec` over all of them, because
+    `strip_prefix` is per-entry: they come from different source packages.
+    `package_dir` re-roots the entry under a directory; omit it to land at
+    the tarball root.
+    """
+    spec_name = name + "_spec"
+    mtree_spec(
+        name = spec_name,
+        srcs = [src],
+    )
+
+    # Passed through only when set, rather than defaulted to "" here, so
+    # this doesn't encode an assumption about mtree_mutate's own default.
+    package_dir_kwarg = {"package_dir": package_dir} if package_dir else {}
+
+    mutated_name = name + "_renamed"
+    mtree_mutate(
+        name = mutated_name,
+        mtree = ":" + spec_name,
+        strip_prefix = strip_prefix,
+        **package_dir_kwarg
+    )
+    return ":" + mutated_name
+
 def validation_workspace(name, fixtures, **kwargs):
     """Packages `fixtures` (convert_cmake_project targets) into a tarball.
 
@@ -204,79 +241,51 @@ def validation_workspace(name, fixtures, **kwargs):
     # entry would be created *inside* it instead of at the tarball root.
     # See the tar.bzl default.awk mutation pipeline's own comment on this
     # exact pitfall.
-    root_spec_name = name + "_root_spec"
-    mtree_spec(
-        name = root_spec_name,
-        srcs = [":" + root_module_name],
-    )
-    root_mutated_name = name + "_root_renamed"
-    mtree_mutate(
-        name = root_mutated_name,
-        mtree = ":" + root_spec_name,
-        # The declared output lives at
-        # translator/tests/<root_module_name>/MODULE.bazel; strip down to
-        # just that directory so MODULE.bazel ends up at the tarball root.
-        strip_prefix = native.package_name() + "/" + root_module_name,
-    )
-
-    root_build_spec_name = name + "_root_build_spec"
-    mtree_spec(
-        name = root_build_spec_name,
-        srcs = [":" + root_build_name],
-    )
-    root_build_mutated_name = name + "_root_build_renamed"
-    mtree_mutate(
-        name = root_build_mutated_name,
-        mtree = ":" + root_build_spec_name,
-        strip_prefix = native.package_name() + "/" + root_build_name,
-    )
-
-    script_spec_name = name + "_script_spec"
-    mtree_spec(
-        name = script_spec_name,
-        srcs = [compare_script],
-    )
-    script_mutated_name = name + "_script_renamed"
-    mtree_mutate(
-        name = script_mutated_name,
-        mtree = ":" + script_spec_name,
-        strip_prefix = Label(compare_script).package,
-    )
-
-    per_fixture_mtrees = [
-        ":" + root_mutated_name,
-        ":" + root_build_mutated_name,
-        ":" + script_mutated_name,
+    #
+    # A generated root file's declared output lives at
+    # <this package>/<its target name>/<FILENAME>, so stripping that
+    # directory leaves the bare filename at the tarball root. The
+    # comparison script is a plain source file, so its own package is what
+    # gets stripped instead.
+    mtrees = [
+        _entry_mtree(
+            name + "_root_module",
+            ":" + root_module_name,
+            native.package_name() + "/" + root_module_name,
+        ),
+        _entry_mtree(
+            name + "_root_build",
+            ":" + root_build_name,
+            native.package_name() + "/" + root_build_name,
+        ),
+        _entry_mtree(
+            name + "_script",
+            compare_script,
+            Label(compare_script).package,
+        ),
     ]
 
     for fixture in fixtures:
         label = Label(fixture)
         fixture_dir = _fixture_dir_name(label)
-        spec_name = name + "_" + fixture_dir + "_spec"
-        mutated_name = name + "_" + fixture_dir + "_renamed"
 
-        mtree_spec(
-            name = spec_name,
-            srcs = [fixture],
-        )
-        mtree_mutate(
-            name = mutated_name,
-            mtree = ":" + spec_name,
-            # The tree artifact's natural mtree path is
-            # "<fixture's package>/<fixture target name>/...". Strip that
-            # down and re-root it under fixtures/<fixture dir name>/ so the
-            # unpacked tarball has a clean, uniform layout regardless of
-            # where the fixture actually lives in this repo.
-            strip_prefix = label.package + "/" + label.name,
+        # A fixture's tree artifact has the natural mtree path
+        # "<fixture's package>/<fixture target name>/...". Strip that down
+        # and re-root it under fixtures/<fixture dir name>/ so the unpacked
+        # tarball has a clean, uniform layout regardless of where the
+        # fixture actually lives in this repo.
+        mtrees.append(_entry_mtree(
+            name + "_" + fixture_dir,
+            fixture,
+            label.package + "/" + label.name,
             package_dir = "fixtures/" + fixture_dir,
-        )
-        per_fixture_mtrees.append(":" + mutated_name)
+        ))
         all_srcs.append(fixture)
 
     combined_name = name + "_combined_mtree"
     _combined_mtree(
         name = combined_name,
-        mtrees = per_fixture_mtrees,
+        mtrees = mtrees,
         extra_files = all_srcs,
     )
 

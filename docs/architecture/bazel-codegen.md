@@ -131,11 +131,13 @@ via `bazel_dep(name = "buildifier_prebuilt", ..., dev_dependency = True)` in
 - `bazel test //:buildifier_check` — fails (non-destructively) if anything
   needs formatting; intended for CI.
 
-This applies to the repo's own Bazel files today, and should also apply to
-the translator's *generated* output once codegen exists — i.e. pass
-generated `BUILD` files through buildifier before writing them out, so
-output is always idiomatically formatted rather than relying on a human to
-run it afterward.
+This covers the repo's own Bazel files. It does **not** yet cover the
+translator's *generated* output: `codegen.rs` writes its `BUILD.bazel` and
+`MODULE.bazel` directly, formatted by hand-written string rendering rather
+than passed through buildifier. Since generated output is meant to be
+reviewed and maintained by people, it should eventually go through
+buildifier on the way out rather than relying on the renderer to stay
+idiomatic by hand.
 
 ## Open questions
 

@@ -186,21 +186,16 @@ building against a fixture with nothing to differentiate):
 Bazel does **not** enforce the `hdrs`/`srcs` split for C++ headers by
 default. A header listed only in a dependency's `srcs` is still propagated
 as an input to a dependent's compile action, so the dependent can
-`#include` it and the build succeeds.
+`#include` it and the build succeeds. Propagation comes from the header
+being declared in *some* target's `srcs`/`hdrs`; `includes` only supplies a
+`-I` search path, which is useless on its own.
 
-Verified directly (Bazel 9.2.0, autodetected host toolchain, sandboxed):
-
-| dep declares header | `includes` set | consumer's `#include` | result |
-| --- | --- | --- | --- |
-| in `srcs` | yes | `"a.hpp"` | builds |
-| in `srcs` | **no** | `"case_b/b.hpp"` | builds |
-| **in no target** | yes | `"c.hpp"` | **fails**: `No such file or directory` |
-
-The second and third rows are the informative pair: propagation comes from
-the header being declared in *some* target's `srcs`/`hdrs`, not from the
-`includes` attribute. `includes` only supplies a `-I` search path, which is
-useless on its own — row three has the path and still fails because the
-file was never an action input.
+This was established experimentally, not assumed. The three-case matrix
+that establishes it (Bazel 9.2.0, sandboxed), the `aquery` output showing
+the header among a consumer's compile-action inputs, and why the intuitive
+mental model gets the causality backwards are recorded once in
+[docs/lore/bazel-does-not-enforce-hdrs-vs-srcs.md](../lore/bazel-does-not-enforce-hdrs-vs-srcs.md)
+— not repeated here.
 
 Consequences for this project:
 
@@ -214,12 +209,12 @@ Consequences for this project:
   `BUILD.bazel` is still open.
 - Bazel's `layering_check` feature *does* enforce the split, but it
   requires module maps and a supporting (clang-based) toolchain and is off
-  by default. **Open:** the table above was produced with the autodetected
-  host toolchain (which resolved to `gcc`), not the hermetic `llvm`
-  toolchain the fixtures actually build with. If `llvm` enables
-  `layering_check`, `003-library-no-file-set` may fail to compile outright
-  rather than build-with-degraded-encapsulation, which would change the
-  gate's rationale. Needs verification against the real toolchain.
+  by default. **Open:** the experiment ran against the autodetected host
+  toolchain (`gcc`), not the hermetic `llvm` toolchain the fixtures
+  actually build with. If `llvm` enables `layering_check`,
+  `003-library-no-file-set` would fail to compile outright rather than
+  build with degraded encapsulation, changing this gate's rationale. See
+  the tracking item in [TODO.md](../../TODO.md) for how to settle it.
 
 ## Why unpack it (rather than validate in-tree)
 

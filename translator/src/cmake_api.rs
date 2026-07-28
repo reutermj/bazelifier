@@ -190,15 +190,29 @@ struct CacheEntry {
     value: String,
 }
 
-/// A completed discovery pass: the build graph, plus the directory on this
-/// machine that the graph's (module-relative) paths are relative to.
+/// A completed discovery pass: the build graph, the gaps that kept parts of
+/// the project out of it, and the directory on this machine that the
+/// graph's (module-relative) paths are relative to.
 pub struct Discovery {
     pub graph: BuildGraph,
+    /// Gaps to escalate for this conversion — see
+    /// docs/architecture/needs-attention-interface.md.
+    pub needs_attention: Vec<NeedsAttention>,
     /// Absolute path to the converted module's root — where
     /// `copy_referenced_sources` reads the referenced files from. Equal to
     /// the CMake project directory unless the build referenced files above
     /// it that still ship with the project; see `rebase_to_module_root`.
     pub module_root: PathBuf,
+}
+
+/// What one codemodel reply yields. Named rather than returned as a tuple:
+/// its two `Vec` members and two path-ish members are easy to transpose at
+/// a call site, and the compiler would not notice.
+struct Codemodel {
+    project_name: String,
+    targets: Vec<Target>,
+    needs_attention: Vec<NeedsAttention>,
+    module_root: PathBuf,
 }
 
 /// Configures `source_dir` in `build_dir` via `cmake -G Ninja`, requesting
@@ -218,19 +232,20 @@ pub fn discover(
     build(build_dir)?;
     let reply_dir = build_dir.join(".cmake/api/v1/reply");
     let deliverable_root = absolutize(deliverable_root)?;
-    let (module, targets, needs_attention, module_root) =
-        read_codemodel_reply(&reply_dir, &deliverable_root)?;
+    let codemodel = read_codemodel_reply(&reply_dir, &deliverable_root)?;
     let version = read_project_version(&reply_dir)?;
 
-    let mut graph = BuildGraph::new(
-        ModuleInfo {
-            name: module,
-            version,
+    Ok(Discovery {
+        graph: BuildGraph {
+            module: ModuleInfo {
+                name: codemodel.project_name,
+                version,
+            },
+            targets: codemodel.targets,
         },
-        targets,
-    );
-    graph.needs_attention = needs_attention;
-    Ok(Discovery { graph, module_root })
+        needs_attention: codemodel.needs_attention,
+        module_root: codemodel.module_root,
+    })
 }
 
 fn request_file_api_queries(build_dir: &Path) -> Result<(), Error> {
@@ -273,10 +288,7 @@ fn build(build_dir: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-fn read_codemodel_reply(
-    reply_dir: &Path,
-    deliverable_root: &Path,
-) -> Result<(String, Vec<Target>, Vec<NeedsAttention>, PathBuf), Error> {
+fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Codemodel, Error> {
     let index_path = find_reply_file(reply_dir, "codemodel-v2-")?;
     let index: CodemodelIndexReply = serde_json::from_str(&fs::read_to_string(index_path)?)?;
 
@@ -406,7 +418,12 @@ fn read_codemodel_reply(
         rebase_to_module_root(&mut targets, &source_dir, deliverable_root);
     needs_attention.extend(rebase_escalations);
 
-    Ok((project.name.clone(), targets, needs_attention, module_root))
+    Ok(Codemodel {
+        project_name: project.name.clone(),
+        targets,
+        needs_attention,
+        module_root,
+    })
 }
 
 /// Resolves `.` and `..` textually, without touching the filesystem.

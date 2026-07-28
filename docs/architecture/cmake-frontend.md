@@ -117,21 +117,21 @@ Currently implemented triggers:
   public `FILE_SET` declaration, **and** at least one other target depends
   on it (a library nothing depends on has no consumer that could need an
   exposed header, so it's not worth flagging). See
-  `cmake_api.rs::header_visibility_needs_attention`.
+  `needs_attention.rs::header_visibility_needs_attention`.
 - **Unsupported target type** — the target's CMake type has no Bazel rule
   yet (anything besides `EXECUTABLE`/`STATIC_LIBRARY`/`SHARED_LIBRARY`).
   The target is skipped and *the rest of the project still converts*; one
   unrecognized target must not cost the project every other target it
   defines. The escalation carries type-specific guidance rather than a
   generic "unsupported" message. See
-  `cmake_api.rs::unsupported_target_needs_attention`.
+  `needs_attention.rs::unsupported_target_needs_attention`.
 - **Generated sources** — a target consumes a source CMake produces during
   the build (`isGenerated`), such as an `add_custom_command()` output or
   the objects an `OBJECT_LIBRARY` splices into its consumers. See
-  `cmake_api.rs::generated_sources_needs_attention`.
+  `needs_attention.rs::generated_sources_needs_attention`.
 - **Sources the module cannot reach** — a target compiles a file the
   translator could not place inside the generated module. See
-  `cmake_api.rs::sources_outside_deliverable_needs_attention`.
+  `needs_attention.rs::sources_outside_deliverable_needs_attention`.
 
 ### What actually makes an input a problem: reproducibility
 
@@ -247,14 +247,9 @@ and dropping it is harmless; a link edge means the dependent is incomplete
 until the skipped target is translated. The escalation says so explicitly
 rather than the translator guessing which case it's in.
 
-**Resolutions go in the generated output, never in the source project.**
-An agent resolves a `needs_attention` item by editing the generated
-`BUILD.bazel` (here, moving the right headers into `hdrs`) — not by adding
-a `FILE_SET` to the project's `CMakeLists.txt`. The source build files are
-the input being translated; changing them to make one project convert
-cleanly leaves the translator no better at the next project with the same
-shape, which is the actual goal. This holds for real projects as much as
-for fixtures.
+Whatever an agent does about a dropped edge, it does in the generated
+output — the source `CMakeLists.txt` is immutable input. See
+[build-verification.md](build-verification.md#the-input-cmake-is-immutable).
 
 ## Known hard cases (expect to escalate via `needs_attention/`)
 

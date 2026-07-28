@@ -81,6 +81,11 @@ pub struct ModuleInfo {
 /// conversion — written into the output tree's `needs_attention/` for
 /// whoever picks up this converted project to address. See
 /// docs/architecture/needs-attention-interface.md.
+///
+/// Deliberately not part of [`BuildGraph`]: the graph is what the
+/// conversion *did* produce, and an escalation is what it couldn't. Codegen
+/// never reads these, so they ride alongside the graph on the frontend's
+/// `Discovery` rather than inside it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NeedsAttention {
     pub title: String,
@@ -93,15 +98,4 @@ pub struct NeedsAttention {
 pub struct BuildGraph {
     pub module: ModuleInfo,
     pub targets: Vec<Target>,
-    pub needs_attention: Vec<NeedsAttention>,
-}
-
-impl BuildGraph {
-    pub fn new(module: ModuleInfo, targets: Vec<Target>) -> Self {
-        BuildGraph {
-            module,
-            targets,
-            needs_attention: Vec::new(),
-        }
-    }
 }

@@ -1,16 +1,14 @@
 load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
 
-# This fixture exercises the needs_attention/ escalation path AND the agent
-# stage that resolves it (a library with plain, non-FILE_SET headers and a
-# consumer) — see docs/architecture/cmake-frontend.md and
-# docs/architecture/build-verification.md. Its validation_workspace test is
-# gated on the needs_attention item and passes once an agent resolves it by
-# populating hdrs in the GENERATED BUILD.bazel. Green is the expected end
-# state; a red test means the agent stage hasn't done its job.
+# A library with plain, non-FILE_SET headers and a consumer: the translator
+# can't tell which headers are public, so it escalates instead of guessing.
 #
 # The CMakeLists.txt here intentionally omits a public FILE_SET forever —
 # that's the input shape under test. Never "fix" it to make conversion
-# succeed.
+# succeed; the agent stage resolves it by populating hdrs in the GENERATED
+# BUILD.bazel.
+#
+# Full rationale: docs/architecture/build-verification.md#fixtures.
 convert_cmake_project(
     name = "converted",
     srcs = ["CMakeLists.txt"] + glob(["src/**"]),
