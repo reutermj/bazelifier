@@ -216,13 +216,20 @@ struct Codemodel {
     module_root: PathBuf,
 }
 
-/// Configures `source_dir` in `build_dir` via `cmake -G Ninja`, requesting
-/// the codemodel-v2 and cache-v2 File API queries, actually builds the
-/// project (so ground-truth artifacts exist in `build_dir` for validation
-/// — see docs/architecture/build-verification.md), and reads the File API
-/// replies into a `BuildGraph` (including the module name/version the
-/// generated `MODULE.bazel` should use — see
-/// docs/architecture/bazel-codegen.md).
+/// Takes a CMake project through configure and build, and reads the File
+/// API replies into a `BuildGraph`.
+///
+/// The two orderings below are load-bearing, and neither is visible from
+/// the calls themselves:
+///
+/// - Queries are written before `configure`, not after. CMake answers only
+///   the queries already present in the build directory when it configures;
+///   writing them afterwards produces no reply at all until something
+///   configures again.
+/// - The project is really built, not just configured. That step exists to
+///   produce the ground-truth artifacts the equivalence check compares
+///   against, which is why discovery owns it rather than the caller — see
+///   docs/architecture/build-verification.md.
 pub fn discover(
     source_dir: &Path,
     build_dir: &Path,

@@ -17,8 +17,12 @@ pub struct GeneratedModule {
     pub build_bazel: String,
 }
 
-/// Renders a standalone `MODULE.bazel` + `BUILD.bazel` pair for the given
-/// build graph.
+/// Renders both files into memory, before `main` writes either of them.
+///
+/// That ordering is what makes `render_path_list`'s assertions safe to fire
+/// as panics: a graph that would produce a non-portable module aborts the
+/// conversion with nothing yet on disk, rather than leaving a half-written
+/// output tree behind.
 pub fn render(graph: &BuildGraph) -> GeneratedModule {
     GeneratedModule {
         module_bazel: render_module_bazel(graph),

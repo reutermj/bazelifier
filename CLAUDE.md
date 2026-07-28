@@ -136,6 +136,31 @@ source in every fixture build.
   `buildifier` (`bazel run //:buildifier` to fix, `bazel test
   //:buildifier_check` to verify) — see
   [docs/architecture/bazel-codegen.md](docs/architecture/bazel-codegen.md).
+- **Comments explain why, not what.** A "what" comment is a second copy of
+  the code: it can only be redundant or wrong, and it turns into wrong the
+  moment the line above it changes. Spend the comment on what the code
+  *can't* say — the alternative that was rejected, a constraint from
+  outside this file, the direction a wrong guess fails in.
+  `render_path_list` doesn't say that it asserts on each path; it says why
+  the assert is real and not a `debug_assert!`. Three corollaries, each of
+  which has already cost this repo a stale comment:
+  - **One home per rationale.** The comment says why *this code* is shaped
+    this way; `docs/architecture/` says why the *design* is. Where they
+    overlap, point at the doc instead of restating it. Duplicated
+    rationale is how `copy_referenced_sources` came to carry three
+    paragraphs of `cmake-frontend.md` that only one of the two would ever
+    get updated.
+  - **"Why" goes stale too.** When it's assertable, pin it with a test —
+    see `needs_attention.rs`'s
+    `sources_outside_deliverable_escalation_points_at_the_deliverable_root`.
+    Prose naming an identifier (`see X in Y`) is a reference nothing
+    checks, so re-grep those after a rename.
+  - **"What" earns its place in three spots:** a module-level `//!` or
+    docstring orienting someone who lands in the file cold; a one-line
+    signature gloss on a non-obvious helper *followed by* the why; and a
+    mirror of an external schema (`cmake_api.rs`'s serde structs describe
+    the CMake File API, not our choices). What-then-why is the pattern;
+    what alone isn't.
 - **`needs_attention/` is a real interface, not a scratch file.** When the
   translator can't resolve something, it should emit a `needs_attention`
   item matching the fixed section structure in
