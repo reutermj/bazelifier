@@ -66,6 +66,71 @@ Partly contingent on the `layering_check` item above: if `llvm` enforces
 the split, the compiler itself forces a correct resolution and no extra
 assertion is needed.
 
+## Collapse `validation_workspace`'s mtree assembly onto a staged directory
+
+**Status:** open, design clear, unverified (needs a working `bazel build`).
+
+`validation_workspace.bzl` assembles the tarball by doing path surgery in
+the mtree, one entry at a time: an `mtree_spec` + `mtree_mutate` pair per
+root file and per fixture (because `strip_prefix` is per-entry), then a
+`_combined_mtree` rule concatenating them. That layer costs three separate
+workarounds, each currently carrying its own explanatory comment:
+
+- root entries must be concatenated **first**, or bsdtar creates them
+  inside the last-seen top-level directory instead of at the root;
+- each per-fixture mtree independently synthesizes a `fixtures type=dir`
+  entry, so the concatenation needs `awk '!seen[$0]++'` to stop bsdtar
+  producing a nested `fixtures/fixtures/`;
+- generated root files must be declared inside a same-named directory,
+  because `package_dir` can prepend a prefix but can't rename a basename.
+
+All three are consequences of building the layout *in the mtree*. Staging
+it on disk first removes the class: one action that `cp`s each fixture
+tree artifact to `fixtures/<dir>/` and writes the root files into a single
+declared output directory, then **one** `mtree_spec` + `mtree_mutate`
+(uniform `strip_prefix`, no `package_dir`) + `tar` over it. `_entry_mtree`
+and `_combined_mtree` both go away.
+
+**Why it matters:** ~300 lines of packaging machinery, none of it
+expressing anything about verification, and the ordering/dedupe hazards
+are silent — they produce a subtly wrong tarball, not an error.
+
+**Cost:** one extra copy of each fixture tree. Irrelevant at this size.
+
+**How to settle it:** build `//translator/tests:validation_workspace`,
+unpack, and confirm the layout is byte-identical to today's plus a green
+`bazel test //:all_ground_truth_comparisons` from the unpacked root.
+
+## Derive `module_name`/`expected_targets` instead of declaring them
+
+**Status:** open, blocked on the same missing `bazel build`.
+
+Every fixture's `BUILD.bazel` hand-declares `module_name` and
+`expected_targets`, duplicating facts the translator already computed.
+`convert_cmake_project.bzl` explains why: the validation workspace's root
+`MODULE.bazel`/`BUILD.bazel` are generated at **analysis** time, and the
+converted module doesn't exist until **execution** time.
+
+That reasoning holds for `ctx.actions.write`, but not for the packaging as
+a whole — `_combined_mtree` already runs a shell action over the fixture
+tree artifacts. The same trick applies to the root files: generate them in
+an execution-time action that reads each fixture's actual
+`MODULE.bazel` (for the module name) and `ground_truth/` (for the target
+list). Both attrs then disappear, along with `_root_build_bazel`.
+
+**Why it matters:** both attrs can drift from what the translator really
+emitted, and both fail badly when they do. A stale `module_name` breaks
+`local_path_override` with a bzlmod error pointing nowhere near the
+fixture; a fixture that gains a target simply never gets a comparison
+test, silently — which is the failure mode this whole pipeline exists to
+catch.
+
+**Note:** the tempting alternative — having the translator emit the
+comparison `sh_test` into the module's own `ground_truth/BUILD.bazel` —
+should be rejected. It would put `bazel_dep(name = "rules_shell")` into
+every converted module's `MODULE.bazel`, which is user-facing output, for
+a validation-only reason.
+
 ## Wire up the agent stage of the fixture loop
 
 **Status:** open, design settled, mechanics not.

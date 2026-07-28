@@ -11,29 +11,40 @@
 //! giving substantive guidance carry a test asserting on that guidance. See
 //! docs/architecture/needs-attention-interface.md.
 
-use crate::model::NeedsAttention;
+/// A gap the translator could not confidently resolve for a specific
+/// conversion — written into the output tree's `needs_attention/` for
+/// whoever picks up this converted project to address. See
+/// docs/architecture/needs-attention-interface.md.
+///
+/// Deliberately not part of `model::BuildGraph`: the graph is what the
+/// conversion *did* produce, and an escalation is what it couldn't. Codegen
+/// never reads these, so they ride alongside the graph on the frontend's
+/// `Discovery` rather than inside it — and they live here, with the text
+/// and rendering that are the only things that ever touch them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NeedsAttention {
+    pub title: String,
+    pub gap: String,
+    pub context: String,
+    pub expected_output: String,
+}
 
-const TEMPLATE: &str = "# {title}
-
-## Gap
-
-{gap}
-
-## Context
-
-{context}
-
-## Expected output
-
-{expected_output}
-";
-
+/// Renders one escalation as the fixed section structure every
+/// `needs_attention/<NNN>-<slug>.md` follows. See
+/// docs/architecture/needs-attention-interface.md.
 pub fn render(item: &NeedsAttention) -> String {
-    TEMPLATE
-        .replace("{title}", &item.title)
-        .replace("{gap}", &item.gap)
-        .replace("{context}", &item.context)
-        .replace("{expected_output}", &item.expected_output)
+    let NeedsAttention {
+        title,
+        gap,
+        context,
+        expected_output,
+    } = item;
+    format!(
+        "# {title}\n\n\
+         ## Gap\n\n{gap}\n\n\
+         ## Context\n\n{context}\n\n\
+         ## Expected output\n\n{expected_output}\n"
+    )
 }
 
 /// Slugifies `title` into a filesystem-safe name (lowercase, `-`

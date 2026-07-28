@@ -27,42 +27,46 @@ pub fn render(graph: &BuildGraph) -> GeneratedModule {
 }
 
 fn render_module_bazel(graph: &BuildGraph) -> String {
-    let mut out = String::new();
+    // Bazel's `module()` does not require a version, so one is omitted
+    // rather than fabricated when the CMake `project()` didn't declare one.
+    let version = match &graph.module.version {
+        Some(version) => format!("    version = \"{version}\",\n"),
+        None => String::new(),
+    };
 
-    out.push_str("module(\n");
-    out.push_str(&format!("    name = \"{}\",\n", graph.module.name));
-    if let Some(version) = &graph.module.version {
-        out.push_str(&format!("    version = \"{version}\",\n"));
+    format!(
+        "module(\n    name = \"{name}\",\n{version})\n\n\
+         bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n\
+         bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\n\
+         register_toolchains(\"@llvm//toolchain:all\")\n",
+        name = graph.module.name,
+    )
+}
+
+/// The `rules_cc` rule a target kind maps to. Single source of truth: the
+/// `load()` statements are derived from it too, so a kind can't be emitted
+/// as a rule the generated `BUILD.bazel` never loaded.
+fn rule_name(kind: &TargetKind) -> &'static str {
+    match kind {
+        TargetKind::Executable => "cc_binary",
+        TargetKind::Library => "cc_library",
     }
-    out.push_str(")\n\n");
-
-    out.push_str(&format!(
-        "bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n"
-    ));
-    out.push_str(&format!(
-        "bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\n"
-    ));
-    out.push_str("register_toolchains(\"@llvm//toolchain:all\")\n");
-
-    out
 }
 
 fn render_build_bazel(graph: &BuildGraph) -> String {
     let mut out = String::new();
 
-    let has_binary = graph
-        .targets
-        .iter()
-        .any(|t| t.kind == TargetKind::Executable);
-    let has_library = graph.targets.iter().any(|t| t.kind == TargetKind::Library);
+    // One load per distinct rule the graph actually uses, sorted so the
+    // output doesn't depend on target order (and matches what buildifier
+    // would produce anyway).
+    let mut rules: Vec<&str> = graph.targets.iter().map(|t| rule_name(&t.kind)).collect();
+    rules.sort_unstable();
+    rules.dedup();
 
-    if has_binary {
-        out.push_str("load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")\n");
+    for rule in &rules {
+        out.push_str(&format!("load(\"@rules_cc//cc:{rule}.bzl\", \"{rule}\")\n"));
     }
-    if has_library {
-        out.push_str("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")\n");
-    }
-    if has_binary || has_library {
+    if !rules.is_empty() {
         out.push('\n');
     }
 
@@ -151,12 +155,7 @@ const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
 /// targets that get depended on — Bazel's transitivity means a *consumer*
 /// inherits a dependency's `includes`, but nothing supplies a target's own.
 fn render_cc_rule(out: &mut String, target: &Target) {
-    let rule = match target.kind {
-        TargetKind::Executable => "cc_binary",
-        TargetKind::Library => "cc_library",
-    };
-
-    out.push_str(&format!("{rule}(\n"));
+    out.push_str(&format!("{}(\n", rule_name(&target.kind)));
     out.push_str(&format!("    name = \"{}\",\n", target.name));
     render_path_list(out, "srcs", &target.sources);
     // `hdrs` is a `cc_library`-only attribute; `cc_binary` has none, and

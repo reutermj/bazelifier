@@ -77,23 +77,6 @@ pub struct ModuleInfo {
     pub version: Option<String>,
 }
 
-/// A gap the translator could not confidently resolve for a specific
-/// conversion — written into the output tree's `needs_attention/` for
-/// whoever picks up this converted project to address. See
-/// docs/architecture/needs-attention-interface.md.
-///
-/// Deliberately not part of [`BuildGraph`]: the graph is what the
-/// conversion *did* produce, and an escalation is what it couldn't. Codegen
-/// never reads these, so they ride alongside the graph on the frontend's
-/// `Discovery` rather than inside it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct NeedsAttention {
-    pub title: String,
-    pub gap: String,
-    pub context: String,
-    pub expected_output: String,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildGraph {
     pub module: ModuleInfo,

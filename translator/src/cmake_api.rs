@@ -6,15 +6,16 @@
 //! docs/architecture/cmake-frontend.md for why the File API is the source
 //! of truth rather than parsing CMakeLists.txt directly.
 
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 use serde::Deserialize;
 
-use crate::model::{BuildGraph, ModuleInfo, NeedsAttention, Target, TargetKind};
+use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
 use crate::needs_attention::{
-    generated_sources_needs_attention, header_visibility_needs_attention,
+    NeedsAttention, generated_sources_needs_attention, header_visibility_needs_attention,
     sources_outside_deliverable_needs_attention, unsupported_target_needs_attention,
 };
 
@@ -295,21 +296,33 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
     let configuration = index.configurations.first().ok_or(Error::NoProject)?;
     let project = configuration.projects.first().ok_or(Error::NoProject)?;
 
-    // Target dependencies are reported by opaque id (e.g.
-    // "greet::@6890427a1f51a3e7e1df"), not name — build the lookup before
-    // resolving any target's dependencies, since a target can depend on
-    // one that appears later in configuration.targets.
-    let mut replies_by_id = std::collections::HashMap::new();
-    let mut id_to_name = std::collections::HashMap::new();
+    // Read every target's reply once, keeping the codemodel's own order so
+    // the order recorded in an escalation is deterministic across runs. All
+    // of them are read before any is translated, since a target can name one
+    // that appears later as a dependency.
+    let mut replies = Vec::with_capacity(configuration.targets.len());
     for target_ref in &configuration.targets {
         let target_path = reply_dir.join(&target_ref.json_file);
-        let target_reply: TargetReply = serde_json::from_str(&fs::read_to_string(target_path)?)?;
-        id_to_name.insert(target_ref.id.clone(), target_reply.name.clone());
-        replies_by_id.insert(target_ref.id.clone(), target_reply);
+        let reply: TargetReply = serde_json::from_str(&fs::read_to_string(target_path)?)?;
+        replies.push((target_ref.id.as_str(), reply));
     }
 
-    let mut targets = Vec::new();
-    let mut needs_attention = Vec::new();
+    // Target dependencies are reported by opaque id (e.g.
+    // "greet::@6890427a1f51a3e7e1df"), not name, so translating one needs a
+    // lookup back to names. Only targets that actually get a Bazel rule are
+    // in it: an untranslatable target's id then resolves to nothing, which
+    // is what every lookup here wants anyway — a `deps` edge naming it is
+    // dropped rather than emitted as a label pointing at a target that was
+    // never generated (which would fail at Bazel *analysis* time, with an
+    // error far removed from the real cause), and it is not listed as a
+    // dependent whose edge was lost. Keying that decision on the id rather
+    // than the name also means no amount of name collision can confuse two
+    // targets for each other.
+    let translated_names: HashMap<&str, &str> = replies
+        .iter()
+        .filter(|(_, reply)| target_kind(&reply.cmake_type).is_some())
+        .map(|(id, reply)| (*id, reply.name.as_str()))
+        .collect();
 
     // Reverse the dependency edges once: target id -> ids of the targets
     // naming it as a dependency. Two questions read off this, and both are
@@ -319,88 +332,42 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
     //    has no consumer that could need a header it isn't exposing, so an
     //    unexposed header there isn't worth flagging — see
     //    docs/architecture/cmake-frontend.md)
-    //  - which *surviving* targets depend on it? (an escalation for a
+    //  - which *translated* targets depend on it? (an escalation for a
     //    skipped target has to name the targets whose edge was dropped)
-    //
-    // Walked over configuration.targets rather than the HashMap so the
-    // order recorded in an escalation is deterministic across runs.
-    let mut dependents_of: std::collections::HashMap<String, Vec<String>> =
-        std::collections::HashMap::new();
-    for target_ref in &configuration.targets {
-        let Some(reply) = replies_by_id.get(&target_ref.id) else {
-            continue;
-        };
+    let mut dependents_of: HashMap<&str, Vec<&str>> = HashMap::new();
+    for (id, reply) in &replies {
         for dep in &reply.dependencies {
-            dependents_of
-                .entry(dep.id.clone())
-                .or_default()
-                .push(target_ref.id.clone());
+            dependents_of.entry(dep.id.as_str()).or_default().push(id);
         }
     }
 
-    // Targets whose CMake type has no Bazel rule yet. These are escalated
-    // via needs_attention/ rather than aborting the whole conversion — one
-    // unrecognized target must not cost the project every other target it
-    // defines. See docs/architecture/cmake-frontend.md.
-    let untranslatable: std::collections::HashMap<String, String> = configuration
-        .targets
-        .iter()
-        .filter_map(|target_ref| {
-            let reply = replies_by_id.get(&target_ref.id)?;
-            target_kind(&reply.cmake_type)
-                .is_none()
-                .then(|| (target_ref.id.clone(), reply.cmake_type.clone()))
-        })
-        .collect();
+    let mut targets = Vec::new();
+    let mut needs_attention = Vec::new();
 
-    // The names of the targets depending on `id` that were themselves
-    // translated. A skipped target's escalation lists these as the edges it
-    // cost; an edge from one skipped target to another was never going to be
-    // emitted, so it isn't one.
-    let surviving_dependents = |id: &str| -> Vec<String> {
-        dependents_of
-            .get(id)
-            .into_iter()
-            .flatten()
-            .filter(|dependent| !untranslatable.contains_key(*dependent))
-            .filter_map(|dependent| id_to_name.get(dependent).cloned())
-            .collect()
-    };
-
-    // Names, not ids — a surviving target's `dependencies` have already been
-    // resolved from opaque ids back to names by the time they're filtered.
-    let untranslatable_names: std::collections::HashSet<String> = untranslatable
-        .keys()
-        .filter_map(|id| id_to_name.get(id).cloned())
-        .collect();
-
-    for target_ref in &configuration.targets {
-        let Some(reply) = replies_by_id.remove(&target_ref.id) else {
+    for (id, reply) in &replies {
+        // A target whose CMake type has no Bazel rule yet is escalated via
+        // needs_attention/ rather than aborting the whole conversion — one
+        // unrecognized target must not cost the project every other target
+        // it defines. See docs/architecture/cmake-frontend.md. The edges it
+        // cost are named in the escalation, since dropping them silently
+        // would leave dependents quietly incomplete.
+        let Some(kind) = target_kind(&reply.cmake_type) else {
+            let dropped_edges: Vec<String> = dependents_of
+                .get(id)
+                .into_iter()
+                .flatten()
+                .filter_map(|dependent| translated_names.get(dependent).map(|n| n.to_string()))
+                .collect();
+            needs_attention.push(unsupported_target_needs_attention(
+                &reply.name,
+                &reply.cmake_type,
+                &dropped_edges,
+            ));
             continue;
         };
 
-        if let Some(cmake_type) = untranslatable.get(&target_ref.id) {
-            needs_attention.push(unsupported_target_needs_attention(
-                &reply.name,
-                cmake_type,
-                &surviving_dependents(&target_ref.id),
-            ));
-            continue;
-        }
-
-        let kind =
-            target_kind(&reply.cmake_type).expect("untranslatable targets were filtered out above");
-        let is_depended_on = dependents_of.contains_key(&target_ref.id);
-        let (mut target, attention) = to_target(reply, kind, &id_to_name, is_depended_on);
-
-        // Drop edges to targets that were never emitted. Leaving them would
-        // produce a BUILD.bazel referencing a label that doesn't exist,
-        // failing at Bazel *analysis* time with an error far removed from
-        // the real cause — and leaving the agent no workspace to resolve the
-        // escalation in. The lost edges are recorded in the escalation above.
-        target
-            .dependencies
-            .retain(|name| !untranslatable_names.contains(name));
+        let is_depended_on = dependents_of.contains_key(id);
+        let (target, attention) = to_target(reply, kind, &translated_names, is_depended_on);
 
         targets.push(target);
         needs_attention.extend(attention);
@@ -581,7 +548,7 @@ fn read_project_version(reply_dir: &Path) -> Result<Option<String>, Error> {
         .filter(|v| !v.is_empty()))
 }
 
-fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<std::path::PathBuf, Error> {
+fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<PathBuf, Error> {
     for entry in fs::read_dir(reply_dir)? {
         let entry = entry?;
         if let Some(name) = entry.file_name().to_str()
@@ -597,9 +564,9 @@ fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<std::path::PathBuf,
 }
 
 fn to_target(
-    reply: TargetReply,
+    reply: &TargetReply,
     kind: TargetKind,
-    id_to_name: &std::collections::HashMap<String, String>,
+    translated_names: &HashMap<&str, &str>,
     is_depended_on: bool,
 ) -> (Target, Vec<NeedsAttention>) {
     let mut sources = Vec::new();
@@ -632,13 +599,16 @@ fn to_target(
         }
     }
 
+    // An id missing from the map belongs to a target that was never
+    // translated, so the edge is dropped here rather than emitted as a
+    // dangling label — see `translated_names` in `read_codemodel_reply`.
     let dependencies: Vec<String> = reply
         .dependencies
         .iter()
-        .filter_map(|d| id_to_name.get(&d.id).cloned())
+        .filter_map(|d| translated_names.get(d.id.as_str()).map(|n| n.to_string()))
         .collect();
 
-    let includes = own_include_dirs(&reply);
+    let includes = own_include_dirs(reply);
 
     let mut needs_attention = Vec::new();
     if kind == TargetKind::Library
@@ -656,13 +626,13 @@ fn to_target(
     }
 
     let target = Target {
-        name: reply.name,
+        name: reply.name.clone(),
         kind,
         sources,
         public_headers,
         dependencies,
         includes,
-        artifacts: reply.artifacts.into_iter().map(|a| a.path).collect(),
+        artifacts: reply.artifacts.iter().map(|a| a.path.clone()).collect(),
     };
 
     (target, needs_attention)
@@ -691,7 +661,7 @@ fn looks_like_header(path: &str) -> bool {
 /// transitive, so only the target's own dirs need to be captured — a
 /// consuming target already gets them via its `deps` edge.
 fn own_include_dirs(reply: &TargetReply) -> Vec<String> {
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = HashSet::new();
     let mut includes = Vec::new();
 
     for group in &reply.compile_groups {
@@ -859,12 +829,8 @@ mod tests {
             public_file_set(),
         );
 
-        let (target, needs_attention) = to_target(
-            reply,
-            TargetKind::Library,
-            &std::collections::HashMap::new(),
-            true,
-        );
+        let (target, needs_attention) =
+            to_target(&reply, TargetKind::Library, &HashMap::new(), true);
 
         assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
         assert_eq!(target.public_headers, vec!["include/greet.hpp".to_string()]);
@@ -892,12 +858,8 @@ mod tests {
             vec![],
         );
 
-        let (target, needs_attention) = to_target(
-            reply,
-            TargetKind::Library,
-            &std::collections::HashMap::new(),
-            true,
-        );
+        let (target, needs_attention) =
+            to_target(&reply, TargetKind::Library, &HashMap::new(), true);
 
         // The plain header stays in srcs, NOT silently promoted to hdrs.
         assert_eq!(
@@ -931,12 +893,8 @@ mod tests {
         // is_depended_on = false: nothing in the project links against
         // this library, so there's no consumer that could need a header
         // it isn't exposing — not worth flagging.
-        let (_target, needs_attention) = to_target(
-            reply,
-            TargetKind::Library,
-            &std::collections::HashMap::new(),
-            false,
-        );
+        let (_target, needs_attention) =
+            to_target(&reply, TargetKind::Library, &HashMap::new(), false);
 
         assert!(needs_attention.is_empty());
     }
@@ -954,20 +912,15 @@ mod tests {
             vec![],
         );
 
-        let (_target, needs_attention) = to_target(
-            reply,
-            TargetKind::Library,
-            &std::collections::HashMap::new(),
-            true,
-        );
+        let (_target, needs_attention) =
+            to_target(&reply, TargetKind::Library, &HashMap::new(), true);
 
         assert!(needs_attention.is_empty());
     }
 
     #[test]
     fn to_target_resolves_dependencies_by_id() {
-        let mut id_to_name = std::collections::HashMap::new();
-        id_to_name.insert("greet::@abc123".to_string(), "greet".to_string());
+        let translated_names = HashMap::from([("greet::@abc123", "greet")]);
 
         let reply = TargetReply {
             name: "hello".to_string(),
@@ -988,7 +941,41 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (target, _) = to_target(reply, TargetKind::Executable, &id_to_name, false);
+        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false);
+        assert_eq!(target.dependencies, vec!["greet".to_string()]);
+    }
+
+    // Only targets that got a Bazel rule are in the name map, so an edge to
+    // a skipped one resolves to nothing and is dropped. Keeping it would
+    // emit a label pointing at a target that was never generated, failing at
+    // Bazel *analysis* time with an error far removed from the real cause.
+    // The lost edge is recorded in the skipped target's own escalation
+    // instead — see `unsupported_target_needs_attention`.
+    #[test]
+    fn to_target_drops_dependencies_on_untranslated_targets() {
+        let reply = TargetReply {
+            name: "app".to_string(),
+            cmake_type: "EXECUTABLE".to_string(),
+            sources: vec![],
+            file_sets: vec![],
+            dependencies: vec![
+                TargetDependency {
+                    id: "greet::@abc123".to_string(),
+                },
+                TargetDependency {
+                    id: "gen_docs::@def456".to_string(),
+                },
+            ],
+            artifacts: vec![],
+            compile_groups: vec![],
+            backtrace_graph: empty_backtrace_graph(),
+        };
+
+        // "gen_docs" is deliberately absent: it is the UTILITY target that
+        // was escalated rather than translated.
+        let translated_names = HashMap::from([("greet::@abc123", "greet")]);
+
+        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false);
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
@@ -1022,12 +1009,8 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (target, needs_attention) = to_target(
-            reply,
-            TargetKind::Executable,
-            &std::collections::HashMap::new(),
-            false,
-        );
+        let (target, needs_attention) =
+            to_target(&reply, TargetKind::Executable, &HashMap::new(), false);
 
         assert_eq!(
             target.sources,
@@ -1056,12 +1039,8 @@ mod tests {
             vec![],
         );
 
-        let (_target, needs_attention) = to_target(
-            reply,
-            TargetKind::Library,
-            &std::collections::HashMap::new(),
-            false,
-        );
+        let (_target, needs_attention) =
+            to_target(&reply, TargetKind::Library, &HashMap::new(), false);
 
         assert!(needs_attention.is_empty());
     }

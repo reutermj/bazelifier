@@ -3,6 +3,7 @@ mod codegen;
 mod model;
 mod needs_attention;
 
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -95,7 +96,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 /// empty case has to remain a valid Bazel package.
 fn write_needs_attention(
     out_module: &Path,
-    items: &[model::NeedsAttention],
+    items: &[needs_attention::NeedsAttention],
 ) -> std::io::Result<()> {
     let dir = out_module.join("needs_attention");
     fs::create_dir_all(&dir)?;
@@ -130,12 +131,7 @@ fn copy_ground_truth_artifacts(
     let mut artifact_paths = Vec::new();
     for target in &graph.targets {
         for artifact in &target.artifacts {
-            let src = build_dir.join(artifact);
-            let dst = ground_truth_dir.join(artifact);
-            if let Some(parent) = dst.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::copy(&src, &dst)?;
+            copy_into(&build_dir.join(artifact), &ground_truth_dir.join(artifact))?;
             artifact_paths.push(artifact.clone());
         }
     }
@@ -177,20 +173,26 @@ fn copy_referenced_sources(
 
     // A file can be referenced by more than one target (e.g. the same
     // source compiled into both a static and a shared library).
-    let mut copied = std::collections::HashSet::new();
+    let mut copied = HashSet::new();
     for target in &graph.targets {
         for relative in target.sources.iter().chain(target.public_headers.iter()) {
-            if !copied.insert(relative.as_str()) {
-                continue;
+            if copied.insert(relative.as_str()) {
+                copy_into(&module_root.join(relative), &out_dir.join(relative))?;
             }
-            let dst = out_dir.join(relative);
-            if let Some(parent) = dst.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::copy(module_root.join(relative), &dst)?;
         }
     }
 
+    Ok(())
+}
+
+/// Copies `src` to `dst`, creating `dst`'s parent directories. Every file
+/// the translator places in the output tree keeps its layout relative to
+/// some root, so the destination's directories generally don't exist yet.
+fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
+    if let Some(parent) = dst.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::copy(src, dst)?;
     Ok(())
 }
 
