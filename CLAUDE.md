@@ -147,7 +147,7 @@ source in every fixture build.
   it is looking at nothing: `compare_runtime_output.sh`'s `needs_attention/`
   gate cannot tell an empty directory from a path that doesn't resolve, and
   `translator/tests/BUILD.bazel`'s fixture list silently omits any fixture
-  nobody added to it. Three corollaries:
+  nobody added to it. Four corollaries:
   - **Both directions or neither.** An escalation needs the case that fires
     it *and* the case that must not — fixture `006-sibling-sources` and
     `cmake_api.rs`'s `to_target_no_needs_attention_*` tests exist for that,
@@ -162,6 +162,18 @@ source in every fixture build.
     behavior. `codegen::render`'s ordering rationale ("nothing yet on disk")
     and `TargetSource::is_generated`'s "reported as an ABSOLUTE path" are
     assertions about what the code does, not commentary about it.
+  - **When a fixture contradicts us, what travels down a tier is the
+    evidence, not the corrected belief.** Rewriting the claim in a unit
+    test just restates the new belief in the same voice as the old one —
+    the input is still ours. Capturing the real File API reply that proved
+    us wrong, and deserializing *that*, gives the unit tier something it
+    can finally be wrong against. Two limits, and the second is the one
+    that gets forgotten: captured evidence is frozen, so it catches our
+    regression (a dropped `#[serde(rename)]`) and never CMake changing —
+    the thing it was captured to check. It therefore supplements the
+    fixture and never replaces it. **Deleting a fixture because a unit
+    test now covers it is always wrong**, however much the two look alike
+    in a diff.
 - **Build verification direction:** the CMake side still shells out to the
   host's `cmake` (`use_default_shell_env = True` in
   `convert_cmake_project.bzl`) — that's an accepted, current limitation,

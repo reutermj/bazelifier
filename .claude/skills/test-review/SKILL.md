@@ -131,6 +131,15 @@ judgement a careful reader already has.
   exists at both tiers on purpose, and `renders_cc_binary_with_own_includes`
   says so in a comment. Codegen can drop an attribute the frontend resolved
   correctly; only one of the two tiers tells you which half broke.
+- **A fixture that a unit test appears to duplicate.** Once captured File
+  API JSON is deserialized in a unit test, the fixture that first caught
+  the same bug reads as redundant — same construct, same assertion, one of
+  them slow and one of them fast. It isn't: the captured reply is frozen
+  the day it was captured, so it can only catch us regressing, while the
+  fixture is what notices CMake behaving differently from the day we
+  looked. Removing the fixture keeps the assertion and throws away the
+  only thing that could ever contradict it. See the fourth corollary under
+  "Green has to be earned" in `CLAUDE.md`.
 - **A library artifact that is never compared.** `expected_targets` lists
   executables only, so a fixture's `.a` reaches `ground_truth/` and is
   exported but never diffed. You cannot run a static library; symbol-table
