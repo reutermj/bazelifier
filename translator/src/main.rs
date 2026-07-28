@@ -77,10 +77,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let generated = codegen::render(graph);
 
     copy_referenced_sources(&discovery.module_root, &args.out_module, graph)?;
-    fs::write(
-        args.out_module.join("MODULE.bazel"),
-        generated.module_bazel,
-    )?;
+    fs::write(args.out_module.join("MODULE.bazel"), generated.module_bazel)?;
     fs::write(args.out_module.join("BUILD.bazel"), generated.build_bazel)?;
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
     write_needs_attention(&args.out_module, graph)?;

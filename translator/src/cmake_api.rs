@@ -22,8 +22,12 @@ use crate::needs_attention::{
 pub enum Error {
     Io(std::io::Error),
     Json(serde_json::Error),
-    CmakeConfigureFailed { stderr: String },
-    CmakeBuildFailed { stderr: String },
+    CmakeConfigureFailed {
+        stderr: String,
+    },
+    CmakeBuildFailed {
+        stderr: String,
+    },
     NoProject,
     SourceDirOutsideDeliverableRoot {
         source_dir: String,
@@ -372,11 +376,10 @@ fn read_codemodel_reply(
             continue;
         }
 
-        let kind = target_kind(&reply.cmake_type)
-            .expect("untranslatable targets were filtered out above");
+        let kind =
+            target_kind(&reply.cmake_type).expect("untranslatable targets were filtered out above");
         let is_depended_on = dependents_of.contains_key(&target_ref.id);
-        let (mut target, attention) =
-            to_target(reply, kind, &id_to_name, is_depended_on);
+        let (mut target, attention) = to_target(reply, kind, &id_to_name, is_depended_on);
 
         // Drop edges to targets that were never emitted. Leaving them would
         // produce a BUILD.bazel referencing a label that doesn't exist,
@@ -564,10 +567,10 @@ fn read_project_version(reply_dir: &Path) -> Result<Option<String>, Error> {
 fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<std::path::PathBuf, Error> {
     for entry in fs::read_dir(reply_dir)? {
         let entry = entry?;
-        if let Some(name) = entry.file_name().to_str() {
-            if name.starts_with(prefix) {
-                return Ok(entry.path());
-            }
+        if let Some(name) = entry.file_name().to_str()
+            && name.starts_with(prefix)
+        {
+            return Ok(entry.path());
         }
     }
     Err(Error::Io(std::io::Error::new(
@@ -721,7 +724,10 @@ mod tests {
     // include traces to some command other than target_link_libraries; an
     // include inherited from a dependency traces to the
     // target_link_libraries call that pulled it in.
-    fn backtrace_graph_with_commands(commands: Vec<&str>, node_commands: Vec<Option<usize>>) -> BacktraceGraph {
+    fn backtrace_graph_with_commands(
+        commands: Vec<&str>,
+        node_commands: Vec<Option<usize>>,
+    ) -> BacktraceGraph {
         BacktraceGraph {
             commands: commands.into_iter().map(str::to_string).collect(),
             nodes: node_commands
@@ -836,14 +842,15 @@ mod tests {
             public_file_set(),
         );
 
-        let (target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true);
+        let (target, needs_attention) = to_target(
+            reply,
+            TargetKind::Library,
+            &std::collections::HashMap::new(),
+            true,
+        );
 
         assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
-        assert_eq!(
-            target.public_headers,
-            vec!["include/greet.hpp".to_string()]
-        );
+        assert_eq!(target.public_headers, vec!["include/greet.hpp".to_string()]);
         assert!(
             needs_attention.is_empty(),
             "a properly file-set-declared public header should not need attention"
@@ -868,8 +875,12 @@ mod tests {
             vec![],
         );
 
-        let (target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true);
+        let (target, needs_attention) = to_target(
+            reply,
+            TargetKind::Library,
+            &std::collections::HashMap::new(),
+            true,
+        );
 
         // The plain header stays in srcs, NOT silently promoted to hdrs.
         assert_eq!(
@@ -903,8 +914,12 @@ mod tests {
         // is_depended_on = false: nothing in the project links against
         // this library, so there's no consumer that could need a header
         // it isn't exposing — not worth flagging.
-        let (_target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), false);
+        let (_target, needs_attention) = to_target(
+            reply,
+            TargetKind::Library,
+            &std::collections::HashMap::new(),
+            false,
+        );
 
         assert!(needs_attention.is_empty());
     }
@@ -922,8 +937,12 @@ mod tests {
             vec![],
         );
 
-        let (_target, needs_attention) =
-            to_target(reply, TargetKind::Library, &std::collections::HashMap::new(), true);
+        let (_target, needs_attention) = to_target(
+            reply,
+            TargetKind::Library,
+            &std::collections::HashMap::new(),
+            true,
+        );
 
         assert!(needs_attention.is_empty());
     }
@@ -1165,7 +1184,6 @@ mod tests {
         );
     }
 
-
     // System include dirs land outside the module and have no `includes`
     // translation — dropping them is correct, and is not a gap.
     #[test]
@@ -1208,7 +1226,4 @@ mod tests {
             );
         }
     }
-
-
-
 }

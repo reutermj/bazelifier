@@ -122,7 +122,10 @@ pub fn sources_outside_deliverable_needs_attention(
 /// Escalates sources CMake produces during the build rather than reading
 /// from the project tree. Kept out of the generated `srcs` — see the
 /// `is_generated` handling in `to_target`.
-pub fn generated_sources_needs_attention(target_name: &str, generated: &[String]) -> NeedsAttention {
+pub fn generated_sources_needs_attention(
+    target_name: &str,
+    generated: &[String],
+) -> NeedsAttention {
     let title = format!("Target '{target_name}' consumes generated sources");
     NeedsAttention {
         gap: format!(
