@@ -10,9 +10,8 @@
 
 `translator/BUILD.bazel`'s third-party deps are resolved via `rules_rs`'s
 `crate.from_cargo` extension in `MODULE.bazel`, which requires a real,
-`cargo`-generated `Cargo.lock` (see
-[docs/architecture/bazel-codegen.md](../architecture/bazel-codegen.md)
-and the `rules_rs` `bazel_dep` in `MODULE.bazel`). `rules_rs` explicitly does
+`cargo`-generated `Cargo.lock` (see that extension's `crate.from_cargo`
+block in the repo root's `MODULE.bazel`). `rules_rs` explicitly does
 **not** support generating or updating a lockfile itself:
 
 - Its own docs state: "`crate.spec` and vendoring mode are not currently
@@ -37,9 +36,9 @@ Looked for a Bazel-native lockfile-generation path in `rules_rs` (a
 `crate.spec()` declarative form, a `bazel run //:crates_repin`-style target,
 a `CARGO_BAZEL_REPIN`-equivalent env var as `rules_rust`'s own
 `crate_universe` supports). None exist in `rules_rs` — confirmed by reading
-its source directly rather than trusting README summaries (see
-[docs/lore/](../lore/) note on preferring local `.bzl` source over
-WebFetch once a repo is already fetched into the Bazel cache).
+its source directly rather than trusting README summaries, per
+[CLAUDE.md](../../CLAUDE.md)'s convention on investigating fetched Bazel
+repos locally.
 
 ## Resolution
 

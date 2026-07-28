@@ -7,13 +7,13 @@
 #
 # needs_attention/ means the translator could not confidently resolve
 # something for THIS conversion (see
-# docs/architecture/cmake-frontend.md's needs_attention/ section) — the
-# pipeline's agent stage triages and resolves it, by editing the generated
-# BUILD.bazel here in the unpacked workspace, before this comparison is
-# meaningful (a conversion can happen to still build/run despite an open
-# needs_attention item, which would otherwise mask the real gap). So this
-# script fails loud, printing the item(s) to fix, rather than silently
-# running the comparison anyway.
+# docs/architecture/needs-attention-interface.md) — the pipeline's agent
+# stage triages and resolves it, by editing the generated BUILD.bazel here
+# in the unpacked workspace, before this comparison is meaningful (a
+# conversion can happen to still build/run despite an open needs_attention
+# item, which would otherwise mask the real gap). So this script fails
+# loud, printing the item(s) to fix, rather than silently running the
+# comparison anyway.
 #
 # A failure here is an UNFINISHED conversion to be resolved and re-run, not
 # an expected steady state. Resolutions go in the generated output; the

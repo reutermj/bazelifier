@@ -33,12 +33,18 @@ pub enum TargetKind {
     // known hard cases for now — see docs/architecture/cmake-frontend.md.
 }
 
+/// One translated build target.
+///
+/// Every path-valued field except `artifacts` is relative to the converted
+/// module's root — see [`is_module_relative`], which is the contract they
+/// all have to meet. That root is derived rather than assumed to be the
+/// CMake project directory, so these are not simply the paths the File API
+/// reported; `cmake_api::rebase_to_module_root` rewrites them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Target {
     pub name: String,
     pub kind: TargetKind,
-    /// Private source file paths (compiled, not exposed to consumers),
-    /// relative to the CMake project root.
+    /// Private source file paths (compiled, not exposed to consumers).
     pub sources: Vec<String>,
     /// Public header file paths — only ones CMake can confidently identify
     /// as public, via a `target_sources(... FILE_SET ... TYPE HEADERS)`
@@ -51,11 +57,11 @@ pub struct Target {
     /// against (from `target_link_libraries`), resolved from the CMake
     /// File API's opaque dependency ids back to target names.
     pub dependencies: Vec<String>,
-    /// Include directories (from `target_include_directories`), relative
-    /// to the CMake project root. Emitted as `cc_library`'s `includes`
-    /// attribute, which Bazel propagates transitively to consumers — so
-    /// this only needs to be captured on the target that declared it, not
-    /// duplicated onto every dependent. See docs/architecture/cmake-frontend.md.
+    /// Include directories (from `target_include_directories`). Emitted as
+    /// the `includes` attribute, which Bazel propagates transitively to
+    /// consumers — so this only needs to be captured on the target that
+    /// declared it, not duplicated onto every dependent. See
+    /// docs/architecture/cmake-frontend.md.
     pub includes: Vec<String>,
     /// Build-output artifact paths (e.g. the built binary), relative to
     /// the CMake build directory. Used to locate ground-truth artifacts

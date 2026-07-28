@@ -71,17 +71,21 @@ alongside `shared/helper.cpp`). Everything below is relative to that root.
                        build-verification.md)
     <artifact>          the real cmake+ninja-built binary/library
   needs_attention/
+    BUILD.bazel        a single allow_empty filegroup — NOT part of the
+                       user-facing output, validation-only
     <NNN>-<slug>.md     present only if the translator hit a gap for
                        THIS conversion it couldn't confidently resolve
                        — see cmake-frontend.md's needs_attention/ section
                        and needs-attention-interface.md
 ```
 
-`ground_truth/` is deliberately a separate nested package (its own
+Both subdirectories are deliberately separate nested packages (their own
 `BUILD.bazel`) rather than exported from the top-level `BUILD.bazel`, so
 validation-only targets never appear in what a user actually checks into
-their own repo. `needs_attention/` is plain markdown, not a Bazel package
-at all — nothing in it is meant to be loaded/built.
+their own repo. `needs_attention/`'s package is written unconditionally,
+even for a conversion with nothing to triage: the validation tests depend
+on `@<module>//needs_attention:all` whether or not any item exists, which
+is what the `allow_empty` glob is for.
 
 ## Every emitted path must be module-relative
 

@@ -77,7 +77,7 @@ Every fixture's `BUILD.bazel` hand-declares `module_name` and
 converted module doesn't exist until **execution** time.
 
 That reasoning holds for `ctx.actions.write`, but not for the packaging as
-a whole — `_combined_mtree` already runs a shell action over the fixture
+a whole — `_validation_tree` already runs a shell action over the fixture
 tree artifacts. The same trick applies to the root files: generate them in
 an execution-time action that reads each fixture's actual
 `MODULE.bazel` (for the module name) and `ground_truth/` (for the target

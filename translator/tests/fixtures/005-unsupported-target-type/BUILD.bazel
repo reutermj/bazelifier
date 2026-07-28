@@ -5,10 +5,10 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project
 # escalates a whole missing target, and asserts the rest of the project
 # still converts.
 #
-# `app` builds and matches ground truth even with the item open, so the
-# needs_attention/ gate is the ONLY thing keeping this red — that's the
-# property under test: escalation must not depend on the conversion also
-# happening to break.
+# `app` builds and matches ground truth even with the item open, so until
+# the agent stage resolves it the needs_attention/ gate is the ONLY thing
+# failing this — that's the property under test: escalation must not depend
+# on the conversion also happening to break.
 #
 # Full rationale: docs/architecture/build-verification.md#fixtures.
 convert_cmake_project(

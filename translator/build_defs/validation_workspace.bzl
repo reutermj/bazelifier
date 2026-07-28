@@ -1,6 +1,6 @@
 """Assembles a tarball containing every converted fixture module (each
-renamed to fixtures/<fixture-target-name>/) plus a root MODULE.bazel that
-depends on all of them via local_path_override.
+placed at fixtures/<fixture directory name>/, see _fixture_dir_name) plus a
+root MODULE.bazel that depends on all of them via local_path_override.
 
 See docs/architecture/build-verification.md: unpacking this tarball and
 running `bazel build`/`bazel test` from its root is how we validate that
@@ -173,13 +173,13 @@ _validation_tree = rule(
 def validation_workspace(name, fixtures, **kwargs):
     """Packages `fixtures` (convert_cmake_project targets) into a tarball.
 
-    Each fixture is renamed to `fixtures/<fixture target name>/` inside the
-    tarball. The tarball's root also contains a MODULE.bazel that
-    bazel_deps on every fixture via local_path_override, so unpacking the
-    tarball and running `bazel build //...`/`bazel test //...` from its
-    root builds/tests every converted fixture — and lets fixtures depend on
-    each other, once bazelifier converts projects with real inter-project
-    dependencies.
+    Each fixture lands at `fixtures/<fixture directory name>/` inside the
+    tarball (see `_fixture_dir_name`). The tarball's root also contains a
+    MODULE.bazel that bazel_deps on every fixture via local_path_override,
+    so unpacking the tarball and running `bazel build //...`/`bazel test
+    //...` from its root builds/tests every converted fixture — and lets
+    fixtures depend on each other, once bazelifier converts projects with
+    real inter-project dependencies.
 
     Args:
         name: name of the tar target producing the tarball.

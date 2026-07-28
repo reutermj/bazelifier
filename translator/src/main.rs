@@ -59,12 +59,11 @@ fn main() -> ExitCode {
 ///
 /// Returning `Result<_, Box<dyn Error>>` from `main` looks like it does
 /// this already, but Rust's termination path formats the error with
-/// `Debug`. Every `Display` impl in the crate was therefore dead code, and
-/// the messages written to be read by a human — `cmake_api::Error`'s, which
-/// passes CMake's own multi-line stderr straight through — arrived as a
-/// single escaped blob wrapped in struct syntax. That is the output a user
-/// gets for the most common failure there is, a CMake project that doesn't
-/// configure.
+/// `Debug`, which makes every `Display` impl in the crate dead code and
+/// turns `cmake_api::Error`'s human-readable text — CMake's own multi-line
+/// stderr, passed straight through — into one escaped blob in struct
+/// syntax. That is the output a user gets for the most common failure
+/// there is, a CMake project that doesn't configure.
 fn report(error: &dyn std::error::Error) -> String {
     format!("error: {error}")
 }
@@ -148,22 +147,16 @@ fn copy_ground_truth_artifacts(
 /// target's `sources` and `public_headers` — from the module root, keeping
 /// their layout relative to it.
 ///
-/// Deliberately NOT a recursive copy of the source directory. The output is
+/// Deliberately NOT a recursive copy of the source directory: the output is
 /// a Bazel module, not a mirror of the CMake project, and a file belongs in
-/// it because something in the build graph named it. Copying a directory
-/// wholesale instead pulls in whatever else happens to be sitting there —
-/// `.git/`, stale build outputs, editor scratch files — and, on a real
-/// project, a great deal of it.
+/// it because something in the build graph named it. That keeps `.git/`,
+/// stale build outputs and editor scratch files out, and makes the module
+/// reproducible by construction without the translator knowing anything
+/// about version control. The project's own `CMakeLists.txt` is therefore
+/// not copied either — nothing in the generated module builds from it.
 ///
-/// This also makes the module reproducible by construction: everything in
-/// it traces to a build-graph reference, so a file that is present in the
-/// source tree but not part of the build (a gitignored leftover, an
-/// artifact from an earlier in-source build) cannot silently become part of
-/// the deliverable. That property holds without the translator knowing
-/// anything about version control — see docs/architecture/cmake-frontend.md.
-///
-/// Note the CMake project's own `CMakeLists.txt` is therefore not copied:
-/// nothing in the generated module builds from it.
+/// Full rationale: docs/architecture/cmake-frontend.md's "only referenced
+/// files enter the module".
 fn copy_referenced_sources(
     module_root: &Path,
     out_dir: &Path,

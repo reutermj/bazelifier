@@ -645,10 +645,11 @@ fn looks_like_header(path: &str) -> bool {
     )
 }
 
-/// Extracts this target's OWN include directories (as paths relative to
-/// the CMake project root, for `cc_library`'s `includes` attribute) from
-/// its compile groups — excluding ones inherited from a dependency via
-/// `target_link_libraries`.
+/// Extracts this target's OWN include directories from its compile groups,
+/// excluding ones inherited from a dependency via `target_link_libraries`.
+/// Returned exactly as the File API reported them — absolute;
+/// `rebase_to_module_root` makes them module-relative once the module root
+/// is known.
 ///
 /// The File API doesn't separately expose "this target's own
 /// target_include_directories() dirs" vs. "inherited from a linked
@@ -945,12 +946,11 @@ mod tests {
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
-    // Only targets that got a Bazel rule are in the name map, so an edge to
-    // a skipped one resolves to nothing and is dropped. Keeping it would
-    // emit a label pointing at a target that was never generated, failing at
-    // Bazel *analysis* time with an error far removed from the real cause.
-    // The lost edge is recorded in the skipped target's own escalation
-    // instead — see `unsupported_target_needs_attention`.
+    // An edge to a target that never got a Bazel rule is dropped rather
+    // than emitted as a dangling label — see `translated_names` in
+    // `read_codemodel_reply` for why, and
+    // `unsupported_target_needs_attention` for where the lost edge is
+    // recorded instead.
     #[test]
     fn to_target_drops_dependencies_on_untranslated_targets() {
         let reply = TargetReply {
@@ -1203,10 +1203,11 @@ mod tests {
         assert_eq!(target_kind("SHARED_LIBRARY"), Some(TargetKind::Library));
     }
 
-    // These are the types actually reachable from a real codemodel reply
-    // (verified against CMake 3.28 with the Ninja generator). An unmapped
-    // type must escalate, never abort the conversion — see
-    // docs/architecture/cmake-frontend.md.
+    // An unmapped type must escalate, never abort the conversion — see
+    // docs/architecture/cmake-frontend.md. `INTERFACE_LIBRARY` is covered
+    // defensively only: verified against CMake 3.28 + Ninja, it never
+    // appears in a codemodel reply at all, so the translator cannot in
+    // practice escalate one — see that doc's "known hard cases".
     #[test]
     fn target_kind_rejects_types_with_no_bazel_rule_yet() {
         for cmake_type in [

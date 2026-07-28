@@ -104,11 +104,10 @@ fn render_string_list(out: &mut String, attr: &str, items: &[String]) {
 ///
 /// A violation is a translator bug, not bad user input — user-input gaps
 /// go to `needs_attention/` instead — so this panics rather than
-/// degrading. It is deliberately a real `assert!` and not a
-/// `debug_assert!`: the failure it prevents is silently non-portable
-/// output, and Bazel does not catch that for string attributes like
-/// `includes` (only for label attributes). The cost is a couple of string
-/// comparisons per emitted path.
+/// degrading. Deliberately a real `assert!` and not a `debug_assert!`,
+/// because Bazel catches only part of what it prevents; see
+/// [`model::is_module_relative`] for which part. The cost is a couple of
+/// string comparisons per emitted path.
 fn render_path_list(out: &mut String, attr: &str, paths: &[String]) {
     for path in paths {
         assert!(
@@ -149,11 +148,10 @@ const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
 /// after it in the other), which nothing but the call site's own ordering
 /// prevented from being transposed.
 ///
-/// `includes` matters just as much for an executable as for a library: an
-/// `add_executable` target with its own `target_include_directories()`
-/// needs the `-I` path to compile at all. It isn't only relevant to
-/// targets that get depended on — Bazel's transitivity means a *consumer*
-/// inherits a dependency's `includes`, but nothing supplies a target's own.
+/// `includes` is emitted for both kinds, not just libraries: Bazel's
+/// transitivity supplies a *consumer* with its dependencies' include dirs
+/// but never a target with its own, so an `add_executable` carrying its own
+/// `target_include_directories()` fails to compile without it.
 fn render_cc_rule(out: &mut String, target: &Target) {
     out.push_str(&format!("{}(\n", rule_name(&target.kind)));
     out.push_str(&format!("    name = \"{}\",\n", target.name));
@@ -380,11 +378,9 @@ mod tests {
         }
     }
 
-    // One case per path-valued attribute. `srcs`/`hdrs` are Bazel *label*
-    // attributes, so an absolute path there is at least an analysis error
-    // downstream; `includes` is a plain string list that Bazel accepts
-    // silently (verified against Bazel 9.2.0), which is why codegen has to
-    // be the thing that refuses it.
+    // One case per path-valued attribute. `includes` is the one Bazel
+    // would accept silently, which is why codegen has to be what refuses
+    // it — see model::is_module_relative.
     #[test]
     #[should_panic(expected = "non-module-relative path in `srcs`")]
     fn absolute_path_in_srcs_is_refused() {

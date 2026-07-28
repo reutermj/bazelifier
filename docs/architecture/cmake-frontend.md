@@ -80,11 +80,11 @@ by each include's `backtrace`: an include entry whose backtrace resolves
 to a `target_link_libraries` command in `backtraceGraph` was inherited (a
 dependency pulled it in); anything else (`target_include_directories`, a
 `FILE_SET`'s `BASE_DIRS`, or whatever else produced it) is the target's
-own. Only the target's own include dirs are captured (as project-relative
-paths, via the codemodel index's top-level `paths.source`) — Bazel's
-`cc_library` `includes` attribute is transitive, so a consumer gets a
-dependency's include dirs automatically through its `deps` edge, without
-the frontend needing to duplicate that inheritance itself.
+own. Only the target's own include dirs are captured — Bazel's `includes`
+attribute is transitive, so a consumer gets a dependency's include dirs
+automatically through its `deps` edge, without the frontend needing to
+duplicate that inheritance itself. They are captured as reported
+(absolute), then made module-relative by the rebasing step below.
 
 Note this doesn't give the same encapsulation as a hand-written
 `hdrs`-only `cc_library` — but not for the reason it might appear. Bazel

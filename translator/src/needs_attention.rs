@@ -219,8 +219,9 @@ fn unsupported_type_guidance(cmake_type: &str) -> &'static str {
 }
 
 /// Escalates a target whose CMake type the translator has no Bazel rule for.
-/// The conversion continues without it — see the `untranslatable` handling in
-/// `read_codemodel_reply` and docs/architecture/cmake-frontend.md.
+/// The conversion continues without it — see where `read_codemodel_reply`
+/// handles `target_kind` returning `None`, and
+/// docs/architecture/cmake-frontend.md.
 pub fn unsupported_target_needs_attention(
     target_name: &str,
     cmake_type: &str,

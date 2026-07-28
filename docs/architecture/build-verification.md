@@ -45,9 +45,9 @@ level. What must match is behavior.
 2. **`validation_workspace`** (`translator/build_defs/validation_workspace.bzl`)
    takes a list of `convert_cmake_project` targets (fixtures) and packages
    them into one tarball:
-   - Every fixture's tree artifact is renamed to `fixtures/<fixture dir
-     name>/` inside the tarball (via `tar.bzl`'s `mtree_mutate`
-     `strip_prefix`/`package_dir`).
+   - The tarball's exact layout is staged on disk first — every fixture's
+     tree artifact copied to `fixtures/<fixture dir name>/`, the root files
+     written alongside — and that one directory is then archived.
    - A root `MODULE.bazel` is generated declaring a real `bazel_dep` +
      `local_path_override` for every fixture module. Because these are
      genuine Bzlmod dependencies, fixture modules can also depend on **each
@@ -163,10 +163,11 @@ building against a fixture with nothing to differentiate):
 
   The distinguishing property: `app` builds and its runtime output matches
   ground truth *even with the item open* — the dropped dependency edge is
-  order-only, so it contributes nothing to the binary. The gate is
-  therefore the only thing keeping this red, which is exactly the point.
-  Escalation must not depend on the conversion also happening to break;
-  otherwise gaps that produce working-but-wrong output go unnoticed.
+  order-only, so it contributes nothing to the binary. Until the agent
+  stage resolves the item, the gate is therefore the only thing failing
+  this fixture, which is exactly the point. Escalation must not depend on
+  the conversion also happening to break; otherwise gaps that produce
+  working-but-wrong output go unnoticed.
 - `006-sibling-sources` — a CMake project in `proj/` that compiles sources
   from `shared/`, a sibling directory shipping in the same deliverable.
   Exercises a module root **wider than the CMake project directory**: with
