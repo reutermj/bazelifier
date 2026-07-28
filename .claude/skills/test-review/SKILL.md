@@ -6,9 +6,8 @@ description: Mechanics for a test-quality pass over the bazelifier repo — a co
 # Test review
 
 **The standard lives in `CLAUDE.md`'s working conventions** — the three-tier
-bullet and "green has to be earned," with its corollaries on both
-directions, printing the evidence, and checkable claims. Read that first. It
-is the spec; this file is only the mechanics.
+bullet and "green has to be earned," with its corollaries. Read that first.
+It is the spec; this file is only the mechanics.
 
 Fix as you go and report at the end. Stop and ask before anything that
 changes *what a tier proves*: deleting a fixture, relaxing the
@@ -42,10 +41,6 @@ contradict you about CMake and about Bazel are the two you most likely
 cannot run. Say so in the report rather than implying a clean pass, and
 don't work around it by disabling TLS verification.
 
-`cargo` here is the local rustup toolchain. It runs the same test bodies as
-`bazel test //translator:bazelifier_test`; the Bazel target is the authority
-when they can both run.
-
 ## Ask CMake instead of guessing
 
 Half of `cmake_api.rs` is a claim about what the File API reports, and those
@@ -69,11 +64,9 @@ to do with the translator. See
 
 ## Mutate the line, not the test
 
-The way to find out whether an assertion bites is to break what it guards,
-run `cargo test`, confirm *that* test — and ideally only that test — fails,
-then restore. Do this for every test you add and any you suspect.
-
-One trap specific to this repo: the escalation strings in
+Break what an assertion guards, `cargo test`, confirm *that* test — ideally
+only that one — fails, restore. Do it for every test you add and any you
+suspect. One trap specific to this repo: the escalation strings in
 `needs_attention.rs` are line-wrapped Rust literals, so a `sed` pattern
 containing a phrase that spans a wrap matches nothing, the mutation never
 lands, and the green run reads as "the test doesn't bite" when it means
@@ -127,19 +120,13 @@ judgement a careful reader already has.
   guard `Display` vs `Debug` in the termination path, which silently turns
   every `Display` impl in the crate into dead code — a real regression that
   nothing else in the suite would notice.
-- **Overlap between a unit test and a fixture.** `004-binary-private-include`
-  exists at both tiers on purpose, and `renders_cc_binary_with_own_includes`
-  says so in a comment. Codegen can drop an attribute the frontend resolved
-  correctly; only one of the two tiers tells you which half broke.
-- **A fixture that a unit test appears to duplicate.** Once captured File
-  API JSON is deserialized in a unit test, the fixture that first caught
-  the same bug reads as redundant — same construct, same assertion, one of
-  them slow and one of them fast. It isn't: the captured reply is frozen
-  the day it was captured, so it can only catch us regressing, while the
-  fixture is what notices CMake behaving differently from the day we
-  looked. Removing the fixture keeps the assertion and throws away the
-  only thing that could ever contradict it. See the fourth corollary under
-  "Green has to be earned" in `CLAUDE.md`.
+- **A unit test and a fixture covering the same construct.** Deliberate,
+  twice over: `004-binary-private-include` exists at both tiers on purpose
+  (`renders_cc_binary_with_own_includes` says so in a comment), and any
+  unit test built on a captured File API reply is meant to sit alongside
+  the fixture that produced it, never instead of it. Why is the fourth
+  corollary under "Green has to be earned" — don't re-derive it, and don't
+  collapse the pair.
 - **A library artifact that is never compared.** `expected_targets` lists
   executables only, so a fixture's `.a` reaches `ground_truth/` and is
   exported but never diffed. You cannot run a static library; symbol-table
