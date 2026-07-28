@@ -7,6 +7,18 @@ running `bazel build`/`bazel test` from its root is how we validate that
 converted fixture modules are genuinely independent — and, since they're
 all real bazel_deps of the same root module, that they can depend on and
 build against each other as bazelifier converts more projects.
+
+The layout is staged as a directory first, then that one directory is
+archived. Assembling it in the mtree instead — one `mtree_spec`/
+`mtree_mutate` pair per entry, concatenated — is what this used to do, and
+it made the tarball's layout a property of how N separate mtrees combine
+rather than of anything you can look at. Three distinct bsdtar behaviors
+had to be worked around to get it right: entry ordering deciding whether a
+root file landed at the root or inside the last-seen directory, duplicate
+synthesized parent-directory entries producing a nested `fixtures/fixtures/`,
+and `package_dir` being unable to rename a basename. Each failed by
+producing a subtly wrong tarball rather than an error. Staging on disk
+removes the class: one directory in, one mtree out.
 """
 
 load("@tar.bzl//tar:mtree.bzl", "mtree_mutate", "mtree_spec")
@@ -29,55 +41,6 @@ local_path_override(
     path = "fixtures/{fixture_dir}",
 )
 """
-
-def _fixture_dir_name(label):
-    """Returns the name used for a fixture's directory inside the tarball.
-
-    This is the basename of the package the convert_cmake_project target
-    lives in (e.g. "001-hello-world"), not the target's own name (which is
-    conventionally just "converted" for every fixture, so it can't be used
-    to distinguish them).
-    """
-    return label.package.rsplit("/", 1)[-1]
-
-def _write_root_file(ctx, filename, content):
-    """Writes one generated file destined for the tarball's root.
-
-    Declared inside a same-named directory (rather than as a bare file) so
-    its mtree path's basename is already exactly `filename` — mtree_mutate's
-    package_dir prepends a directory prefix, it can't rename a file's
-    basename, so a literal "MODULE.bazel"/"BUILD.bazel" name has to come
-    from the declared path itself.
-    """
-    out = ctx.actions.declare_file(ctx.attr.name + "/" + filename)
-    ctx.actions.write(out, content)
-    return [DefaultInfo(files = depset([out]))]
-
-def _root_module_bazel_impl(ctx):
-    deps = []
-    for target in ctx.attr.fixtures:
-        info = target[ConvertedCmakeModuleInfo]
-        deps.append(_DEP_TEMPLATE.format(
-            module_name = info.module_name,
-            fixture_dir = _fixture_dir_name(target.label),
-        ))
-
-    return _write_root_file(ctx, "MODULE.bazel", _ROOT_MODULE_TEMPLATE.format(
-        name = ctx.attr.name_of_root_module,
-        deps = "\n".join(deps),
-    ))
-
-_root_module_bazel = rule(
-    implementation = _root_module_bazel_impl,
-    attrs = {
-        "fixtures": attr.label_list(
-            mandatory = True,
-            providers = [ConvertedCmakeModuleInfo],
-            doc = "convert_cmake_project targets to depend on from the root module.",
-        ),
-        "name_of_root_module": attr.string(mandatory = True),
-    },
-)
 
 _SH_TEST_TEMPLATE = """sh_test(
     name = "{test_name}",
@@ -106,7 +69,30 @@ test_suite(
 )
 """
 
-def _root_build_bazel_impl(ctx):
+def _fixture_dir_name(label):
+    """Returns the name used for a fixture's directory inside the tarball.
+
+    This is the basename of the package the convert_cmake_project target
+    lives in (e.g. "001-hello-world"), not the target's own name (which is
+    conventionally just "converted" for every fixture, so it can't be used
+    to distinguish them).
+    """
+    return label.package.rsplit("/", 1)[-1]
+
+def _root_module_bazel(ctx):
+    deps = []
+    for target in ctx.attr.fixtures:
+        deps.append(_DEP_TEMPLATE.format(
+            module_name = target[ConvertedCmakeModuleInfo].module_name,
+            fixture_dir = _fixture_dir_name(target.label),
+        ))
+
+    return _ROOT_MODULE_TEMPLATE.format(
+        name = ctx.attr.name_of_root_module,
+        deps = "\n".join(deps),
+    )
+
+def _root_build_bazel(ctx):
     tests = []
     test_labels = []
     for target in ctx.attr.fixtures:
@@ -120,84 +106,69 @@ def _root_build_bazel_impl(ctx):
             ))
             test_labels.append('        ":{}",'.format(test_name))
 
-    return _write_root_file(ctx, "BUILD.bazel", _ROOT_BUILD_TEMPLATE.format(
+    return _ROOT_BUILD_TEMPLATE.format(
         tests = "\n".join(tests),
         test_labels = "\n".join(test_labels),
-    ))
+    )
 
-_root_build_bazel = rule(
-    implementation = _root_build_bazel_impl,
+def _validation_tree_impl(ctx):
+    out = ctx.actions.declare_directory(ctx.attr.name)
+
+    module_bazel = ctx.actions.declare_file(ctx.attr.name + ".MODULE.bazel")
+    ctx.actions.write(module_bazel, _root_module_bazel(ctx))
+
+    build_bazel = ctx.actions.declare_file(ctx.attr.name + ".BUILD.bazel")
+    ctx.actions.write(build_bazel, _root_build_bazel(ctx))
+
+    # `cp` without -p takes the source's permission bits but not its
+    # timestamps, which is what the archive wants: the comparison script
+    # stays executable, while every entry's mtime comes from mtree_spec
+    # rather than from whatever the execroot happened to hold.
+    commands = [
+        "set -e",
+        "mkdir -p {}/fixtures".format(out.path),
+        "cp {} {}/MODULE.bazel".format(module_bazel.path, out.path),
+        "cp {} {}/BUILD.bazel".format(build_bazel.path, out.path),
+        "cp {} {}/compare_runtime_output.sh".format(ctx.file.compare_script.path, out.path),
+    ]
+
+    inputs = [module_bazel, build_bazel, ctx.file.compare_script]
+    for target in ctx.attr.fixtures:
+        # A convert_cmake_project target's DefaultInfo is exactly the one
+        # tree artifact holding its generated module.
+        tree = target[DefaultInfo].files.to_list()[0]
+        inputs.append(tree)
+        staged = "{}/fixtures/{}".format(out.path, _fixture_dir_name(target.label))
+        commands.append("mkdir -p {}".format(staged))
+        commands.append("cp -R {}/. {}/".format(tree.path, staged))
+
+    ctx.actions.run_shell(
+        outputs = [out],
+        inputs = inputs,
+        command = "\n".join(commands),
+        mnemonic = "StageValidationWorkspace",
+        progress_message = "Staging validation workspace %s" % ctx.attr.name,
+    )
+
+    return [DefaultInfo(files = depset([out]))]
+
+_validation_tree = rule(
+    implementation = _validation_tree_impl,
+    doc = "Stages the unpacked workspace's exact layout as one directory.",
     attrs = {
+        "compare_script": attr.label(
+            allow_single_file = True,
+            mandatory = True,
+            doc = "The ground-truth comparison script, placed at the tarball root.",
+        ),
         "fixtures": attr.label_list(
             mandatory = True,
             providers = [ConvertedCmakeModuleInfo],
-            doc = "convert_cmake_project targets to generate ground-truth comparison sh_tests for.",
+            doc = "convert_cmake_project targets to stage under fixtures/.",
         ),
+        "name_of_root_module": attr.string(mandatory = True),
     },
 )
-
-def _combined_mtree_impl(ctx):
-    out = ctx.actions.declare_file(ctx.attr.name + ".mtree")
-
-    # mtree(5) is a plain-text, line-delimited format (one entry per line,
-    # `#mtree` header optional per-file) — safe to concatenate. Each
-    # per-fixture mtree independently synthesizes a "fixtures type=dir"
-    # parent-directory entry (mtree_mutate's package_dir does this for
-    # every path component — see tar.bzl's default.awk), so concatenating
-    # N fixtures declares that same shared parent directory N times.
-    # bsdtar doesn't dedupe that itself and produces a spurious nested
-    # fixtures/fixtures/ directory — `awk '!seen[$0]++'` drops exact
-    # duplicate lines (safe here: every field, including timestamps, is
-    # produced deterministically by the same rule, so a real difference
-    # would only ever come from an actual distinct entry, never noise).
-    ctx.actions.run_shell(
-        outputs = [out],
-        inputs = ctx.files.mtrees + ctx.files.extra_files,
-        command = "cat {mtrees} | awk '!seen[$0]++' > {out}".format(
-            mtrees = " ".join([f.path for f in ctx.files.mtrees]),
-            out = out.path,
-        ),
-        mnemonic = "CombineMtree",
-    )
-    return [DefaultInfo(files = depset([out]))]
-
-_combined_mtree = rule(
-    implementation = _combined_mtree_impl,
-    attrs = {
-        "mtrees": attr.label_list(mandatory = True, allow_files = True),
-        # Not read by this rule directly, but declared as inputs so the
-        # combined mtree's content= references resolve when tar() runs.
-        "extra_files": attr.label_list(allow_files = True),
-    },
-)
-
-def _entry_mtree(name, src, strip_prefix, package_dir = None):
-    """Declares the spec+mutate pair placing one entry into the tarball.
-
-    Returns the label of the mutated mtree. Every entry needs its own pair
-    rather than one shared `mtree_spec` over all of them, because
-    `strip_prefix` is per-entry: they come from different source packages.
-    `package_dir` re-roots the entry under a directory; omit it to land at
-    the tarball root.
-    """
-    spec_name = name + "_spec"
-    mtree_spec(
-        name = spec_name,
-        srcs = [src],
-    )
-
-    # Passed through only when set, rather than defaulted to "" here, so
-    # this doesn't encode an assumption about mtree_mutate's own default.
-    package_dir_kwarg = {"package_dir": package_dir} if package_dir else {}
-
-    mutated_name = name + "_renamed"
-    mtree_mutate(
-        name = mutated_name,
-        mtree = ":" + spec_name,
-        strip_prefix = strip_prefix,
-        **package_dir_kwarg
-    )
-    return ":" + mutated_name
 
 def validation_workspace(name, fixtures, **kwargs):
     """Packages `fixtures` (convert_cmake_project targets) into a tarball.
@@ -215,83 +186,32 @@ def validation_workspace(name, fixtures, **kwargs):
         fixtures: list of convert_cmake_project target labels to include.
         **kwargs: passed through to the underlying tar rule.
     """
-    root_module_name = name + "_MODULE.bazel"
-    _root_module_bazel(
-        name = root_module_name,
+    tree_name = name + "_tree"
+    _validation_tree(
+        name = tree_name,
+        compare_script = "//translator/build_defs:compare_runtime_output.sh",
         fixtures = fixtures,
         name_of_root_module = name,
     )
 
-    root_build_name = name + "_BUILD.bazel"
-    _root_build_bazel(
-        name = root_build_name,
-        fixtures = fixtures,
+    spec_name = name + "_mtree"
+    mtree_spec(
+        name = spec_name,
+        srcs = [":" + tree_name],
     )
 
-    compare_script = "//translator/build_defs:compare_runtime_output.sh"
-
-    all_srcs = [":" + root_module_name, ":" + root_build_name, compare_script]
-
-    # Each root-level entry (MODULE.bazel, BUILD.bazel, the comparison
-    # script) is mutated individually since they come from different
-    # source packages/paths, then concatenated with the root entries FIRST:
-    # bsdtar's mtree format treats slash-less entries as *relative* to the
-    # last-seen top-level relative directory, so if a top-level directory
-    # entry (e.g. "fixtures") appeared first, a later bare "MODULE.bazel"
-    # entry would be created *inside* it instead of at the tarball root.
-    # See the tar.bzl default.awk mutation pipeline's own comment on this
-    # exact pitfall.
-    #
-    # A generated root file's declared output lives at
-    # <this package>/<its target name>/<FILENAME>, so stripping that
-    # directory leaves the bare filename at the tarball root. The
-    # comparison script is a plain source file, so its own package is what
-    # gets stripped instead.
-    mtrees = [
-        _entry_mtree(
-            name + "_root_module",
-            ":" + root_module_name,
-            native.package_name() + "/" + root_module_name,
-        ),
-        _entry_mtree(
-            name + "_root_build",
-            ":" + root_build_name,
-            native.package_name() + "/" + root_build_name,
-        ),
-        _entry_mtree(
-            name + "_script",
-            compare_script,
-            Label(compare_script).package,
-        ),
-    ]
-
-    for fixture in fixtures:
-        label = Label(fixture)
-        fixture_dir = _fixture_dir_name(label)
-
-        # A fixture's tree artifact has the natural mtree path
-        # "<fixture's package>/<fixture target name>/...". Strip that down
-        # and re-root it under fixtures/<fixture dir name>/ so the unpacked
-        # tarball has a clean, uniform layout regardless of where the
-        # fixture actually lives in this repo.
-        mtrees.append(_entry_mtree(
-            name + "_" + fixture_dir,
-            fixture,
-            label.package + "/" + label.name,
-            package_dir = "fixtures/" + fixture_dir,
-        ))
-        all_srcs.append(fixture)
-
-    combined_name = name + "_combined_mtree"
-    _combined_mtree(
-        name = combined_name,
-        mtrees = mtrees,
-        extra_files = all_srcs,
+    # The staged directory's own path is the only prefix to strip: every
+    # entry is already at its final location beneath it.
+    rooted_name = name + "_mtree_rooted"
+    mtree_mutate(
+        name = rooted_name,
+        mtree = ":" + spec_name,
+        strip_prefix = native.package_name() + "/" + tree_name,
     )
 
     tar(
         name = name,
-        srcs = all_srcs,
-        mtree = ":" + combined_name,
+        srcs = [":" + tree_name],
+        mtree = ":" + rooted_name,
         **kwargs
     )
