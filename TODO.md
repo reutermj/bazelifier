@@ -31,28 +31,33 @@ escalation to list a phantom `<output>.rule` entry — see
 [docs/lore/cmake-file-api-generated-source-shape.md](docs/lore/cmake-file-api-generated-source-shape.md),
 which probably wants filtering out before a fixture makes an agent read it.
 
-## Nothing tests the code that reads a File API reply
+## `read_project_version` and `find_reply_file` are still untested
 
-**Status:** open.
+**Status:** open, narrowed 2026-07-30.
 
-`read_codemodel_reply` is where the tested pieces are wired together: it
-builds `translated_names` and `dependents_of`, decides `is_depended_on`,
-filters dropped edges down to *translated* dependents, and raises
-`SourceDirOutsideDeliverableRoot`. Every unit below it is tested; the
-wiring is not, and neither are `read_project_version` or `find_reply_file`.
-`.claude/skills/test-review/scripts/coverage_map.py` reports the full list.
+`read_codemodel_reply`'s own wiring — `translated_names`, `dependents_of`,
+`is_depended_on`, dropped-edge filtering, `SourceDirOutsideDeliverableRoot`
+— is now covered: `cmake_api::tests::read_codemodel_reply_wires_real_capture_into_a_build_graph`
+and `..._rejects_source_dir_outside_deliverable_root` call it directly
+against real CMake File API JSON captured from `002-with-library`
+(two targets, a real dependency edge, a real `FILE_SET PUBLIC HEADERS`),
+written into a hand-rolled scratch directory (`ScratchDir`, no new
+dependency). Verified the capture actually pins the schema, not just the
+translator's own idea of it: temporarily corrupting the `fileSets` rename
+made the test fail exactly as expected — `greet.hpp` silently stopped
+being recognized as file-set-declared and got escalated instead of
+classified as public.
 
-**Why it matters:** `to_target`'s tests take `is_depended_on` as a
-parameter, so the computation that decides it is covered nowhere. Today
-that logic is only exercised by the fixture tier, which was blocked on
-network egress (resolved 2026-07-30) and is runnable again.
+`read_project_version` and `find_reply_file` are not exercised by that
+capture (no `cache-v2-*.json` was included, and neither function is called
+directly) — `.claude/skills/test-review/scripts/coverage_map.py` still
+lists both as uncovered.
 
-**How to settle it:** `read_codemodel_reply` takes a reply directory path —
-the seam is already there. A test can write captured File API JSON into a
-temp directory and call it, which also pins the serde schema against real
-CMake output rather than against our own constructors. Needs either a
-`tempfile` dev-dependency (and a `Cargo.lock` regen, see runbook 001) or a
-hand-rolled temp directory.
+**How to settle it:** add a `cache-v2-*.json` (real capture, e.g. from a
+fixture with `project(... VERSION ...)` once one exists — see the fixture
+item above) and call `read_project_version` directly, plus a
+`find_reply_file` test covering its multiple-prefix-candidates and
+not-found cases.
 
 ## Wire up the agent stage of the fixture loop
 

@@ -1250,4 +1250,250 @@ mod tests {
             );
         }
     }
+
+    /// A directory that deletes itself (recursively) on drop, so a failing
+    /// assertion doesn't leave the reply files behind in the OS temp dir.
+    /// Not `tempfile`: this is the only place in the crate that needs a
+    /// scratch directory, so a real dependency (and the `Cargo.lock` regen
+    /// that comes with one — see
+    /// docs/runbooks/001-regenerate-translator-cargo-lock.md) isn't worth
+    /// it for one call site.
+    struct ScratchDir {
+        path: PathBuf,
+    }
+
+    impl ScratchDir {
+        fn new(name: &str) -> Self {
+            let path = std::env::temp_dir().join(format!(
+                "bazelifier-test-{name}-{}-{:?}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            ));
+            fs::create_dir_all(&path).unwrap();
+            ScratchDir { path }
+        }
+
+        fn write(&self, filename: &str, contents: &str) {
+            fs::write(self.path.join(filename), contents).unwrap();
+        }
+    }
+
+    impl Drop for ScratchDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.path);
+        }
+    }
+
+    // Real CMake File API output, captured verbatim from a build of
+    // 002-with-library (see translator/tests/fixtures/002-with-library) —
+    // NOT hand-constructed, unlike every TargetReply/CodemodelIndexReply
+    // literal elsewhere in this file. Those only prove read_codemodel_reply
+    // agrees with our own idea of the schema; this pins it against what
+    // CMake 3.28 + the codemodel-v2/cache-v2 File API actually emit, so a
+    // wrong #[serde(rename)] (e.g. "isGenerated") would show up here as a
+    // wrong result instead of deserializing to a silent default. Only the
+    // top-level `paths.source`/`paths.build` (what read_codemodel_reply
+    // actually reads back out, via `index.paths`) were edited, from the
+    // capture-time sandbox path to a made-up but structurally identical
+    // absolute path — CMake always reports this field absolute, so
+    // rewriting it to "." would silently stop exercising the same
+    // starts_with(deliverable_root) comparison discover() runs in
+    // production (absolutize() always makes deliverable_root absolute
+    // before calling read_codemodel_reply).
+    const CODEMODEL_JSON: &str = r#"{
+  "configurations": [
+    {
+      "directories": [
+        {
+          "build": ".",
+          "jsonFile": "directory-.json",
+          "minimumCMakeVersion": { "string": "3.23" },
+          "projectIndex": 0,
+          "source": ".",
+          "targetIndexes": [0, 1]
+        }
+      ],
+      "name": "",
+      "projects": [
+        {
+          "directoryIndexes": [0],
+          "name": "with_library",
+          "targetIndexes": [0, 1]
+        }
+      ],
+      "targets": [
+        {
+          "directoryIndex": 0,
+          "id": "greet::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-greet.json",
+          "name": "greet",
+          "projectIndex": 0
+        },
+        {
+          "directoryIndex": 0,
+          "id": "hello::@6890427a1f51a3e7e1df",
+          "jsonFile": "target-hello.json",
+          "name": "hello",
+          "projectIndex": 0
+        }
+      ]
+    }
+  ],
+  "kind": "codemodel",
+  "paths": {
+    "build": "/abs/002-with-library/_build",
+    "source": "/abs/002-with-library"
+  },
+  "version": { "major": 2, "minor": 6 }
+}"#;
+
+    const TARGET_GREET_JSON: &str = r#"{
+  "archive": {},
+  "artifacts": [{ "path": "libgreet.a" }],
+  "backtrace": 1,
+  "backtraceGraph": {
+    "commands": ["add_library", "target_sources"],
+    "files": ["CMakeLists.txt"],
+    "nodes": [
+      { "file": 0 },
+      { "command": 0, "file": 0, "line": 4, "parent": 0 },
+      { "command": 1, "file": 0, "line": 5, "parent": 0 }
+    ]
+  },
+  "compileGroups": [
+    {
+      "includes": [{ "backtrace": 2, "path": "/abs/002-with-library/include" }],
+      "language": "CXX",
+      "sourceIndexes": [0]
+    }
+  ],
+  "fileSets": [
+    {
+      "baseDirectories": ["include"],
+      "name": "public_headers",
+      "type": "HEADERS",
+      "visibility": "PUBLIC"
+    }
+  ],
+  "id": "greet::@6890427a1f51a3e7e1df",
+  "name": "greet",
+  "nameOnDisk": "libgreet.a",
+  "paths": { "build": ".", "source": "." },
+  "sourceGroups": [
+    { "name": "Source Files", "sourceIndexes": [0] },
+    { "name": "Header Files", "sourceIndexes": [1] }
+  ],
+  "sources": [
+    { "backtrace": 1, "compileGroupIndex": 0, "path": "src/greet.cpp", "sourceGroupIndex": 0 },
+    {
+      "backtrace": 2,
+      "fileSetIndex": 0,
+      "path": "include/greet.hpp",
+      "sourceGroupIndex": 1
+    }
+  ],
+  "type": "STATIC_LIBRARY"
+}"#;
+
+    const TARGET_HELLO_JSON: &str = r#"{
+  "artifacts": [{ "path": "hello" }],
+  "backtrace": 1,
+  "backtraceGraph": {
+    "commands": ["add_executable", "target_link_libraries"],
+    "files": ["CMakeLists.txt"],
+    "nodes": [
+      { "file": 0 },
+      { "command": 0, "file": 0, "line": 13, "parent": 0 },
+      { "command": 1, "file": 0, "line": 14, "parent": 0 }
+    ]
+  },
+  "compileGroups": [
+    {
+      "includes": [{ "backtrace": 2, "path": "/abs/002-with-library/include" }],
+      "language": "CXX",
+      "sourceIndexes": [0]
+    }
+  ],
+  "dependencies": [{ "backtrace": 2, "id": "greet::@6890427a1f51a3e7e1df" }],
+  "id": "hello::@6890427a1f51a3e7e1df",
+  "link": {
+    "commandFragments": [
+      { "fragment": "", "role": "flags" },
+      { "backtrace": 2, "fragment": "libgreet.a", "role": "libraries" }
+    ],
+    "language": "CXX"
+  },
+  "name": "hello",
+  "nameOnDisk": "hello",
+  "paths": { "build": ".", "source": "." },
+  "sourceGroups": [{ "name": "Source Files", "sourceIndexes": [0] }],
+  "sources": [
+    { "backtrace": 1, "compileGroupIndex": 0, "path": "src/main.cpp", "sourceGroupIndex": 0 }
+  ],
+  "type": "EXECUTABLE"
+}"#;
+
+    fn reply_dir_from_real_capture() -> ScratchDir {
+        let dir = ScratchDir::new("codemodel");
+        dir.write("codemodel-v2-abc123.json", CODEMODEL_JSON);
+        dir.write("target-greet.json", TARGET_GREET_JSON);
+        dir.write("target-hello.json", TARGET_HELLO_JSON);
+        dir
+    }
+
+    #[test]
+    fn read_codemodel_reply_wires_real_capture_into_a_build_graph() {
+        let dir = reply_dir_from_real_capture();
+
+        let codemodel = read_codemodel_reply(&dir.path, Path::new("/abs/002-with-library"))
+            .expect("real File API capture should parse and translate cleanly");
+
+        assert_eq!(codemodel.project_name, "with_library");
+        assert!(codemodel.needs_attention.is_empty());
+
+        let names: Vec<&str> = codemodel.targets.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(names, vec!["greet", "hello"]);
+
+        let greet = &codemodel.targets[0];
+        assert_eq!(greet.kind, TargetKind::Library);
+        assert_eq!(greet.sources, vec!["src/greet.cpp".to_string()]);
+        // is_depended_on for greet is computed from hello's real
+        // dependencies edge in the capture, not passed in by a test — this
+        // is exactly the wiring to_target's own unit tests take as a given
+        // parameter instead of proving.
+        assert_eq!(
+            greet.public_headers,
+            vec!["include/greet.hpp".to_string()],
+            "greet's FILE_SET PUBLIC header should be classified as public, \
+             not escalated, since it's real is_depended_on is true and the \
+             header IS file-set-declared"
+        );
+
+        let hello = &codemodel.targets[1];
+        assert_eq!(hello.kind, TargetKind::Executable);
+        assert_eq!(hello.sources, vec!["src/main.cpp".to_string()]);
+        // Resolved from the opaque "greet::@..." id back to a name via
+        // translated_names — the id never appears in the output.
+        assert_eq!(hello.dependencies, vec!["greet".to_string()]);
+    }
+
+    #[test]
+    fn read_codemodel_reply_rejects_source_dir_outside_deliverable_root() {
+        let dir = reply_dir_from_real_capture();
+
+        match read_codemodel_reply(&dir.path, Path::new("/somewhere/else")) {
+            Err(Error::SourceDirOutsideDeliverableRoot { .. }) => {}
+            other => panic!(
+                "source dir (\".\", i.e. cwd) can never be inside an unrelated root, \
+                 expected SourceDirOutsideDeliverableRoot, got: {}",
+                match &other {
+                    Ok(_) => "Ok(_)".to_string(),
+                    Err(e) => e.to_string(),
+                }
+            ),
+        }
+    }
 }
