@@ -345,8 +345,14 @@ pub fn discover(
     deliverable_root: &Path,
 ) -> Result<Discovery, Error> {
     request_file_api_queries(build_dir)?;
-    configure(source_dir, build_dir)?;
+    let trace = configure(source_dir, build_dir)?;
     build(build_dir)?;
+
+    // configure_file calls (template -> output) come from the configure
+    // trace, not the File API — see parse_configure_files.
+    let abs_source_dir = absolutize(source_dir)?;
+    let configure_files = parse_configure_files(&trace, &abs_source_dir);
+
     let reply_dir = build_dir.join(".cmake/api/v1/reply");
     let deliverable_root = absolutize(deliverable_root)?;
     // Absolute so it can be compared against the absolute paths the File API
@@ -384,8 +390,14 @@ fn request_file_api_queries(build_dir: &Path) -> Result<(), Error> {
     Ok(())
 }
 
-fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
+/// Configures the project, returning CMake's `--trace-expand` output (on
+/// stderr). The trace is the only place `configure_file` calls are reported
+/// — the File API models them not at all — so it's captured here rather than
+/// running cmake a second time. See
+/// docs/lore/cmake-configure-file-is-in-the-trace-not-the-file-api.md.
+fn configure(source_dir: &Path, build_dir: &Path) -> Result<String, Error> {
     let output = Command::new("cmake")
+        .arg("--trace-expand")
         .arg("-G")
         .arg("Ninja")
         .arg("-B")
@@ -394,12 +406,116 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
         .arg(source_dir)
         .output()?;
 
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
     if !output.status.success() {
-        return Err(Error::CmakeConfigureFailed {
-            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        return Err(Error::CmakeConfigureFailed { stderr });
+    }
+    Ok(stderr)
+}
+
+/// One `configure_file(<template> <output> ...)` call the project itself made,
+/// recovered from the configure trace with both paths resolved absolute.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ConfigureFile {
+    template: PathBuf,
+    output: PathBuf,
+}
+
+/// The macros a `configure_file` template references: `#cmakedefine` names
+/// (each becomes a `#define`/`#undef` in the output, driven by whether the
+/// name is set) and `@VAR@` names (each substituted with a value). A name can
+/// be both — `#cmakedefine FOO @FOO@` — which is how CMake writes a define
+/// whose value is a variable.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct TemplateMacros {
+    cmakedefines: Vec<String>,
+    vars: Vec<String>,
+}
+
+/// Parses a `configure_file` template's text for the macros it references,
+/// each deduplicated in first-seen order. The translator reads this to learn
+/// which config values a generated header needs — the File API and trace give
+/// the template/output pair but not its contents.
+fn parse_template_macros(template: &str) -> TemplateMacros {
+    let mut cmakedefines = Vec::new();
+    let mut seen_define = HashSet::new();
+    let mut vars = Vec::new();
+    let mut seen_var = HashSet::new();
+
+    for line in template.lines() {
+        let trimmed = line.trim_start();
+        // `#cmakedefine NAME ...` or `#cmakedefine01 NAME`. The name is the
+        // token after the directive.
+        for directive in ["#cmakedefine01", "#cmakedefine"] {
+            if let Some(rest) = trimmed.strip_prefix(directive) {
+                if let Some(name) = rest.split_whitespace().next()
+                    && seen_define.insert(name.to_string())
+                {
+                    cmakedefines.push(name.to_string());
+                }
+                break;
+            }
+        }
+
+        // `@VAR@` anywhere. `@@` (a CMake escape for a literal `@`) yields an
+        // empty name, which is skipped; a token with non-identifier
+        // characters between the `@`s is not a variable reference.
+        let mut i = 0;
+        while let Some(at) = line[i..].find('@') {
+            let start = i + at + 1;
+            let Some(end_rel) = line[start..].find('@') else {
+                break;
+            };
+            let name = &line[start..start + end_rel];
+            if !name.is_empty()
+                && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
+                && seen_var.insert(name.to_string())
+            {
+                vars.push(name.to_string());
+            }
+            i = start + end_rel + 1;
+        }
+    }
+
+    TemplateMacros { cmakedefines, vars }
+}
+
+/// Extracts the project's own `configure_file` calls from a `--trace-expand`
+/// trace, keeping only those whose template lives inside the source tree.
+///
+/// CMake makes ~10 internal `configure_file` calls of its own (from
+/// CMakeSystem.cmake.in, DartConfiguration.tcl.in, CPack templates, ...);
+/// those originate under the CMake installation, not the project, so filtering
+/// on the template being under `source_dir` selects exactly the project's.
+/// Trace lines look like:
+///   /path/CMakeLists.txt(339):  configure_file(/abs/in /abs/out @ONLY )
+fn parse_configure_files(trace: &str, source_dir: &Path) -> Vec<ConfigureFile> {
+    let mut calls = Vec::new();
+    for line in trace.lines() {
+        // The command and its args follow the "file(line):  " site prefix.
+        let Some(idx) = line.find("configure_file(") else {
+            continue;
+        };
+        let args = &line[idx + "configure_file(".len()..];
+        let args = args.trim_end().trim_end_matches(')').trim();
+        // Split on whitespace: first token is the template, second the output.
+        // Trailing flags (@ONLY, COPYONLY, ...) are ignored. Paths in these
+        // project calls are absolute in the trace (CMake expands them); a
+        // relative first token means a call we can't resolve, so skip it.
+        let mut tokens = args.split_whitespace();
+        let (Some(template), Some(output)) = (tokens.next(), tokens.next()) else {
+            continue;
+        };
+        let template = PathBuf::from(template);
+        if !template.is_absolute() || !template.starts_with(source_dir) {
+            continue;
+        }
+        calls.push(ConfigureFile {
+            template,
+            output: PathBuf::from(output),
         });
     }
-    Ok(())
+    calls
 }
 
 fn build(build_dir: &Path) -> Result<(), Error> {
@@ -1150,6 +1266,82 @@ fn is_inherited_via_link_libraries(backtrace: Option<usize>, graph: &BacktraceGr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Real `cmake --trace-expand` lines, captured verbatim from configuring
+    // json-c (paths shortened). Mixes the project's own configure_file calls
+    // (templates under /src/...) with CMake's internal ones (templates under
+    // the CMake installation), exactly as the trace does — see
+    // docs/lore/cmake-configure-file-is-in-the-trace-not-the-file-api.md.
+    const CONFIGURE_TRACE: &str = "\
+/usr/share/cmake-3.28/Modules/CMakeDetermineSystem.cmake(246):  configure_file(/usr/share/cmake-3.28/Modules/CMakeSystem.cmake.in /build/CMakeFiles/3.28.3/CMakeSystem.cmake @ONLY )
+/src/CMakeLists.txt(339):  configure_file(/src/cmake/config.h.in /build/config.h )
+/src/CMakeLists.txt(341):  configure_file(/src/cmake/json_config.h.in /build/json_config.h )
+/src/CMakeLists.txt(520):  configure_file(/src/json.h.cmakein /build/json.h @ONLY )
+/usr/share/cmake-3.28/Modules/CTestTargets.cmake(28):  configure_file(/usr/share/cmake-3.28/Modules/DartConfiguration.tcl.in /build/DartConfiguration.tcl )
+";
+
+    #[test]
+    fn parse_configure_files_keeps_only_project_templates() {
+        let calls = parse_configure_files(CONFIGURE_TRACE, Path::new("/src"));
+        assert_eq!(
+            calls,
+            vec![
+                ConfigureFile {
+                    template: PathBuf::from("/src/cmake/config.h.in"),
+                    output: PathBuf::from("/build/config.h"),
+                },
+                ConfigureFile {
+                    template: PathBuf::from("/src/cmake/json_config.h.in"),
+                    output: PathBuf::from("/build/json_config.h"),
+                },
+                ConfigureFile {
+                    template: PathBuf::from("/src/json.h.cmakein"),
+                    output: PathBuf::from("/build/json.h"),
+                },
+            ],
+            "only the project's own configure_file calls (template under source_dir) are kept; \
+             CMake's internal ones (templates under the CMake install) are dropped, and trailing \
+             flags like @ONLY are ignored"
+        );
+    }
+
+    // The real shapes json-c's templates use: a plain #cmakedefine (a header
+    // check), a #cmakedefine with a @VAR@ value (project-prefixed), a
+    // #cmakedefine with a quoted value, the CMake `@@` escape, and a bare
+    // @VAR@ (pure substitution).
+    const TEMPLATE: &str = "\
+/* comment */
+#cmakedefine HAVE_ENDIAN_H
+#cmakedefine JSON_C_HAVE_INTTYPES_H @JSON_C_HAVE_INTTYPES_H@
+#cmakedefine ENABLE_RDRAND \"@ENABLE_RDRAND@\"
+#cmakedefine ENABLE_THREADING \"@@\"
+#cmakedefine HAVE_ENDIAN_H
+#define VERSION \"@PROJECT_VERSION@\"
+";
+
+    #[test]
+    fn parse_template_macros_collects_defines_and_vars_deduped() {
+        let macros = parse_template_macros(TEMPLATE);
+        assert_eq!(
+            macros.cmakedefines,
+            vec![
+                "HAVE_ENDIAN_H".to_string(),
+                "JSON_C_HAVE_INTTYPES_H".to_string(),
+                "ENABLE_RDRAND".to_string(),
+                "ENABLE_THREADING".to_string(),
+            ],
+            "#cmakedefine names, deduped in first-seen order (HAVE_ENDIAN_H appears twice)"
+        );
+        assert_eq!(
+            macros.vars,
+            vec![
+                "JSON_C_HAVE_INTTYPES_H".to_string(),
+                "ENABLE_RDRAND".to_string(),
+                "PROJECT_VERSION".to_string(),
+            ],
+            "@VAR@ names, deduped; the `@@` escape yields no variable"
+        );
+    }
 
     fn empty_backtrace_graph() -> BacktraceGraph {
         BacktraceGraph {
