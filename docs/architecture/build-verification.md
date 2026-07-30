@@ -106,6 +106,22 @@ Implemented today:
   build is re-run, so `needs_attention/` comes back empty before the
   equivalence check means anything. An unresolved item is an unfinished
   conversion, not an accepted outcome.
+
+  The gate can't check for zero items by testing whether
+  `needs_attention/` exists in the test's runfiles: Bazel drops an empty
+  `data` filegroup from runfiles entirely rather than leaving an empty
+  directory behind, so a fixture with genuinely zero items and one whose
+  runfiles wiring is simply broken (stale `module_name`, a change to
+  Bazel's canonical repo naming) would look identical — both silently skip
+  the gate and fall through to the comparison. To close that gap, the
+  translator always writes a `needs_attention/MANIFEST` file (see
+  `main::write_needs_attention`) alongside the `.md` items, and
+  `render_needs_attention_build_bazel` adds it to the `filegroup`'s `srcs`
+  explicitly rather than only via the `*.md` glob — so, unlike the glob's
+  output, it's guaranteed to survive into runfiles regardless of item
+  count. `compare_runtime_output.sh` checks for `MANIFEST`'s presence, not
+  the directory's, and fails loud if it's missing: that can only mean the
+  wiring is broken, never a clean conversion.
 - **Runtime output comparison** (`translator/build_defs/compare_runtime_output.sh`,
   wired up as a generated `sh_test` per target): run the ground-truth
   binary and the Bazel-built binary, diff stdout, stderr, and exit code.
