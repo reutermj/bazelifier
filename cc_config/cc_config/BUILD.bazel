@@ -118,3 +118,27 @@ assert_config_header_test(
         "@SIZEOF_LONG@",
     ],
 )
+
+# Two config headers that both consume the SAME probe target
+# (:have_stdlib_h), standing in for two converted projects that each need
+# HAVE_STDLIB_H. Because a probe is a shared TARGET, its compile action is
+# analyzed once no matter how many config headers reference it — so the probe
+# runs once per toolchain across the whole graph, not once per project. The
+# sharing_test.sh script (run in review, see cc_config/README.md) proves this
+# via `bazel aquery`, which can't be expressed as a Bazel test without a
+# circular bazel-inside-bazel. These two targets are the fixture it inspects;
+# building them both here at least confirms two consumers of one probe don't
+# conflict.
+config_header(
+    name = "shared_consumer_a",
+    output = "consumer_a.h",
+    probes = [":have_stdlib_h"],
+    template = "testdata/consumer.h.in",
+)
+
+config_header(
+    name = "shared_consumer_b",
+    output = "consumer_b.h",
+    probes = [":have_stdlib_h"],
+    template = "testdata/consumer.h.in",
+)

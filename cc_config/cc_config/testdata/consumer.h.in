@@ -1,0 +1,3 @@
+/* Minimal template for two config headers sharing one probe (see
+   the shared_consumer_a/b targets and sharing_test.sh). */
+#cmakedefine HAVE_STDLIB_H
