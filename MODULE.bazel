@@ -72,3 +72,19 @@ git_repository(
     commit = "9148bdf719e997d1f474be6bcc7943881046dba1",  # tag 11.0.0
     remote = "https://github.com/leethomason/tinyxml2",
 )
+
+# Second corpus project: json-c 0.19, an autoconf-style C library whose
+# configure_file-generated config headers (config.h/json_config.h/json.h)
+# drive the next translator capability. INPUT to the translator only (same
+# copy-through model as tinyxml2). See bzl-fxa.
+git_repository(
+    name = "json_c",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    commit = "25602128ed580416222601b4da5a50cdb1bc2a58",  # tag json-c-0.19-20260627
+    remote = "https://github.com/json-c/json-c",
+)

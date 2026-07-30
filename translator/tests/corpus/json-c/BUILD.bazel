@@ -1,0 +1,30 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Second corpus project (after tinyxml2). json-c 0.19 is an autoconf-style C
+# library: 60+ feature-detection probes (check_include_file /
+# check_symbol_exists / check_type_size) feed three configure_file-generated
+# headers — config.h, json_config.h, and json.h (the public header, from
+# json.h.cmakein). The .c sources #include "config.h"/"json_config.h", which
+# exist ONLY in the CMake build directory, not the source tree; the library
+# adds PROJECT_BINARY_DIR to its include path to find them.
+#
+# This is what json-c drives: unlike a generated .cpp SOURCE (fixture 007,
+# which the File API reports as isGenerated and the translator escalates),
+# these are generated HEADERS resolved via the include path — invisible in
+# the target's sources — so the translator copies only the .c files and the
+# conversion FAILS TO COMPILE on a missing config.h, with no escalation. See
+# the json-c epic (bzl-fxa).
+#
+# Sources come from the @json_c git_repository (pinned in MODULE.bazel), not
+# vendored — the pinned commit is the version record and the translator
+# copies the referenced sources into the standalone module it emits.
+# source_dir is left empty so the rule derives it from the root CMakeLists.
+#
+# NOT yet enrolled in //translator/tests:validation_workspace: the conversion
+# does not build until the configure_file-header gap is resolved, and green
+# is the only passing state.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["@json_c//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)
