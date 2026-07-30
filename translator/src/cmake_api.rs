@@ -354,13 +354,32 @@ pub fn discover(
     let abs_source_dir = absolutize(source_dir)?;
     let configure_files = parse_configure_files(&trace, &abs_source_dir);
 
+    // The generated config headers appear in a target's sources as absolute
+    // build-dir paths. read_codemodel_reply must know their names so it drops
+    // them (a config_header rule reproduces them, wired in via a label) rather
+    // than escalating them as unreachable build-dir sources.
+    let config_header_outputs: HashSet<String> = configure_files
+        .iter()
+        .filter(|c| is_config_header_output(&c.output))
+        .filter_map(|c| {
+            c.output
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+        })
+        .collect();
+
     let reply_dir = build_dir.join(".cmake/api/v1/reply");
     let deliverable_root = absolutize(deliverable_root)?;
     // Absolute so it can be compared against the absolute paths the File API
     // reports for build-directory outputs (configure_file headers) — see
     // rebase_to_module_root's partitioning of unreachable sources.
     let abs_build_dir = absolutize(build_dir)?;
-    let codemodel = read_codemodel_reply(&reply_dir, &deliverable_root, &abs_build_dir)?;
+    let codemodel = read_codemodel_reply(
+        &reply_dir,
+        &deliverable_root,
+        &abs_build_dir,
+        &config_header_outputs,
+    )?;
     let version = read_project_version(&reply_dir)?;
 
     // Tests come from ctest, not the File API (see read_tests), and their
@@ -398,6 +417,13 @@ pub fn discover(
 /// A template outside the module root can't be a Bazel label in the module,
 /// so that header is escalated rather than planned — the same boundary
 /// `rebase_to_module_root` enforces for sources.
+fn is_config_header_output(output: &Path) -> bool {
+    matches!(
+        output.extension().and_then(|e| e.to_str()),
+        Some("h" | "hpp" | "hh" | "hxx")
+    )
+}
+
 fn build_config_headers(
     configure_files: &[ConfigureFile],
     module_root: &Path,
@@ -406,6 +432,15 @@ fn build_config_headers(
     let mut headers = Vec::new();
     let mut escalations = Vec::new();
     for call in configure_files {
+        // configure_file also generates non-headers — pkg-config (.pc), CMake
+        // package files (.cmake), CTest config (.tcl). Those are not headers a
+        // C source compiles against, so the translator does not reproduce them
+        // as a config_header; they're install/packaging artifacts a converted
+        // module omits (like it omits install() rules). Only header outputs
+        // continue.
+        if !is_config_header_output(&call.output) {
+            continue;
+        }
         let Ok(template_rel) = call.template.strip_prefix(module_root) else {
             // The template ships outside the deliverable; can't reference it.
             escalations.push(generated_config_header_needs_attention(
@@ -505,6 +540,7 @@ struct TemplateMacros {
 /// `HAVE_INTTYPES_H` and is escalated rather than guessed.
 const CATALOG_DEFINES: &[&str] = &[
     "HAVE_ARC4RANDOM",
+    "HAVE_BSD_STDLIB_H",
     "HAVE_DLFCN_H",
     "HAVE_DUPLOCALE",
     "HAVE_ENDIAN_H",
@@ -861,6 +897,7 @@ fn read_codemodel_reply(
     reply_dir: &Path,
     deliverable_root: &Path,
     build_dir: &Path,
+    config_header_outputs: &HashSet<String>,
 ) -> Result<Codemodel, Error> {
     let index_path = find_reply_file(reply_dir, "codemodel-v2-")?;
     let index: CodemodelIndexReply = serde_json::from_str(&fs::read_to_string(index_path)?)?;
@@ -1010,8 +1047,13 @@ fn read_codemodel_reply(
         });
     }
 
-    let (module_root, rebase_escalations) =
-        rebase_to_module_root(&mut targets, &source_dir, deliverable_root, build_dir);
+    let (module_root, rebase_escalations) = rebase_to_module_root(
+        &mut targets,
+        &source_dir,
+        deliverable_root,
+        build_dir,
+        config_header_outputs,
+    );
     needs_attention.extend(rebase_escalations);
 
     Ok(Codemodel {
@@ -1049,6 +1091,7 @@ fn rebase_to_module_root(
     source_dir: &Path,
     deliverable_root: &Path,
     build_dir: &Path,
+    config_header_outputs: &HashSet<String>,
 ) -> (PathBuf, Vec<NeedsAttention>) {
     let mut shipped = Vec::new();
     for target in targets.iter() {
@@ -1085,6 +1128,20 @@ fn rebase_to_module_root(
                 match absolute.strip_prefix(&module_root) {
                     Ok(relative) => kept.push(relative.to_string_lossy().into_owned()),
                     Err(_) => {
+                        // A build-dir source that a config_header rule
+                        // reproduces is neither kept nor escalated: it's
+                        // supplied to this target by the config header's label
+                        // (codegen folds :config_h into srcs). Dropping it here
+                        // is what reconciles the two mechanisms — otherwise the
+                        // same header is both escalated and regenerated.
+                        let is_reproduced_config_header = absolute.starts_with(build_dir)
+                            && absolute
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .is_some_and(|n| config_header_outputs.contains(n));
+                        if is_reproduced_config_header {
+                            continue;
+                        }
                         let display = absolute.to_string_lossy().into_owned();
                         if absolute.starts_with(build_dir) {
                             build_dir_outputs.push(display);
@@ -2418,6 +2475,7 @@ mod tests {
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj/_build"),
+            &HashSet::new(),
         );
 
         assert_eq!(module_root, PathBuf::from("/deliv/proj"));
@@ -2441,6 +2499,7 @@ mod tests {
             Path::new("/deliv/proj"),
             Path::new("/deliv"),
             Path::new("/deliv/proj/_build"),
+            &HashSet::new(),
         );
 
         assert_eq!(module_root, PathBuf::from("/deliv"));
@@ -2472,6 +2531,7 @@ mod tests {
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj/_build"),
+            &HashSet::new(),
         );
 
         assert_eq!(module_root, PathBuf::from("/deliv/proj"));
@@ -2510,6 +2570,7 @@ mod tests {
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj"),
             Path::new("/build-out"),
+            &HashSet::new(),
         );
 
         let generated = escalations
@@ -2533,6 +2594,39 @@ mod tests {
         );
     }
 
+    // The reconciliation: a build-dir source that a config_header rule
+    // reproduces (its name is in config_header_outputs) is dropped from
+    // sources and NOT escalated — it's supplied by the config header's label.
+    // Otherwise the same header is both escalated here and regenerated,
+    // which is exactly what json-c exposed.
+    #[test]
+    fn rebase_drops_a_reproduced_config_header_source_without_escalating() {
+        let mut targets = vec![target_with(
+            vec!["src/main.cpp", "/build-out/config.h"],
+            vec![],
+        )];
+        let reproduced: HashSet<String> = ["config.h".to_string()].into_iter().collect();
+
+        let (_root, escalations) = rebase_to_module_root(
+            &mut targets,
+            Path::new("/deliv/proj"),
+            Path::new("/deliv/proj"),
+            Path::new("/build-out"),
+            &reproduced,
+        );
+
+        assert_eq!(
+            targets[0].sources,
+            vec!["src/main.cpp".to_string()],
+            "the reproduced config header is dropped from srcs (the config_header label supplies it)"
+        );
+        assert!(
+            escalations.is_empty(),
+            "a reproduced config header must not be escalated: {:?}",
+            escalations.iter().map(|e| &e.title).collect::<Vec<_>>()
+        );
+    }
+
     // System include dirs land outside the module and have no `includes`
     // translation — dropping them is correct, and is not a gap.
     #[test]
@@ -2544,6 +2638,7 @@ mod tests {
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj/_build"),
+            &HashSet::new(),
         );
 
         assert!(targets[0].includes.is_empty());
@@ -2795,6 +2890,7 @@ mod tests {
             &dir.path,
             Path::new("/abs/002-with-library"),
             Path::new("/abs/002-with-library/_build"),
+            &HashSet::new(),
         )
         .expect("real File API capture should parse and translate cleanly");
 
@@ -2835,6 +2931,7 @@ mod tests {
             &dir.path,
             Path::new("/somewhere/else"),
             Path::new("/somewhere/else/_build"),
+            &HashSet::new(),
         ) {
             Err(Error::SourceDirOutsideDeliverableRoot { .. }) => {}
             other => panic!(
@@ -2923,6 +3020,7 @@ mod tests {
             &dir.path,
             Path::new("/abs/002-with-library"),
             Path::new("/abs/002-with-library/_build"),
+            &HashSet::new(),
         )
         .expect("codemodel with a project utility target should parse and translate");
 

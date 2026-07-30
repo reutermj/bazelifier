@@ -13,6 +13,7 @@ load(":catalog.bzl", "cc_config_catalog")
 cc_config_catalog(
     # (header, HAVE_ macro) — check_include_file.
     headers = [
+        ("bsd/stdlib.h", "HAVE_BSD_STDLIB_H"),
         ("dlfcn.h", "HAVE_DLFCN_H"),
         ("endian.h", "HAVE_ENDIAN_H"),
         ("fcntl.h", "HAVE_FCNTL_H"),
