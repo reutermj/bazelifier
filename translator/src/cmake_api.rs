@@ -13,7 +13,7 @@ use std::process::Command;
 
 use serde::Deserialize;
 
-use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
+use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind, Test};
 use crate::needs_attention::{
     NeedsAttention, generated_sources_needs_attention, header_visibility_needs_attention,
     inert_convenience_targets_needs_attention, sources_outside_deliverable_needs_attention,
@@ -127,6 +127,35 @@ struct CodemodelDirectoryRef {
 struct DirectoryReply {
     #[serde(default)]
     installers: Vec<Installer>,
+}
+
+/// `ctest --show-only=json-v1` output. The File API has no test model, so
+/// registered tests (add_test) and their properties come from here instead
+/// — see docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md.
+#[derive(Debug, Deserialize)]
+struct CtestReply {
+    tests: Vec<CtestTest>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CtestTest {
+    name: String,
+    // The resolved command line: [executable, args...]. Absent until the
+    // test's executable is actually built (ctest can't resolve the path
+    // before then); the translator builds first, so it is present.
+    #[serde(default)]
+    command: Vec<String>,
+    #[serde(default)]
+    properties: Vec<CtestProperty>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CtestProperty {
+    name: String,
+    // Property values are polymorphic in the ctest schema (a string for
+    // WORKING_DIRECTORY, a list for PASS_REGULAR_EXPRESSION); kept as raw
+    // JSON and interpreted per-property by `read_tests`.
+    value: serde_json::Value,
 }
 
 /// One `install()` rule as the File API reports it. `install(FILES ... TYPE
@@ -319,6 +348,12 @@ pub fn discover(
     let codemodel = read_codemodel_reply(&reply_dir, &deliverable_root)?;
     let version = read_project_version(&reply_dir)?;
 
+    // Tests come from ctest, not the File API (see read_tests), and their
+    // working directories are rebased against the same module root the
+    // targets' paths were.
+    let mut tests = read_tests(build_dir)?;
+    rebase_tests_to_module_root(&mut tests, &codemodel.module_root);
+
     Ok(Discovery {
         graph: BuildGraph {
             module: ModuleInfo {
@@ -326,6 +361,7 @@ pub fn discover(
                 version,
             },
             targets: codemodel.targets,
+            tests,
         },
         needs_attention: codemodel.needs_attention,
         module_root: codemodel.module_root,
@@ -370,6 +406,84 @@ fn build(build_dir: &Path) -> Result<(), Error> {
         });
     }
     Ok(())
+}
+
+/// Runs `ctest --show-only=json-v1` in the build directory and translates
+/// each registered test into a `Test`. The File API has no test
+/// model, so this is the only structured source for `add_test` and its
+/// properties — see docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md.
+///
+/// Working directories are returned ABSOLUTE (as CTest reports them);
+/// `rebase_tests_to_module_root` makes them module-relative once the module
+/// root is known, matching how target source paths are handled.
+///
+/// A ctest invocation that fails (no CTest, no tests configured) yields an
+/// empty test list rather than an error: a project with no registered tests
+/// is the common case, not a failure. Tests whose command never resolved
+/// (executable not built) are skipped — there is no binary to run.
+fn read_tests(build_dir: &Path) -> Result<Vec<Test>, Error> {
+    let output = Command::new("ctest")
+        .arg("--show-only=json-v1")
+        .current_dir(build_dir)
+        .output()?;
+
+    if !output.status.success() {
+        return Ok(Vec::new());
+    }
+
+    let reply: CtestReply = serde_json::from_slice(&output.stdout)?;
+    Ok(ctest_reply_to_tests(reply))
+}
+
+/// Translates a parsed `ctest --show-only=json-v1` reply into the model's
+/// tests. Split from `read_tests` so a frozen real capture can drive it
+/// without shelling out. Working directories are still absolute here — see
+/// `rebase_tests_to_module_root`.
+fn ctest_reply_to_tests(reply: CtestReply) -> Vec<Test> {
+    let mut tests = Vec::new();
+    for test in reply.tests {
+        // The first command element is the executable; its basename is the
+        // generated cc_binary this test runs. No command means CTest could
+        // not resolve the test's binary, so there is nothing to wrap.
+        let Some(executable) = test.command.first() else {
+            continue;
+        };
+        let target = Path::new(executable)
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| executable.clone());
+
+        let mut working_directory = String::new();
+        let mut pass_regex = None;
+        for property in &test.properties {
+            match property.name.as_str() {
+                "WORKING_DIRECTORY" => {
+                    if let Some(dir) = property.value.as_str() {
+                        working_directory = dir.to_string();
+                    }
+                }
+                // CMake stores this as a list; a test rarely declares more
+                // than one, and the tinyxml2-shaped scope takes the first.
+                "PASS_REGULAR_EXPRESSION" => {
+                    pass_regex = property
+                        .value
+                        .as_array()
+                        .and_then(|a| a.first())
+                        .and_then(|v| v.as_str())
+                        .map(str::to_string);
+                }
+                _ => {}
+            }
+        }
+
+        tests.push(Test {
+            name: test.name,
+            target,
+            working_directory,
+            pass_regex,
+        });
+    }
+    tests
 }
 
 fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Codemodel, Error> {
@@ -653,6 +767,23 @@ fn rebase_to_module_root(
     }
 
     (module_root, escalations)
+}
+
+/// Rewrites each test's `working_directory` from the absolute path CTest
+/// reported to one relative to `module_root`, in place — the same rebasing
+/// target paths get, but for tests. A working directory at the module root
+/// becomes empty. One that resolves outside the module root is left as the
+/// empty string (run at the module root): the tinyxml2-shaped scope does not
+/// yet escalate a test whose data lives outside the deliverable, and running
+/// at the root is the safe default rather than baking in an absolute path.
+fn rebase_tests_to_module_root(tests: &mut [Test], module_root: &Path) {
+    for test in tests {
+        let absolute = normalize_lexically(Path::new(&test.working_directory));
+        test.working_directory = absolute
+            .strip_prefix(module_root)
+            .map(|rel| rel.to_string_lossy().into_owned())
+            .unwrap_or_default();
+    }
 }
 
 /// Maps a CMake target type onto the internal model's kind. `None` means
@@ -2238,6 +2369,86 @@ mod tests {
              not headers — an empty or larger result means a dropped serde rename on \
              Installer::type/destination/paths"
         );
+    }
+
+    // Real `ctest --show-only=json-v1` output for tinyxml2's xmltest,
+    // captured verbatim. Pins the parse of the test model — command,
+    // WORKING_DIRECTORY, PASS_REGULAR_EXPRESSION — against what CTest
+    // actually emits, since the File API has no test model to cross-check
+    // against. See docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md.
+    const CTEST_XMLTEST_JSON: &str = r#"{
+  "kind": "ctestInfo",
+  "version": { "major": 1, "minor": 0 },
+  "tests": [
+    {
+      "name": "xmltest",
+      "command": [ "/abs/build/xmltest" ],
+      "properties": [
+        { "name": "PASS_REGULAR_EXPRESSION", "value": [", Fail 0"] },
+        { "name": "WORKING_DIRECTORY", "value": "/abs/src" }
+      ]
+    }
+  ]
+}"#;
+
+    #[test]
+    fn ctest_reply_parses_real_capture_into_a_test() {
+        let reply: CtestReply =
+            serde_json::from_str(CTEST_XMLTEST_JSON).expect("real ctest capture should parse");
+        let tests = ctest_reply_to_tests(reply);
+        assert_eq!(tests.len(), 1);
+        let t = &tests[0];
+        assert_eq!(t.name, "xmltest");
+        assert_eq!(
+            t.target, "xmltest",
+            "the test target is the basename of the command's executable"
+        );
+        assert_eq!(
+            t.working_directory, "/abs/src",
+            "WORKING_DIRECTORY (a string property) must be read verbatim"
+        );
+        assert_eq!(
+            t.pass_regex.as_deref(),
+            Some(", Fail 0"),
+            "PASS_REGULAR_EXPRESSION (a list property) must yield its first entry"
+        );
+    }
+
+    // A test whose command never resolved (executable not built) has no
+    // binary to wrap and is skipped, rather than emitting a test that can't
+    // run.
+    #[test]
+    fn ctest_reply_skips_a_test_with_no_command() {
+        let reply = CtestReply {
+            tests: vec![CtestTest {
+                name: "unbuilt".to_string(),
+                command: vec![],
+                properties: vec![],
+            }],
+        };
+        assert!(ctest_reply_to_tests(reply).is_empty());
+    }
+
+    #[test]
+    fn rebase_tests_makes_working_directory_module_relative() {
+        let mut tests = vec![
+            Test {
+                name: "at_root".to_string(),
+                target: "t".to_string(),
+                working_directory: "/proj".to_string(),
+                pass_regex: None,
+            },
+            Test {
+                name: "in_subdir".to_string(),
+                target: "t".to_string(),
+                working_directory: "/proj/tests/data".to_string(),
+                pass_regex: None,
+            },
+        ];
+        rebase_tests_to_module_root(&mut tests, Path::new("/proj"));
+        // The module root itself becomes empty; a subdir becomes relative.
+        assert_eq!(tests[0].working_directory, "");
+        assert_eq!(tests[1].working_directory, "tests/data");
     }
 
     #[test]

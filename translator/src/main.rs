@@ -77,12 +77,28 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let generated = codegen::render(graph);
 
     copy_referenced_sources(&discovery.module_root, &args.out_module, graph)?;
+    copy_test_runtime_data(&discovery.module_root, &args.out_module, graph)?;
     fs::write(args.out_module.join("MODULE.bazel"), generated.module_bazel)?;
     fs::write(args.out_module.join("BUILD.bazel"), generated.build_bazel)?;
+    // The wrapper the generated sh_tests run — only when there are tests.
+    if !graph.tests.is_empty() {
+        let script_path = args.out_module.join("run_cmake_test.sh");
+        fs::write(&script_path, codegen::render_run_cmake_test_sh())?;
+        make_executable(&script_path)?;
+    }
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
     write_needs_attention(&args.out_module, &discovery.needs_attention)?;
 
     Ok(())
+}
+
+/// Marks a file executable (0o755). The generated test wrapper is an
+/// `sh_test` `srcs` entry, which Bazel expects to be runnable.
+fn make_executable(path: &Path) -> std::io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+    let mut perms = fs::metadata(path)?.permissions();
+    perms.set_mode(0o755);
+    fs::set_permissions(path, perms)
 }
 
 /// Writes one `needs_attention/<NNN>-<slug>.md` file per gap the
@@ -184,6 +200,78 @@ fn copy_referenced_sources(
         }
     }
 
+    Ok(())
+}
+
+/// Copies the runtime data a CTest test reads/writes under its working
+/// directory into the module, so the generated `sh_test` can stage and run
+/// it (tinyxml2's xmltest reads `resources/*.xml` and writes `resources/out/`).
+///
+/// Unlike `copy_referenced_sources`, the translator cannot know *which*
+/// files under the working directory a test touches — that would need to
+/// run it. So this copies the working directory's subtree wholesale, minus
+/// files that are definitely not runtime data: the build's own metadata
+/// (CMakeLists.txt/Makefile/meson) which the module deliberately omits, and
+/// the Bazel files a checkout may carry (`BUILD.bazel`/`MODULE.bazel`/
+/// `REPO.bazel`), which would collide with the ones the translator emits.
+/// This is the tinyxml2-shaped scope (bzl-c54.8); a precise
+/// referenced-data model is future work — a working directory equal to the
+/// module root copies the whole (clean) source tree, which over-includes
+/// docs and the like but is correct.
+fn copy_test_runtime_data(
+    module_root: &Path,
+    out_dir: &Path,
+    graph: &model::BuildGraph,
+) -> std::io::Result<()> {
+    let mut copied_roots = HashSet::new();
+    for test in &graph.tests {
+        let work_rel = Path::new(&test.working_directory);
+        if !copied_roots.insert(test.working_directory.clone()) {
+            continue;
+        }
+        copy_runtime_tree(&module_root.join(work_rel), &out_dir.join(work_rel))?;
+    }
+    Ok(())
+}
+
+/// Names that must never be copied as runtime data: build metadata the
+/// module omits, and Bazel files that would collide with generated output.
+/// Matched on the file/dir name at any depth.
+const NON_RUNTIME_NAMES: &[&str] = &[
+    "CMakeLists.txt",
+    "Makefile",
+    "meson.build",
+    "meson_options.txt",
+    "BUILD.bazel",
+    "MODULE.bazel",
+    "REPO.bazel",
+    ".git",
+    ".github",
+    ".gitignore",
+];
+
+/// Recursively copies `src` into `dst`, skipping `NON_RUNTIME_NAMES`.
+fn copy_runtime_tree(src: &Path, dst: &Path) -> std::io::Result<()> {
+    if !src.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let name = entry.file_name();
+        if NON_RUNTIME_NAMES
+            .iter()
+            .any(|skip| name.to_str() == Some(skip))
+        {
+            continue;
+        }
+        let child_src = entry.path();
+        let child_dst = dst.join(&name);
+        if child_src.is_dir() {
+            copy_runtime_tree(&child_src, &child_dst)?;
+        } else {
+            copy_into(&child_src, &child_dst)?;
+        }
+    }
     Ok(())
 }
 

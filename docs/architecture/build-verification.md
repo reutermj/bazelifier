@@ -127,6 +127,21 @@ Implemented today:
   binary and the Bazel-built binary, diff stdout, stderr, and exit code.
   Directly answers "does it behave the same," and works even for a
   fixture with no CMake-registered tests of its own.
+- **CMake's own registered tests** (CTest/`add_test()`): the strongest
+  signal, since it reuses the project's own correctness assertions rather
+  than ours. The File API has no test model, so these are read from `ctest
+  --show-only=json-v1` (see
+  [../lore/cmake-test-model-lives-in-ctest-not-file-api.md](../lore/cmake-test-model-lives-in-ctest-not-file-api.md)),
+  and the translator emits, per test, a `sh_test` that runs the binary at
+  its declared `WORKING_DIRECTORY` — with the runtime data staged writable —
+  and asserts the declared `PASS_REGULAR_EXPRESSION`. tinyxml2's `xmltest`
+  is the live example. `validation_workspace` runs that test **instead of**
+  the naive runtime-output comparison for the same binary: a data-driven
+  test run without its data would fail identically on both sides and
+  false-pass the diff. Currently tinyxml2-shaped (command +
+  `WORKING_DIRECTORY` + `PASS_REGULAR_EXPRESSION`); the long tail
+  (`FAIL_REGULAR_EXPRESSION`, `WILL_FAIL`, fixtures, multi-config) is
+  future work.
 
 Deferred until a fixture actually exercises them meaningfully (not worth
 building against a fixture with nothing to differentiate):
@@ -139,10 +154,6 @@ building against a fixture with nothing to differentiate):
   symbols are defined/exported, catching a silently-dropped source file
   without needing the binary to run. More useful once fixtures include
   libraries.
-- **CMake's own registered tests** (CTest/`add_test()`), run against the
-  Bazel-built test binary: the strongest signal once a fixture has one,
-  since it reuses the project's own correctness assertions rather than
-  ours.
 - **Target inventory**: every CMake codemodel target has a corresponding
   Bazel target that built. Cheap, but only catches gross omissions.
 

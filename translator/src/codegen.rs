@@ -11,6 +11,10 @@ use crate::model::{self, BuildGraph, Target, TargetKind};
 // toolchain-selection mechanism yet — see docs/architecture/bazel-codegen.md.
 const RULES_CC_VERSION: &str = "0.2.22";
 const LLVM_VERSION: &str = "0.8.14";
+// Only pulled in when the module has CTest-registered tests (the generated
+// sh_test wrapper needs it), so a plain library/binary module doesn't
+// acquire a dep it never uses.
+const RULES_SHELL_VERSION: &str = "0.8.0";
 
 pub struct GeneratedModule {
     pub module_bazel: String,
@@ -38,10 +42,18 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
         None => String::new(),
     };
 
+    // rules_shell only when there are tests to wrap — see RULES_SHELL_VERSION.
+    let rules_shell = if graph.tests.is_empty() {
+        String::new()
+    } else {
+        format!("bazel_dep(name = \"rules_shell\", version = \"{RULES_SHELL_VERSION}\")\n")
+    };
+
     format!(
         "module(\n    name = \"{name}\",\n{version})\n\n\
          bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n\
-         bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\n\
+         bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\
+         {rules_shell}\n\
          register_toolchains(\"@llvm//toolchain:all\")\n",
         name = graph.module.name,
     )
@@ -70,7 +82,8 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     for rule in &rules {
         out.push_str(&format!("load(\"@rules_cc//cc:{rule}.bzl\", \"{rule}\")\n"));
     }
-    if !rules.is_empty() {
+    render_test_load(&mut out, !graph.tests.is_empty());
+    if !rules.is_empty() || !graph.tests.is_empty() {
         out.push('\n');
     }
 
@@ -81,7 +94,78 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         render_cc_rule(&mut out, target);
     }
 
+    for test in &graph.tests {
+        out.push('\n');
+        render_sh_test(&mut out, test);
+    }
+
     out
+}
+
+/// Renders the `load` for the test wrapper and one `sh_test` per registered
+/// test. Placed after the cc rules. The load is only emitted when there are
+/// tests, so a test-free module's BUILD.bazel is unchanged.
+fn render_test_load(out: &mut String, has_tests: bool) {
+    if has_tests {
+        out.push_str("load(\"@rules_shell//shell:sh_test.bzl\", \"sh_test\")\n");
+    }
+}
+
+/// Renders one `sh_test` wrapping a CTest-registered test. It runs the
+/// module's own `run_cmake_test.sh` (see codegen::RUN_CMAKE_TEST_SH),
+/// passing the binary, the working directory, and the pass regex; `data`
+/// carries the binary and the runtime files the test reads/writes under its
+/// working directory.
+fn render_sh_test(out: &mut String, test: &model::Test) {
+    // The binary the test runs is a sibling cc_binary in this same package.
+    let binary_label = format!(":{}", test.target);
+    // Its runfiles path is `<module>+/<binary>` — but the wrapper derives
+    // the module prefix itself, so only the target name (its runfiles
+    // basename) is passed. cc_binary's default executable basename is its
+    // target name.
+    let binary_rel = &test.target;
+
+    // Everything under the working directory is runtime data the binary may
+    // read or write. Globbed rather than enumerated because the translator
+    // does not model individual data files. The glob root is the working
+    // directory, or the whole module when the test runs at the root.
+    let data_glob = if test.working_directory.is_empty() {
+        "glob([\"**\"], exclude = [\"BUILD.bazel\", \"MODULE.bazel\"])".to_string()
+    } else {
+        format!("glob([\"{}/**\"])", test.working_directory)
+    };
+
+    let pass_regex = test.pass_regex.as_deref().unwrap_or("");
+
+    // A working directory at the module root is passed as "." rather than an
+    // empty string: an empty positional arg gets dropped when Bazel tokenizes
+    // `args`, which would shift the pass regex into the working-directory
+    // slot. "." names the module root unambiguously and never collapses.
+    let working_dir = if test.working_directory.is_empty() {
+        "."
+    } else {
+        &test.working_directory
+    };
+
+    // The CTest test name usually equals its executable's name (tinyxml2's
+    // `xmltest` test runs the `xmltest` binary), which would collide with
+    // the cc_binary target in this same package. Suffix keeps them distinct.
+    let test_name = format!("{}_test", test.name);
+
+    out.push_str(&format!(
+        "sh_test(\n\
+         \x20   name = \"{test_name}\",\n\
+         \x20   srcs = [\"run_cmake_test.sh\"],\n\
+         \x20   args = [\n\
+         \x20        \"{binary_rel}\",\n\
+         \x20        \"{working_dir}\",\n\
+         \x20        \"{pass_regex}\",\n\
+         \x20   ],\n\
+         \x20   data = [\n\
+         \x20        \"{binary_label}\",\n\
+         \x20   ] + {data_glob},\n\
+         )\n",
+    ));
 }
 
 /// Renders one list-valued attribute, one item per line.
@@ -226,6 +310,79 @@ pub fn render_ground_truth_build_bazel(artifacts: &[String]) -> String {
     format!("exports_files([{exports}])\n")
 }
 
+/// The wrapper `sh_test` binary the generated module ships to run a
+/// CTest-registered test. It exists because a CTest test is more than "run
+/// this binary": it runs at a specific working directory, that directory
+/// holds runtime data the binary reads AND writes (tinyxml2's xmltest reads
+/// resources/*.xml and writes resources/out/, and segfaults if the output
+/// dir is missing), and pass/fail is decided by a regex over stdout, not the
+/// exit code alone. See docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md.
+///
+/// Runfiles are read-only, so the data can't be written in place — the
+/// script copies the whole module tree from runfiles into a writable temp
+/// dir and runs there. Args: $1 = binary runfiles-relative path, $2 =
+/// working directory relative to the module root ("" = module root), $3 =
+/// pass regex ("" = none, exit code alone decides).
+const RUN_CMAKE_TEST_SH: &str = r#"#!/usr/bin/env bash
+# Runs a CMake-registered test (see codegen::RUN_CMAKE_TEST_SH and
+# docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md). Not `set -e`:
+# the binary's own nonzero exit is data this script evaluates, not a reason
+# to abort before checking the pass regex.
+set -uo pipefail
+
+binary_name="$1"
+working_dir="$2"
+pass_regex="$3"
+
+# This wrapper, the test binary, and the module's runtime data are all in
+# the same package, so in runfiles they are siblings in this script's own
+# directory. Derive the module's runfiles root from $0 rather than from
+# TEST_WORKSPACE: when this module is a *dependency* of the workspace under
+# test, its files live under runfiles/<canonical_repo>/ (e.g. tinyxml2+/),
+# not runfiles/<TEST_WORKSPACE>/ — and the canonical repo name is something
+# the module itself cannot know. $0's directory is correct whether the module
+# is the root or a dependency.
+module_runfiles="$(cd "$(dirname "$0")" && pwd)"
+
+# Runfiles are read-only and the test writes into its working directory
+# (tinyxml2's xmltest writes resources/out/), so stage a writable copy and
+# run there. The binary is copied along with everything else, then run from
+# the staged tree so its relative data paths resolve.
+work_root="${TEST_TMPDIR:-$(mktemp -d)}/work"
+mkdir -p "${work_root}"
+cp -RL "${module_runfiles}/." "${work_root}/" 2>/dev/null || true
+# working_dir is "." for the module root, or a module-relative subdir — never
+# empty (an empty positional arg would be dropped when Bazel tokenizes args).
+run_dir="${work_root}/${working_dir}"
+mkdir -p "${run_dir}"
+
+binary="${work_root}/${binary_name}"
+chmod +x "${binary}" 2>/dev/null || true
+
+output="$(cd "${run_dir}" && "${binary}" 2>&1)"
+exit_code=$?
+
+echo "${output}"
+
+if [[ -n "${pass_regex}" ]]; then
+  if ! grep -qE "${pass_regex}" <<<"${output}"; then
+    echo "FAIL: output did not match PASS_REGULAR_EXPRESSION ${pass_regex}" >&2
+    exit 1
+  fi
+  # With a pass regex, CTest treats a match as success regardless of exit
+  # code; mirror that (many test harnesses signal via output, not status).
+  exit 0
+fi
+
+exit "${exit_code}"
+"#;
+
+/// Returns the wrapper test runner script the module ships when it has
+/// CTest-registered tests. `main` writes it into the module root.
+pub fn render_run_cmake_test_sh() -> String {
+    RUN_CMAKE_TEST_SH.to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,6 +394,7 @@ mod tests {
                 name: "hello_world".to_string(),
                 version: version.map(str::to_string),
             },
+            tests: vec![],
             targets: vec![Target {
                 name: "hello".to_string(),
                 kind: TargetKind::Executable,
@@ -267,6 +425,7 @@ mod tests {
                 name: "lib_example".to_string(),
                 version: None,
             },
+            tests: vec![],
             targets: vec![
                 Target {
                     name: "greet".to_string(),
@@ -315,6 +474,7 @@ mod tests {
                 name: "binary_private_include".to_string(),
                 version: None,
             },
+            tests: vec![],
             targets: vec![Target {
                 name: "app".to_string(),
                 kind: TargetKind::Executable,
@@ -349,6 +509,7 @@ mod tests {
                     name: "m".to_string(),
                     version: None,
                 },
+                tests: vec![],
                 targets: vec![Target {
                     name: "t".to_string(),
                     kind: kind.clone(),
@@ -424,6 +585,82 @@ mod tests {
         );
     }
 
+    fn graph_with_test(test: model::Test) -> BuildGraph {
+        BuildGraph {
+            module: ModuleInfo {
+                name: "m".to_string(),
+                version: None,
+            },
+            targets: vec![Target {
+                name: "xmltest".to_string(),
+                kind: TargetKind::Executable,
+                sources: vec!["src/xmltest.cpp".to_string()],
+                public_headers: vec![],
+                dependencies: vec![],
+                includes: vec![],
+                local_defines: vec![],
+                artifacts: vec!["xmltest".to_string()],
+            }],
+            tests: vec![test],
+        }
+    }
+
+    #[test]
+    fn renders_sh_test_and_rules_shell_dep_for_a_registered_test() {
+        let graph = graph_with_test(model::Test {
+            name: "xmltest".to_string(),
+            target: "xmltest".to_string(),
+            working_directory: String::new(),
+            pass_regex: Some(", Fail 0".to_string()),
+        });
+        let generated = render(&graph);
+
+        assert!(
+            generated.module_bazel.contains("rules_shell"),
+            "a module with a test must depend on rules_shell:\n{}",
+            generated.module_bazel
+        );
+        assert!(
+            generated
+                .build_bazel
+                .contains("load(\"@rules_shell//shell:sh_test.bzl\", \"sh_test\")"),
+            "the sh_test rule must be loaded:\n{}",
+            generated.build_bazel
+        );
+        // The test target is suffixed to avoid colliding with the cc_binary
+        // of the same name, and the working dir renders as "." (not an empty
+        // arg, which Bazel would drop and shift the pass regex into).
+        assert!(
+            generated.build_bazel.contains("name = \"xmltest_test\""),
+            "the test target must be name-suffixed:\n{}",
+            generated.build_bazel
+        );
+        assert!(
+            generated
+                .build_bazel
+                .contains("\"xmltest\",\n         \".\",\n         \", Fail 0\","),
+            "args must be [binary, \".\" for module root, pass regex]:\n{}",
+            generated.build_bazel
+        );
+    }
+
+    // Both directions: a module with NO tests gets neither the rules_shell
+    // dep nor the sh_test load — a plain library/binary module is unchanged.
+    #[test]
+    fn renders_no_test_scaffolding_when_there_are_no_tests() {
+        let generated = render(&graph(None));
+        assert!(
+            !generated.module_bazel.contains("rules_shell"),
+            "a test-free module must not depend on rules_shell:\n{}",
+            generated.module_bazel
+        );
+        assert!(
+            !generated.build_bazel.contains("sh_test"),
+            "a test-free module must not load or emit sh_test:\n{}",
+            generated.build_bazel
+        );
+    }
+
     fn graph_with(kind: TargetKind, mutate: impl FnOnce(&mut Target)) -> BuildGraph {
         let mut target = Target {
             name: "t".to_string(),
@@ -441,6 +678,7 @@ mod tests {
                 name: "m".to_string(),
                 version: None,
             },
+            tests: vec![],
             targets: vec![target],
         }
     }
@@ -492,6 +730,7 @@ mod tests {
                 name: "m".to_string(),
                 version: Some("1.0.0".to_string()),
             },
+            tests: vec![],
             targets: vec![
                 Target {
                     name: "lib".to_string(),

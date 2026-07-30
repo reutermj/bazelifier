@@ -98,10 +98,37 @@ pub struct ModuleInfo {
     pub version: Option<String>,
 }
 
+/// One CMake-registered test (`add_test`), recovered from `ctest
+/// --show-only=json-v1` rather than the File API, which has no test model —
+/// see docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md. Only the
+/// subset needed to reproduce the test's pass/fail decision in Bazel is
+/// carried; the long tail of CTest properties (FAIL_REGULAR_EXPRESSION,
+/// WILL_FAIL, ENVIRONMENT, fixtures, ...) is deferred.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Test {
+    /// The CTest test name (`add_test(NAME ...)`).
+    pub name: String,
+    /// Name of the generated target this test runs — the basename of the
+    /// test command's executable, which matches a `cc_binary` this module
+    /// also emits. The test wraps that binary rather than re-locating it.
+    pub target: String,
+    /// The directory the binary must run in, relative to the module root
+    /// (from CTest's `WORKING_DIRECTORY`, rebased). The build's runtime data
+    /// (e.g. tinyxml2's `resources/`) lives here. Empty means the module
+    /// root itself.
+    pub working_directory: String,
+    /// A substring/regex the binary's output must match for the test to
+    /// pass, from CTest's `PASS_REGULAR_EXPRESSION`. `None` when the test
+    /// declares none (then the exit code alone decides). This is the
+    /// project's own pass criterion, translated rather than invented.
+    pub pass_regex: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildGraph {
     pub module: ModuleInfo,
     pub targets: Vec<Target>,
+    pub tests: Vec<Test>,
 }
 
 #[cfg(test)]

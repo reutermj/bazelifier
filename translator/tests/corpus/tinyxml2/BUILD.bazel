@@ -14,16 +14,16 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project
 # it emits, so the deliverable stays self-contained. source_dir is left
 # empty so the rule derives the staged external path from the CMakeLists.txt.
 #
-# The conversion is now CLEAN — zero needs_attention items: the CTest
-# dashboard UTILITY targets are dropped by provenance (bzl-c54.6), and
-# tinyxml2.h is classified public via its install(FILES ... TYPE INCLUDE)
-# rule (bzl-c54.7), so it lands in hdrs rather than escalating. The library
-# builds hermetically as a standalone module. Still NOT enrolled in
-# //translator/tests:validation_workspace, for one remaining reason: the
-# xmltest binary reads resources/dream.xml and writes resources/out/ at a
-# hardcoded working directory, which the runtime-output equivalence check
-# does not yet stage (bzl-c54.8). Enrolling now would make xmltest's
-# ground-truth comparison fail. Enrols once bzl-c54.8 lands.
+# The conversion is CLEAN — zero needs_attention items: the CTest dashboard
+# UTILITY targets are dropped by provenance (bzl-c54.6), and tinyxml2.h is
+# classified public via its install(FILES ... TYPE INCLUDE) rule (bzl-c54.7),
+# so it lands in hdrs. The library builds hermetically, and xmltest is
+# validated by its own generated Bazel test (@tinyxml2//:xmltest_test),
+# which runs it at its declared WORKING_DIRECTORY with resources/ staged and
+# asserts CMake's own PASS_REGULAR_EXPRESSION ", Fail 0" (bzl-c54.8). The
+# validation_workspace runs that test instead of a naive ground-truth stdout
+# comparison, which for a data-driven test would false-pass. Fully enrolled
+# and green.
 convert_cmake_project(
     name = "converted",
     srcs = ["@tinyxml2//:all_srcs"],

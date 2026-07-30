@@ -82,6 +82,21 @@ for fixture_dir in "${fixture_dirs[@]}"; do
     echo
   } >> "${out_dir}/MODULE.bazel"
 
+  # sh_test(name = "<binary>_test") is how the translator emits a
+  # CTest-registered test (see codegen::render_sh_test): it runs the binary
+  # at its declared WORKING_DIRECTORY with runtime data staged and asserts
+  # the project's own PASS_REGULAR_EXPRESSION. A binary with such a test is
+  # validated by it, NOT by the naive ground-truth stdout comparison below —
+  # which for a data-driven test (tinyxml2's xmltest reads resources/) would
+  # run both binaries with no data, see them fail identically, and false-pass.
+  # So: collect the tested binaries, skip their comparison, and add their own
+  # test to the suite instead.
+  tested_binaries=" "
+  while IFS= read -r test_target; do
+    tested_binaries="${tested_binaries}${test_target%_test} "
+    test_labels+=("        \\"@${module_name}//:${test_target}\\",")
+  done < <(sed -n '/^sh_test($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}")
+
   # cc_binary(name = "...") is likewise always rendered this way — see
   # codegen::render_cc_rule via rule_name — so every executable target
   # name (and only executable target names) can be read straight back out
@@ -92,6 +107,10 @@ for fixture_dir in "${fixture_dirs[@]}"; do
   # this doesn't also pick up library artifacts (e.g. libgreet.a) that
   # compare_runtime_output.sh can't execute.
   while IFS= read -r target_name; do
+    # Skip a binary that has its own CTest test (see tested_binaries above).
+    case "${tested_binaries}" in
+      *" ${target_name} "*) continue ;;
+    esac
     test_name="${fixture_name}_${target_name}_matches_ground_truth"
     test_labels+=("        \\":${test_name}\\",")
     {
