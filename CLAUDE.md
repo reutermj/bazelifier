@@ -53,8 +53,15 @@ source in every fixture build.
 ## Where things live
 
 - `translator/` — the Rust translator crate:
-  - `src/cmake_api.rs` — CMake File API frontend; also runs the real build
-    to capture ground-truth artifacts.
+  - `src/cmake_api.rs` — CMake frontend: reads the File API
+    (`codemodel-v2` + `cache-v2`) and the CTest test model (`ctest
+    --show-only=json-v1`), and runs the real build to capture ground-truth
+    artifacts. Derives the module root and rebases reported paths onto it
+    (building on `src/paths.rs`).
+  - `src/paths.rs` — pure path geometry (normalize, absolutize, common
+    ancestor, resolve-against-source-dir) the frontend's rebasing is built
+    on; no CMake or build-graph knowledge, so it generalizes to other
+    frontends.
   - `src/codegen.rs` — renders every Bazel file the translator emits: the
     module's `MODULE.bazel` + `BUILD.bazel`, and the small ones for
     `ground_truth/` and `needs_attention/`. If you're writing Bazel syntax

@@ -2,6 +2,7 @@ mod cmake_api;
 mod codegen;
 mod model;
 mod needs_attention;
+mod paths;
 
 use std::collections::HashSet;
 use std::fs;
