@@ -71,14 +71,32 @@ feeds that into the `cc_library`.
 
 The load-bearing property. If the probe for `HAVE_ENDIAN_H` is a **single
 shared target** in `cc_config` (e.g. `@cc_config//probes:have_endian_h`),
-then every converted project that needs it references the *same* target.
-Bazel builds an action once per configuration and caches it, so the probe
-runs **once per toolchain across the entire build graph** — not N times for
-N projects that happen to need the same fact. This falls out of Bazel's
-action caching *provided the probes are shared targets*, not per-project
-macro expansions that each synthesize their own action. Designing for shared
-probe targets (a fixed catalog of common probes, or interned by
-header/symbol name) is therefore a requirement, not an optimization.
+then every converted project that needs it references the *same* target,
+Bazel builds its action once per configuration, and the probe runs **once
+per toolchain across the entire build graph** — not N times for N projects
+that happen to need the same fact.
+
+**Sharing is at the target level, deliberately — not action-level dedup.**
+The tempting alternative is "on-demand": let each converted project *declare*
+its own `check_include_file(name = "have_endian_h", ...)` in its own
+generated `BUILD.bazel`, no catalog to maintain. That does not share. Two
+such targets live in different packages (`@json_c//…`, `@tinyxml2//…`) and
+each must declare its own output file, whose path includes the package name;
+if the probe's compile action writes to that per-package output, the two
+actions have different command lines, different action keys, and Bazel runs
+the probe twice. Action-level dedup could be recovered by splitting the
+shared compile from the per-package copy, but that is extra rule machinery
+buying back a property target-level sharing gives for free.
+
+So probes are **shared targets in `cc_config`**, referenced (not
+redeclared) by converted projects. The maintenance objection to a fixed
+catalog — that someone must add a target per fact — is answered by
+*generating* the catalog: `cc_config`'s probe targets are the union of the
+facts the corpus actually needs, produced from the templates rather than
+hand-curated, so there is no human bottleneck and no project blocked on a
+missing entry. (Where to draw the line between a generated catalog and
+`cc_config` shipping a broad fixed set of the common autoconf facts is the
+one detail left to settle when building it.)
 
 ## What the translator must do
 
@@ -98,51 +116,92 @@ Two layers, and the translator side is the smaller one:
    `BUILD.bazel` rules that turn templates + probe results into the config
    header and route it into the library.
 
-The probe results → `#cmakedefine` substitution is template expansion over a
-`{macro: value}` map a probe rule provides; `expand_template` or a small
-custom rule reading a provider.
+The substitution is template expansion over a `{name: value}` map — some
+entries from probe rules (via a provider), some from values the translator
+captured; `expand_template` or a small custom rule reading both.
 
-## Macro categories (from json-c's ~48)
+## What a template references (from json-c's ~48 macros + its `@VAR@`s)
 
-- **`HAVE_<header>`** (~20) — `check_include_file`.
-- **`HAVE_<symbol>` / `HAVE_DECL_<x>`** (~15) — `check_symbol_exists`.
-- **`SIZEOF_<type>`** (~6) — `check_type_size`.
-- **`ENABLE_<feature>` / options** — these are CMake `option()`s (user
-  choices: `ENABLE_RDRAND`, `ENABLE_THREADING`), not probes. Map to a Bazel
-  config knob or a fixed conservative default; do not probe for them.
+Three kinds, by where the value comes from — see "Non-probe substitutions":
+
+- **Probe-derived** (`#cmakedefine`) — computed against the consumer's
+  toolchain by `cc_config`:
+  - **`HAVE_<header>`** (~20) — `check_include_file`.
+  - **`HAVE_<symbol>` / `HAVE_DECL_<x>`** (~15) — `check_symbol_exists`.
+  - **`SIZEOF_<type>`** (~6) — `check_type_size`.
+- **Option-derived** — CMake `option()` user choices (`ENABLE_RDRAND`,
+  `ENABLE_THREADING`); a Bazel config knob or fixed default, not a probe.
+- **Cache-value** (`@VAR@`) — plain CMake variables, chiefly version
+  strings (json.h's `@JSON_C_MAJOR_VERSION@` etc.); substituted from values
+  the translator reads at conversion time, toolchain-independent.
 
 ## Scope and sequencing
 
 This is large — its own subsystem, not a translator tweak. Expected order:
 
 1. This design doc, reviewed.
-2. The `cc_config` module: the probe rules, toolchain resolution, the
-   shared-target sharing model, and template substitution — with its own
-   tests (a probe for a header that exists and one that doesn't; the
-   once-per-toolchain sharing demonstrated across two consumers).
-3. A **synthetic** `configure_file` fixture (a template + one probe + a
-   source that includes the output) — the focused driver, per the repo's
-   "a capability isn't finished until a fixture exercises it," covering both
-   the source-listed and include-only header shapes.
-4. Translator codegen for detection + wiring.
+2. The `cc_config` module (local to this repo): the probe rules, toolchain
+   resolution, the shared-target sharing model, and the template-expansion
+   rule that consumes probe results plus a translator-supplied value map —
+   with its own tests (a probe for a header that exists and one that
+   doesn't; the once-per-toolchain sharing demonstrated across two
+   consumers; a `@VAR@` and an `#cmakedefine` both substituted).
+3. A **synthetic** `configure_file` fixture (a template with a probe
+   `#cmakedefine` *and* a plain `@VAR@`, and a source that includes the
+   output) — the focused driver, per the repo's "a capability isn't
+   finished until a fixture exercises it," covering both the source-listed
+   and include-only header shapes.
+4. Translator codegen: detection, the `bazel_dep(cc_config)`, copying the
+   templates, capturing the cache-value substitutions, and the wiring.
 5. **json-c as the integration proof** — its library compiles hermetically,
    under the module's own toolchain, with no host-captured config.
 
+## Ownership
+
+`cc_config` is a module **bazelifier itself publishes**, and every converted
+project depends on it (`bazel_dep`) — a shared dependency is what makes
+once-per-toolchain real; a vendored-per-module copy would re-probe per
+project. The generated modules therefore gain a genuine dependency beyond
+`rules_cc`/`llvm`, worth noting in bazel-codegen.md when this lands.
+
+For now `cc_config` lives **inside this repo** (a local module, e.g. under
+`cc_config/` with a `local_path_override` the same way the validation
+workspace wires fixtures), not a separately-released artifact. Converted
+modules in the validation tarball reference the local copy; publishing it as
+a standalone versioned module is a later step, once its rule surface has
+settled.
+
+## Non-probe substitutions
+
+`configure_file` substitutes more than feature-detection results. Besides
+`#cmakedefine` (probes) and CMake `option()`s, templates carry `@VAR@`
+references to plain CMake variables — version strings (`@PROJECT_VERSION@`,
+json-c's `@JSON_C_MAJOR_VERSION@`), computed values, and the like — and
+these **must be handled too**, not deferred: json.h itself is generated this
+way, and a config header with an unsubstituted `@VERSION@` is as broken as
+one missing a `HAVE_` define.
+
+These values are simpler than probes — they are known at conversion time
+from the CMake cache (the translator already reads `cache-v2` for
+`CMAKE_PROJECT_VERSION` and `CMAKE_ROOT`), so the substitution is a
+straight value lookup, not a toolchain probe. The design splits template
+variables into three kinds: **probe-derived** (`#cmakedefine HAVE_*` →
+`cc_config` probes, computed against the consumer's toolchain),
+**option-derived** (CMake `option()` user choices → a Bazel config knob or
+fixed default), and **cache-value** (`@VAR@` plain variables → substituted
+from values the translator captures at conversion time, since they do not
+depend on the consumer's toolchain). Enumerating exactly which cache
+variables real projects reference — beyond the versions json-c needs — is
+the part to firm up while building this, but plain-variable substitution is
+in scope from the start, not a follow-on.
+
 ## Open questions
 
-**Open question:** probe catalog vs. on-demand. A fixed catalog of common
-probes shares cleanly but must be maintained; interning arbitrary
-header/symbol names by string keeps sharing without a catalog but needs the
-rule machinery to dedup targets. Decide when building `cc_config`.
+**Open question:** the boundary between a generated probe catalog and a
+broad fixed set `cc_config` ships for the common autoconf facts — see the
+sharing section. Both give target-level sharing; which is less friction is a
+build-time call.
 
-**Open question:** `cc_config` ownership. Is it a module bazelifier
-publishes and every converted project depends on (a real external
-dependency of the deliverables), or vendored per module? A shared dep is
-what makes once-per-toolchain real; a vendored copy re-probes per project.
-The sharing requirement argues for a published shared module — which means
-the generated modules gain a genuine third-party `bazel_dep` beyond
-`rules_cc`/`llvm`, worth stating in bazel-codegen.md when this lands.
-
-**Open question:** non-probe substitutions. `@VAR@` values that are neither
-probes nor options (version strings, paths) — enumerate what real projects
-need beyond json-c before generalizing the substitution.
+**Open question:** which cache variables (`@VAR@`) recur across projects
+beyond version strings — enough to know whether the value lookup needs
+anything more than reading named cache entries.
