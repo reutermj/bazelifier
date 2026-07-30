@@ -89,14 +89,12 @@ shared compile from the per-package copy, but that is extra rule machinery
 buying back a property target-level sharing gives for free.
 
 So probes are **shared targets in `cc_config`**, referenced (not
-redeclared) by converted projects. The maintenance objection to a fixed
-catalog — that someone must add a target per fact — is answered by
-*generating* the catalog: `cc_config`'s probe targets are the union of the
-facts the corpus actually needs, produced from the templates rather than
-hand-curated, so there is no human bottleneck and no project blocked on a
-missing entry. (Where to draw the line between a generated catalog and
-`cc_config` shipping a broad fixed set of the common autoconf facts is the
-one detail left to settle when building it.)
+redeclared) by converted projects. `cc_config` ships a fixed, hand-written
+set of the common autoconf facts (see "Settled during design"); the
+maintenance concern is bounded because that set — the same
+`HAVE_<header>`/`HAVE_<symbol>`/`SIZEOF_<type>` catalog autoconf and CMake's
+own modules enumerate — covers the large majority of what projects check,
+and an uncovered fact is a one-line addition the escalation can point to.
 
 ## What the translator must do
 
@@ -195,13 +193,23 @@ variables real projects reference — beyond the versions json-c needs — is
 the part to firm up while building this, but plain-variable substitution is
 in scope from the start, not a follow-on.
 
-## Open questions
+## Settled during design
 
-**Open question:** the boundary between a generated probe catalog and a
-broad fixed set `cc_config` ships for the common autoconf facts — see the
-sharing section. Both give target-level sharing; which is less friction is a
-build-time call.
+**Catalog form: a fixed, hand-written broad set in `cc_config`, not a
+generated one.** `cc_config` ships probe targets for the common autoconf
+facts — the `HAVE_<header>`/`HAVE_<symbol>`/`SIZEOF_<type>` set that
+autoconf and CMake's own modules already enumerate — which covers the
+overwhelming majority of what real projects check. Generating the catalog
+from the corpus's needs would couple the translator to mutating a
+checked-in module for a payoff that isn't there at this scale; it stays a
+later option if the fixed set proves a bottleneck (YAGNI now). A project
+needing a fact the set doesn't cover is a one-line addition to `cc_config`,
+and the escalation for an unhandled config macro can name exactly which line
+to add.
 
-**Open question:** which cache variables (`@VAR@`) recur across projects
-beyond version strings — enough to know whether the value lookup needs
-anything more than reading named cache entries.
+**Cache-value substitution is generic, not an enumerated allowlist.**
+`configure_file` substitutes `@VAR@` from whatever CMake variable of that
+name exists, so the translator does the same: look the name up in the
+captured cache and substitute its value. Version strings are just the common
+case, not a special one — a generic lookup handles them and anything else a
+template references without a curated list to maintain.
