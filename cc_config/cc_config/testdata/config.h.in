@@ -1,0 +1,5 @@
+/* Test template for config_header. */
+#cmakedefine HAVE_STDLIB_H
+#cmakedefine HAVE_NO_SUCH_SYMBOL
+#cmakedefine PACKAGE_NAME "@PACKAGE_NAME@"
+#define PACKAGE_VERSION "@PACKAGE_VERSION@"

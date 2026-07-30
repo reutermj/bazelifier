@@ -1,6 +1,10 @@
-load(":probe.bzl", "assert_probe_result_test", "check_include_file")
+load(":config_header.bzl", "assert_config_header_test", "config_header")
+load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists")
 
-exports_files(["probe.bzl"])
+exports_files([
+    "probe.bzl",
+    "config_header.bzl",
+])
 
 # Probe-mechanics tests: a header that must exist under any C toolchain, and
 # one that cannot. They exercise both outcomes of the compile probe — that a
@@ -29,4 +33,66 @@ assert_probe_result_test(
     name = "missing_header_is_not_found",
     expected = False,
     probe = ":have_definitely_no_such_header",
+)
+
+# Symbol probes: a libc function that must link, and one that cannot. The
+# link step is what distinguishes these from a header probe — a declared but
+# unresolvable symbol compiles yet fails to link.
+check_symbol_exists(
+    name = "have_printf",
+    define = "HAVE_PRINTF",
+    headers = ["stdio.h"],
+    symbol = "printf",
+)
+
+assert_probe_result_test(
+    name = "printf_is_found",
+    expected = True,
+    probe = ":have_printf",
+)
+
+check_symbol_exists(
+    name = "have_no_such_symbol",
+    define = "HAVE_NO_SUCH_SYMBOL",
+    headers = ["stdio.h"],
+    symbol = "definitely_no_such_symbol_xyz123",
+)
+
+assert_probe_result_test(
+    name = "missing_symbol_is_not_found",
+    expected = False,
+    probe = ":have_no_such_symbol",
+)
+
+# End-to-end: a template resolved from real probe results (HAVE_STDLIB_H true,
+# HAVE_NO_SUCH_SYMBOL false) plus @VAR@ values, producing an actual header.
+config_header(
+    name = "test_config_h",
+    output = "test_config.h",
+    probes = [
+        ":have_stdlib_h",
+        ":have_no_such_symbol",
+    ],
+    template = "testdata/config.h.in",
+    values = {
+        "PACKAGE_NAME": "cc_config_test",
+        "PACKAGE_VERSION": "1.2.3",
+    },
+)
+
+assert_config_header_test(
+    name = "config_header_test",
+    header = ":test_config_h",
+    must_contain = [
+        # A true probe becomes a #define; a false one becomes /* #undef */.
+        "#define HAVE_STDLIB_H",
+        "/* #undef HAVE_NO_SUCH_SYMBOL */",
+        # @VAR@ substituted in a #cmakedefine value and a plain line.
+        "#define PACKAGE_NAME \"cc_config_test\"",
+        "#define PACKAGE_VERSION \"1.2.3\"",
+    ],
+    must_not_contain = [
+        "#define HAVE_NO_SUCH_SYMBOL",
+        "@PACKAGE_VERSION@",
+    ],
 )
