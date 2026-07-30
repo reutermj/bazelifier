@@ -1,0 +1,18 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the compile-definitions capability (Layer A): a library with
+# PUBLIC/PRIVATE/INTERFACE target_compile_definitions and an executable
+# linking it. Each define is observable in the executable's stdout, so the
+# ground-truth comparison fails if any is missing from — or wrongly
+# propagated in — the generated build, independent of whether compilation
+# happens to succeed. See the fixture's CMakeLists.txt and
+# docs/lore/cmake-file-api-compile-definitions-shape.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "include/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

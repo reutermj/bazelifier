@@ -124,8 +124,10 @@ source in every fixture build.
 - **Tests come in three tiers, and each one proves something the others
   can't.** Fix a bug at the lowest tier that can fail on it, and don't
   mistake a tier's pass for a claim it never made.
-  - *Rust unit tests* (`cd translator && cargo test` for the fast loop;
-    `bazel test //translator:bazelifier_test` is the authority) run over
+  - *Rust unit tests* (`bazel test //translator:bazelifier_test` — always
+    run them through Bazel, never `cargo test`: cargo uses a different
+    toolchain and dependency-resolution path, so it can pass while the
+    Bazel build is red, which makes its green meaningless here) run over
     inputs we wrote. They pin decisions — classification, path rebasing,
     rendering, escalation text — and they are the only tier where asserting
     a *negative* is cheap. What they cannot do is contradict us: every

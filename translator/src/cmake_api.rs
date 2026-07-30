@@ -129,12 +129,27 @@ struct TargetReply {
 struct CompileGroup {
     #[serde(default)]
     includes: Vec<CompileGroupInclude>,
+    // The File API omits this key for a group with no definitions, hence
+    // the default. Each entry is the effective define for this group's
+    // compilation with its PUBLIC/PRIVATE/INTERFACE origin already erased —
+    // see docs/lore/cmake-file-api-compile-definitions-shape.md.
+    #[serde(default)]
+    defines: Vec<CompileGroupDefine>,
 }
 
 #[derive(Debug, Deserialize)]
 struct CompileGroupInclude {
     path: String,
     backtrace: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+struct CompileGroupDefine {
+    /// The full macro as CMake would pass it to the compiler: `NAME` for a
+    /// bare definition, `NAME=VALUE` when a value is given. Emitted verbatim
+    /// into Bazel's `local_defines` — Bazel applies the same `NAME[=VALUE]`
+    /// convention, so no reformatting is needed.
+    define: String,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -636,6 +651,7 @@ fn to_target(
         .collect();
 
     let includes = own_include_dirs(reply);
+    let local_defines = target_defines(reply);
 
     let mut needs_attention = Vec::new();
     if kind == TargetKind::Library
@@ -659,6 +675,7 @@ fn to_target(
         public_headers,
         dependencies,
         includes,
+        local_defines,
         artifacts: reply.artifacts.iter().map(|a| a.path.clone()).collect(),
     };
 
@@ -716,6 +733,33 @@ fn own_include_dirs(reply: &TargetReply) -> Vec<String> {
     }
 
     includes
+}
+
+/// Collects the preprocessor definitions effective on this target's own
+/// compilation, deduplicated, in first-seen order.
+///
+/// Unlike `own_include_dirs`, this does NOT filter by backtrace to drop
+/// inherited entries: everything here becomes Bazel `local_defines` (Layer
+/// A), which are non-propagating, so a define that reached this target from
+/// a dependency's PUBLIC visibility is *supposed* to be re-stated on this
+/// target rather than inherited — that is exactly what makes the flattened
+/// per-target set self-consistent without reconstructing propagation. The
+/// backtrace-based own-vs-inherited split is Layer B (bzl-c54.3). See
+/// `model::Target::local_defines` and
+/// docs/lore/cmake-file-api-compile-definitions-shape.md.
+fn target_defines(reply: &TargetReply) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut defines = Vec::new();
+
+    for group in &reply.compile_groups {
+        for define in &group.defines {
+            if seen.insert(define.define.clone()) {
+                defines.push(define.define.clone());
+            }
+        }
+    }
+
+    defines
 }
 
 /// Whether an include's backtrace resolves to a `target_link_libraries`
@@ -830,6 +874,7 @@ mod tests {
                         backtrace: Some(2),
                     },
                 ],
+                defines: vec![],
             }],
             backtrace_graph: backtrace_graph_with_commands(
                 vec!["target_include_directories", "target_link_libraries"],
@@ -840,6 +885,55 @@ mod tests {
         // Absolute at this stage; rebase_to_module_root makes it
         // module-relative once the module root is known.
         assert_eq!(own_include_dirs(&reply), vec!["/proj/include".to_string()]);
+    }
+
+    // Layer A collects every effective define, deduped across groups, in
+    // first-seen order — and, unlike own_include_dirs, does NOT drop
+    // inherited (PUBLIC-propagated) ones: they belong in this target's
+    // local_defines because local_defines don't propagate. A NAME=VALUE
+    // define must survive verbatim. See target_defines and
+    // docs/lore/cmake-file-api-compile-definitions-shape.md.
+    #[test]
+    fn target_defines_collects_deduped_in_order_including_inherited() {
+        let reply = TargetReply {
+            name: "app".to_string(),
+            cmake_type: "EXECUTABLE".to_string(),
+            sources: vec![],
+            file_sets: vec![],
+            dependencies: vec![],
+            artifacts: vec![],
+            compile_groups: vec![
+                CompileGroup {
+                    includes: vec![],
+                    defines: vec![
+                        CompileGroupDefine {
+                            define: "OWN_DEF".to_string(),
+                        },
+                        // Inherited from a dependency's PUBLIC define — must
+                        // be KEPT (contrast own_include_dirs), because
+                        // local_defines are non-propagating.
+                        CompileGroupDefine {
+                            define: "PUB_FROM_DEP=1".to_string(),
+                        },
+                    ],
+                },
+                CompileGroup {
+                    includes: vec![],
+                    // Duplicate across groups — deduped.
+                    defines: vec![CompileGroupDefine {
+                        define: "OWN_DEF".to_string(),
+                    }],
+                },
+            ],
+            backtrace_graph: empty_backtrace_graph(),
+        };
+
+        assert_eq!(
+            target_defines(&reply),
+            vec!["OWN_DEF".to_string(), "PUB_FROM_DEP=1".to_string()],
+            "target_defines must collect every effective define (including \
+             inherited PUBLIC ones), deduped, preserving NAME=VALUE verbatim"
+        );
     }
 
     fn public_file_set() -> Vec<TargetFileSet> {
@@ -1154,6 +1248,7 @@ mod tests {
             public_headers: vec![],
             dependencies: vec![],
             includes: includes.into_iter().map(str::to_string).collect(),
+            local_defines: vec![],
             artifacts: vec![],
         }
     }
@@ -1553,5 +1648,78 @@ mod tests {
                 }
             ),
         }
+    }
+
+    // Real CMake File API output for the `defs` target, captured verbatim
+    // from a build of 009-compile-definitions — NOT hand-constructed. The
+    // hand-built target_defines_* test above proves our dedup/ordering
+    // logic; this pins the serde contract (`compileGroups[].defines[].define`)
+    // against what CMake actually emits, so a dropped or wrong
+    // #[serde(rename)] on CompileGroup::defines / CompileGroupDefine::define
+    // shows up as an empty result here instead of deserializing to a silent
+    // default. This is the "capture the reply that proves us wrong" tier from
+    // CLAUDE.md; it supplements the 009 fixture, which is the only thing that
+    // catches CMake itself changing. See
+    // docs/lore/cmake-file-api-compile-definitions-shape.md.
+    const TARGET_DEFS_JSON: &str = r#"{
+  "artifacts": [{ "path": "libdefs.a" }],
+  "backtrace": 1,
+  "backtraceGraph": {
+    "commands": ["add_library", "target_compile_definitions", "target_sources"],
+    "files": ["CMakeLists.txt"],
+    "nodes": [
+      { "file": 0 },
+      { "command": 0, "file": 0, "line": 22, "parent": 0 },
+      { "command": 1, "file": 0, "line": 31, "parent": 0 },
+      { "command": 2, "file": 0, "line": 23, "parent": 0 }
+    ]
+  },
+  "compileGroups": [
+    {
+      "defines": [
+        { "backtrace": 2, "define": "PRIVATE_VALUE=7" },
+        { "backtrace": 2, "define": "PUBLIC_VALUE=42" }
+      ],
+      "includes": [
+        { "backtrace": 3, "path": "/abs/009-compile-definitions/include" }
+      ],
+      "language": "CXX",
+      "sourceIndexes": [0]
+    }
+  ],
+  "fileSets": [
+    {
+      "baseDirectories": ["include"],
+      "name": "public_headers",
+      "type": "HEADERS",
+      "visibility": "PUBLIC"
+    }
+  ],
+  "id": "defs::@6890427a1f51a3e7e1df",
+  "name": "defs",
+  "nameOnDisk": "libdefs.a",
+  "paths": { "build": ".", "source": "." },
+  "sourceGroups": [
+    { "name": "Source Files", "sourceIndexes": [0] },
+    { "name": "Header Files", "sourceIndexes": [1] }
+  ],
+  "sources": [
+    { "backtrace": 1, "compileGroupIndex": 0, "path": "src/defs.cpp", "sourceGroupIndex": 0 },
+    { "backtrace": 3, "fileSetIndex": 0, "path": "include/defs.hpp", "sourceGroupIndex": 1 }
+  ],
+  "type": "STATIC_LIBRARY"
+}"#;
+
+    #[test]
+    fn target_defines_deserializes_real_capture() {
+        let reply: TargetReply =
+            serde_json::from_str(TARGET_DEFS_JSON).expect("real File API capture should parse");
+        assert_eq!(
+            target_defines(&reply),
+            vec!["PRIVATE_VALUE=7".to_string(), "PUBLIC_VALUE=42".to_string()],
+            "defines must deserialize from real compileGroups[].defines[].define bytes; \
+             an empty result here means a dropped/wrong serde rename on \
+             CompileGroup::defines or CompileGroupDefine::define"
+        );
     }
 }

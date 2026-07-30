@@ -175,6 +175,9 @@ fn render_cc_rule(out: &mut String, target: &Target) {
         render_path_list(out, "hdrs", &target.public_headers);
     }
     render_path_list(out, "includes", &target.includes);
+    // Not render_path_list: a define (`FOO`, `FOO=1`) is not a path and
+    // must not be run through the module-relative assertion.
+    render_string_list(out, "local_defines", &target.local_defines);
     render_deps(out, &target.dependencies);
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
@@ -241,6 +244,7 @@ mod tests {
                 public_headers: vec![],
                 dependencies: vec![],
                 includes: vec![],
+                local_defines: vec![],
                 artifacts: vec!["hello".to_string()],
             }],
         }
@@ -271,6 +275,7 @@ mod tests {
                     public_headers: vec!["include/greet.hpp".to_string()],
                     dependencies: vec![],
                     includes: vec!["include".to_string()],
+                    local_defines: vec![],
                     artifacts: vec!["libgreet.a".to_string()],
                 },
                 Target {
@@ -280,6 +285,7 @@ mod tests {
                     public_headers: vec![],
                     dependencies: vec!["greet".to_string()],
                     includes: vec![],
+                    local_defines: vec![],
                     artifacts: vec!["hello".to_string()],
                 },
             ],
@@ -316,6 +322,7 @@ mod tests {
                 public_headers: vec![],
                 dependencies: vec![],
                 includes: vec!["inc".to_string()],
+                local_defines: vec![],
                 artifacts: vec!["app".to_string()],
             }],
         };
@@ -349,6 +356,7 @@ mod tests {
                     public_headers: vec![],
                     dependencies: vec![],
                     includes: vec!["inc".to_string()],
+                    local_defines: vec![],
                     artifacts: vec![],
                 }],
             };
@@ -359,6 +367,41 @@ mod tests {
                 "{kind:?} dropped its own include dirs:\n{rendered}"
             );
         }
+    }
+
+    // Compile definitions render as `local_defines` (Layer A), for every
+    // target kind, and — crucially — a `NAME=VALUE` define is emitted
+    // verbatim, NOT run through render_path_list's module-relative assert
+    // (which would panic on the `=`). See Target::local_defines and
+    // docs/lore/cmake-file-api-compile-definitions-shape.md. Exercised end
+    // to end by tests/fixtures/009-compile-definitions.
+    #[test]
+    fn renders_local_defines_for_every_target_kind() {
+        for kind in [TargetKind::Executable, TargetKind::Library] {
+            let rendered = render(&graph_with(kind.clone(), |t| {
+                t.local_defines = vec!["FEATURE_ON".to_string(), "MAX_LEN=64".to_string()]
+            }))
+            .build_bazel;
+            assert!(
+                rendered.contains(
+                    "    local_defines = [\n        \"FEATURE_ON\",\n        \"MAX_LEN=64\",\n    ],\n"
+                ),
+                "{kind:?} did not render its compile definitions as local_defines:\n{rendered}"
+            );
+        }
+    }
+
+    // The negative half: a target with no defines emits no `local_defines`
+    // attribute at all — same empty-list-is-omitted contract every other
+    // optional attribute follows via render_string_list, so a define-less
+    // target's output is byte-identical to before this capability existed.
+    #[test]
+    fn renders_no_local_defines_attribute_when_empty() {
+        let rendered = render(&graph(None)).build_bazel;
+        assert!(
+            !rendered.contains("local_defines"),
+            "a target with no compile definitions must not emit a local_defines attribute:\n{rendered}"
+        );
     }
 
     // `cc_binary` and `cc_library` share one renderer, so the one attribute
@@ -389,6 +432,7 @@ mod tests {
             public_headers: vec![],
             dependencies: vec![],
             includes: vec![],
+            local_defines: vec![],
             artifacts: vec![],
         };
         mutate(&mut target);
@@ -456,6 +500,7 @@ mod tests {
                     public_headers: vec!["include/lib.hpp".to_string()],
                     dependencies: vec![],
                     includes: vec!["include".to_string()],
+                    local_defines: vec![],
                     artifacts: vec!["liblib.a".to_string()],
                 },
                 Target {
@@ -465,6 +510,7 @@ mod tests {
                     public_headers: vec![],
                     dependencies: vec!["lib".to_string()],
                     includes: vec!["inc".to_string()],
+                    local_defines: vec![],
                     artifacts: vec!["app".to_string()],
                 },
             ],

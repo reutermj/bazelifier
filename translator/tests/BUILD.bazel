@@ -14,5 +14,6 @@ validation_workspace(
         "//translator/tests/fixtures/006-sibling-sources:converted",
         "//translator/tests/fixtures/007-generated-source:converted",
         "//translator/tests/fixtures/008-sources-outside-deliverable-root:converted",
+        "//translator/tests/fixtures/009-compile-definitions:converted",
     ],
 )

@@ -63,6 +63,21 @@ pub struct Target {
     /// declared it, not duplicated onto every dependent. See
     /// docs/architecture/cmake-frontend.md.
     pub includes: Vec<String>,
+    /// Preprocessor definitions effective on this target's own compilation
+    /// (from `target_compile_definitions`), emitted as `local_defines`.
+    ///
+    /// `local_defines`, not `defines`, and the distinction is deliberate:
+    /// the File API reports the flattened *effective* set per target with
+    /// the PUBLIC/PRIVATE/INTERFACE origin erased (see
+    /// docs/lore/cmake-file-api-compile-definitions-shape.md), so we can't
+    /// yet tell which ones propagate. Making them all non-propagating and
+    /// letting each converted consumer re-derive its own from its own
+    /// compile group is self-consistent — every target gets exactly the set
+    /// CMake computed for it. It is wrong only for a consumer *outside* the
+    /// converted set, which never sees a PUBLIC define it should have
+    /// inherited; recovering propagation (`defines` vs `local_defines`) via
+    /// the backtrace graph is a separate step, tracked in bzl-c54.3.
+    pub local_defines: Vec<String>,
     /// Build-output artifact paths (e.g. the built binary), relative to
     /// the CMake build directory. Used to locate ground-truth artifacts
     /// for validation — see docs/architecture/build-verification.md.
