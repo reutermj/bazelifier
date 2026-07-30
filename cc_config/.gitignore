@@ -1,0 +1,6 @@
+# cc_config is a separate Bazel module root, so building it in place (as the
+# validation flow does via --override_module) drops its own output symlinks
+# here. The workspace-root .gitignore's /bazel-* is anchored and does not reach
+# this subdirectory. MODULE.bazel.lock is intentionally NOT ignored — this repo
+# commits lockfiles (see the tracked root MODULE.bazel.lock).
+/bazel-*

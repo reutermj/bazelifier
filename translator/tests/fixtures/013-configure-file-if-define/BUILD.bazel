@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the `#cmakedefine FOO @FOO@` + `#if FOO` config-header shape (json-c's,
+# and the one fixture 012 does not cover): the boolean probe's result must
+# substitute @FOO@ so the `#if` sees a number. Both macros are catalog facts, so
+# this converts fully green. See the fixture's CMakeLists.txt and
+# docs/architecture/configure-file-and-toolchain-probes.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "*.in",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

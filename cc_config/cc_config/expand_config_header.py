@@ -13,9 +13,10 @@ Directives handled (matching CMake):
   @VAR@ and ${VAR}         -> the value of VAR (left untouched if unknown, so
                               an unresolved reference surfaces loudly)
 
-FOO is "set" when a probe named FOO reported "true" OR FOO has a non-empty
-entry in the values map — matching CMake, where #cmakedefine is defined when
-the name is truthy in any variable, probe-derived or plain.
+Every probe result is folded into the values map (see main), so both a
+#cmakedefine and a @VAR@ referencing the same name resolve consistently: FOO
+is "set" iff its value is non-empty — matching CMake, where #cmakedefine is
+defined when the name is truthy in any variable, probe-derived or plain.
 """
 
 import argparse
@@ -85,24 +86,35 @@ def main():
         values = json.load(fh)
 
     # A probe result is either boolean ("true"/"false" — a check_include_file
-    # or check_symbol_exists) or a value (a number from check_type_size). A
-    # boolean-true and a non-empty value both make a #cmakedefine "set"; a
-    # value is additionally available for @VAR@ substitution (SIZEOF_LONG is
-    # referenced as a value, e.g. `#define SIZEOF_LONG @SIZEOF_LONG@`). An
-    # explicit `values` entry wins over a probe of the same name.
-    probe_true = set()
+    # or check_symbol_exists) or a value (a number from check_type_size). Every
+    # probe becomes a `values` entry so it drives BOTH the #cmakedefine (via
+    # is_set) AND any @VAR@ that references it — matching CMake, where after
+    # configure_file `@FOO@` substitutes the value of the variable FOO the
+    # check set. A boolean check sets FOO to "1" on success (falsey/empty on
+    # failure), so:
+    #   true  -> "1"   (#cmakedefine fires; @FOO@ -> "1")
+    #   false -> ""    (#cmakedefine undefs; @FOO@ -> "")
+    # A size probe's number is its own value. Projects write facts as
+    # `#cmakedefine FOO @FOO@` and then evaluate them with `#if FOO`, so a
+    # boolean probe MUST populate its @VAR@ or the `#if` sees a literal `@FOO@`
+    # and fails to compile (the json-c gap this fixes). An explicit `values`
+    # entry from the translator (a version string, an option) wins over a
+    # probe of the same name.
     for spec in args.result:
         macro, _, path = spec.partition("=")
+        if macro in values:
+            continue
         with open(path) as fh:
             answer = fh.read().strip()
-        if answer in ("true", "false"):
-            if answer == "true":
-                probe_true.add(macro)
-        elif answer and macro not in values:
+        if answer == "true":
+            values[macro] = "1"
+        elif answer == "false":
+            values[macro] = ""
+        elif answer:
             values[macro] = answer
 
     def is_set(name):
-        return name in probe_true or bool(values.get(name))
+        return bool(values.get(name))
 
     with open(args.output, "w") as fh:
         fh.write(expand(template, is_set, values))

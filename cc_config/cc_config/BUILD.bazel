@@ -119,6 +119,54 @@ assert_config_header_test(
     ],
 )
 
+# fxa.6 regression: a boolean probe's result must populate its @VAR@, not just
+# its #cmakedefine presence. json-c writes facts as `#cmakedefine FOO @FOO@` and
+# evaluates them with `#if FOO`; before the fix a true boolean probe left the
+# @FOO@ literal, so the #if saw `@FOO@` and the header failed to compile. These
+# probes are named for the template's macros (the config_header rule keys
+# results by the probe's `define`).
+check_include_file(
+    name = "json_c_have_stdlib",
+    define = "JSON_C_HAVE_STDLIB",
+    header = "stdlib.h",
+)
+
+check_symbol_exists(
+    name = "json_c_have_absent",
+    define = "JSON_C_HAVE_ABSENT",
+    headers = ["stdio.h"],
+    symbol = "definitely_no_such_symbol_xyz123",
+)
+
+config_header(
+    name = "boolean_var_h",
+    output = "boolean_var.h",
+    probes = [
+        ":json_c_have_stdlib",
+        ":json_c_have_absent",
+    ],
+    template = "testdata/boolean_var.h.in",
+)
+
+assert_config_header_test(
+    name = "boolean_var_test",
+    header = ":boolean_var_h",
+    must_contain = [
+        # The true probe's @VAR@ resolves to 1 — both in the #cmakedefine value
+        # and in the bare @VAR@ line. This is the fix: pre-fix these were the
+        # literal `@JSON_C_HAVE_STDLIB@`, which a downstream `#if` can't parse.
+        "#define JSON_C_HAVE_STDLIB 1",
+        "#define STDLIB_FLAG 1",
+        # The false probe still undefs (empty @VAR@ is not "set").
+        "/* #undef JSON_C_HAVE_ABSENT */",
+    ],
+    must_not_contain = [
+        # No literal @VAR@ survives for either the true or the false probe.
+        "@JSON_C_HAVE_STDLIB@",
+        "@JSON_C_HAVE_ABSENT@",
+    ],
+)
+
 # Two config headers that both consume the SAME probe target
 # (:have_stdlib_h), standing in for two converted projects that each need
 # HAVE_STDLIB_H. Because a probe is a shared TARGET, its compile action is

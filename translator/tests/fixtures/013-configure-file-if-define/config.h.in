@@ -1,0 +1,12 @@
+/* Generated from config.h.in by configure_file. */
+#ifndef CONFIG_H
+#define CONFIG_H
+
+/* json-c shape: a boolean check emitted with its value, so the macro is
+   defined to 1 (when the check passed) and can be tested with a numeric #if.
+   The value reference below must be substituted by the probe result, not left
+   literal -- a literal reference makes the #if a compile error. */
+#cmakedefine HAVE_STDLIB_H @HAVE_STDLIB_H@
+#cmakedefine HAVE_XLOCALE_H @HAVE_XLOCALE_H@
+
+#endif

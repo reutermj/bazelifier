@@ -1,0 +1,14 @@
+/* Reproduces the json-c shape that fxa.6 fixed: a boolean check's result is
+   written as a #cmakedefine ... @VAR@ fact. A boolean probe must populate its
+   @VAR@ ("1" on success, "" on failure) or a downstream `#if @VAR@` sees a
+   literal @VAR@ and fails to compile. See expand_config_header.py.
+
+   This template is grepped, not compiled (assert_config_header_test does not
+   run the preprocessor), so it asserts the substituted TEXT. The compile-time
+   `#if` behavior it enables is exercised by a translator fixture. */
+#cmakedefine JSON_C_HAVE_STDLIB @JSON_C_HAVE_STDLIB@
+#cmakedefine JSON_C_HAVE_ABSENT @JSON_C_HAVE_ABSENT@
+
+/* A bare @VAR@ backed by a boolean probe (no #cmakedefine), the other place a
+   boolean result must substitute. */
+#define STDLIB_FLAG @JSON_C_HAVE_STDLIB@
