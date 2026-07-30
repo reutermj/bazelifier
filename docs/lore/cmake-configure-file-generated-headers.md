@@ -12,6 +12,12 @@ single, silent compile failure (`config.h: No such file or directory`).
 Reality is more interesting: the same project surfaces the problem **two
 different ways**, and only one of them is silent.
 
+The *design* for handling these — a shared Bazel-native probing module,
+computing the config against the consumer's toolchain rather than capturing
+this host's — is in
+[../architecture/configure-file-and-toolchain-probes.md](../architecture/configure-file-and-toolchain-probes.md).
+This doc is only the File-API observations that design rests on.
+
 ## What's actually true
 
 **`configure_file` outputs are NOT flagged `isGenerated` in the File API.**

@@ -15,6 +15,9 @@ growing a single monolithic design doc.
 - [build-verification.md](build-verification.md) — how conversions get
   verified (build + test), and the path toward hermetic, remote-execution-
   friendly verification
+- [configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md)
+  — planned design for `configure_file`-generated config headers via a
+  shared Bazel-native probing module (not yet implemented)
 
 ## Conventions
 

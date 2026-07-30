@@ -97,7 +97,8 @@ grep the escalation text for the limitation it just removed.
   a resolution is ephemeral: the agent edits the generated `BUILD.bazel` in
   the unpacked validation workspace and nothing is persisted. A directory of
   accepted overrides? New mapping rules the translator learns for next time?
-  Needs a decision — see the fixture-loop item in [TODO.md](../../TODO.md).
+  Needs a decision — this is the "agent stage of the fixture loop" that isn't
+  wired up yet.
 - **Open question:** how to tell a genuine resolution from a deleted markdown
   file, for gaps where the build goes green either way (header visibility is
   the live example). See
