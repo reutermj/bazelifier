@@ -270,6 +270,62 @@ pub fn unsupported_target_needs_attention(
     }
 }
 
+/// Escalates a *group* of the project's own inert convenience targets
+/// (UTILITY-shaped: no build artifact, nothing depends on them) in ONE item
+/// rather than one apiece. See the `inert_convenience` collection in
+/// `read_codemodel_reply`, and
+/// docs/lore/cmake-include-ctest-injects-utility-targets.md.
+///
+/// This is the fallback for targets a CMake *module* did not inject (those
+/// are dropped silently by provenance): a project's hand-written `docs` /
+/// `format` / `lint` targets, which usually have no Bazel equivalent but
+/// occasionally do (a codegen step something consumes). Aggregating keeps a
+/// project with a dozen of them from burying the substantive gaps, while
+/// still surfacing them once so the drop is a decision, not an oversight.
+pub fn inert_convenience_targets_needs_attention(target_names: &[String]) -> NeedsAttention {
+    let title = format!(
+        "{} project convenience target(s) with no artifact and no dependents",
+        target_names.len()
+    );
+    NeedsAttention {
+        gap: format!(
+            "These targets are defined by the project but produce no build artifact and have \
+             no other target depending on them: {}. Each is a CMake `add_custom_target()` \
+             (type `UTILITY`) — a named build step, not a compiled artifact. The translator \
+             has no Bazel rule for `UTILITY` and, because these are inert (nothing to build, \
+             nothing that consumes them), it grouped them here instead of emitting a separate \
+             item for each. They are NOT the CMake-provided dashboard targets from \
+             `include(CTest)` or similar modules — those are recognized by provenance and \
+             dropped without an item; everything named here was written in the project's own \
+             CMake files.",
+            target_names.join(", ")
+        ),
+        context: format!(
+            "Convenience targets like these are usually developer tooling — generating docs, \
+             running a formatter or linter — with no place in a Bazel build, in which case the \
+             correct resolution is to confirm that and emit nothing for them. The reason they \
+             are surfaced at all, rather than dropped silently, is that a UTILITY target CAN \
+             produce a file another target consumes (a generated header, say); the translator \
+             cannot tell a pure convenience step from a load-bearing one that merely happens to \
+             have no *declared* artifact. Check each of ({}) against what it actually runs. \
+             (Any UTILITY target that already has a dependent or a declared artifact was NOT \
+             grouped here — it gets its own escalation — so everything in this list looked \
+             inert.)",
+            target_names.join(", ")
+        ),
+        expected_output: format!(
+            "For each of these targets, decide whether it has a Bazel equivalent. Most will \
+             not: confirm that in the resolution and emit nothing for them — but say so \
+             explicitly, because a deliberate omission and an overlooked one are \
+             indistinguishable in the output otherwise. For any that DOES produce a file the \
+             build consumes, add a `genrule` (or custom rule) to the generated `BUILD.bazel` \
+             declaring that output and wire its consumers to it. Resolve this in the GENERATED \
+             output only — do NOT edit the project's CMakeLists.txt."
+        ),
+        title,
+    }
+}
+
 /// Escalates a library whose headers CMake never declared public, so the
 /// translator has no basis for populating `hdrs` — see the
 /// `has_unclassified_headers` check in `to_target`, and

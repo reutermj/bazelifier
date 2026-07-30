@@ -1,0 +1,15 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the CTest-injected-UTILITY-target provenance filter: this project's
+# include(CTest) makes CMake inject ~28 UTILITY dashboard targets, which the
+# translator must recognize by provenance and drop silently. The proof is
+# that this fixture converts with ZERO needs_attention items and validates
+# green; a regression would flood needs_attention and turn it red. See the
+# fixture's CMakeLists.txt and
+# docs/lore/cmake-include-ctest-injects-utility-targets.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob(["src/**"]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

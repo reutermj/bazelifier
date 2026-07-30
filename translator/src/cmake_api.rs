@@ -16,7 +16,8 @@ use serde::Deserialize;
 use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
 use crate::needs_attention::{
     NeedsAttention, generated_sources_needs_attention, header_visibility_needs_attention,
-    sources_outside_deliverable_needs_attention, unsupported_target_needs_attention,
+    inert_convenience_targets_needs_attention, sources_outside_deliverable_needs_attention,
+    unsupported_target_needs_attention,
 };
 
 #[derive(Debug)]
@@ -120,6 +121,13 @@ struct TargetReply {
     #[serde(default)]
     #[serde(rename = "compileGroups")]
     compile_groups: Vec<CompileGroup>,
+    // The backtraceGraph node index of the command that *defined* this
+    // target (e.g. the add_library/add_custom_target call), used to trace a
+    // target back to the file it was declared in — which distinguishes a
+    // project-authored target from one a CMake module injected via
+    // include(). Absent only in replies that carry no backtrace graph.
+    #[serde(default)]
+    backtrace: Option<usize>,
     #[serde(default)]
     #[serde(rename = "backtraceGraph")]
     backtrace_graph: BacktraceGraph,
@@ -155,12 +163,22 @@ struct CompileGroupDefine {
 #[derive(Debug, Default, Deserialize)]
 struct BacktraceGraph {
     commands: Vec<String>,
+    // The files referenced by nodes below — CMakeLists.txt and any included
+    // .cmake modules. A node's `file` indexes into this. Used to tell
+    // whether a target was defined in the project's own sources or inside a
+    // CMake-provided module (CMAKE_ROOT/Modules/...).
+    #[serde(default)]
+    files: Vec<String>,
     nodes: Vec<BacktraceNode>,
 }
 
 #[derive(Debug, Deserialize)]
 struct BacktraceNode {
     command: Option<usize>,
+    // Index into BacktraceGraph::files for the file this node is in. The
+    // graph's root node can omit it.
+    #[serde(default)]
+    file: Option<usize>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -363,17 +381,48 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
         }
     }
 
+    // Provenance for the injected-target filter: a target defined under this
+    // path came from an include()d CMake module, not the project. Read once.
+    let cmake_root = read_cmake_root(reply_dir)?;
+
     let mut targets = Vec::new();
     let mut needs_attention = Vec::new();
+    // Project-authored convenience targets (UTILITY-ish, no artifacts, no
+    // dependents) that aren't from a CMake module — aggregated into ONE
+    // escalation at the end instead of one apiece, so a project with a
+    // handful of docs/format targets doesn't bury the real gaps.
+    let mut inert_convenience: Vec<String> = Vec::new();
 
     for (id, reply) in &replies {
-        // A target whose CMake type has no Bazel rule yet is escalated via
-        // needs_attention/ rather than aborting the whole conversion — one
-        // unrecognized target must not cost the project every other target
-        // it defines. See docs/architecture/cmake-frontend.md. The edges it
-        // cost are named in the escalation, since dropping them silently
-        // would leave dependents quietly incomplete.
         let Some(kind) = target_kind(&reply.cmake_type) else {
+            // Two kinds of untranslatable target never warrant an individual
+            // escalation, because there is nothing for an agent to translate:
+            //
+            //  - injected by a CMake module (CTest's dashboard targets, a
+            //    Doxygen `doc` target): dropped silently — the project didn't
+            //    author it and it has no place in the Bazel build. See
+            //    docs/lore/cmake-include-ctest-injects-utility-targets.md.
+            //  - a project's own convenience target with no artifact and no
+            //    dependents: collected for one aggregated note below.
+            //
+            // Both require the target to be inert (no artifacts, no
+            // dependents); an injected OR convenience-shaped target that is
+            // actually load-bearing falls through to a normal escalation,
+            // because dropping it would leave real dependents incomplete.
+            if is_inert_target(reply, &dependents_of, id) {
+                if is_cmake_provided(reply, cmake_root.as_deref()) {
+                    continue;
+                }
+                inert_convenience.push(reply.name.clone());
+                continue;
+            }
+
+            // A load-bearing target whose CMake type has no Bazel rule yet is
+            // escalated rather than aborting the whole conversion — one
+            // unrecognized target must not cost the project every other
+            // target it defines. See docs/architecture/cmake-frontend.md. The
+            // edges it cost are named, since dropping them silently would
+            // leave dependents quietly incomplete.
             let dropped_edges: Vec<String> = dependents_of
                 .get(id)
                 .into_iter()
@@ -393,6 +442,10 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
 
         targets.push(target);
         needs_attention.extend(attention);
+    }
+
+    if !inert_convenience.is_empty() {
+        needs_attention.push(inert_convenience_targets_needs_attention(&inert_convenience));
     }
 
     let source_dir = normalize_lexically(Path::new(&index.paths.source));
@@ -566,6 +619,29 @@ fn read_project_version(reply_dir: &Path) -> Result<Option<String>, Error> {
         .entries
         .into_iter()
         .find(|e| e.name == "CMAKE_PROJECT_VERSION")
+        .map(|e| e.value)
+        .filter(|v| !v.is_empty()))
+}
+
+/// Reads `CMAKE_ROOT` from the cache-v2 reply — the root of the CMake
+/// installation (e.g. `/usr/share/cmake-3.28`). Targets whose defining
+/// command lives under this path were injected by an `include()` of a
+/// CMake-provided module (CTest's dashboard targets, a Doxygen module's
+/// `doc` target, ...), not authored by the project — see
+/// `defining_command_file` and docs/lore/cmake-include-ctest-injects-utility-targets.md.
+///
+/// `CMAKE_ROOT` is always present in a normal cache; `None` only guards a
+/// malformed reply, and every provenance check treats `None` as "cannot
+/// prove it's CMake-provided," i.e. errs toward escalating rather than
+/// silently dropping.
+fn read_cmake_root(reply_dir: &Path) -> Result<Option<String>, Error> {
+    let cache_path = find_reply_file(reply_dir, "cache-v2-")?;
+    let cache: CacheReply = serde_json::from_str(&fs::read_to_string(cache_path)?)?;
+
+    Ok(cache
+        .entries
+        .into_iter()
+        .find(|e| e.name == "CMAKE_ROOT")
         .map(|e| e.value)
         .filter(|v| !v.is_empty()))
 }
@@ -762,6 +838,46 @@ fn target_defines(reply: &TargetReply) -> Vec<String> {
     defines
 }
 
+/// The file in which this target's defining command (add_library,
+/// add_custom_target, ...) appears, per its backtrace, or `None` if the
+/// reply carries no usable backtrace for it. Absolute for included modules
+/// (`/usr/share/cmake-3.28/Modules/CTestTargets.cmake`) and repo-relative
+/// for the project's own (`CMakeLists.txt`), exactly as CMake records them.
+fn defining_command_file<'a>(reply: &'a TargetReply) -> Option<&'a str> {
+    let node = reply.backtrace_graph.nodes.get(reply.backtrace?)?;
+    let file_index = node.file?;
+    reply
+        .backtrace_graph
+        .files
+        .get(file_index)
+        .map(String::as_str)
+}
+
+/// Whether this target has no build artifact and no other target depends on
+/// it — the shape of a developer-convenience target (a named `add_custom_target`
+/// build step: docs, formatting, a dashboard step), as opposed to something
+/// load-bearing in the build graph. Both conditions matter: a UTILITY target
+/// that produces a consumed file (has artifacts) or that something links/depends
+/// on is real work and must not be swept up as convenience.
+fn is_inert_target(reply: &TargetReply, dependents_of: &HashMap<&str, Vec<&str>>, id: &str) -> bool {
+    reply.artifacts.is_empty() && !dependents_of.contains_key(id)
+}
+
+/// Whether this target was injected by an `include()` of a CMake-provided
+/// module rather than authored by the project — proven by its defining
+/// command living under `CMAKE_ROOT` (the CMake installation tree). This is
+/// provenance, not a name match: it catches CTest's dashboard targets and a
+/// Doxygen module's `doc` target alike, and never catches a target the
+/// project wrote itself, whose defining command is in the project's own
+/// `CMakeLists.txt`/`.cmake`. A `None` cmake_root (malformed cache) makes
+/// this conservatively `false` — escalate rather than silently drop.
+fn is_cmake_provided(reply: &TargetReply, cmake_root: Option<&str>) -> bool {
+    let Some(cmake_root) = cmake_root else {
+        return false;
+    };
+    defining_command_file(reply).is_some_and(|file| Path::new(file).starts_with(cmake_root))
+}
+
 /// Whether an include's backtrace resolves to a `target_link_libraries`
 /// call, i.e. whether a dependency pulled it in rather than the target
 /// declaring it — see `own_include_dirs` for why that is the distinguishing
@@ -799,6 +915,7 @@ mod tests {
     fn empty_backtrace_graph() -> BacktraceGraph {
         BacktraceGraph {
             commands: Vec::new(),
+            files: Vec::new(),
             nodes: Vec::new(),
         }
     }
@@ -814,9 +931,13 @@ mod tests {
     ) -> BacktraceGraph {
         BacktraceGraph {
             commands: commands.into_iter().map(str::to_string).collect(),
+            files: Vec::new(),
             nodes: node_commands
                 .into_iter()
-                .map(|command| BacktraceNode { command })
+                .map(|command| BacktraceNode {
+                    command,
+                    file: None,
+                })
                 .collect(),
         }
     }
@@ -876,6 +997,7 @@ mod tests {
                 ],
                 defines: vec![],
             }],
+            backtrace: None,
             backtrace_graph: backtrace_graph_with_commands(
                 vec!["target_include_directories", "target_link_libraries"],
                 vec![None, Some(0), Some(1), Some(1)],
@@ -925,6 +1047,7 @@ mod tests {
                     }],
                 },
             ],
+            backtrace: None,
             backtrace_graph: empty_backtrace_graph(),
         };
 
@@ -933,6 +1056,114 @@ mod tests {
             vec!["OWN_DEF".to_string(), "PUB_FROM_DEP=1".to_string()],
             "target_defines must collect every effective define (including \
              inherited PUBLIC ones), deduped, preserving NAME=VALUE verbatim"
+        );
+    }
+
+    // A UTILITY target (add_custom_target) whose defining command sits in
+    // `defining_file`, with the given artifacts. `defining_file` becomes the
+    // one file in the backtrace graph, and the target's backtrace points at
+    // a node in it whose command is add_custom_target — the exact shape the
+    // File API produces (verified against a real reply; see
+    // docs/lore/cmake-include-ctest-injects-utility-targets.md).
+    fn utility_reply(name: &str, defining_file: &str, artifacts: Vec<&str>) -> TargetReply {
+        TargetReply {
+            name: name.to_string(),
+            cmake_type: "UTILITY".to_string(),
+            sources: vec![],
+            file_sets: vec![],
+            dependencies: vec![],
+            artifacts: artifacts
+                .into_iter()
+                .map(|p| TargetArtifact { path: p.to_string() })
+                .collect(),
+            compile_groups: vec![],
+            backtrace: Some(1),
+            backtrace_graph: BacktraceGraph {
+                commands: vec!["add_custom_target".to_string()],
+                files: vec![defining_file.to_string()],
+                nodes: vec![
+                    BacktraceNode {
+                        command: None,
+                        file: Some(0),
+                    },
+                    BacktraceNode {
+                        command: Some(0),
+                        file: Some(0),
+                    },
+                ],
+            },
+        }
+    }
+
+    #[test]
+    fn defining_command_file_reads_the_targets_own_backtrace_file() {
+        let reply = utility_reply("doc", "CMakeLists.txt", vec![]);
+        assert_eq!(defining_command_file(&reply), Some("CMakeLists.txt"));
+        let injected = utility_reply(
+            "Continuous",
+            "/usr/share/cmake-3.28/Modules/CTestTargets.cmake",
+            vec![],
+        );
+        assert_eq!(
+            defining_command_file(&injected),
+            Some("/usr/share/cmake-3.28/Modules/CTestTargets.cmake")
+        );
+    }
+
+    // Provenance, not a name match: a target defined under CMAKE_ROOT is
+    // CMake-injected (CTest, Doxygen, ...) regardless of its name, and one
+    // defined in the project's own files never is, regardless of its name.
+    #[test]
+    fn is_cmake_provided_keys_on_the_defining_files_location() {
+        let root = Some("/usr/share/cmake-3.28");
+        let injected = utility_reply(
+            "Continuous",
+            "/usr/share/cmake-3.28/Modules/CTestTargets.cmake",
+            vec![],
+        );
+        assert!(
+            is_cmake_provided(&injected, root),
+            "a target defined under CMAKE_ROOT must be recognized as CMake-provided"
+        );
+
+        // Same name, but authored in the project — must NOT be caught.
+        let authored = utility_reply("Continuous", "CMakeLists.txt", vec![]);
+        assert!(
+            !is_cmake_provided(&authored, root),
+            "a project-authored target must never be treated as CMake-provided, \
+             even if it shares a name with a CTest dashboard target"
+        );
+
+        // Missing CMAKE_ROOT (malformed cache) errs toward NOT dropping.
+        assert!(
+            !is_cmake_provided(&injected, None),
+            "without CMAKE_ROOT the provenance of a target can't be proven, so it \
+             must not be treated as CMake-provided"
+        );
+    }
+
+    // Inertness is BOTH conditions: no artifact AND no dependent. A UTILITY
+    // target that produces a consumed file, or that something depends on, is
+    // load-bearing and must fall through to a real escalation rather than be
+    // swept up as convenience/injected.
+    #[test]
+    fn is_inert_target_requires_no_artifacts_and_no_dependents() {
+        let inert = utility_reply("doc", "CMakeLists.txt", vec![]);
+        let mut no_dependents: HashMap<&str, Vec<&str>> = HashMap::new();
+        assert!(is_inert_target(&inert, &no_dependents, "doc::@x"));
+
+        // Has an artifact → not inert.
+        let with_artifact = utility_reply("gen", "CMakeLists.txt", vec!["gen.h"]);
+        assert!(
+            !is_inert_target(&with_artifact, &no_dependents, "gen::@x"),
+            "a UTILITY target with a declared artifact is load-bearing"
+        );
+
+        // Has a dependent → not inert.
+        no_dependents.insert("doc::@x", vec!["app::@y"]);
+        assert!(
+            !is_inert_target(&inert, &no_dependents, "doc::@x"),
+            "a UTILITY target something depends on is load-bearing"
         );
     }
 
@@ -954,6 +1185,7 @@ mod tests {
                 path: "libgreet.a".to_string(),
             }],
             compile_groups: vec![],
+            backtrace: None,
             backtrace_graph: empty_backtrace_graph(),
         }
     }
@@ -1085,6 +1317,7 @@ mod tests {
                 path: "hello".to_string(),
             }],
             compile_groups: vec![],
+            backtrace: None,
             backtrace_graph: empty_backtrace_graph(),
         };
 
@@ -1114,6 +1347,7 @@ mod tests {
             ],
             artifacts: vec![],
             compile_groups: vec![],
+            backtrace: None,
             backtrace_graph: empty_backtrace_graph(),
         };
 
@@ -1152,6 +1386,7 @@ mod tests {
                 path: "app".to_string(),
             }],
             compile_groups: vec![],
+            backtrace: None,
             backtrace_graph: empty_backtrace_graph(),
         };
 
@@ -1207,6 +1442,7 @@ mod tests {
                 path: "app".to_string(),
             }],
             compile_groups: vec![],
+            backtrace: None,
             backtrace_graph: empty_backtrace_graph(),
         };
 
@@ -1589,9 +1825,25 @@ mod tests {
   "type": "EXECUTABLE"
 }"#;
 
+    // A real cache-v2 reply is ~83 entries; this keeps the two `read_codemodel_reply`
+    // reads exercise (CMAKE_ROOT for the provenance filter) plus CMAKE_PROJECT_VERSION,
+    // in the real envelope shape (CacheReply only reads name/value, ignoring the
+    // properties/type each real entry also carries). CMAKE_ROOT is the real value
+    // this CMake install reports; the reply directory always contains this file in
+    // production because the translator writes a cache-v2 query alongside codemodel-v2.
+    const CACHE_JSON: &str = r#"{
+  "entries": [
+    { "name": "CMAKE_PROJECT_VERSION", "type": "STATIC", "value": "" },
+    { "name": "CMAKE_ROOT", "type": "INTERNAL", "value": "/usr/share/cmake-3.28" }
+  ],
+  "kind": "cache",
+  "version": { "major": 2, "minor": 0 }
+}"#;
+
     fn reply_dir_from_real_capture() -> ScratchDir {
         let dir = ScratchDir::new("codemodel");
         dir.write("codemodel-v2-abc123.json", CODEMODEL_JSON);
+        dir.write("cache-v2-abc123.json", CACHE_JSON);
         dir.write("target-greet.json", TARGET_GREET_JSON);
         dir.write("target-hello.json", TARGET_HELLO_JSON);
         dir
@@ -1709,6 +1961,53 @@ mod tests {
   ],
   "type": "STATIC_LIBRARY"
 }"#;
+
+    // Real CMake File API output for the CTest-injected `Continuous` target,
+    // captured verbatim (only sources/artifacts/etc. trimmed away). Pins the
+    // serde contract for the three fields the provenance filter added —
+    // TargetReply::backtrace, BacktraceGraph::files, BacktraceNode::file — so
+    // a dropped/wrong rename shows up as a wrong provenance verdict here
+    // rather than deserializing to a default (which would make every injected
+    // target look project-authored and re-flood needs_attention). See
+    // docs/lore/cmake-include-ctest-injects-utility-targets.md.
+    const TARGET_CONTINUOUS_JSON: &str = r#"{
+  "name": "Continuous",
+  "type": "UTILITY",
+  "sources": [],
+  "backtrace": 5,
+  "backtraceGraph": {
+    "commands": ["add_custom_target", "include"],
+    "files": [
+      "/usr/share/cmake-3.28/Modules/CTestTargets.cmake",
+      "/usr/share/cmake-3.28/Modules/CTest.cmake",
+      "CMakeLists.txt"
+    ],
+    "nodes": [
+      { "file": 2 },
+      { "command": 1, "file": 2, "line": 3, "parent": 0 },
+      { "file": 1, "parent": 1 },
+      { "command": 1, "file": 1, "line": 264, "parent": 2 },
+      { "file": 0, "parent": 3 },
+      { "command": 0, "file": 0, "line": 59, "parent": 4 }
+    ]
+  }
+}"#;
+
+    #[test]
+    fn injected_target_provenance_deserializes_from_real_capture() {
+        let reply: TargetReply = serde_json::from_str(TARGET_CONTINUOUS_JSON)
+            .expect("real File API capture should parse");
+        assert_eq!(
+            defining_command_file(&reply),
+            Some("/usr/share/cmake-3.28/Modules/CTestTargets.cmake"),
+            "the target's backtrace must resolve to the CTest module it was injected from; \
+             a wrong result means a dropped serde rename on backtrace/files/file"
+        );
+        assert!(
+            is_cmake_provided(&reply, Some("/usr/share/cmake-3.28")),
+            "a real CTest dashboard target must be recognized as CMake-provided"
+        );
+    }
 
     #[test]
     fn target_defines_deserializes_real_capture() {
