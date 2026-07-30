@@ -26,12 +26,20 @@ for the toolchain-probe mechanics.
   `template` into `output`, resolving `#cmakedefine` from probe results and
   `@VAR@` from `values`.
 
-Each probe is a **shared target**: the intended usage is that a converted
-project references a probe from a shared catalog rather than declaring its
-own, so the probe's compile action is analyzed once and runs **once per
-toolchain across the whole build graph**, not once per project. (The shared
-catalog of common facts is still to be added; the sharing *mechanism* is
-proven — see below.)
+Each probe is a **shared target**: a converted project references a probe
+from the shared catalog (`@cc_config//catalog:have_endian_h`, named for its
+define lowercased) rather than declaring its own, so the probe's compile
+action is analyzed once and runs **once per toolchain across the whole build
+graph**, not once per project (proven — see below).
+
+## Catalog (`catalog/`)
+
+`@cc_config//catalog` holds a fixed, hand-maintained set of the common
+autoconf facts — the header/symbol/type checks projects like json-c do —
+each a public probe target named for its define. A project needing a fact not
+listed adds one line to `catalog/BUILD.bazel`. `catalog_smoke_test` asserts a
+few known-stable facts (e.g. `endian.h` present, `xlocale.h` absent on glibc,
+`sizeof(long) == 8`) against the toolchain the module builds with.
 
 ## Tests
 

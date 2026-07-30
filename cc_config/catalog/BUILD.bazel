@@ -1,0 +1,191 @@
+# Smoke test: consume a few catalog probes through a config header and assert
+# the values are correct for the toolchain the module builds against (llvm +
+# glibc, Linux x86-64). These facts are stable for that toolchain; the test
+# would surface a probe that regresses or a catalog entry with a wrong header.
+load("//cc_config:config_header.bzl", "assert_config_header_test", "config_header")
+load(":catalog.bzl", "cc_config_catalog")
+
+# The shared catalog of common autoconf facts. Seeded from what real projects
+# (json-c) check; a project needing a fact not here adds one line. Each probe
+# is public and referenced by converted modules' config_header targets, so a
+# fact is probed once per toolchain across the whole graph (see
+# ../sharing_test.sh). Target names are the define lowercased.
+cc_config_catalog(
+    # (header, HAVE_ macro) — check_include_file.
+    headers = [
+        ("dlfcn.h", "HAVE_DLFCN_H"),
+        ("endian.h", "HAVE_ENDIAN_H"),
+        ("fcntl.h", "HAVE_FCNTL_H"),
+        ("inttypes.h", "HAVE_INTTYPES_H"),
+        ("limits.h", "HAVE_LIMITS_H"),
+        ("locale.h", "HAVE_LOCALE_H"),
+        ("memory.h", "HAVE_MEMORY_H"),
+        ("stdarg.h", "HAVE_STDARG_H"),
+        ("stdint.h", "HAVE_STDINT_H"),
+        ("stdlib.h", "HAVE_STDLIB_H"),
+        ("string.h", "HAVE_STRING_H"),
+        ("strings.h", "HAVE_STRINGS_H"),
+        ("syslog.h", "HAVE_SYSLOG_H"),
+        ("unistd.h", "HAVE_UNISTD_H"),
+        ("xlocale.h", "HAVE_XLOCALE_H"),
+        ("sys/cdefs.h", "HAVE_SYS_CDEFS_H"),
+        ("sys/param.h", "HAVE_SYS_PARAM_H"),
+        ("sys/random.h", "HAVE_SYS_RANDOM_H"),
+        ("sys/resource.h", "HAVE_SYS_RESOURCE_H"),
+        ("sys/stat.h", "HAVE_SYS_STAT_H"),
+        ("sys/types.h", "HAVE_SYS_TYPES_H"),
+    ],
+    # (symbol, [declaring headers], HAVE_ macro) — check_symbol_exists.
+    symbols = [
+        (
+            "open",
+            ["fcntl.h"],
+            "HAVE_OPEN",
+        ),
+        (
+            "realloc",
+            ["stdlib.h"],
+            "HAVE_REALLOC",
+        ),
+        (
+            "strtoll",
+            ["stdlib.h"],
+            "HAVE_STRTOLL",
+        ),
+        (
+            "strtoull",
+            ["stdlib.h"],
+            "HAVE_STRTOULL",
+        ),
+        (
+            "setlocale",
+            ["locale.h"],
+            "HAVE_SETLOCALE",
+        ),
+        (
+            "uselocale",
+            ["locale.h"],
+            "HAVE_USELOCALE",
+        ),
+        (
+            "duplocale",
+            ["locale.h"],
+            "HAVE_DUPLOCALE",
+        ),
+        (
+            "strdup",
+            ["string.h"],
+            "HAVE_STRDUP",
+        ),
+        (
+            "strerror",
+            ["string.h"],
+            "HAVE_STRERROR",
+        ),
+        (
+            "strcasecmp",
+            ["strings.h"],
+            "HAVE_STRCASECMP",
+        ),
+        (
+            "strncasecmp",
+            ["strings.h"],
+            "HAVE_STRNCASECMP",
+        ),
+        (
+            "snprintf",
+            ["stdio.h"],
+            "HAVE_SNPRINTF",
+        ),
+        (
+            "vsnprintf",
+            ["stdio.h"],
+            "HAVE_VSNPRINTF",
+        ),
+        (
+            "vasprintf",
+            ["stdio.h"],
+            "HAVE_VASPRINTF",
+        ),
+        (
+            "vprintf",
+            ["stdio.h"],
+            "HAVE_VPRINTF",
+        ),
+        (
+            "vsyslog",
+            ["syslog.h"],
+            "HAVE_VSYSLOG",
+        ),
+        (
+            "getrandom",
+            ["sys/random.h"],
+            "HAVE_GETRANDOM",
+        ),
+        (
+            "getrusage",
+            ["sys/resource.h"],
+            "HAVE_GETRUSAGE",
+        ),
+        (
+            "setrlimit",
+            ["sys/resource.h"],
+            "HAVE_SETRLIMIT",
+        ),
+        (
+            "arc4random",
+            ["stdlib.h"],
+            "HAVE_ARC4RANDOM",
+        ),
+    ],
+    # (type, [declaring headers], SIZEOF_ macro) — check_type_size.
+    types = [
+        ("int", [], "SIZEOF_INT"),
+        ("long", [], "SIZEOF_LONG"),
+        ("long long", [], "SIZEOF_LONG_LONG"),
+        (
+            "size_t",
+            ["stddef.h"],
+            "SIZEOF_SIZE_T",
+        ),
+        (
+            "ssize_t",
+            ["sys/types.h"],
+            "SIZEOF_SSIZE_T",
+        ),
+        (
+            "int64_t",
+            ["stdint.h"],
+            "SIZEOF_INT64_T",
+        ),
+    ],
+)
+
+config_header(
+    name = "catalog_smoke_h",
+    output = "catalog_smoke.h",
+    probes = [
+        ":have_endian_h",
+        ":have_xlocale_h",
+        ":have_stdlib_h",
+        ":sizeof_long",
+        ":sizeof_int",
+    ],
+    template = "testdata_catalog_smoke.h.in",
+)
+
+assert_config_header_test(
+    name = "catalog_smoke_test",
+    header = ":catalog_smoke_h",
+    must_contain = [
+        "#define HAVE_ENDIAN_H",  # present on Linux
+        "/* #undef HAVE_XLOCALE_H */",  # absent on glibc
+        "#define HAVE_STDLIB_H",
+        "#define SIZEOF_LONG 8",
+        "#define SIZEOF_INT 4",
+    ],
+    must_not_contain = [
+        "#define HAVE_XLOCALE_H",  # must not be defined on glibc
+        "@SIZEOF_LONG@",  # substituted
+    ],
+)
