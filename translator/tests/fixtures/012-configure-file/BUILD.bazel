@@ -1,0 +1,17 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the configure_file config-header capability: config.h is generated
+# from config.h.in by configure_file and #included by app. The translator
+# reproduces it via a cc_config config_header rule (probes computed against
+# the consumer's toolchain, not baked from this host). Every macro is a
+# catalog fact, so this converts fully green. See the fixture's CMakeLists.txt
+# and docs/architecture/configure-file-and-toolchain-probes.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "*.in",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

@@ -617,35 +617,62 @@ fn parse_template_macros(template: &str) -> TemplateMacros {
 /// CMakeSystem.cmake.in, DartConfiguration.tcl.in, CPack templates, ...);
 /// those originate under the CMake installation, not the project, so filtering
 /// on the template being under `source_dir` selects exactly the project's.
-/// Trace lines look like:
-///   /path/CMakeLists.txt(339):  configure_file(/abs/in /abs/out @ONLY )
+///
+/// Trace lines look like `<file>(<line>):  configure_file(<in> <out> <flags>)`.
+/// A path argument may be absolute (json-c writes
+/// `${PROJECT_SOURCE_DIR}/cmake/config.h.in`, which expands absolute) or
+/// relative (`configure_file(config.h.in config.h)` — the common form); a
+/// relative path is resolved against the calling file's own directory, taken
+/// from the `<file>` site prefix, matching CMake's own resolution.
 fn parse_configure_files(trace: &str, source_dir: &Path) -> Vec<ConfigureFile> {
     let mut calls = Vec::new();
     for line in trace.lines() {
-        // The command and its args follow the "file(line):  " site prefix.
         let Some(idx) = line.find("configure_file(") else {
             continue;
         };
+
+        // The site directory is the dir of the file named before "(<line>):".
+        let site_dir = line[..idx]
+            .rfind("):")
+            .and_then(|paren| line[..paren].rfind('('))
+            .map(|open| Path::new(&line[..open]))
+            .and_then(Path::parent);
+
         let args = &line[idx + "configure_file(".len()..];
         let args = args.trim_end().trim_end_matches(')').trim();
-        // Split on whitespace: first token is the template, second the output.
-        // Trailing flags (@ONLY, COPYONLY, ...) are ignored. Paths in these
-        // project calls are absolute in the trace (CMake expands them); a
-        // relative first token means a call we can't resolve, so skip it.
+        // First token is the template, second the output. Trailing flags
+        // (@ONLY, COPYONLY, ...) are ignored.
         let mut tokens = args.split_whitespace();
         let (Some(template), Some(output)) = (tokens.next(), tokens.next()) else {
             continue;
         };
-        let template = PathBuf::from(template);
-        if !template.is_absolute() || !template.starts_with(source_dir) {
+
+        let template = resolve_trace_path(template, site_dir);
+        if !template.starts_with(source_dir) {
             continue;
         }
         calls.push(ConfigureFile {
             template,
-            output: PathBuf::from(output),
+            output: resolve_trace_path(output, site_dir),
         });
     }
     calls
+}
+
+/// Resolves a `configure_file` path argument from the trace: absolute as-is,
+/// relative against the calling file's directory (`site_dir`). Normalized so
+/// the `starts_with(source_dir)` filter and later `strip_prefix` are exact.
+fn resolve_trace_path(path: &str, site_dir: Option<&Path>) -> PathBuf {
+    let path = Path::new(path);
+    let joined = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        match site_dir {
+            Some(dir) => dir.join(path),
+            None => path.to_path_buf(),
+        }
+    };
+    normalize_lexically(&joined)
 }
 
 /// Turns a `configure_file` call into a plan for a `config_header` rule: maps
@@ -655,39 +682,58 @@ fn parse_configure_files(trace: &str, source_dir: &Path) -> Vec<ConfigureFile> {
 /// be missing defines). `template_relative` and `output_relative` are already
 /// module-relative.
 ///
-/// `cache` maps a CMake variable name to its value; `@VAR@`s found there
-/// become substitution values, and a `#cmakedefine`'s name found there is
-/// treated as covered even without a catalog probe (its value drives the
-/// define directly — e.g. an `ENABLE_*` option). A `#cmakedefine` that is
-/// neither in the catalog nor the cache is unmapped.
+/// A name a template references (as a `#cmakedefine` or an `@VAR@`) is
+/// resolved by, in order:
+///
+/// - a **catalog probe** if it is a catalog fact — whether it appears as a
+///   `#cmakedefine` or an `@VAR@`. The probe's result feeds BOTH the
+///   `#cmakedefine` resolution and the `@VAR@` value in the config_header
+///   expander, so a catalog fact is NEVER taken from the cache — that would
+///   bake in this conversion host's answer (`SIZEOF_LONG=8`, `HAVE_X=1`)
+///   instead of the consumer's.
+/// - a **cache value** if it is a non-catalog `@VAR@` present in the cache
+///   (a version string, an option) — these are toolchain-independent, so the
+///   host's value is the right one.
+/// - **unmapped** if it is a `#cmakedefine` that is neither a catalog fact nor
+///   a cache value; the caller escalates it.
 fn resolve_config_header(
     call_template_relative: &str,
     output_relative: &str,
     macros: &TemplateMacros,
     cache: &HashMap<String, String>,
 ) -> (ConfigHeader, Vec<String>) {
+    // Catalog probes for every catalog fact the template names, by either
+    // form, deduped. A var and a #cmakedefine of the same name share one probe.
     let mut catalog_probes = Vec::new();
+    let mut probed = HashSet::new();
+    for name in macros.cmakedefines.iter().chain(macros.vars.iter()) {
+        if let Some(label) = catalog_label(name)
+            && probed.insert(name.clone())
+        {
+            catalog_probes.push(label);
+        }
+    }
+
+    // A #cmakedefine that is not a catalog fact and not a cache value can't be
+    // resolved — escalate it. (A cache-covered one is an option whose value
+    // drives the define; its value is added below.)
     let mut unmapped = Vec::new();
     for define in &macros.cmakedefines {
-        if let Some(label) = catalog_label(define) {
-            catalog_probes.push(label);
-        } else if cache.contains_key(define) {
-            // Covered by a cache value rather than a probe (an option, say);
-            // the value is added below via the vars pass.
-        } else {
+        if catalog_label(define).is_none() && !cache.contains_key(define) {
             unmapped.push(define.clone());
         }
     }
 
+    // Cache values for non-catalog names present in the cache. Catalog facts
+    // are excluded — their value comes from the probe, not the host cache.
     let mut values = Vec::new();
-    let mut value_names = HashSet::new();
-    // Both @VAR@ references and cache-covered #cmakedefines need their value.
+    let mut valued = HashSet::new();
     for name in macros.vars.iter().chain(macros.cmakedefines.iter()) {
-        if value_names.contains(name) {
+        if catalog_label(name).is_some() || valued.contains(name) {
             continue;
         }
         if let Some(value) = cache.get(name) {
-            value_names.insert(name.clone());
+            valued.insert(name.clone());
             values.push((name.clone(), value.clone()));
         }
     }
@@ -1475,6 +1521,7 @@ mod tests {
 /src/CMakeLists.txt(339):  configure_file(/src/cmake/config.h.in /build/config.h )
 /src/CMakeLists.txt(341):  configure_file(/src/cmake/json_config.h.in /build/json_config.h )
 /src/CMakeLists.txt(520):  configure_file(/src/json.h.cmakein /build/json.h @ONLY )
+/src/CMakeLists.txt(29):  configure_file(config.h.in config.h )
 /usr/share/cmake-3.28/Modules/CTestTargets.cmake(28):  configure_file(/usr/share/cmake-3.28/Modules/DartConfiguration.tcl.in /build/DartConfiguration.tcl )
 ";
 
@@ -1496,10 +1543,16 @@ mod tests {
                     template: PathBuf::from("/src/json.h.cmakein"),
                     output: PathBuf::from("/build/json.h"),
                 },
+                // A RELATIVE template — the common `configure_file(config.h.in
+                // config.h)` form — resolved against the calling file's own
+                // directory (/src), and output likewise.
+                ConfigureFile {
+                    template: PathBuf::from("/src/config.h.in"),
+                    output: PathBuf::from("/src/config.h"),
+                },
             ],
-            "only the project's own configure_file calls (template under source_dir) are kept; \
-             CMake's internal ones (templates under the CMake install) are dropped, and trailing \
-             flags like @ONLY are ignored"
+            "project calls are kept (absolute OR relative-to-the-calling-file templates), \
+             CMake's internal ones dropped, trailing @ONLY ignored"
         );
     }
 
@@ -1546,15 +1599,21 @@ mod tests {
         let macros = TemplateMacros {
             cmakedefines: vec![
                 "HAVE_ENDIAN_H".to_string(),          // catalog -> label
-                "SIZEOF_LONG".to_string(),            // catalog -> label
+                "HAVE_STDLIB_H".to_string(),          // catalog -> label (also in cache below)
                 "JSON_C_HAVE_INTTYPES_H".to_string(), // prefixed, no exact match -> unmapped
-                "ENABLE_RDRAND".to_string(),          // covered by a cache value, not a probe
+                "ENABLE_RDRAND".to_string(),          // non-catalog, cache-covered option
             ],
-            vars: vec!["PROJECT_VERSION".to_string()],
+            // A catalog fact referenced as a value (`#define SIZEOF_LONG
+            // @SIZEOF_LONG@`) — must resolve via the probe, not the host cache.
+            vars: vec!["PROJECT_VERSION".to_string(), "SIZEOF_LONG".to_string()],
         };
         let cache: HashMap<String, String> = [
             ("PROJECT_VERSION".to_string(), "1.2.3".to_string()),
             ("ENABLE_RDRAND".to_string(), "1".to_string()),
+            // The host's answers for catalog facts — these must NOT leak into
+            // `values` (they'd bake this host's config into the module).
+            ("HAVE_STDLIB_H".to_string(), "1".to_string()),
+            ("SIZEOF_LONG".to_string(), "8".to_string()),
         ]
         .into_iter()
         .collect();
@@ -1568,9 +1627,10 @@ mod tests {
             header.catalog_probes,
             vec![
                 "@cc_config//catalog:have_endian_h".to_string(),
+                "@cc_config//catalog:have_stdlib_h".to_string(),
                 "@cc_config//catalog:sizeof_long".to_string(),
             ],
-            "catalog defines map to their lowercased catalog labels"
+            "catalog facts map to labels — including SIZEOF_LONG referenced only as @VAR@"
         );
         assert_eq!(
             unmapped,
@@ -1583,7 +1643,8 @@ mod tests {
                 ("PROJECT_VERSION".to_string(), "1.2.3".to_string()),
                 ("ENABLE_RDRAND".to_string(), "1".to_string()),
             ],
-            "@VAR@ refs and cache-covered #cmakedefines both contribute values"
+            "only non-catalog names get cache values; HAVE_STDLIB_H and SIZEOF_LONG are catalog \
+             facts, so their HOST cache answers must NOT appear here — the probe supplies them"
         );
     }
 

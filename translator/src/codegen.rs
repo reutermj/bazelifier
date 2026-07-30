@@ -15,6 +15,9 @@ const LLVM_VERSION: &str = "0.8.14";
 // sh_test wrapper needs it), so a plain library/binary module doesn't
 // acquire a dep it never uses.
 const RULES_SHELL_VERSION: &str = "0.8.0";
+// The probing module for configure_file config headers; only depended on when
+// the module has one to generate. See docs/architecture/configure-file-and-toolchain-probes.md.
+const CC_CONFIG_VERSION: &str = "0.0.0";
 
 pub struct GeneratedModule {
     pub module_bazel: String,
@@ -49,11 +52,19 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
         format!("bazel_dep(name = \"rules_shell\", version = \"{RULES_SHELL_VERSION}\")\n")
     };
 
+    // cc_config only when there are configure_file config headers to generate
+    // (its probing rules produce them against the consumer's toolchain).
+    let cc_config = if graph.config_headers.is_empty() {
+        String::new()
+    } else {
+        format!("bazel_dep(name = \"cc_config\", version = \"{CC_CONFIG_VERSION}\")\n")
+    };
+
     format!(
         "module(\n    name = \"{name}\",\n{version})\n\n\
          bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n\
          bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\
-         {rules_shell}\n\
+         {rules_shell}{cc_config}\n\
          register_toolchains(\"@llvm//toolchain:all\")\n",
         name = graph.module.name,
     )
@@ -83,7 +94,16 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         out.push_str(&format!("load(\"@rules_cc//cc:{rule}.bzl\", \"{rule}\")\n"));
     }
     render_test_load(&mut out, !graph.tests.is_empty());
-    if !rules.is_empty() || !graph.tests.is_empty() {
+    if !graph.config_headers.is_empty() {
+        out.push_str("load(\"@cc_config//cc_config:config_header.bzl\", \"config_header\")\n");
+    }
+    if !rules.is_empty() || !graph.tests.is_empty() || !graph.config_headers.is_empty() {
+        out.push('\n');
+    }
+
+    // Config headers first: the cc targets below reference them.
+    for config_header in &graph.config_headers {
+        render_config_header(&mut out, config_header);
         out.push('\n');
     }
 
@@ -91,7 +111,7 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         if i > 0 {
             out.push('\n');
         }
-        render_cc_rule(&mut out, target);
+        render_cc_rule(&mut out, target, &graph.config_headers);
     }
 
     for test in &graph.tests {
@@ -100,6 +120,38 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     }
 
     out
+}
+
+/// Renders one `config_header` rule: the `cc_config` probe-driven
+/// reproduction of a `configure_file`-generated header. See
+/// docs/architecture/configure-file-and-toolchain-probes.md.
+fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
+    out.push_str(&format!(
+        "config_header(\n    name = \"{}\",\n",
+        config_header_name(header)
+    ));
+    out.push_str(&format!("    output = \"{}\",\n", header.output));
+    out.push_str(&format!("    template = \"{}\",\n", header.template));
+    render_string_list(out, "probes", &header.catalog_probes);
+    if !header.values.is_empty() {
+        out.push_str("    values = {\n");
+        for (name, value) in &header.values {
+            out.push_str(&format!("        \"{name}\": \"{value}\",\n"));
+        }
+        out.push_str("    },\n");
+    }
+    out.push_str(")\n");
+}
+
+/// The rule name for a config header's target — its output with non-identifier
+/// characters replaced, so `config.h` becomes a valid target `config_h` that
+/// won't collide with the output file of the same base name.
+fn config_header_name(header: &model::ConfigHeader) -> String {
+    header
+        .output
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect()
 }
 
 /// Renders the `load` for the test wrapper and one `sh_test` per registered
@@ -249,10 +301,30 @@ const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
 /// transitivity supplies a *consumer* with its dependencies' include dirs
 /// but never a target with its own, so an `add_executable` carrying its own
 /// `target_include_directories()` fails to compile without it.
-fn render_cc_rule(out: &mut String, target: &Target) {
+fn render_cc_rule(out: &mut String, target: &Target, config_headers: &[model::ConfigHeader]) {
     out.push_str(&format!("{}(\n", rule_name(&target.kind)));
     out.push_str(&format!("    name = \"{}\",\n", target.name));
-    render_path_list(out, "srcs", &target.sources);
+
+    // Every source path is asserted module-relative before it reaches srcs;
+    // the config headers are added as same-package labels (`:config_h`), which
+    // are inputs so the generated header is present and includable when this
+    // target compiles. A target that doesn't include a given header is
+    // unharmed by having it available. Both are one `srcs` list.
+    for path in &target.sources {
+        assert!(
+            model::is_module_relative(path),
+            "codegen emitted a non-module-relative path in `srcs`: {path:?}. See \
+             model::is_module_relative."
+        );
+    }
+    let mut srcs: Vec<String> = target.sources.clone();
+    srcs.extend(
+        config_headers
+            .iter()
+            .map(|h| format!(":{}", config_header_name(h))),
+    );
+    render_string_list(out, "srcs", &srcs);
+
     // `hdrs` is a `cc_library`-only attribute; `cc_binary` has none, and
     // Bazel rejects it as an unknown attribute rather than ignoring it.
     if target.kind == TargetKind::Library {
