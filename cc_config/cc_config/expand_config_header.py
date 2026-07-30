@@ -84,12 +84,22 @@ def main():
     with open(args.values) as fh:
         values = json.load(fh)
 
+    # A probe result is either boolean ("true"/"false" — a check_include_file
+    # or check_symbol_exists) or a value (a number from check_type_size). A
+    # boolean-true and a non-empty value both make a #cmakedefine "set"; a
+    # value is additionally available for @VAR@ substitution (SIZEOF_LONG is
+    # referenced as a value, e.g. `#define SIZEOF_LONG @SIZEOF_LONG@`). An
+    # explicit `values` entry wins over a probe of the same name.
     probe_true = set()
     for spec in args.result:
         macro, _, path = spec.partition("=")
         with open(path) as fh:
-            if fh.read().strip() == "true":
+            answer = fh.read().strip()
+        if answer in ("true", "false"):
+            if answer == "true":
                 probe_true.add(macro)
+        elif answer and macro not in values:
+            values[macro] = answer
 
     def is_set(name):
         return name in probe_true or bool(values.get(name))

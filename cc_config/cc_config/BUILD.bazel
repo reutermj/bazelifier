@@ -1,6 +1,6 @@
 load("@aspect_rules_py//py:defs.bzl", "py_binary")
 load(":config_header.bzl", "assert_config_header_test", "config_header")
-load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists")
+load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists", "check_type_size")
 
 exports_files([
     "probe.bzl",
@@ -73,14 +73,23 @@ assert_probe_result_test(
     probe = ":have_no_such_symbol",
 )
 
+# A size probe, exercised through the config header below: sizeof(long) is
+# determined at compile time and substituted as a value.
+check_type_size(
+    name = "sizeof_long",
+    define = "SIZEOF_LONG",
+    type = "long",
+)
+
 # End-to-end: a template resolved from real probe results (HAVE_STDLIB_H true,
-# HAVE_NO_SUCH_SYMBOL false) plus @VAR@ values, producing an actual header.
+# HAVE_NO_SUCH_SYMBOL false, SIZEOF_LONG a number) plus @VAR@ values.
 config_header(
     name = "test_config_h",
     output = "test_config.h",
     probes = [
         ":have_stdlib_h",
         ":have_no_such_symbol",
+        ":sizeof_long",
     ],
     template = "testdata/config.h.in",
     values = {
@@ -99,9 +108,13 @@ assert_config_header_test(
         # @VAR@ substituted in a #cmakedefine value and a plain line.
         "#define PACKAGE_NAME \"cc_config_test\"",
         "#define PACKAGE_VERSION \"1.2.3\"",
+        # A size probe's number substituted as a value (8 on the linux
+        # x86-64 toolchain this builds against).
+        "#define SIZEOF_LONG 8",
     ],
     must_not_contain = [
         "#define HAVE_NO_SUCH_SYMBOL",
         "@PACKAGE_VERSION@",
+        "@SIZEOF_LONG@",
     ],
 )

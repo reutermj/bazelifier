@@ -18,14 +18,17 @@ load("@rules_cc//cc:action_names.bzl", "ACTION_NAMES")
 load("@rules_cc//cc:find_cc_toolchain.bzl", "CC_TOOLCHAIN_TYPE", "find_cc_toolchain", "use_cc_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 
-# The result of a probe: the macro it defines, and a file containing "true"
-# or "false" — the probe's answer, produced by an action that itself always
-# succeeds (see _run_compile_probe).
+# The result of a probe: the macro it defines, and a file holding the
+# probe's answer, produced by an action that itself always succeeds. For a
+# boolean probe (check_include_file / check_symbol_exists) the file contains
+# "true"/"false"; for check_type_size it contains the size as a number
+# string (e.g. "8"). The config-header expander treats a "true"/"false"
+# result as a #cmakedefine and any other value as a substitution value.
 ProbeResultInfo = provider(
     doc = "A single autoconf-style probe's outcome.",
     fields = {
-        "define": "The preprocessor macro this probe controls (e.g. HAVE_ENDIAN_H).",
-        "result": "A File containing \"true\" or \"false\": whether the probe compiled.",
+        "define": "The preprocessor macro this probe controls (e.g. HAVE_ENDIAN_H, SIZEOF_LONG).",
+        "result": "A File holding the answer: \"true\"/\"false\" for a boolean probe, or a number for a size probe.",
     },
 )
 
@@ -195,6 +198,136 @@ def _run_probe(ctx, source_content, define, link):
         toolchain = CC_TOOLCHAIN_TYPE,
     )
     return ProbeResultInfo(define = define, result = result)
+
+# The size-probe runner. A type's size can't be read by running a program (we
+# may be cross-compiling — the point is the CONSUMER's toolchain, which we
+# can't execute), so it's found at COMPILE time: the snippet declares an array
+# whose length is `sizeof(type) == CANDIDATE ? 1 : -1`, which compiles only
+# when the guess is right (a negative length is an error). The runner tries
+# each candidate size and writes the first that compiles. An unknown size (no
+# candidate matched) writes empty, which surfaces as an unresolved value
+# rather than a wrong one.
+#
+# Arg contract: compile_tool, result, log, source, then the candidate sizes
+# (space-free, one per arg) up to `--`, then the compile command line. The
+# candidate is injected as -DCC_CONFIG_PROBE_SIZE=N before the source.
+_SIZE_RUNNER = """set -u
+compile_tool="$1"
+result="$2"
+log="$3"
+source="$4"
+shift 4
+
+candidates=()
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = "--" ]; then shift; break; fi
+    candidates+=("$1")
+    shift
+done
+
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/cc-config-size.XXXXXX")"
+trap 'rm -rf "${tmp}"' EXIT
+object="${tmp}/probe.o"
+
+: > "${log}"
+size=""
+for candidate in "${candidates[@]}"; do
+    cmd=("${compile_tool}")
+    for arg in "$@"; do
+        case "${arg}" in
+            "%{probe_source}") cmd+=("-DCC_CONFIG_PROBE_SIZE=${candidate}" "${source}") ;;
+            "%{probe_object}") cmd+=("${object}") ;;
+            *) cmd+=("${arg}") ;;
+        esac
+    done
+    if "${cmd[@]}" >> "${log}" 2>&1; then
+        size="${candidate}"
+        break
+    fi
+done
+printf '%s' "${size}" > "${result}"
+"""
+
+def _run_size_probe(ctx, type_name, define, candidates):
+    """Determines sizeof(`type_name`) at compile time (no execution).
+
+    Returns a ProbeResultInfo whose result file holds the matching size as a
+    number, or empty if no candidate matched.
+    """
+    cc_toolchain, feature_configuration = _toolchain(ctx)
+    compile = _compile_command_line(cc_toolchain, feature_configuration)
+
+    stem = ctx.label.name
+    source = ctx.actions.declare_file(stem + "_probe.c")
+    ctx.actions.write(
+        output = source,
+        content = """{includes}
+int probe[sizeof({type}) == CC_CONFIG_PROBE_SIZE ? 1 : -1];
+""".format(
+            includes = "".join(["#include <%s>\n" % h for h in ctx.attr.headers]),
+            type = type_name,
+        ),
+    )
+    result = ctx.actions.declare_file(stem + ".result")
+    log = ctx.actions.declare_file(stem + ".log")
+
+    arguments = [
+        compile.tool,
+        result.path,
+        log.path,
+        source.path,
+    ] + [str(c) for c in candidates] + ["--"] + compile.command_line
+
+    ctx.actions.run_shell(
+        inputs = depset(direct = [source]),
+        outputs = [result, log],
+        tools = cc_toolchain.all_files,
+        command = _SIZE_RUNNER,
+        arguments = arguments,
+        env = compile.env,
+        mnemonic = "CcConfigSizeProbe",
+        progress_message = "Probing sizeof %s" % type_name,
+        toolchain = CC_TOOLCHAIN_TYPE,
+    )
+    return ProbeResultInfo(define = define, result = result)
+
+# The sizes a C type can plausibly have, tried in order. Covers every standard
+# integer, pointer, and common aggregate; a type larger than this is not
+# something a config header's SIZEOF_ macro describes.
+_CANDIDATE_SIZES = [1, 2, 4, 8, 16, 32]
+
+def _check_type_size_impl(ctx):
+    info = _run_size_probe(
+        ctx,
+        type_name = ctx.attr.type,
+        define = ctx.attr.define,
+        candidates = _CANDIDATE_SIZES,
+    )
+    return [
+        info,
+        DefaultInfo(files = depset([info.result])),
+    ]
+
+check_type_size = rule(
+    implementation = _check_type_size_impl,
+    doc = "Sets `define` to the size of `type` under the resolved toolchain, found at compile time (no execution, so it works cross-target) — the Bazel equivalent of CMake's check_type_size().",
+    attrs = {
+        "type": attr.string(
+            mandatory = True,
+            doc = "The type whose size to determine (e.g. \"long\", \"size_t\", \"void *\").",
+        ),
+        "headers": attr.string_list(
+            default = [],
+            doc = "Headers that declare the type, in #include <...> form (e.g. [\"stddef.h\"]).",
+        ),
+        "define": attr.string(
+            mandatory = True,
+            doc = "The macro to set to the size (e.g. \"SIZEOF_LONG\").",
+        ),
+    },
+    toolchains = use_cc_toolchain(),
+    fragments = ["cpp"],
+)
 
 def _check_include_file_impl(ctx):
     info = _run_probe(
