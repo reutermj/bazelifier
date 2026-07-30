@@ -47,3 +47,28 @@ bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.3", dev_dependency = Tr
 # Packages converted fixture modules into a validation tarball. See
 # docs/architecture/build-verification.md.
 bazel_dep(name = "tar.bzl", version = "0.10.7", dev_dependency = True)
+
+# First real upstream CMake project driving new translator work (corpus),
+# pinned to tinyxml2 11.0.0. This is INPUT to the translator only — its
+# sources feed a convert_cmake_project target as `srcs`, and the translator
+# copies the referenced ones into the standalone module it emits. The pinned
+# commit is the version record; nothing here ends up in the generated
+# output's own MODULE.bazel. See bzl-c54 and
+# docs/architecture/build-verification.md.
+git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+git_repository(
+    name = "tinyxml2",
+    # tinyxml2 ships no Bazel BUILD; expose the whole checkout as one
+    # filegroup so convert_cmake_project can take the CMakeLists.txt +
+    # sources as `srcs`. The translator (not Bazel) decides which files the
+    # build actually references.
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    commit = "9148bdf719e997d1f474be6bcc7943881046dba1",  # tag 11.0.0
+    remote = "https://github.com/leethomason/tinyxml2",
+)

@@ -9,6 +9,31 @@ rule only produces that output; validating it as its own workspace happens
 out-of-band (see docs/architecture/build-verification.md).
 """
 
+def _derived_source_dir(srcs):
+    """Returns the execroot-relative dir of the top-level CMakeLists.txt.
+
+    Used when the BUILD author can't name the staged path (a corpus project
+    fetched via git_repository stages under external/<repo>+/).
+
+    A project can carry nested CMakeLists.txt files — some pulled in via
+    add_subdirectory, some (like tinyxml2's test/) standalone sub-projects
+    that find_package() the main one. The shallowest path is the project
+    root unambiguously; deeper ones are subdirectories of it, so picking the
+    minimum-depth CMakeLists.txt is correct regardless of which kind they
+    are. A tie at the shallowest depth would be two roots at once, which is
+    genuinely ambiguous and fails. See bzl-c54.4.
+    """
+    roots = [f.dirname for f in srcs if f.basename == "CMakeLists.txt"]
+    if not roots:
+        fail("convert_cmake_project: to derive source_dir, srcs must contain " +
+             "a CMakeLists.txt, found none")
+    min_depth = min([len(r.split("/")) for r in roots])
+    shallowest = [r for r in roots if len(r.split("/")) == min_depth]
+    if len(shallowest) != 1:
+        fail("convert_cmake_project: ambiguous project root — multiple " +
+             "top-level CMakeLists.txt at the same depth: %s" % shallowest)
+    return shallowest[0]
+
 def _convert_cmake_project_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.attr.name)
 
@@ -21,13 +46,24 @@ def _convert_cmake_project_impl(ctx):
     if not srcs:
         fail("convert_cmake_project: srcs must not be empty")
 
-    source_dir = ctx.attr.source_dir
+    # source_dir is an execroot-relative path. An in-repo fixture names it
+    # with package_name(); a corpus project fetched via git_repository stages
+    # under a path the BUILD author can't name, so it leaves source_dir empty
+    # and the rule derives it from where the CMakeLists.txt actually landed.
+    # See bzl-c54.4.
+    source_dir = ctx.attr.source_dir or _derived_source_dir(srcs)
+
+    # An explicit deliverable_root is only meaningful for the in-repo case
+    # (it names a sibling directory relative to package_name()); a derived
+    # corpus source has no such wider deliverable yet, so it always converts
+    # on its own (deliverable_root == source_dir).
+    deliverable_root = ctx.attr.deliverable_root or source_dir
 
     args = ctx.actions.args()
     args.add(source_dir)
     args.add("--build-dir", build_scratch.path)
     args.add("--out-module", out_dir.path)
-    args.add("--deliverable-root", ctx.attr.deliverable_root or source_dir)
+    args.add("--deliverable-root", deliverable_root)
 
     ctx.actions.run(
         outputs = [out_dir, build_scratch],
@@ -56,8 +92,7 @@ convert_cmake_project = rule(
             doc = "All files belonging to the CMake project (CMakeLists.txt and sources).",
         ),
         "source_dir": attr.string(
-            mandatory = True,
-            doc = "Path (relative to the execroot) to the CMake project's root directory, i.e. the directory containing its CMakeLists.txt.",
+            doc = "Path (relative to the execroot) to the CMake project's root directory, i.e. the directory containing its CMakeLists.txt. Leave empty to derive it from the single CMakeLists.txt in srcs — required when the sources come from an external repo (a corpus project) whose staged path the BUILD author can't name.",
         ),
         "deliverable_root": attr.string(
             default = "",

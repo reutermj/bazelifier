@@ -1,0 +1,28 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# The first real upstream project driving the translator (corpus tier),
+# distinct from the synthetic single-capability fixtures under
+# translator/tests/fixtures/. tinyxml2 is one library (tinyxml2) plus one
+# test executable (xmltest); it exercises target_compile_definitions
+# (handled as of bzl-c54.1), an ALIAS target on the link edge, and CTest
+# with runtime data — the last of which is expected to surface as
+# needs_attention items this ingestion is meant to discover. See bzl-c54.4.
+#
+# Sources come from the @tinyxml2 git_repository (pinned in MODULE.bazel),
+# not vendored into this repo: the pinned commit is the version record, and
+# the translator copies the referenced sources into the standalone module
+# it emits, so the deliverable stays self-contained. source_dir is left
+# empty so the rule derives the staged external path from the CMakeLists.txt.
+#
+# Deliberately NOT yet listed in //translator/tests:validation_workspace:
+# the conversion currently emits unresolved needs_attention items (28 CTest
+# dashboard UTILITY targets from include(CTest) — bzl-c54.6 — plus the
+# tinyxml2.h header-visibility gap — bzl-c54.7), so enrolling it would make
+# the unpacked validation red for genuinely unfinished work. Green is the
+# only passing state; this gets enrolled once bzl-c54.7 lands its
+# resolutions. See docs/lore/cmake-include-ctest-injects-utility-targets.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["@tinyxml2//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)
