@@ -235,8 +235,9 @@ fn copy_test_runtime_data(
 }
 
 /// Names that must never be copied as runtime data: build metadata the
-/// module omits, and Bazel files that would collide with generated output.
-/// Matched on the file/dir name at any depth.
+/// module omits, Bazel files that would collide with generated output, and
+/// VCS bookkeeping that is never a test's runtime input. Matched on the
+/// file/dir name at any depth.
 const NON_RUNTIME_NAMES: &[&str] = &[
     "CMakeLists.txt",
     "Makefile",

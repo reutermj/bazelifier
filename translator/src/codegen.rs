@@ -532,8 +532,11 @@ mod tests {
 
     // Compile definitions render as `local_defines` (Layer A), for every
     // target kind, and — crucially — a `NAME=VALUE` define is emitted
-    // verbatim, NOT run through render_path_list's module-relative assert
-    // (which would panic on the `=`). See Target::local_defines and
+    // verbatim via render_string_list, NOT render_path_list: a define is not
+    // a path, so the module-relative assert has no business seeing it. The
+    // assert wouldn't even catch a bad one reliably — `MAX_LEN=64` passes it
+    // (not absolute, no `..`), while a define whose value is an absolute path
+    // would trip it and panic. See Target::local_defines and
     // docs/lore/cmake-file-api-compile-definitions-shape.md. Exercised end
     // to end by tests/fixtures/009-compile-definitions.
     #[test]

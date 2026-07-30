@@ -313,15 +313,14 @@ pub fn inert_convenience_targets_needs_attention(target_names: &[String]) -> Nee
              inert.)",
             target_names.join(", ")
         ),
-        expected_output: format!(
-            "For each of these targets, decide whether it has a Bazel equivalent. Most will \
-             not: confirm that in the resolution and emit nothing for them — but say so \
+        expected_output: "For each of these targets, decide whether it has a Bazel equivalent. \
+             Most will not: confirm that in the resolution and emit nothing for them — but say so \
              explicitly, because a deliberate omission and an overlooked one are \
              indistinguishable in the output otherwise. For any that DOES produce a file the \
              build consumes, add a `genrule` (or custom rule) to the generated `BUILD.bazel` \
              declaring that output and wire its consumers to it. Resolve this in the GENERATED \
              output only — do NOT edit the project's CMakeLists.txt."
-        ),
+            .to_string(),
         title,
     }
 }

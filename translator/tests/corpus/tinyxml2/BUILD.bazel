@@ -5,8 +5,8 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project
 # translator/tests/fixtures/. tinyxml2 is one library (tinyxml2) plus one
 # test executable (xmltest); it exercises target_compile_definitions
 # (handled as of bzl-c54.1), an ALIAS target on the link edge, and CTest
-# with runtime data — the last of which is expected to surface as
-# needs_attention items this ingestion is meant to discover. See bzl-c54.4.
+# with runtime data. Ingesting it (bzl-c54.4) is what surfaced the gaps the
+# capabilities below then closed; the resulting conversion is described next.
 #
 # Sources come from the @tinyxml2 git_repository (pinned in MODULE.bazel),
 # not vendored into this repo: the pinned commit is the version record, and

@@ -34,10 +34,16 @@ Three properties make them recognizable as noise rather than work:
 That triad — UTILITY + no artifacts + no dependents — is the general shape
 of a developer-convenience target, and it is *not* CTest-specific: Doxygen
 (`doc`), clang-format (`format`), and similar modules inject the same
-shape. So the right handler keys on the triad, not on CTest's specific
-target names (which would be a brittle allowlist). A UTILITY target that
-*does* produce a consumed file (has artifacts, or has dependents) is real
-and must still escalate individually — see bzl-c54.6.
+shape. So the handler keys on the shape, not on CTest's specific target
+names (which would be a brittle allowlist). It splits by *provenance*,
+though — because the shape alone can't tell CMake's injected targets from a
+project's own hand-written `doc`/`format` target, and the two want different
+handling: an inert target whose defining command is under `CMAKE_ROOT` (a
+CMake module injected it) is dropped **silently**, while an inert target the
+project itself defined is **aggregated** into one escalation, so the drop is
+a decision rather than an oversight. Either way, a UTILITY target that *does*
+produce a consumed file (has artifacts, or has dependents) is real and still
+escalates individually — see bzl-c54.6 and `is_cmake_provided`/`is_inert_target`.
 
 `enable_testing()` alone does NOT do this; it only turns on `add_test()`
 registration. It's specifically `include(CTest)` (or `include(Dart)`, its

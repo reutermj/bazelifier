@@ -609,15 +609,22 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
         };
 
         let is_depended_on = dependents_of.contains_key(id);
-        let (target, attention) =
-            to_target(reply, kind, &translated_names, is_depended_on, &installed_headers);
+        let (target, attention) = to_target(
+            reply,
+            kind,
+            &translated_names,
+            is_depended_on,
+            &installed_headers,
+        );
 
         targets.push(target);
         needs_attention.extend(attention);
     }
 
     if !inert_convenience.is_empty() {
-        needs_attention.push(inert_convenience_targets_needs_attention(&inert_convenience));
+        needs_attention.push(inert_convenience_targets_needs_attention(
+            &inert_convenience,
+        ));
     }
 
     let source_dir = normalize_lexically(Path::new(&index.paths.source));
@@ -900,8 +907,7 @@ fn to_target(
                 fs.fileset_type == "HEADERS"
                     && (fs.visibility == "PUBLIC" || fs.visibility == "INTERFACE")
             });
-        let is_public_header =
-            is_file_set_public || installed_headers.contains(&source.path);
+        let is_public_header = is_file_set_public || installed_headers.contains(&source.path);
 
         if is_public_header {
             public_headers.push(source.path.clone());
@@ -1082,7 +1088,7 @@ fn installed_public_headers(directories: &[DirectoryReply]) -> HashSet<String> {
 /// reply carries no usable backtrace for it. Absolute for included modules
 /// (`/usr/share/cmake-3.28/Modules/CTestTargets.cmake`) and repo-relative
 /// for the project's own (`CMakeLists.txt`), exactly as CMake records them.
-fn defining_command_file<'a>(reply: &'a TargetReply) -> Option<&'a str> {
+fn defining_command_file(reply: &TargetReply) -> Option<&str> {
     let node = reply.backtrace_graph.nodes.get(reply.backtrace?)?;
     let file_index = node.file?;
     reply
@@ -1098,7 +1104,11 @@ fn defining_command_file<'a>(reply: &'a TargetReply) -> Option<&'a str> {
 /// load-bearing in the build graph. Both conditions matter: a UTILITY target
 /// that produces a consumed file (has artifacts) or that something links/depends
 /// on is real work and must not be swept up as convenience.
-fn is_inert_target(reply: &TargetReply, dependents_of: &HashMap<&str, Vec<&str>>, id: &str) -> bool {
+fn is_inert_target(
+    reply: &TargetReply,
+    dependents_of: &HashMap<&str, Vec<&str>>,
+    id: &str,
+) -> bool {
     reply.artifacts.is_empty() && !dependents_of.contains_key(id)
 }
 
@@ -1313,7 +1323,9 @@ mod tests {
             dependencies: vec![],
             artifacts: artifacts
                 .into_iter()
-                .map(|p| TargetArtifact { path: p.to_string() })
+                .map(|p| TargetArtifact {
+                    path: p.to_string(),
+                })
                 .collect(),
             compile_groups: vec![],
             backtrace: Some(1),
@@ -1447,8 +1459,13 @@ mod tests {
             public_file_set(),
         );
 
-        let (target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &HashSet::new());
+        let (target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Library,
+            &HashMap::new(),
+            true,
+            &HashSet::new(),
+        );
 
         assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
         assert_eq!(target.public_headers, vec!["include/greet.hpp".to_string()]);
@@ -1476,8 +1493,13 @@ mod tests {
             vec![],
         );
 
-        let (target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &HashSet::new());
+        let (target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Library,
+            &HashMap::new(),
+            true,
+            &HashSet::new(),
+        );
 
         // The plain header stays in srcs, NOT silently promoted to hdrs.
         assert_eq!(
@@ -1514,8 +1536,13 @@ mod tests {
         );
         let installed: HashSet<String> = ["greet.h".to_string()].into_iter().collect();
 
-        let (target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &installed);
+        let (target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Library,
+            &HashMap::new(),
+            true,
+            &installed,
+        );
 
         assert_eq!(
             target.public_headers,
@@ -1598,8 +1625,13 @@ mod tests {
         // is_depended_on = false: nothing in the project links against
         // this library, so there's no consumer that could need a header
         // it isn't exposing — not worth flagging.
-        let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), false, &HashSet::new());
+        let (_target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Library,
+            &HashMap::new(),
+            false,
+            &HashSet::new(),
+        );
 
         assert!(needs_attention.is_empty());
     }
@@ -1617,8 +1649,13 @@ mod tests {
             vec![],
         );
 
-        let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &HashSet::new());
+        let (_target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Library,
+            &HashMap::new(),
+            true,
+            &HashSet::new(),
+        );
 
         assert!(needs_attention.is_empty());
     }
@@ -1647,7 +1684,13 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false, &HashSet::new());
+        let (target, _) = to_target(
+            &reply,
+            TargetKind::Executable,
+            &translated_names,
+            false,
+            &HashSet::new(),
+        );
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
@@ -1681,7 +1724,13 @@ mod tests {
         // was escalated rather than translated.
         let translated_names = HashMap::from([("greet::@abc123", "greet")]);
 
-        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false, &HashSet::new());
+        let (target, _) = to_target(
+            &reply,
+            TargetKind::Executable,
+            &translated_names,
+            false,
+            &HashSet::new(),
+        );
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
@@ -1716,8 +1765,13 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (target, needs_attention) =
-            to_target(&reply, TargetKind::Executable, &HashMap::new(), false, &HashSet::new());
+        let (target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Executable,
+            &HashMap::new(),
+            false,
+            &HashSet::new(),
+        );
 
         assert_eq!(
             target.sources,
@@ -1772,8 +1826,13 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Executable, &HashMap::new(), false, &HashSet::new());
+        let (_target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Executable,
+            &HashMap::new(),
+            false,
+            &HashSet::new(),
+        );
 
         assert_eq!(needs_attention.len(), 1);
         assert!(
@@ -1796,8 +1855,13 @@ mod tests {
             vec![],
         );
 
-        let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), false, &HashSet::new());
+        let (_target, needs_attention) = to_target(
+            &reply,
+            TargetKind::Library,
+            &HashMap::new(),
+            false,
+            &HashSet::new(),
+        );
 
         assert!(needs_attention.is_empty());
     }
@@ -2226,6 +2290,122 @@ mod tests {
                 }
             ),
         }
+    }
+
+    // A codemodel with a translatable library (greet, reusing TARGET_GREET_JSON)
+    // plus a project-authored inert UTILITY target (docs), so the full filtering
+    // composition in read_codemodel_reply is exercised end-to-end — not just the
+    // is_cmake_provided / is_inert_target predicates in isolation. The two source
+    // paths stay "/abs/002-with-library" so the deliverable-root check passes.
+    const CODEMODEL_WITH_PROJECT_UTILITY_JSON: &str = r#"{
+  "configurations": [
+    {
+      "directories": [
+        { "build": ".", "jsonFile": "directory-.json", "projectIndex": 0, "source": ".", "targetIndexes": [0, 1] }
+      ],
+      "name": "",
+      "projects": [
+        { "directoryIndexes": [0], "name": "with_library", "targetIndexes": [0, 1] }
+      ],
+      "targets": [
+        { "directoryIndex": 0, "id": "greet::@6890427a1f51a3e7e1df", "jsonFile": "target-greet.json", "name": "greet", "projectIndex": 0 },
+        { "directoryIndex": 0, "id": "docs::@6890427a1f51a3e7e1df", "jsonFile": "target-docs.json", "name": "docs", "projectIndex": 0 }
+      ]
+    }
+  ],
+  "kind": "codemodel",
+  "paths": { "build": "/abs/002-with-library/_build", "source": "/abs/002-with-library" },
+  "version": { "major": 2, "minor": 6 }
+}"#;
+
+    // A project-authored UTILITY target: defining command in CMakeLists.txt
+    // (NOT under CMAKE_ROOT, so is_cmake_provided is false), no artifacts and no
+    // dependents (so is_inert_target is true). The intended outcome is a single
+    // AGGREGATED convenience escalation — neither a silent drop (that is only for
+    // CMake-module-injected targets) nor a per-target unsupported-type item.
+    const TARGET_DOCS_JSON: &str = r#"{
+  "name": "docs",
+  "type": "UTILITY",
+  "sources": [],
+  "backtrace": 1,
+  "backtraceGraph": {
+    "commands": ["add_custom_target"],
+    "files": ["CMakeLists.txt"],
+    "nodes": [
+      { "file": 0 },
+      { "command": 0, "file": 0, "line": 40, "parent": 0 }
+    ]
+  }
+}"#;
+
+    fn reply_dir_with_project_utility() -> ScratchDir {
+        let dir = ScratchDir::new("codemodel_util");
+        dir.write(
+            "codemodel-v2-abc123.json",
+            CODEMODEL_WITH_PROJECT_UTILITY_JSON,
+        );
+        dir.write("cache-v2-abc123.json", CACHE_JSON);
+        dir.write("target-greet.json", TARGET_GREET_JSON);
+        dir.write("target-docs.json", TARGET_DOCS_JSON);
+        dir
+    }
+
+    // Guards the FILTERING COMPOSITION, not the predicates: a project-authored
+    // inert UTILITY target must be AGGREGATED into one convenience escalation,
+    // while a translatable target beside it still translates. is_cmake_provided
+    // and is_inert_target are each unit-tested in isolation; this pins the branch
+    // that wires them together (read_codemodel_reply), which otherwise only the
+    // Bazel-tier fixture 010 covers — and fixture 010's targets are all
+    // CMake-provided, so they never reach the project-authored (aggregated)
+    // branch this exercises. Inverting the is_cmake_provided test in that branch
+    // passes every other unit test.
+    #[test]
+    fn read_codemodel_reply_aggregates_a_project_authored_inert_utility() {
+        let dir = reply_dir_with_project_utility();
+
+        let codemodel = read_codemodel_reply(&dir.path, Path::new("/abs/002-with-library"))
+            .expect("codemodel with a project utility target should parse and translate");
+
+        // The library still translates; the UTILITY target is not a build target.
+        let names: Vec<&str> = codemodel.targets.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(
+            names,
+            vec!["greet"],
+            "the translatable library must survive; the UTILITY target is not a cc_ target"
+        );
+
+        // Exactly one escalation, and it is the AGGREGATED convenience item that
+        // names `docs` — not a silent drop (would be zero) and not a per-target
+        // unsupported-type item. Asserting on the count and the named target, not
+        // the escalation wording (which is the agent-facing interface).
+        assert_eq!(
+            codemodel.needs_attention.len(),
+            1,
+            "a project-authored inert UTILITY target must produce exactly one aggregated \
+             escalation, got: {:?}",
+            codemodel
+                .needs_attention
+                .iter()
+                .map(|n| &n.title)
+                .collect::<Vec<_>>()
+        );
+        // The aggregated-convenience escalation, distinguished from a per-target
+        // unsupported-type item by its title (both name `docs`, so a gap-only
+        // check could not tell them apart). Asserting which escalation KIND
+        // fired is structure, not the agent-facing wording.
+        let item = &codemodel.needs_attention[0];
+        assert!(
+            item.title.contains("convenience target"),
+            "the inert UTILITY must yield the AGGREGATED convenience escalation, not a \
+             per-target unsupported-type item; title was: {}",
+            item.title
+        );
+        assert!(
+            item.gap.contains("docs"),
+            "the escalation must name the project-authored target `docs`, so its drop is a \
+             decision and not a silent omission; gap was: {}",
+            item.gap
+        );
     }
 
     // Real CMake File API output for the `defs` target, captured verbatim
