@@ -3,29 +3,6 @@
 Open items not yet tracked elsewhere. Keep entries actionable: what's
 unknown, why it matters, and what would settle it.
 
-## Decide pass criteria for header-visibility resolutions
-
-**Status:** open, deliberately deferred.
-
-Because the build goes green whether or not `hdrs` is populated correctly,
-"empty `needs_attention/` + runtime equivalence" cannot distinguish an
-agent that actually resolved the item from one that deleted the markdown
-file. Both pass. Neither toolchain in use enforces the split at compile
-time either — see
-[docs/lore/bazel-does-not-enforce-hdrs-vs-srcs.md](docs/lore/bazel-does-not-enforce-hdrs-vs-srcs.md)
-— so there's no shortcut where the compiler does this work for us; an
-explicit decision is required.
-
-Options considered: a structural assertion on the generated `BUILD.bazel`
-(e.g. an `expected_hdrs` attr on `convert_cmake_project`), a full
-generated-output golden diff, or leaving the two existing gates as-is.
-
-Note this interacts with the decision that resolutions are **ephemeral**
-(made in the unpacked workspace, not checked in): the *resolution* isn't
-persisted, but any *expectation* used to check it would have to be. Those
-aren't in conflict — expectation ≠ resolution — but it's the wrinkle to
-think through.
-
 ## Derive `module_name`/`expected_targets` instead of declaring them
 
 **Status:** open. Previously blocked on network egress preventing
