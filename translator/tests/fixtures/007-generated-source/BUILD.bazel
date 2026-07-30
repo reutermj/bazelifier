@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# app consumes gen.cpp, an add_custom_command()-produced source — the
+# generated_sources_needs_attention escalation, which no other fixture
+# exercises. gen.cpp is left out of app's generated srcs (the translator
+# cannot yet translate the recipe that produces it), so the conversion
+# builds without whatever generated_answer() contributes; `app` alone is
+# not expected to link or run until an agent resolves the escalation.
+#
+# Full rationale: docs/architecture/build-verification.md#fixtures.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob(["src/**"]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

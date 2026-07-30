@@ -595,6 +595,15 @@ fn to_target(
         // The translator can't produce a generated file, and has no way to
         // know what does.
         if source.is_generated {
+            // Every add_custom_command() output arrives with a phantom
+            // "<output>.rule" sibling in the File API reply — Ninja/Make
+            // build-graph bookkeeping that names no file on disk, not a
+            // second missing input. Left in, it would read to an agent as
+            // a second generated source to account for. See
+            // docs/lore/cmake-file-api-generated-source-shape.md.
+            if source.path.ends_with(".rule") {
+                continue;
+            }
             generated_sources.push(source.path.clone());
             continue;
         }
@@ -1067,6 +1076,55 @@ mod tests {
                 .gap
                 .contains("/abs/build/CMakeFiles/obj.dir/src/lib.cpp.o"),
             "the escalation must name the file that was dropped:\n{}",
+            needs_attention[0].gap
+        );
+    }
+
+    // Every add_custom_command() output arrives with a phantom "<output>.rule"
+    // sibling in the File API reply (Ninja/Make build-graph bookkeeping,
+    // names no file on disk) — see
+    // docs/lore/cmake-file-api-generated-source-shape.md. It must not read
+    // to an agent as a second missing generated source.
+    #[test]
+    fn to_target_filters_phantom_rule_sibling_out_of_generated_sources() {
+        let reply = TargetReply {
+            name: "app".to_string(),
+            cmake_type: "EXECUTABLE".to_string(),
+            sources: vec![
+                TargetSource {
+                    path: "src/main.cpp".to_string(),
+                    file_set_index: None,
+                    is_generated: false,
+                },
+                TargetSource {
+                    path: "/abs/build/gen.cpp".to_string(),
+                    file_set_index: None,
+                    is_generated: true,
+                },
+                TargetSource {
+                    path: "/abs/build/gen.cpp.rule".to_string(),
+                    file_set_index: None,
+                    is_generated: true,
+                },
+            ],
+            file_sets: vec![],
+            dependencies: vec![],
+            artifacts: vec![TargetArtifact {
+                path: "app".to_string(),
+            }],
+            compile_groups: vec![],
+            backtrace_graph: empty_backtrace_graph(),
+        };
+
+        let (_target, needs_attention) =
+            to_target(&reply, TargetKind::Executable, &HashMap::new(), false);
+
+        assert_eq!(needs_attention.len(), 1);
+        assert!(
+            needs_attention[0].gap.contains("/abs/build/gen.cpp")
+                && !needs_attention[0].gap.contains("gen.cpp.rule"),
+            "escalation must name the real generated file but not its \
+             phantom .rule sibling:\n{}",
             needs_attention[0].gap
         );
     }

@@ -12,5 +12,7 @@ validation_workspace(
         "//translator/tests/fixtures/004-binary-private-include:converted",
         "//translator/tests/fixtures/005-unsupported-target-type:converted",
         "//translator/tests/fixtures/006-sibling-sources:converted",
+        "//translator/tests/fixtures/007-generated-source:converted",
+        "//translator/tests/fixtures/008-sources-outside-deliverable-root:converted",
     ],
 )

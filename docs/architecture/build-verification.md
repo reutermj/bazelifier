@@ -148,7 +148,11 @@ building against a fixture with nothing to differentiate):
 
 ## Fixtures
 
-- `001-hello-world` — single `cc_binary`, no dependencies.
+- `001-hello-world` — single `cc_binary`, no dependencies. Its `project()`
+  is also the only one to declare a `VERSION`, so it's what exercises
+  `read_project_version` and the `MODULE.bazel` `version = "..."` line
+  against real CMake output rather than only against hand-constructed
+  Rust test data.
 - `002-with-library` — a library with a properly declared public `FILE_SET`
   header; exercises `cc_library` codegen (`hdrs`, `includes`, `deps`) end
   to end. Passes both the gate and the comparison.
@@ -197,6 +201,24 @@ building against a fixture with nothing to differentiate):
   fixture, and the CMake project is a subdirectory of it. That keeps the
   one-directory-per-fixture convention while still placing a source outside
   the CMake project's own root.
+- `007-generated-source` — an executable whose sources include one CMake
+  produces via `add_custom_command()` at build time, exercising the
+  `generated_sources_needs_attention` escalation no other fixture
+  triggers. The generated function is deliberately never called from
+  `main.cpp`: like `005`, the `needs_attention/` gate must be the only
+  thing failing this fixture. If the generated source's contribution were
+  load-bearing, the Bazel-generated `cc_binary` (missing it from `srcs`)
+  would fail to *link*, which would fail the comparison test's own `data`
+  dependency on the binary before the gate got a chance to run at all —
+  conflating "the escalation fired" with an unrelated break.
+- `008-sources-outside-deliverable-root` — the mirror image of `006`: a
+  CMake project in `proj/` references a source from a sibling directory,
+  but here `deliverable_root` is scoped to `proj/` alone rather than
+  widened to the whole fixture directory, so the sibling is genuinely
+  outside the declared deliverable. Exercises
+  `sources_outside_deliverable_needs_attention`, which `006`'s
+  non-escalating case doesn't reach. Same non-load-bearing-symbol
+  discipline as `007`, for the same reason.
 
 ## Header visibility is not enforced by default
 

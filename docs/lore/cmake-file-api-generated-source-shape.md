@@ -37,12 +37,14 @@ CMake reports an extra `<output>.rule` source alongside the real one:
 {'path': '/tmp/out/gen.cpp.rule', 'isGenerated': True}
 ```
 
-`.rule` is Ninja/Makefile bookkeeping — it names no file on disk. It is
+`.rule` is Ninja/Makefile bookkeeping — it names no file on disk. It was
 caught by the same `is_generated` filter as the real output, so it never
-reaches `srcs`, but it *does* get listed in the escalation, where it reads
-as a second missing input an agent is expected to find a `genrule` for. A
-fixture exercising generated sources should expect it (and filtering
-`.rule` out of the escalation's file list is probably the right fix).
+reached `srcs`, but it used to still get listed in the escalation, where
+it read as a second missing input an agent was expected to find a
+`genrule` for. `to_target` now drops any generated source whose path ends
+in `.rule` before building the escalation — see the `is_generated` handling
+in `cmake_api.rs` and
+`to_target_filters_phantom_rule_sibling_out_of_generated_sources`.
 
 ## How to check this sort of thing
 

@@ -1,0 +1,26 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# The mirror image of 006-sibling-sources: app references a source from a
+# sibling directory, but here deliverable_root is scoped to `proj/` alone
+# rather than widened to the whole fixture directory, so `../not-shipped/`
+# is NOT part of the declared deliverable. The translator cannot reproduce
+# it from what the deliverable ships, so it escalates via
+# sources_outside_deliverable_needs_attention instead of silently dropping
+# or misresolving the reference — the escalation no other fixture
+# exercises (006 covers the non-escalating case).
+#
+# srcs still needs not-shipped/extra.cpp as an input so the sandboxed real
+# CMake+Ninja ground-truth build (which convert_cmake_project also runs)
+# can find it — only the GENERATED conversion excludes it, deliberately.
+#
+# Full rationale: docs/architecture/build-verification.md#fixtures.
+convert_cmake_project(
+    name = "converted",
+    srcs = glob([
+        "proj/**",
+        "not-shipped/**",
+    ]),
+    deliverable_root = package_name() + "/proj",
+    source_dir = package_name() + "/proj",
+    visibility = ["//translator/tests:__pkg__"],
+)
