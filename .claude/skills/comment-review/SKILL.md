@@ -86,10 +86,16 @@ judgement a careful reader already has.
   rather than less duplication, that is a different task — confirm it
   first, because that pass deletes real information.
 
-One more, and it cuts the other way: **prose describing a red fixture as
-intended** is a bug to fix, not a convention to preserve. A red fixture is
-an unfinished conversion. Scope such framing to "until the agent stage
-resolves it."
+One more, and the distinction is subtle: prose framing a red fixture as a
+**permanent, acceptable** end state ("expected to fail, leave it") is a bug
+to fix — but prose describing it as the **expected start of the
+agent-in-the-loop cycle** (starts red with an open `needs_attention` item,
+the agent resolves it in the generated output, then it goes green) is
+correct and load-bearing, not stale. Escalation-firing fixtures (003, 005,
+015) are *designed* to start red; that is the coverage. Preserve that
+framing; only rewrite prose that presents red as a finished, do-not-touch
+state. See `CLAUDE.md`, "A red fixture is unfinished work, not a terminal
+state."
 
 ## Verify and report
 
@@ -97,14 +103,17 @@ Comment-only edits still need the crate to build, and doc comments can
 break `rustfmt`:
 
 ```sh
-cd translator && cargo test && cargo fmt --check && cargo clippy --all-targets
+# Tests ALWAYS run through Bazel — never `cargo test` (see CLAUDE.md).
+bazel test //translator:bazelifier_test
+cd translator && cargo fmt --check && cargo clippy --all-targets  # fmt/lint only, not tests
 bash -n translator/build_defs/compare_runtime_output.sh   # if touched
 bazel test //:buildifier_check                            # if a Bazel file changed
 ```
 
-`cargo` here is the local rustup toolchain — fast, and no Bazel build
-invokes it. If `bazel` fails fetching from `github.com` with a 403, that is
-the egress block tracked in `TODO.md`: report it as not-run rather than
+`cargo fmt`/`cargo clippy` here are the local rustup toolchain used only for
+formatting and linting — not for running tests, which always go through
+Bazel. If `bazel` fails fetching from `github.com` with a 403, that is an
+egress limit in a restricted session: report it as not-run rather than
 working around it, and never disable TLS verification.
 
 Two things matter more than the size of the finding list. **Say what you

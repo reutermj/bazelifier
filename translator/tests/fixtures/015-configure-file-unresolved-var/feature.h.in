@@ -1,0 +1,10 @@
+/* Generated from feature.h.in by configure_file. */
+#ifndef FEATURE_H
+#define FEATURE_H
+
+/* FEATURE_INCLUDE_GUARD is set by the project itself (a plain set(), not a
+   toolchain probe and not a cache entry), so the translator can't resolve it
+   and must escalate rather than leave the substitution literal here. */
+#define FEATURE_GUARD @FEATURE_INCLUDE_GUARD@
+
+#endif

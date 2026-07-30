@@ -768,13 +768,24 @@ fn resolve_config_header(
         }
     }
 
-    // A #cmakedefine that is not a catalog fact and not a cache value can't be
-    // resolved — escalate it. (A cache-covered one is an option whose value
-    // drives the define; its value is added below.)
+    // A name that is neither a catalog fact nor a cache value can't be
+    // resolved — escalate it. This covers both forms:
+    //   - a #cmakedefine (a cache-covered one is an option whose value drives
+    //     the define; its value is added below), and
+    //   - a plain @VAR@ (json.h.cmakein gates umbrella includes on
+    //     @JSON_H_JSON_PATCH@ etc.). An unresolved @VAR@ is left LITERAL in the
+    //     output, breaking every source that includes the header — so it must
+    //     escalate, not slip through as a silent build breaker (bzl-fxa.9).
+    // A name that is both (`#cmakedefine FOO @FOO@`) is escalated once: the
+    // #cmakedefine pass adds it, and the @VAR@ pass skips what's already there.
     let mut unmapped = Vec::new();
-    for define in &macros.cmakedefines {
-        if catalog_label(define).is_none() && cache_value(define, cache).is_none() {
-            unmapped.push(define.clone());
+    let mut escalated = HashSet::new();
+    for name in macros.cmakedefines.iter().chain(macros.vars.iter()) {
+        if catalog_label(name).is_none()
+            && cache_value(name, cache).is_none()
+            && escalated.insert(name.clone())
+        {
+            unmapped.push(name.clone());
         }
     }
 
@@ -1720,6 +1731,55 @@ mod tests {
             ],
             "only non-catalog names get cache values; HAVE_STDLIB_H and SIZEOF_LONG are catalog \
              facts, so their HOST cache answers must NOT appear here — the probe supplies them"
+        );
+    }
+
+    #[test]
+    fn resolve_config_header_escalates_an_unresolved_plain_var() {
+        // bzl-fxa.9: json.h.cmakein gates umbrella includes on a plain @VAR@
+        // (@JSON_H_JSON_PATCH@) the project computes itself. If left unresolved
+        // it lands LITERAL in the output and breaks every includer, so it must
+        // escalate. Both directions in one test: RESOLVED_VAR is in the cache
+        // and must NOT escalate (it becomes a value); JSON_H_JSON_PATCH is in
+        // neither the catalog nor the cache and MUST escalate.
+        let macros = TemplateMacros {
+            cmakedefines: vec![],
+            vars: vec!["JSON_H_JSON_PATCH".to_string(), "RESOLVED_VAR".to_string()],
+        };
+        let cache: HashMap<String, String> = [("RESOLVED_VAR".to_string(), "yes".to_string())]
+            .into_iter()
+            .collect();
+
+        let (header, unmapped) = resolve_config_header("json.h.cmakein", "json.h", &macros, &cache);
+
+        assert_eq!(
+            unmapped,
+            vec!["JSON_H_JSON_PATCH".to_string()],
+            "an unresolved plain @VAR@ escalates; a cache-resolved one does not"
+        );
+        assert_eq!(
+            header.values,
+            vec![("RESOLVED_VAR".to_string(), "yes".to_string())],
+            "the resolved @VAR@ becomes a value and is not among the escalated names"
+        );
+    }
+
+    #[test]
+    fn resolve_config_header_escalates_a_define_and_var_of_the_same_name_once() {
+        // A `#cmakedefine FOO @FOO@` names FOO in both cmakedefines and vars.
+        // When FOO is unresolved it must escalate exactly once, not twice.
+        let macros = TemplateMacros {
+            cmakedefines: vec!["FOO".to_string()],
+            vars: vec!["FOO".to_string()],
+        };
+        let cache: HashMap<String, String> = HashMap::new();
+
+        let (_header, unmapped) = resolve_config_header("t.h.in", "t.h", &macros, &cache);
+
+        assert_eq!(
+            unmapped,
+            vec!["FOO".to_string()],
+            "a name that is both a #cmakedefine and a @VAR@ is escalated once, not duplicated"
         );
     }
 

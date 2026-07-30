@@ -1,0 +1,17 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the unresolved-plain-@VAR@ escalation (bzl-fxa.9): feature.h.in
+# references @FEATURE_INCLUDE_GUARD@, which the project set()s itself, so the
+# translator can't resolve it and emits a needs_attention/ item. This fixture
+# STARTS RED and turns green once the agent stage resolves the item (a values
+# entry in the generated config_header). See the fixture's CMakeLists.txt and
+# docs/architecture/needs-attention-interface.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "*.in",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

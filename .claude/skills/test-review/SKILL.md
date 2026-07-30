@@ -17,29 +17,38 @@ explicitly forbidden by conventions elsewhere in `CLAUDE.md`.
 
 ## Know the baseline before calling anything a regression
 
-`003-library-no-file-set` and `005-unsupported-target-type` are red in the
-unpacked validation workspace today. That is an unfinished pipeline, not a
-broken test: both fixtures emit a `needs_attention/` item, the gate fails
-loud by design, and the agent stage that resolves them isn't wired up yet
-(see `TODO.md`, "Wire up the agent stage of the fixture loop"). Everything
-else should be green. Sort failures into "known open" and "new" *before*
-touching anything, or you will fix the pipeline's own to-do list.
+`003-library-no-file-set`, `005-unsupported-target-type`, and
+`015-configure-file-unresolved-var` are red in the unpacked validation
+workspace today, and that is the pipeline working, not a broken test. Each
+emits a `needs_attention/` item and the gate fails loud by design; these
+fixtures exist to test the *whole* pipeline including the agent stage, whose
+job is to resolve the item (in the generated output) and turn the fixture
+green. Red-with-an-open-item is the expected starting state of that cycle —
+see `CLAUDE.md`, "A red fixture is unfinished work, not a terminal state."
+Everything else should be green. Sort failures into "known open" (an
+escalation-firing fixture with its item still open) and "new" *before*
+touching anything, or you will file a bug against the pipeline's own design.
 
 ## Run what actually runs here
 
 ```sh
-cd translator && cargo test && cargo fmt --check && cargo clippy --all-targets
+# Tests ALWAYS run through Bazel — never `cargo test` (see CLAUDE.md: cargo's
+# toolchain/resolution differs, so it can pass while the Bazel build is red).
+bazel test //translator:bazelifier_test
+cd translator && cargo fmt --check && cargo clippy --all-targets  # fmt/lint only, not tests
 python3 .claude/skills/test-review/scripts/coverage_map.py
 bash -n translator/build_defs/compare_runtime_output.sh   # if touched
 ```
 
-Everything Bazel-side — `//translator:bazelifier_test`, every fixture
-conversion, the validation workspace, `//:buildifier_check` — needs
-`rules_rust`, whose archive comes from `github.com` and returns **403**
-through the session proxy (tracked in `TODO.md`). So the two tiers that can
-contradict you about CMake and about Bazel are the two you most likely
-cannot run. Say so in the report rather than implying a clean pass, and
-don't work around it by disabling TLS verification.
+Run the Bazel tiers directly — `bazel test //translator:bazelifier_test`
+(the Rust-unit authority), the fixture conversions, the validation
+workspace, `//:buildifier_check`. If a fetch of a ruleset (`rules_rust`,
+`llvm`, ...) fails with a proxy **403** in a restricted session, that is an
+egress limit, not a test failure: report the tier as not-run rather than
+implying a clean pass, and never work around it by disabling TLS
+verification. When the network is available (the common case), run every
+tier and don't hand-wave the two — CMake and Bazel — that can actually
+contradict you.
 
 ## Ask CMake instead of guessing
 
@@ -64,9 +73,12 @@ to do with the translator. See
 
 ## Mutate the line, not the test
 
-Break what an assertion guards, `cargo test`, confirm *that* test — ideally
-only that one — fails, restore. Do it for every test you add and any you
-suspect. One trap specific to this repo: the escalation strings in
+Break what an assertion guards, run the test through Bazel — `bazel test
+//translator:bazelifier_test --test_filter=<name>` narrows to one test —
+confirm *that* test (ideally only that one) fails, restore. Never reach for
+`cargo test` even for the mutation loop; cargo's green is meaningless here
+(see CLAUDE.md). Do it for every test you add and any you suspect. One trap
+specific to this repo: the escalation strings in
 `needs_attention.rs` are line-wrapped Rust literals, so a `sed` pattern
 containing a phrase that spans a wrap matches nothing, the mutation never
 lands, and the green run reads as "the test doesn't bite" when it means
@@ -147,7 +159,8 @@ comment: it is a claim about behavior, and it will be believed.
 ## When a finding is worth more than a test
 
 A gap that needs a decision (what a resolution has to prove, whether a tier
-should exist at all) belongs in `TODO.md` with what would settle it. A
+should exist at all) belongs in a **beads issue** (`bd create`) with what
+would settle it — this repo tracks work in beads, not a `TODO.md`. A
 surprising CMake or Bazel behavior found while probing belongs in
 `docs/lore/`. A recurring procedure belongs in `docs/runbooks/`. Keeping
 those in their own homes is what stops a test file growing comments that

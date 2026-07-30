@@ -147,18 +147,21 @@ pub fn unmapped_config_macros_needs_attention(
     template: &str,
     macros: &[String],
 ) -> NeedsAttention {
-    let title = format!("Config header '{output}' has macros not in the shared catalog");
+    let title = format!("Config header '{output}' references names not in the shared catalog");
     NeedsAttention {
         gap: format!(
             "The config header '{output}' is generated from the template `{template}` and the \
              translator reproduced it with a `config_header` rule wired to `@cc_config` probes \
-             — but these `#cmakedefine` macro(s) have no probe in the shared catalog, so the \
-             generated header would be missing them:\n\n{}\n\nThe catalog covers the common \
-             autoconf facts (`HAVE_<header>`, `HAVE_<symbol>`, `SIZEOF_<type>`); a macro absent \
-             from it is one the translator will not guess a probe for — including a \
-             project-specific alias of a catalog fact (e.g. a `<PROJECT>_HAVE_FOO` that the \
-             project sets from the standard `HAVE_FOO`), which is deliberately NOT matched to \
-             the lookalike catalog entry.",
+             — but these name(s) it references have no probe in the shared catalog and no value \
+             the translator could resolve, so the generated header would be wrong:\n\n{}\n\nEach \
+             is referenced either as a `#cmakedefine` (which would be silently left undefined) \
+             or as a plain `@VAR@` substitution (which would be left LITERAL in the output — an \
+             `@NAME@` token in the header that breaks every source that includes it). The \
+             catalog covers the common autoconf facts (`HAVE_<header>`, `HAVE_<symbol>`, \
+             `SIZEOF_<type>`); a name absent from it is one the translator will not guess a \
+             probe for — including a project-specific alias of a catalog fact (e.g. a \
+             `<PROJECT>_HAVE_FOO` that the project sets from the standard `HAVE_FOO`), which is \
+             deliberately NOT matched to the lookalike catalog entry.",
             macros
                 .iter()
                 .map(|m| format!("- `{m}`"))
@@ -166,28 +169,31 @@ pub fn unmapped_config_macros_needs_attention(
                 .join("\n")
         ),
         context: format!(
-            "Decide, for each macro, what it should resolve to under the CONSUMER's toolchain \
-             (not this conversion host's). Most will be one of:\n\n\
-             - a common fact the catalog should simply carry — add it to \
+            "Decide, for each name, what it should resolve to under the CONSUMER's toolchain \
+             (not this conversion host's). Each will be one of:\n\n\
+             - a common toolchain fact the catalog should simply carry — add it to \
              `cc_config/catalog/BUILD.bazel` (a one-line `check_include_file` / \
              `check_symbol_exists` / `check_type_size`) and keep the translator's \
              `CATALOG_DEFINES` in sync (see `cc_config/check_catalog_sync.py`); then it maps \
              automatically here and for every later project;\n\
-             - an alias of a fact the catalog already has (the `{output}` macro differs only by \
+             - an alias of a fact the catalog already has (the `{output}` name differs only by \
              a project prefix from a catalog `HAVE_*`/`SIZEOF_*`): wire the aliased define to \
              that existing `@cc_config//catalog:` probe in the generated `config_header`;\n\
-             - a project option or value, not a toolchain probe: supply it as a `values` entry \
-             on the `config_header` (a Bazel config knob or a fixed default), since it does not \
-             depend on the consumer's toolchain.\n\n\
+             - a project value, not a toolchain probe — an option, a version, or a plain \
+             `@VAR@` the project computes itself (e.g. an umbrella-include guard that gates \
+             whether one header pulls in another): supply it as a `values` entry on the \
+             `config_header` (a Bazel config knob or a fixed default), since it does not depend \
+             on the consumer's toolchain.\n\n\
              Do NOT copy this host's generated header, and do NOT edit the project's \
              CMakeLists.txt."
         ),
         expected_output: format!(
-            "Resolve every listed macro so '{output}' is complete: extend the catalog (and \
+            "Resolve every listed name so '{output}' is complete — no undefined `#cmakedefine` \
+             and no literal `@VAR@` left in the output: extend the catalog (and \
              `CATALOG_DEFINES`) for a genuine new fact, point an alias at the existing catalog \
-             probe, or add a `values` entry for an option — in the GENERATED output, or the \
-             catalog, only. The header must end up correct for whatever toolchain builds the \
-             converted module, not baked from the conversion host."
+             probe, or add a `values` entry for a project value — in the GENERATED output, or \
+             the catalog, only. The header must end up correct for whatever toolchain builds \
+             the converted module, not baked from the conversion host."
         ),
         title,
     }
@@ -663,6 +669,33 @@ mod tests {
             "the escalation must keep the resolution consumer-toolchain-correct and forbid \
              host-capture:\n{}",
             item.context
+        );
+    }
+
+    #[test]
+    fn unmapped_config_macros_escalation_calls_out_the_literal_var_build_breaker() {
+        // bzl-fxa.9: a plain @VAR@ the translator can't resolve is left LITERAL
+        // in the output (an `@NAME@` token the compiler chokes on), unlike an
+        // unresolved #cmakedefine which merely goes undefined. The escalation
+        // ships to an agent with no access to this repo, so it must say that
+        // an unresolved reference can be a literal @VAR@ — otherwise the agent
+        // hunts for a missing #define and never looks for the token.
+        let item = unmapped_config_macros_needs_attention(
+            "json.h",
+            "json.h.cmakein",
+            &["JSON_H_JSON_PATCH".to_string()],
+        );
+
+        assert!(
+            item.gap.contains("LITERAL") && item.gap.contains("`@VAR@`"),
+            "the escalation must warn that an unresolved @VAR@ is left literal in the output:\n{}",
+            item.gap
+        );
+        assert!(
+            item.expected_output.contains("literal `@VAR@`"),
+            "the expected-output must require no literal @VAR@ remains, not just a defined \
+             #cmakedefine:\n{}",
+            item.expected_output
         );
     }
 

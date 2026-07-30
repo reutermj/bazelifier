@@ -91,8 +91,12 @@ level. What must match is behavior.
    can do it alone.
 
 The unit under test is the whole pipeline. **Green is the only passing
-state** — a red fixture means the agent stage has not (or could not)
-resolve a gap, which is a result to act on, never a documented outcome.
+state** — a red fixture means an open `needs_attention` item the agent stage
+has not yet resolved, which is a result to act on. That an escalation-firing
+fixture *starts* red is expected and documented (it is how the agent-in-the-
+loop cycle is tested); what is never acceptable is treating a red fixture as
+a *finished* outcome — leaving the item open and calling it done, or making
+it green by editing the immutable input instead of the generated output.
 
 ### The input CMake is immutable
 

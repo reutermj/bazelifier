@@ -256,11 +256,22 @@ source in every fixture build.
   or otherwise "cleaning up" the source to make it translate is not a
   resolution, because it leaves the next project with the same shape just
   as broken. Resolutions always land in the **generated** output.
-- **A red fixture is a bug, not a feature.** No fixture is "expected to
-  fail." If `bazel test` is red in the unpacked validation workspace, the
-  agent stage hasn't resolved a `needs_attention` item yet — that's work
-  to do, not documented behavior. Don't add prose describing a red test as
-  intended.
+- **A red fixture is unfinished work, not a terminal state — but starting
+  red is expected.** Escalation-firing fixtures (003, 005, 015) are the
+  test of the *whole* pipeline including the agent: they start red because
+  the translator emitted a `needs_attention` item, the agent stage resolves
+  it (always in the **generated** output), and only then do they turn green.
+  That start-red → agent-resolves → green cycle is the coverage; a fixture
+  that never escalates can't exercise it. So two things are true at once:
+  red means there is work to do (an open `needs_attention` item an agent
+  must resolve), and a fixture *designed* to escalate is legitimate,
+  valuable test input, not a defect. What is a bug: making a red fixture
+  green by editing its immutable input or narrowing what it tests, and
+  framing a red fixture as a *permanent, acceptable* end state ("expected to
+  fail, leave it") rather than as an escalation awaiting resolution. Green
+  is still the only *passing* state — the agent has to actually close the
+  item — but a fixture being red today, with its item open, is the pipeline
+  working as designed.
 - **The pipeline is deliberately non-hermetic**, and that's a modelling
   choice, not a defect: converting a build system involves judgement calls,
   and the equivalence checks (not reproducibility of the process) are the
