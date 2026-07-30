@@ -90,9 +90,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
 /// actionable follow-up for whoever picks up the converted project. See
 /// docs/architecture/needs-attention-interface.md.
 ///
-/// The directory and its `BUILD.bazel` are always written, even with zero
-/// items — see `codegen::render_needs_attention_build_bazel` for why the
-/// empty case has to remain a valid Bazel package.
+/// The directory, `BUILD.bazel`, and `MANIFEST` are always written, even
+/// with zero items. `BUILD.bazel` keeps the empty case a valid Bazel
+/// package (see `codegen::render_needs_attention_build_bazel`). `MANIFEST`
+/// exists for a different reason: an empty `*.md` glob is legal Starlark
+/// but can vanish entirely from a consuming test's runfiles rather than
+/// leaving an empty directory behind, so "wiring is broken" and "zero
+/// items" would otherwise look identical to anything gating on directory
+/// presence. `MANIFEST` is never itself the product of a glob, so its
+/// presence is a reliable signal that this directory really is the one the
+/// translator wrote, regardless of how many `.md` files it holds.
 fn write_needs_attention(
     out_module: &Path,
     items: &[needs_attention::NeedsAttention],
@@ -104,6 +111,8 @@ fn write_needs_attention(
         let filename = format!("{:03}-{}.md", i + 1, needs_attention::slugify(&item.title));
         fs::write(dir.join(filename), needs_attention::render(item))?;
     }
+
+    fs::write(dir.join("MANIFEST"), format!("{}\n", items.len()))?;
 
     fs::write(
         dir.join("BUILD.bazel"),

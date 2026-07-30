@@ -210,12 +210,14 @@ Consequences for this project:
   `BUILD.bazel` is still open.
 - Bazel's `layering_check` feature *does* enforce the split, but it
   requires module maps and a supporting (clang-based) toolchain and is off
-  by default. **Open:** the experiment ran against the autodetected host
-  toolchain (`gcc`), not the hermetic `llvm` toolchain the fixtures
-  actually build with. If `llvm` enables `layering_check`,
-  `003-library-no-file-set` would fail to compile outright rather than
-  build with degraded encapsulation, changing this gate's rationale. See
-  the tracking item in [TODO.md](../../TODO.md) for how to settle it.
+  by default — including under the hermetic **`llvm`** toolchain fixtures
+  actually build with: `llvm` enables module map *generation* but leaves
+  `layering_check` itself in `known_features` (requestable, not active),
+  matching `rules_cc`'s own documented recipe for toolchain authors. So
+  this isn't a host-vs-hermetic-toolchain distinction — no toolchain in use
+  here enforces the split. See
+  [the lore doc](../lore/bazel-does-not-enforce-hdrs-vs-srcs.md) for the
+  full experiment and the toolchain-source citation.
 
 ## Why unpack it (rather than validate in-tree)
 

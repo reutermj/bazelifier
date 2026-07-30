@@ -5,7 +5,8 @@ unknown, why it matters, and what would settle it.
 
 ## Validate `layering_check` under the hermetic `llvm` toolchain
 
-**Status:** open, blocked on network egress.
+**Status:** open. Was blocked on network egress; unblocked 2026-07-30 (see
+"Blocked by" below).
 
 Bazel does not enforce the `hdrs`/`srcs` split by default — a header in a
 dependency's `srcs` is still propagated as an input to dependents' compile
@@ -37,11 +38,12 @@ changes the stated rationale for the `needs_attention/` gate in
 3. Update the lore doc's "Open" section and the build-verification section
    with the answer either way.
 
-**Blocked by:** `github.com` archive downloads return **403** through the
-session's egress proxy, so `rules_rs` can't fetch `rules_rust` and the
-translator can't be built. `bcr.bazel.build` is reachable, so BCR-only
-dependency graphs do work. Needs `github.com` allowlisted in the
-environment's network policy.
+**Blocked by:** ~~`github.com` archive downloads return **403** through the
+session's egress proxy~~ — resolved 2026-07-30: `github.com` is reachable
+again and `bazel build //translator/...` /
+`//translator/tests:validation_workspace` both succeed. This item is
+unblocked; the three-case `layering_check` matrix itself still hasn't been
+run.
 
 ## Decide pass criteria for header-visibility resolutions
 
@@ -68,7 +70,9 @@ assertion is needed.
 
 ## Derive `module_name`/`expected_targets` instead of declaring them
 
-**Status:** open, blocked on the same missing `bazel build`.
+**Status:** open. Previously blocked on network egress preventing
+`bazel build`; that's resolved as of 2026-07-30 (see the `layering_check`
+item above), so this is now actionable.
 
 Every fixture's `BUILD.bazel` hand-declares `module_name` and
 `expected_targets`, duplicating facts the translator already computed.
@@ -98,7 +102,10 @@ a validation-only reason.
 
 ## The `needs_attention/` gate can only fail loud, never pass loud
 
-**Status:** open, found by inspection; needs a Bazel run to confirm.
+**Status:** fixed 2026-07-30. Confirmed by an actual `bazel test` run
+against the unpacked validation tarball (see the `layering_check` item
+above for how network access was restored) that the suspicion was
+correct, then fixed and re-verified end to end.
 
 `compare_runtime_output.sh` looks for the fixture's `needs_attention/`
 directory in its runfiles and gates on the `*.md` files it finds. If the
@@ -118,18 +125,41 @@ translator escalated something" and a passing suite —
 builds and matches ground truth with the item still open. A fail-open gate
 is worth less than no gate, because the suite reports success.
 
-Note the direction the evidence points: fixtures with zero items are also
-the fixtures whose `needs_attention:all` filegroup is empty, so they may
-well be taking the missing-directory branch today. The gate has only ever
-been *observed* firing, never passing for a verified reason.
+**Confirmed by inspecting runfiles directly**: built
+`//:001-hello-world_hello_matches_ground_truth` (zero `needs_attention`
+items) from the unpacked tarball and listed its runfiles tree. `hello` and
+`ground_truth/hello` (both plain `data` deps) are present under
+`hello_world+/`; `needs_attention/` is **not present at all** — not even
+as an empty directory. Confirmed against all 4 zero-item fixtures
+(`001`, `002`, `004`, `006`) — all pass, and none materializes the
+directory. Meanwhile `003` and `005` (which do have items) both correctly
+FAIL the gate with the expected markdown printed. So: the gate has only
+ever been observed firing for a verified reason; every passing fixture
+today is passing via the missing-directory branch, unverified — exactly
+the fail-open path this item warned about. It has not yet been *exploited*
+(no fixture both has real items and a broken `needs_attention` wiring
+simultaneously), but nothing would catch it if one did.
 
-**How to settle it:** confirm whether the directory materializes in
-runfiles for a zero-item fixture (needs a working `bazel test`, blocked
-above). Then make the script fail when the directory is absent —
-`render_needs_attention_build_bazel` guarantees the package always exists,
-so absence means broken wiring, not a clean conversion. Adding the
-directory's `BUILD.bazel` to the filegroup, or a sentinel file, is one way
-to make "always present" true in runfiles too.
+**Fix:** gating on directory *presence* doesn't work — an empty `data`
+filegroup can vanish from runfiles entirely rather than leaving an empty
+directory, so "wiring is broken" and "zero items" stayed indistinguishable
+even after confirming the diagnosis. Instead, the translator now always
+writes `needs_attention/MANIFEST` (`main::write_needs_attention`), a real
+file — never itself the product of a possibly-empty glob — alongside the
+`*.md` items, and it's added explicitly to the `filegroup`'s `srcs`
+(`codegen::render_needs_attention_build_bazel`) so it's guaranteed to
+survive into runfiles regardless of item count.
+`compare_runtime_output.sh` now fails loud if `MANIFEST` is missing,
+instead of silently skipping to the comparison.
+
+Verified end to end: rebuilt the translator, regenerated and unpacked the
+validation tarball, and reran `bazel test
+//:all_ground_truth_comparisons` from that independent root — same result
+as before the fix (4 pass, 2 fail on `003`/`005` for the right reason),
+confirming the fix doesn't disturb the legitimate zero-item pass path.
+Separately fed the script a deliberately-wrong runfiles path (simulating
+stale wiring) and confirmed it now fails loud with a clear diagnostic
+instead of falling through to a false pass.
 
 ## No fixture exercises two of the four escalations, or a project version
 
@@ -172,7 +202,8 @@ wiring is not, and neither are `read_project_version` or `find_reply_file`.
 
 **Why it matters:** `to_target`'s tests take `is_depended_on` as a
 parameter, so the computation that decides it is covered nowhere. Today
-that logic is only exercised by the fixture tier, which is blocked.
+that logic is only exercised by the fixture tier, which was blocked on
+network egress (resolved 2026-07-30) and is runnable again.
 
 **How to settle it:** `read_codemodel_reply` takes a reply directory path —
 the seam is already there. A test can write captured File API JSON into a

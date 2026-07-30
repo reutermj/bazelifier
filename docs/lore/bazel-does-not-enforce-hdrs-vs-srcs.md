@@ -15,7 +15,8 @@ much a green build proves.
 
 **A header listed in a dependency's `srcs` is still propagated as an input
 to dependents' compile actions.** The consumer can `#include` it and the
-build succeeds. `hdrs` vs `srcs` is documentation, not enforcement.
+build succeeds. `hdrs` vs `srcs` is documentation, not enforcement. This
+holds under both toolchains this project uses:
 
 Verified on Bazel 9.2.0, autodetected host toolchain (`gcc`), sandboxed:
 
@@ -39,6 +40,15 @@ action 'Compiling src/main.cpp'
   Inputs: [..., src/greet.hpp, src/main.cpp]
 ```
 
+Also verified directly against the hermetic **`llvm`** toolchain fixtures
+actually build with (clang-based, registered via `@llvm//toolchain:all` in
+every generated module's `MODULE.bazel`): `bazel build
+@library_no_file_set//:hello` against the unpacked
+`003-library-no-file-set` validation module succeeds with the same shape —
+header left in `srcs`, no `hdrs` declared, consumer's `#include` still
+resolves. So this isn't a `gcc`-specific gap; it reproduces under the
+clang-based toolchain too.
+
 ## Why it's surprising
 
 The intuitive mental model — "`includes` adds a `-I` path, so that's what
@@ -55,8 +65,20 @@ target's `srcs`/`hdrs`. `includes` only decides how the `#include` is
 spelled (`"a.hpp"` vs `"case_b/b.hpp"`).
 
 Bazel does ship enforcement — the **`layering_check`** feature — but it
-needs module maps and a clang-based toolchain, and it is **off by
-default**.
+needs module maps and a supporting (clang-based) toolchain, and it is
+**off by default**. This isn't specific to the autodetected host toolchain
+either: `llvm`'s `toolchain/cc_toolchain.bzl` puts
+`@rules_cc//cc/toolchains/args/layering_check:layering_check` (the feature
+that actually adds `-fmodules-strict-decluse -Wprivate-header`) in
+`known_features` only — requestable via `--features=`, not on by default.
+Only `layering_check:module_maps` (module map *generation*, needed by
+unrelated features like `parse_headers`) is in `enabled_features`.
+`rules_cc`'s own `cc/toolchains/args/layering_check/BUILD` documents
+exactly this split in its header comment: put `module_maps` in
+`enabled_features`, `layering_check` in `known_features`. `llvm` follows
+that recipe rather than deviating from it, so `layering_check` isn't a
+llvm-vs-gcc question — `rules_cc` ships it opt-in for every toolchain that
+wires it up this way, and neither toolchain here opts in.
 
 ## Why it matters here
 
@@ -68,17 +90,9 @@ would be indistinguishable from one that did the work.
 
 So for this class of gap, **a green build is not evidence the conversion is
 right** — which is precisely why the `needs_attention/` gate exists ahead
-of the equivalence comparison rather than relying on it.
-
-## Open
-
-The table above used the autodetected **host** toolchain. Fixtures actually
-build under the hermetic **`llvm`** toolchain, which is clang-based and
-could plausibly enable `layering_check`. If it does, a
-`srcs`-header-with-consumer would fail to compile outright instead of
-building with degraded encapsulation — a materially different failure mode.
-Unverified: the check needs `github.com` archive downloads, which the
-sandbox's egress policy currently blocks (`bcr.bazel.build` is fine).
+of the equivalence comparison rather than relying on it. This holds
+unconditionally for every toolchain this project uses, hermetic
+(`llvm`) or not: nothing here enforces `hdrs`/`srcs`.
 
 ## See also
 

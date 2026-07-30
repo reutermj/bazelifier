@@ -189,9 +189,19 @@ fn render_cc_rule(out: &mut String, target: &Target) {
 /// contents at test-runtime (see docs/architecture/build-verification.md).
 /// Hence `allow_empty = True`, which is the whole reason this can't just
 /// be an `exports_files`.
+///
+/// `srcs` also includes `MANIFEST` explicitly (not just the `*.md` glob):
+/// an empty `glob` can vanish entirely from a consuming test's runfiles
+/// rather than leaving behind an empty directory, so "the directory is
+/// absent" and "zero items" become indistinguishable to anything gating on
+/// presence. `MANIFEST` is a real, always-written file (see
+/// `main::write_needs_attention`), so it's guaranteed to survive into
+/// runfiles regardless of item count — the validation script checks for
+/// this file's presence, not the directory's, before trusting an absence
+/// of `.md` items.
 pub fn render_needs_attention_build_bazel() -> String {
     "filegroup(\n    name = \"all\",\n    srcs = glob(\n        [\"*.md\"],\n        \
-     allow_empty = True,\n    ),\n    visibility = [\"//visibility:public\"],\n)\n"
+     allow_empty = True,\n    ) + [\"MANIFEST\"],\n    visibility = [\"//visibility:public\"],\n)\n"
         .to_string()
 }
 
@@ -483,6 +493,7 @@ mod tests {
         let rendered = render_needs_attention_build_bazel();
         assert!(rendered.contains("name = \"all\""), "{rendered}");
         assert!(rendered.contains("allow_empty = True"), "{rendered}");
+        assert!(rendered.contains("\"MANIFEST\""), "{rendered}");
     }
 
     #[test]

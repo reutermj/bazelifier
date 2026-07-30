@@ -40,12 +40,25 @@ needs_attention_relative_dir="$3"
 
 runfiles_root="${TEST_SRCDIR:-$0.runfiles}"
 needs_attention_dir="${runfiles_root}/${needs_attention_relative_dir}"
-needs_attention_files=()
-if [[ -d "${needs_attention_dir}" ]]; then
-  for f in "${needs_attention_dir}"/*.md; do
-    [[ -e "${f}" ]] && needs_attention_files+=("${f}")
-  done
+
+# MANIFEST is always written by the translator (see
+# main::write_needs_attention), even with zero items, unlike the *.md glob
+# it sits alongside. A missing MANIFEST can therefore only mean the
+# runfiles path above doesn't actually resolve to the fixture's real
+# needs_attention/ directory (stale module_name, changed canonical repo
+# naming, etc.) — never a clean conversion. Gating existence on the
+# directory itself was tried first and doesn't work: Bazel drops an empty
+# `data` filegroup from runfiles entirely rather than leaving an empty
+# directory, so "wiring is broken" and "zero items" were indistinguishable.
+if [[ ! -f "${needs_attention_dir}/MANIFEST" ]]; then
+  echo "FAIL: no needs_attention MANIFEST at ${needs_attention_dir} — wiring is broken (stale module_name, changed canonical repo naming, ...), not a clean conversion."
+  exit 1
 fi
+
+needs_attention_files=()
+for f in "${needs_attention_dir}"/*.md; do
+  [[ -e "${f}" ]] && needs_attention_files+=("${f}")
+done
 
 if [[ "${#needs_attention_files[@]}" -gt 0 ]]; then
   echo "FAIL: unresolved needs_attention item(s) — triage these before validating:"
