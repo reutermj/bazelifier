@@ -1,3 +1,4 @@
+load("@aspect_rules_py//py:defs.bzl", "py_binary")
 load(":config_header.bzl", "assert_config_header_test", "config_header")
 load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists")
 
@@ -5,6 +6,14 @@ exports_files([
     "probe.bzl",
     "config_header.bzl",
 ])
+
+# The config-header expander, run by the config_header rule (config_header.bzl).
+# aspect_rules_py's py_binary runs cleanly as an exec-config build tool.
+py_binary(
+    name = "expand_config_header",
+    srcs = ["expand_config_header.py"],
+    visibility = ["//visibility:public"],
+)
 
 # Probe-mechanics tests: a header that must exist under any C toolchain, and
 # one that cannot. They exercise both outcomes of the compile probe — that a

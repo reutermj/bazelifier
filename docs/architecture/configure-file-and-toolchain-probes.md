@@ -120,9 +120,16 @@ Two layers, and the translator side is the smaller one:
    `BUILD.bazel` rules that turn templates + probe results into the config
    header and route it into the library.
 
-The substitution is template expansion over a `{name: value}` map — some
-entries from probe rules (via a provider), some from values the translator
-captured; `expand_template` or a small custom rule reading both.
+The substitution runs at build time (it reads the probe *result files*), in
+`cc_config`'s `config_header` rule. It is a small Python helper
+(`expand_config_header.py`): `@VAR@`/`${VAR}` from the values map, and
+`#cmakedefine`/`#cmakedefine01` resolved from probe results (a directive is
+defined when a probe returned true or its name has a non-empty value,
+matching CMake). Python — run via `aspect_rules_py`, which unlike stock
+`rules_python`'s `py_binary` works as an exec-config build tool — was chosen
+over shell/awk for legibility as the directive set grows; the cost, weighed
+and accepted, is that a hermetic Python interpreter becomes a build-time
+dependency every converted module using `config_header` inherits.
 
 ## What a template references (from json-c's ~48 macros + its `@VAR@`s)
 

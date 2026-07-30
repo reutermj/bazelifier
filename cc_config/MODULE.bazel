@@ -8,3 +8,16 @@ module(
 # for whoever builds it rather than baked from the conversion host. See
 # ../docs/architecture/configure-file-and-toolchain-probes.md.
 bazel_dep(name = "rules_cc", version = "0.2.22")
+
+# The config-header expander is a Python tool (clearer substitution logic than
+# shell for the growing set of configure_file directives). aspect_rules_py runs
+# it reliably as a build-action tool, where stock rules_python's py_binary
+# bootstrap fails as an exec-config tool (no host python in the sandbox). A
+# hermetic interpreter is registered so a converted module building this rule
+# needs no host python — at the cost of that interpreter being a build-time
+# dependency it inherits. See docs/architecture/configure-file-and-toolchain-probes.md.
+bazel_dep(name = "aspect_rules_py", version = "1.11.7")
+bazel_dep(name = "rules_python", version = "1.0.0")
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(python_version = "3.11")
