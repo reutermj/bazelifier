@@ -20,7 +20,8 @@ use crate::model::{BuildGraph, ConfigHeader, ModuleInfo, Target, TargetKind, Tes
 use crate::needs_attention::{
     NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
     header_visibility_needs_attention, inert_convenience_targets_needs_attention,
-    sources_outside_deliverable_needs_attention, unsupported_target_needs_attention,
+    sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
+    unsupported_target_needs_attention,
 };
 use crate::paths::{absolutize, common_ancestor, normalize_lexically, resolve_against};
 
@@ -423,15 +424,15 @@ fn build_config_headers(
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_else(|| call.output.to_string_lossy().into_owned());
 
-        let (header, unmapped) = resolve_config_header(
-            &template_rel.to_string_lossy(),
-            &output_name,
-            &macros,
-            cache,
-        );
+        let template_rel = template_rel.to_string_lossy().into_owned();
+        let (header, unmapped) = resolve_config_header(&template_rel, &output_name, &macros, cache);
         if !unmapped.is_empty() {
-            escalations.push(generated_config_header_needs_attention(
+            // The header IS reproduced (the probing module and template
+            // wiring exist); the gap is specific macros with no catalog
+            // probe — a different escalation from a header we can't reach.
+            escalations.push(unmapped_config_macros_needs_attention(
                 &output_name,
+                &template_rel,
                 &unmapped,
             ));
         }

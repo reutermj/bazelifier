@@ -130,6 +130,69 @@ pub fn sources_outside_deliverable_needs_attention(
     }
 }
 
+/// Escalates a `configure_file` config header that the translator did
+/// reproduce, except for some `#cmakedefine`s whose macro the shared
+/// `cc_config` catalog does not cover — so the emitted header would be
+/// missing those defines. Unlike `generated_config_header_needs_attention`,
+/// the mechanism (probing module, template wiring) is in place; the gap is
+/// specific macros with no probe.
+///
+/// The translator does not guess: a macro is escalated on anything but an
+/// exact catalog match, so a project's aliased/prefixed macro
+/// (json-c's `JSON_C_HAVE_INTTYPES_H`, an alias of the catalog's
+/// `HAVE_INTTYPES_H`) lands here rather than being silently mapped to a
+/// lookalike. See docs/architecture/configure-file-and-toolchain-probes.md.
+pub fn unmapped_config_macros_needs_attention(
+    output: &str,
+    template: &str,
+    macros: &[String],
+) -> NeedsAttention {
+    let title = format!("Config header '{output}' has macros not in the shared catalog");
+    NeedsAttention {
+        gap: format!(
+            "The config header '{output}' is generated from the template `{template}` and the \
+             translator reproduced it with a `config_header` rule wired to `@cc_config` probes \
+             — but these `#cmakedefine` macro(s) have no probe in the shared catalog, so the \
+             generated header would be missing them:\n\n{}\n\nThe catalog covers the common \
+             autoconf facts (`HAVE_<header>`, `HAVE_<symbol>`, `SIZEOF_<type>`); a macro absent \
+             from it is one the translator will not guess a probe for — including a \
+             project-specific alias of a catalog fact (e.g. a `<PROJECT>_HAVE_FOO` that the \
+             project sets from the standard `HAVE_FOO`), which is deliberately NOT matched to \
+             the lookalike catalog entry.",
+            macros
+                .iter()
+                .map(|m| format!("- `{m}`"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+        context: format!(
+            "Decide, for each macro, what it should resolve to under the CONSUMER's toolchain \
+             (not this conversion host's). Most will be one of:\n\n\
+             - a common fact the catalog should simply carry — add it to \
+             `cc_config/catalog/BUILD.bazel` (a one-line `check_include_file` / \
+             `check_symbol_exists` / `check_type_size`) and keep the translator's \
+             `CATALOG_DEFINES` in sync (see `cc_config/check_catalog_sync.py`); then it maps \
+             automatically here and for every later project;\n\
+             - an alias of a fact the catalog already has (the `{output}` macro differs only by \
+             a project prefix from a catalog `HAVE_*`/`SIZEOF_*`): wire the aliased define to \
+             that existing `@cc_config//catalog:` probe in the generated `config_header`;\n\
+             - a project option or value, not a toolchain probe: supply it as a `values` entry \
+             on the `config_header` (a Bazel config knob or a fixed default), since it does not \
+             depend on the consumer's toolchain.\n\n\
+             Do NOT copy this host's generated header, and do NOT edit the project's \
+             CMakeLists.txt."
+        ),
+        expected_output: format!(
+            "Resolve every listed macro so '{output}' is complete: extend the catalog (and \
+             `CATALOG_DEFINES`) for a genuine new fact, point an alias at the existing catalog \
+             probe, or add a `values` entry for an option — in the GENERATED output, or the \
+             catalog, only. The header must end up correct for whatever toolchain builds the \
+             converted module, not baked from the conversion host."
+        ),
+        title,
+    }
+}
+
 /// Escalates a header that a target compiles against but which exists only
 /// in the CMake build directory — the output of a `configure_file` (or
 /// similar build-time generation) rather than a file in the project tree.
@@ -555,6 +618,51 @@ mod tests {
                 || item.expected_output.contains("do NOT vendor"),
             "the escalation must explicitly forbid vendoring the host-generated header:\n{}",
             item.expected_output
+        );
+    }
+
+    // The unmapped-macro escalation is distinct from the one above: the header
+    // IS reproduced, the gap is specific macros with no catalog probe. Its
+    // guidance must name the macros and the three real resolutions (extend the
+    // catalog, wire an alias to an existing probe, or supply a value) — and
+    // must not tell the agent to bake in the host's config.
+    #[test]
+    fn unmapped_config_macros_escalation_names_macros_and_the_resolutions() {
+        let item = unmapped_config_macros_needs_attention(
+            "json_config.h",
+            "cmake/json_config.h.in",
+            &["JSON_C_HAVE_INTTYPES_H".to_string()],
+        );
+
+        assert!(
+            item.gap.contains("JSON_C_HAVE_INTTYPES_H"),
+            "the escalation must name the unmapped macro:\n{}",
+            item.gap
+        );
+        assert!(
+            item.gap.contains("json_config.h") && item.gap.contains("cmake/json_config.h.in"),
+            "the escalation must name the header and its template:\n{}",
+            item.gap
+        );
+        // The alias case (JSON_C_HAVE_* deliberately not auto-mapped) must be
+        // called out so the agent knows what it's looking at.
+        assert!(
+            item.gap.contains("alias"),
+            "the escalation must explain the not-guessing-an-alias behavior:\n{}",
+            item.gap
+        );
+        // The three resolution paths: extend the catalog, wire an alias, or a
+        // value. Check the two that are load-bearing guidance.
+        assert!(
+            item.context.contains("catalog") && item.context.contains("check_catalog_sync"),
+            "the escalation must offer extending the catalog (kept in sync) as a resolution:\n{}",
+            item.context
+        );
+        assert!(
+            item.context.contains("consumer") && item.context.contains("Do NOT copy this host"),
+            "the escalation must keep the resolution consumer-toolchain-correct and forbid \
+             host-capture:\n{}",
+            item.context
         );
     }
 
