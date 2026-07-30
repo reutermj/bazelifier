@@ -130,6 +130,71 @@ pub fn sources_outside_deliverable_needs_attention(
     }
 }
 
+/// Escalates a header that a target compiles against but which exists only
+/// in the CMake build directory — the output of a `configure_file` (or
+/// similar build-time generation) rather than a file in the project tree.
+///
+/// Distinct from `sources_outside_deliverable_needs_attention`: that one is
+/// for a source under a *sibling directory* the deliverable root was drawn
+/// too narrowly to include, and its resolutions (widen the root, vendor the
+/// file) are actively wrong here. Widening can't reach a file that is in no
+/// source tree at all, and vendoring means copying *this machine's*
+/// generated header — baking in the host's feature-detection results, the
+/// opposite of a portable module. So this escalation names the
+/// `configure_file` case explicitly and points at the design for it. See
+/// docs/lore/cmake-configure-file-generated-headers.md and
+/// docs/architecture/configure-file-and-toolchain-probes.md.
+pub fn generated_config_header_needs_attention(
+    target_name: &str,
+    build_dir_outputs: &[String],
+) -> NeedsAttention {
+    let title = format!("Target '{target_name}' compiles against build-generated headers");
+    NeedsAttention {
+        gap: format!(
+            "Target '{target_name}' compiles against {} header(s) that exist only in the CMake \
+             build directory, not in the project's source tree:\n\n{}\n\nThese are the output of \
+             `configure_file` (or similar build-time generation) — CMake substitutes \
+             feature-detection results and `#cmakedefine`/`@VAR@` values into a template (a \
+             `.in`/`.cmakein` file that IS in the source tree) to produce them. The File API \
+             does not flag them as generated sources, so they reached this point as absolute \
+             build-directory paths and were left out of the generated rule.",
+            build_dir_outputs.len(),
+            build_dir_outputs
+                .iter()
+                .map(|p| format!("- `{p}`"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+        context: format!(
+            "Do NOT resolve this the way an outside-the-deliverable source is resolved. Widening \
+             the deliverable root cannot help: the header is in no source tree under any root. \
+             And vendoring the generated header as-is copies THIS build machine's \
+             feature-detection results (`HAVE_*`, `SIZEOF_*`, ...) into the module, which then \
+             builds correctly only on a host like the one that converted it — the opposite of \
+             the portable, hermetic module the pipeline is supposed to produce.\n\n\
+             The values in these headers are facts about the target platform and toolchain, so \
+             they must be computed against whatever toolchain the CONSUMER of this module \
+             builds with, not captured from the conversion host. The intended design is a \
+             shared Bazel-native probing module that reproduces CMake's `check_include_file` / \
+             `check_symbol_exists` / `check_type_size` as rules resolving the consumer's \
+             toolchain — see docs/architecture/configure-file-and-toolchain-probes.md. That \
+             capability is not built yet.\n\n\
+             Either way '{target_name}' will not compile until the header it includes is \
+             available."
+        ),
+        expected_output: format!(
+            "Produce the config header(s) for '{target_name}' in a way that stays correct for \
+             the consumer's toolchain — not by copying the conversion host's generated file. \
+             Until the probing capability above exists, that means reproducing the substitution \
+             in the generated `BUILD.bazel` (a rule that resolves the needed values against the \
+             build's own toolchain and expands the project's `.in`/`.cmakein` template), and \
+             wiring the result into '{target_name}'. Do NOT edit the project's CMakeLists.txt, \
+             and do NOT vendor the host-generated header."
+        ),
+        title,
+    }
+}
+
 /// Escalates sources CMake produces during the build rather than reading
 /// from the project tree. Kept out of the generated `srcs` — see the
 /// `is_generated` handling in `to_target`.
@@ -449,6 +514,47 @@ mod tests {
             !item.context.contains("not yet derived"),
             "describes a limitation the translator no longer has:\n{}",
             item.context
+        );
+    }
+
+    // A configure_file-generated header must NOT get the sources-outside
+    // guidance (widen the root / vendor the file) — both are wrong for a
+    // header that exists in no source tree, and vendoring the host's copy
+    // bakes in this machine's feature detection. The escalation has to name
+    // the configure_file case and steer AWAY from vendoring. This is the
+    // misdiagnosis bzl-fxa.3 fixes, pinned so it can't silently regress.
+    #[test]
+    fn generated_config_header_escalation_names_configure_file_and_forbids_vendoring() {
+        let item = generated_config_header_needs_attention(
+            "json-c",
+            &["/abs/_build/json_config.h".to_string()],
+        );
+
+        assert!(
+            item.gap.contains("configure_file"),
+            "the escalation must name the configure_file case:\n{}",
+            item.gap
+        );
+        assert!(
+            item.gap.contains("json_config.h"),
+            "the escalation must name the header it dropped:\n{}",
+            item.gap
+        );
+        // The whole point: it must steer away from the two resolutions the
+        // sources-outside escalation offers, which are wrong here.
+        assert!(
+            item.context.contains("toolchain") && item.context.contains("consumer"),
+            "the escalation must explain the config is toolchain/consumer-specific, not \
+             host-capturable:\n{}",
+            item.context
+        );
+        assert!(
+            item.expected_output
+                .to_lowercase()
+                .contains("do not vendor")
+                || item.expected_output.contains("do NOT vendor"),
+            "the escalation must explicitly forbid vendoring the host-generated header:\n{}",
+            item.expected_output
         );
     }
 

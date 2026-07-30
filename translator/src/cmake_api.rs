@@ -18,9 +18,9 @@ use serde::Deserialize;
 
 use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind, Test};
 use crate::needs_attention::{
-    NeedsAttention, generated_sources_needs_attention, header_visibility_needs_attention,
-    inert_convenience_targets_needs_attention, sources_outside_deliverable_needs_attention,
-    unsupported_target_needs_attention,
+    NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
+    header_visibility_needs_attention, inert_convenience_targets_needs_attention,
+    sources_outside_deliverable_needs_attention, unsupported_target_needs_attention,
 };
 use crate::paths::{absolutize, common_ancestor, normalize_lexically, resolve_against};
 
@@ -349,7 +349,11 @@ pub fn discover(
     build(build_dir)?;
     let reply_dir = build_dir.join(".cmake/api/v1/reply");
     let deliverable_root = absolutize(deliverable_root)?;
-    let codemodel = read_codemodel_reply(&reply_dir, &deliverable_root)?;
+    // Absolute so it can be compared against the absolute paths the File API
+    // reports for build-directory outputs (configure_file headers) — see
+    // rebase_to_module_root's partitioning of unreachable sources.
+    let abs_build_dir = absolutize(build_dir)?;
+    let codemodel = read_codemodel_reply(&reply_dir, &deliverable_root, &abs_build_dir)?;
     let version = read_project_version(&reply_dir)?;
 
     // Tests come from ctest, not the File API (see read_tests), and their
@@ -490,7 +494,11 @@ fn ctest_reply_to_tests(reply: CtestReply) -> Vec<Test> {
     tests
 }
 
-fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Codemodel, Error> {
+fn read_codemodel_reply(
+    reply_dir: &Path,
+    deliverable_root: &Path,
+    build_dir: &Path,
+) -> Result<Codemodel, Error> {
     let index_path = find_reply_file(reply_dir, "codemodel-v2-")?;
     let index: CodemodelIndexReply = serde_json::from_str(&fs::read_to_string(index_path)?)?;
 
@@ -640,7 +648,7 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
     }
 
     let (module_root, rebase_escalations) =
-        rebase_to_module_root(&mut targets, &source_dir, deliverable_root);
+        rebase_to_module_root(&mut targets, &source_dir, deliverable_root, build_dir);
     needs_attention.extend(rebase_escalations);
 
     Ok(Codemodel {
@@ -677,6 +685,7 @@ fn rebase_to_module_root(
     targets: &mut [Target],
     source_dir: &Path,
     deliverable_root: &Path,
+    build_dir: &Path,
 ) -> (PathBuf, Vec<NeedsAttention>) {
     let mut shipped = Vec::new();
     for target in targets.iter() {
@@ -696,7 +705,15 @@ fn rebase_to_module_root(
 
     let mut escalations = Vec::new();
     for target in targets.iter_mut() {
-        let mut unreachable = Vec::new();
+        // A source the module can't reach is one of two very different
+        // things, distinguished by whether it lives under the CMake build
+        // directory: a build-time-generated header (a configure_file output
+        // — the build_dir case) versus a file under some sibling source
+        // directory the deliverable root was drawn too narrowly to include.
+        // They get different escalations because their resolutions are
+        // different — see generated_config_header_needs_attention.
+        let mut build_dir_outputs = Vec::new();
+        let mut outside_deliverable = Vec::new();
 
         for list in [&mut target.sources, &mut target.public_headers] {
             let mut kept = Vec::with_capacity(list.len());
@@ -704,7 +721,14 @@ fn rebase_to_module_root(
                 let absolute = resolve_against(path, source_dir);
                 match absolute.strip_prefix(&module_root) {
                     Ok(relative) => kept.push(relative.to_string_lossy().into_owned()),
-                    Err(_) => unreachable.push(absolute.to_string_lossy().into_owned()),
+                    Err(_) => {
+                        let display = absolute.to_string_lossy().into_owned();
+                        if absolute.starts_with(build_dir) {
+                            build_dir_outputs.push(display);
+                        } else {
+                            outside_deliverable.push(display);
+                        }
+                    }
                 }
             }
             *list = kept;
@@ -725,10 +749,16 @@ fn rebase_to_module_root(
             })
             .collect();
 
-        if !unreachable.is_empty() {
+        if !outside_deliverable.is_empty() {
             escalations.push(sources_outside_deliverable_needs_attention(
                 &target.name,
-                &unreachable,
+                &outside_deliverable,
+            ));
+        }
+        if !build_dir_outputs.is_empty() {
+            escalations.push(generated_config_header_needs_attention(
+                &target.name,
+                &build_dir_outputs,
             ));
         }
     }
@@ -1849,6 +1879,7 @@ mod tests {
             &mut targets,
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj"),
+            Path::new("/deliv/proj/_build"),
         );
 
         assert_eq!(module_root, PathBuf::from("/deliv/proj"));
@@ -1867,8 +1898,12 @@ mod tests {
             vec![],
         )];
 
-        let (module_root, escalations) =
-            rebase_to_module_root(&mut targets, Path::new("/deliv/proj"), Path::new("/deliv"));
+        let (module_root, escalations) = rebase_to_module_root(
+            &mut targets,
+            Path::new("/deliv/proj"),
+            Path::new("/deliv"),
+            Path::new("/deliv/proj/_build"),
+        );
 
         assert_eq!(module_root, PathBuf::from("/deliv"));
         assert_eq!(
@@ -1898,6 +1933,7 @@ mod tests {
             &mut targets,
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj"),
+            Path::new("/deliv/proj/_build"),
         );
 
         assert_eq!(module_root, PathBuf::from("/deliv/proj"));
@@ -1907,6 +1943,55 @@ mod tests {
             escalations[0].gap.contains("/elsewhere/vendor/blob.cpp"),
             "{}",
             escalations[0].gap
+        );
+    }
+
+    // Both directions of the unreachable-source split: a header under the
+    // build directory (a configure_file output — json-c's json_config.h) gets
+    // the build-generated-header escalation, while a source under an
+    // unrelated directory gets the sources-outside-deliverable one. Same
+    // target, one of each, so the routing itself is under test — not just
+    // that some escalation fired.
+    #[test]
+    fn rebase_routes_build_dir_headers_and_outside_sources_to_different_escalations() {
+        // The build dir is OUTSIDE the module root (as it is in practice — the
+        // translator configures into a scratch dir separate from the sources),
+        // so a header there is genuinely unreachable AND recognizable as a
+        // build output.
+        let mut targets = vec![target_with(
+            vec![
+                "src/main.cpp",
+                "/build-out/json_config.h",
+                "/elsewhere/vendor/blob.cpp",
+            ],
+            vec![],
+        )];
+
+        let (_root, escalations) = rebase_to_module_root(
+            &mut targets,
+            Path::new("/deliv/proj"),
+            Path::new("/deliv/proj"),
+            Path::new("/build-out"),
+        );
+
+        let generated = escalations
+            .iter()
+            .find(|e| e.title.contains("build-generated headers"))
+            .expect("a build-dir header must get the build-generated-header escalation");
+        assert!(
+            generated.gap.contains("json_config.h") && !generated.gap.contains("blob.cpp"),
+            "the build-generated escalation names only the build-dir header:\n{}",
+            generated.gap
+        );
+
+        let outside = escalations
+            .iter()
+            .find(|e| e.title.contains("sources the module cannot reach"))
+            .expect("a non-build-dir outside source must get the sources-outside escalation");
+        assert!(
+            outside.gap.contains("blob.cpp") && !outside.gap.contains("json_config.h"),
+            "the sources-outside escalation names only the outside-deliverable source:\n{}",
+            outside.gap
         );
     }
 
@@ -1920,6 +2005,7 @@ mod tests {
             &mut targets,
             Path::new("/deliv/proj"),
             Path::new("/deliv/proj"),
+            Path::new("/deliv/proj/_build"),
         );
 
         assert!(targets[0].includes.is_empty());
@@ -2167,8 +2253,12 @@ mod tests {
     fn read_codemodel_reply_wires_real_capture_into_a_build_graph() {
         let dir = reply_dir_from_real_capture();
 
-        let codemodel = read_codemodel_reply(&dir.path, Path::new("/abs/002-with-library"))
-            .expect("real File API capture should parse and translate cleanly");
+        let codemodel = read_codemodel_reply(
+            &dir.path,
+            Path::new("/abs/002-with-library"),
+            Path::new("/abs/002-with-library/_build"),
+        )
+        .expect("real File API capture should parse and translate cleanly");
 
         assert_eq!(codemodel.project_name, "with_library");
         assert!(codemodel.needs_attention.is_empty());
@@ -2203,7 +2293,11 @@ mod tests {
     fn read_codemodel_reply_rejects_source_dir_outside_deliverable_root() {
         let dir = reply_dir_from_real_capture();
 
-        match read_codemodel_reply(&dir.path, Path::new("/somewhere/else")) {
+        match read_codemodel_reply(
+            &dir.path,
+            Path::new("/somewhere/else"),
+            Path::new("/somewhere/else/_build"),
+        ) {
             Err(Error::SourceDirOutsideDeliverableRoot { .. }) => {}
             other => panic!(
                 "source dir (\".\", i.e. cwd) can never be inside an unrelated root, \
@@ -2287,8 +2381,12 @@ mod tests {
     fn read_codemodel_reply_aggregates_a_project_authored_inert_utility() {
         let dir = reply_dir_with_project_utility();
 
-        let codemodel = read_codemodel_reply(&dir.path, Path::new("/abs/002-with-library"))
-            .expect("codemodel with a project utility target should parse and translate");
+        let codemodel = read_codemodel_reply(
+            &dir.path,
+            Path::new("/abs/002-with-library"),
+            Path::new("/abs/002-with-library/_build"),
+        )
+        .expect("codemodel with a project utility target should parse and translate");
 
         // The library still translates; the UTILITY target is not a build target.
         let names: Vec<&str> = codemodel.targets.iter().map(|t| t.name.as_str()).collect();
