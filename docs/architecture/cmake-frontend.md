@@ -13,28 +13,41 @@ The initial target is CMake projects that generate Ninja build files
   CMake File API query results) as a source of ground truth for what
   actually gets built.
 
-**Decision:** the frontend uses the CMake File API as its primary source of
-truth, currently two query kinds (`translator/src/cmake_api.rs`):
+**Decision:** the frontend uses CMake's own resolved output as its primary
+source of truth, not `CMakeLists.txt` parsing. Three sources feed it, all
+in `translator/src/cmake_api.rs`:
 
-- **`codemodel-v2`** — configures the project (`cmake -B <dir> -G Ninja`)
-  and reads the reply for each target's name, type, sources, build
-  artifacts (the built binary's path), compile-group include directories,
-  file sets, and inter-target dependencies, plus the top-level project's
+- **`codemodel-v2`** (File API) — configures the project (`cmake -B <dir> -G
+  Ninja`) and reads the reply for each target's name, type, sources, build
+  artifacts (the built binary's path), compile-group include directories
+  **and compile definitions**, file sets, inter-target dependencies, the
+  per-target backtrace (which command defined it — used to tell a
+  project-authored target from one a CMake module injected), and each
+  directory's install rules (`installers[]`). Plus the top-level project's
   name. All already resolved by CMake itself (generator expressions
   evaluated, `if()`/variables/`find_package()` already accounted for) —
   this avoids re-implementing CMake-the-language, at the cost of requiring
   a real `cmake` invocation in the pipeline (not yet hermetic on the CMake
   side — see [build-verification.md](build-verification.md)) and tying
   translation to a given CMake version's File API schema.
-- **`cache-v2`** — read for `CMAKE_PROJECT_VERSION`, when the top-level
-  `project()` call specified a `VERSION`. Used for the generated
-  `MODULE.bazel`'s own `version` (omitted when absent — Bazel's `module()`
-  doesn't require one).
+- **`cache-v2`** (File API) — read for two cache entries:
+  `CMAKE_PROJECT_VERSION` (when the top-level `project()` specified a
+  `VERSION`; becomes the generated `MODULE.bazel`'s own `version`, omitted
+  when absent since Bazel's `module()` doesn't require one), and
+  `CMAKE_ROOT` (the CMake installation path, used to recognize targets a
+  CMake-provided module injected — see the UTILITY-target filtering below).
+- **`ctest --show-only=json-v1`** — the File API has *no* test model, so
+  registered tests (`add_test`) come from CTest instead: each test's
+  command, `WORKING_DIRECTORY`, and `PASS_REGULAR_EXPRESSION`. Run after the
+  build (so the test binaries' paths resolve). See
+  [../lore/cmake-test-model-lives-in-ctest-not-file-api.md](../lore/cmake-test-model-lives-in-ctest-not-file-api.md)
+  and the test-model section below.
 
 After configuring, the frontend also runs the actual build (`cmake
 --build`) to produce ground-truth artifacts for validation — see
-[build-verification.md](build-verification.md). This is not a third File
-API query; it's a real build, reusing the same configured `build_dir`.
+[build-verification.md](build-verification.md). This is not a File API
+query; it's a real build, reusing the same configured `build_dir`, and it
+must precede the `ctest` query above.
 
 `compile_commands.json` is planned but not yet requested/read — see the
 compile-command comparison item in
@@ -49,25 +62,41 @@ more idiomatic codegen. Not needed for the fixtures so far.
 
 ## What the frontend produces
 
-The internal model (`translator/src/model.rs`) a `Target` currently
-carries: `kind` (`Executable` | `Library`), private `sources`, public
-`public_headers`, `dependencies` (resolved target names), `includes`
-(this target's own include directories), and `artifacts` (build output
-paths, for ground-truth comparison). External deps, compile
-definitions/options, and linker options aren't modeled yet.
+The internal model (`translator/src/model.rs`) has two top-level types on
+its `BuildGraph`: `Target`s and `Test`s.
+
+A `Target` currently carries: `kind` (`Executable` | `Library`), private
+`sources`, public `public_headers`, `dependencies` (resolved target names),
+`includes` (this target's own include directories), `local_defines` (this
+target's own compile definitions — see the compile-definitions section
+below), and `artifacts` (build output paths, for ground-truth comparison).
+External deps, compile *options*, and linker options aren't modeled yet.
+
+A `Test` (from CTest, not the File API) carries the test name, the target
+it runs, its `working_directory` (module-relative), and an optional
+`pass_regex`. See the test-model section below.
 
 ### Library targets: public vs. private headers
 
-CMake's File API reports a target's headers in its `sources` list, but
-only distinguishes public from private ones via `target_sources(...
-FILE_SET ... TYPE HEADERS)` — each such source gets a `fileSetIndex`
-pointing at a `fileSets[]` entry with `visibility: "PUBLIC"` (or
-`"INTERFACE"`). **Decision:** only file-set-declared public headers become
-a target's `cc_library` `hdrs`; everything else (including `.hpp` files
-added as plain sources, with no file set) stays in `srcs`. The translator
-does **not** guess which plain-source headers are "meant to be public" —
-see the `needs_attention/` mechanism below for what happens when that gap
-actually matters (a dependent target exists).
+CMake's File API reports a target's headers in its `sources` list without
+marking them public or private. **Decision:** a header becomes a target's
+`cc_library` `hdrs` when *either* of two authoritative signals says it is
+public, and stays in `srcs` otherwise:
+
+- a `target_sources(... FILE_SET ... TYPE HEADERS)` with `visibility:
+  "PUBLIC"`/`"INTERFACE"` (CMake 3.23+) — the source carries a
+  `fileSetIndex` into a `fileSets[]` entry; or
+- an `install(FILES ... TYPE INCLUDE)` (or a target's `INCLUDES
+  DESTINATION`) rule — the pre-FILE_SET way to declare a public header,
+  which the many projects that never adopted `FILE_SET` still use. The File
+  API reports these in the directory reply's `installers[]`; a file
+  installed to an `include` destination is being declared public (see
+  `installed_public_headers`).
+
+The translator does **not** guess beyond those declarations. A header in
+`srcs` with neither signal, on a library something depends on, is the gap
+the `needs_attention/` mechanism below flags — it is genuinely ambiguous,
+not merely undeclared.
 
 ### Include directories
 
@@ -101,6 +130,59 @@ See
 [build-verification.md](build-verification.md#header-visibility-is-not-enforced-by-default)
 for the experiment establishing this, and the open question about whether
 the hermetic `llvm` toolchain's `layering_check` changes it.
+
+### Compile definitions
+
+`target_compile_definitions()` surfaces in the File API as
+`compileGroups[].defines[]`, each `{define, backtrace}` where `define` is
+the full `NAME` or `NAME=VALUE`. **Decision:** these are emitted as Bazel
+`local_defines` (non-propagating), not `defines`. The reason is that the
+File API reports the *effective* set on each target's own compile line with
+the PUBLIC/PRIVATE/INTERFACE origin already flattened away — so we cannot
+tell which defines are meant to propagate. Making them all non-propagating
+and letting each converted consumer re-derive its own from its own compile
+group is self-consistent: every target gets exactly the set CMake computed
+for it. It is wrong only for a consumer *outside* the converted set, which
+never inherits a PUBLIC define it should have; recovering that split
+(`defines` vs `local_defines`) via the backtrace graph is future work. The
+full shape, including why generator-expression-conditional defines only
+appear for the configured config, is in
+[../lore/cmake-file-api-compile-definitions-shape.md](../lore/cmake-file-api-compile-definitions-shape.md).
+
+### `add_custom_target` / UTILITY targets
+
+CMake has no Bazel rule the translator maps `UTILITY` targets to (the
+product of `add_custom_target` — a named build step, not a compiled
+artifact). Rather than escalate every one, the frontend distinguishes two
+cases by **provenance** (the target's backtrace file) and **inertness** (no
+artifacts, no dependents):
+
+- A UTILITY target a CMake-provided module injected — its defining command
+  lives under `CMAKE_ROOT` — is **dropped silently**. This is what keeps
+  `include(CTest)`'s ~28 dashboard targets (and a Doxygen module's `doc`
+  target) out of the escalation stream entirely. See
+  [../lore/cmake-include-ctest-injects-utility-targets.md](../lore/cmake-include-ctest-injects-utility-targets.md).
+- A UTILITY target the *project itself* authored, but still inert, is
+  **aggregated** into a single `needs_attention/` item rather than one
+  apiece, so the drop is a decision rather than an oversight.
+- A UTILITY target that is load-bearing (has artifacts, or something
+  depends on it) is escalated **individually** — dropping it would leave
+  real dependents incomplete.
+
+### Registered tests (CTest)
+
+The File API has no test model, so `add_test`-registered tests come from
+`ctest --show-only=json-v1` (above). Each becomes a `model::Test` carrying
+the target it runs, its `WORKING_DIRECTORY` (rebased module-relative), and
+its `PASS_REGULAR_EXPRESSION`. Codegen turns each into a Bazel `sh_test`
+that runs the binary at that working directory — with the runtime data
+staged writable — and asserts the pass regex, i.e. the project's own
+correctness criterion translated rather than invented. This is currently
+tinyxml2-shaped (that subset of properties); the long tail
+(`FAIL_REGULAR_EXPRESSION`, `WILL_FAIL`, test fixtures, multi-config) is
+future work. See
+[../lore/cmake-test-model-lives-in-ctest-not-file-api.md](../lore/cmake-test-model-lives-in-ctest-not-file-api.md)
+and [build-verification.md](build-verification.md#equivalence-checks).
 
 ## The `needs_attention/` mechanism
 

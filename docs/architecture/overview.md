@@ -93,10 +93,18 @@ A conversion is successful when:
 2. The generated module is **functionally equivalent** to the original
    CMake project. We are not targeting binary compatibility — see
    [build-verification.md](build-verification.md) for the specific
-   equivalence checks (runtime output comparison today; compile-command
-   and symbol comparison, and running the project's own CTest/GoogleTest
-   suite, planned as fixtures grow to exercise them).
+   equivalence checks: runtime output comparison, and the project's own
+   CTest-registered tests run against the Bazel-built binary (its declared
+   `PASS_REGULAR_EXPRESSION` at its `WORKING_DIRECTORY`) where it has them.
+   Compile-command and symbol-table comparison are still planned, deferred
+   until a fixture exercises them meaningfully.
 
-**Open question:** how do we define "existing test suite" precisely across
-different CMake projects (CTest, GoogleTest, ad hoc scripts, etc.)? Likely
-needs its own doc once we have real fixtures to reason about.
+**Partially settled:** "the project's existing tests" now means, concretely,
+its CTest-registered `add_test` tests, read from `ctest
+--show-only=json-v1` and translated per test (see
+[cmake-frontend.md](cmake-frontend.md) and
+[build-verification.md](build-verification.md)). tinyxml2's `xmltest` is the
+first real case. What remains open is the long tail — GoogleTest sharding,
+CTest test fixtures, `WILL_FAIL`, multi-config, and projects whose tests run
+via ad hoc custom targets rather than `add_test` — to be worked out as
+fixtures exercise them.
