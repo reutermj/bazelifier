@@ -15,8 +15,9 @@ Directives handled (matching CMake):
 
 Every probe result is folded into the values map (see main), so both a
 #cmakedefine and a @VAR@ referencing the same name resolve consistently: FOO
-is "set" iff its value is non-empty — matching CMake, where #cmakedefine is
-defined when the name is truthy in any variable, probe-derived or plain.
+is "set" iff its value is CMake-true (see _is_cmake_true) — matching CMake,
+where #cmakedefine is defined when the name is truthy, and OFF/FALSE/NO/0 are
+not. A bare @VAR@ still substitutes the raw value, token and all.
 """
 
 import argparse
@@ -27,6 +28,23 @@ import sys
 _CMAKEDEFINE01 = re.compile(r"^(\s*)#cmakedefine01\s+(\S+)\s*$")
 _CMAKEDEFINE = re.compile(r"^(\s*)#cmakedefine\s+(\S+)(.*)$")
 _VAR = re.compile(r"@([A-Za-z0-9_]+)@|\$\{([A-Za-z0-9_]+)\}")
+
+# CMake's if()-false constants (docs: "Constant"). A #cmakedefine tests the
+# name against these, NOT against Python truthiness — bool("OFF") is True but
+# CMake treats OFF as false, so `#cmakedefine ENABLE_X` with ENABLE_X=OFF must
+# undef, not `#define ENABLE_X OFF`. This is the bzl-fxa.8 gap: an option left
+# OFF reached a config value verbatim and, under bool(), defined the macro to
+# the literal token. Note a bare @VAR@ still substitutes that token literally
+# (CMake does: `#define BARE @OFF_VAR@` -> `#define BARE OFF`); only the
+# define-presence question uses these.
+_CMAKE_FALSE = frozenset(["", "0", "off", "false", "n", "no", "ignore", "notfound"])
+
+
+def _is_cmake_true(value):
+    """CMake if()-truthiness of a string value: false constants (and any
+    *-NOTFOUND) are false; everything else is true."""
+    v = value.strip().lower()
+    return v not in _CMAKE_FALSE and not v.endswith("-notfound")
 
 
 def _substitute_vars(text, values):
@@ -114,7 +132,9 @@ def main():
             values[macro] = answer
 
     def is_set(name):
-        return bool(values.get(name))
+        # A name absent from values is unset; a present one is "set" iff its
+        # value is CMake-true (so OFF/FALSE/NO/0/NOTFOUND undef, matching CMake).
+        return name in values and _is_cmake_true(values[name])
 
     with open(args.output, "w") as fh:
         fh.write(expand(template, is_set, values))

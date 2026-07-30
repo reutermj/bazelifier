@@ -167,6 +167,48 @@ assert_config_header_test(
     ],
 )
 
+# fxa.8 regression: an option's value that is a CMake-false token must undef its
+# #cmakedefine, not #define the literal token. json-c left ENABLE_RDRAND etc.
+# OFF; before the fix bool("OFF") was True, so the macro became `#define
+# ENABLE_RDRAND OFF` and code using it compiled the bare token. These options
+# arrive as plain `values` (an option's cache value), never as probes.
+config_header(
+    name = "false_tokens_h",
+    output = "false_tokens.h",
+    template = "testdata/false_tokens.h.in",
+    values = {
+        "ENABLE_RDRAND": "OFF",
+        "ENABLE_THREADING": "FALSE",
+        "OVERRIDE_GET_RANDOM_SEED": "NO",
+        "SOME_NOTFOUND": "SOME_NOTFOUND-NOTFOUND",
+        "ENABLE_FEATURE": "0",
+        "ENABLE_ON_FEATURE": "ON",
+    },
+)
+
+assert_config_header_test(
+    name = "false_tokens_test",
+    header = ":false_tokens_h",
+    must_contain = [
+        # Every CMake-false token undefs — OFF, FALSE, NO, a *-NOTFOUND, 0.
+        "/* #undef ENABLE_RDRAND */",
+        "/* #undef ENABLE_THREADING */",
+        "/* #undef OVERRIDE_GET_RANDOM_SEED */",
+        "/* #undef SOME_NOTFOUND */",
+        "/* #undef ENABLE_FEATURE */",
+        # A truthy token still defines.
+        "#define ENABLE_ON_FEATURE",
+        # A bare @VAR@ keeps the literal token, matching CMake.
+        "#define RDRAND_RAW OFF",
+    ],
+    must_not_contain = [
+        # The false-token bug: the literal token defined instead of undef'd.
+        "#define ENABLE_RDRAND OFF",
+        "#define ENABLE_THREADING FALSE",
+        "#define OVERRIDE_GET_RANDOM_SEED NO",
+    ],
+)
+
 # Two config headers that both consume the SAME probe target
 # (:have_stdlib_h), standing in for two converted projects that each need
 # HAVE_STDLIB_H. Because a probe is a shared TARGET, its compile action is

@@ -19,6 +19,7 @@ validation_workspace(
         "//translator/tests/fixtures/011-install-declared-header:converted",
         "//translator/tests/fixtures/012-configure-file:converted",
         "//translator/tests/fixtures/013-configure-file-if-define:converted",
+        "//translator/tests/fixtures/014-configure-file-false-option:converted",
         "//translator/tests/corpus/tinyxml2:converted",
     ],
 )

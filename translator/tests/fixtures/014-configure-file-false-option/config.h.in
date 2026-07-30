@@ -1,0 +1,10 @@
+/* Generated from config.h.in by configure_file. */
+#ifndef CONFIG_H
+#define CONFIG_H
+
+/* An option left OFF must undef here, matching CMake, so the ifdef in main.c
+   takes the else branch. An option left ON defines. */
+#cmakedefine ENABLE_RDRAND
+#cmakedefine ENABLE_FEATURE
+
+#endif

@@ -1,0 +1,16 @@
+/* Reproduces bzl-fxa.8: CMake option values that are false tokens (OFF/FALSE/
+   NO/0/NOTFOUND) must undef their #cmakedefine, not #define the literal token.
+   These arrive as plain `values` entries (an option's cache value), so is_set
+   must apply CMake truthiness, not Python bool(). A bare @VAR@ still gets the
+   literal token, as CMake does. See _is_cmake_true in expand_config_header.py. */
+#cmakedefine ENABLE_RDRAND
+#cmakedefine ENABLE_THREADING
+#cmakedefine OVERRIDE_GET_RANDOM_SEED
+#cmakedefine SOME_NOTFOUND
+#cmakedefine ENABLE_FEATURE
+
+/* A truthy option still defines. */
+#cmakedefine ENABLE_ON_FEATURE
+
+/* Bare substitution keeps the literal token (CMake: #define X @OFF_VAR@ -> OFF). */
+#define RDRAND_RAW @ENABLE_RDRAND@

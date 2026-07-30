@@ -1724,6 +1724,36 @@ mod tests {
     }
 
     #[test]
+    fn resolve_config_header_passes_false_token_option_values_through_verbatim() {
+        // bzl-fxa.8: an option left OFF is a false token in CMake, so its
+        // #cmakedefine must undef. The translator deliberately does NOT blank
+        // it here — it passes "OFF" through as the value and lets the expander
+        // apply CMake truthiness (is_set). Blanking it would be wrong for a
+        // bare @VAR@, which CMake substitutes with the literal token ("OFF").
+        // So the assertion is: a false-token cache value is neither escalated
+        // nor rewritten; it reaches `values` verbatim.
+        let macros = TemplateMacros {
+            cmakedefines: vec!["ENABLE_RDRAND".to_string()],
+            vars: vec![],
+        };
+        let cache: HashMap<String, String> = [("ENABLE_RDRAND".to_string(), "OFF".to_string())]
+            .into_iter()
+            .collect();
+
+        let (header, unmapped) = resolve_config_header("config.h.in", "config.h", &macros, &cache);
+
+        assert!(
+            unmapped.is_empty(),
+            "a cache-covered option (even OFF) is resolvable, not escalated; got {unmapped:?}"
+        );
+        assert_eq!(
+            header.values,
+            vec![("ENABLE_RDRAND".to_string(), "OFF".to_string())],
+            "the false token is passed through verbatim; the expander decides truthiness"
+        );
+    }
+
+    #[test]
     fn cache_value_falls_back_to_cmake_project_version() {
         // project() sets PROJECT_VERSION as a plain variable; the cache records
         // it under CMAKE_PROJECT_VERSION. A template's @PROJECT_VERSION@ must
