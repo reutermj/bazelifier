@@ -1,0 +1,32 @@
+load(":probe.bzl", "assert_probe_result_test", "check_include_file")
+
+exports_files(["probe.bzl"])
+
+# Probe-mechanics tests: a header that must exist under any C toolchain, and
+# one that cannot. They exercise both outcomes of the compile probe — that a
+# failed compile is captured as "false" rather than failing the build is the
+# whole point. Run against whatever cc toolchain the building configuration
+# resolves (llvm, when built from bazelifier).
+check_include_file(
+    name = "have_stdlib_h",
+    define = "HAVE_STDLIB_H",
+    header = "stdlib.h",
+)
+
+assert_probe_result_test(
+    name = "stdlib_h_is_found",
+    expected = True,
+    probe = ":have_stdlib_h",
+)
+
+check_include_file(
+    name = "have_definitely_no_such_header",
+    define = "HAVE_DEFINITELY_NO_SUCH_HEADER_H",
+    header = "definitely/no/such/header_xyz123.h",
+)
+
+assert_probe_result_test(
+    name = "missing_header_is_not_found",
+    expected = False,
+    probe = ":have_definitely_no_such_header",
+)

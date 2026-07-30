@@ -56,10 +56,16 @@ autoconf primitives as Bazel rules:
 - `check_type_size(name, type)` — emits the type's size for the target ABI.
 
 Each is a real Bazel rule that resolves the C/C++ toolchain (via
-`rules_cc`'s `find_cc_toolchain` — confirmed available) and runs a compile
-or link action against it, exactly as CMake's probes do, but against
-*Bazel's* toolchain. A rule can run these actions; this is mechanically
-feasible today.
+`rules_cc`'s `find_cc_toolchain`) and runs a compile or link action against
+it, exactly as CMake's probes do, but against *Bazel's* toolchain. The
+mechanics are proven: the `@llvm` toolchain already ships a working
+autoconf-in-Bazel implementation for its own libstdc++ build (compile/link
+probes that capture the compiler's exit status as a `true`/`false` result
+file rather than failing the action). We **build `cc_config` fresh**, using
+that only as a correctness reference for the `cc_common`/toolchain API — not
+depending on it, since it is a private, per-GCC-version, libstdc++-scoped
+subsystem of another module. See
+[../lore/llvm-toolchain-ships-autoconf-probes.md](../lore/llvm-toolchain-ships-autoconf-probes.md).
 
 The generated module consumes it: its `MODULE.bazel` gets a
 `bazel_dep(name = "cc_config", ...)`, and its `BUILD.bazel` wires the

@@ -1,0 +1,10 @@
+module(
+    name = "cc_config",
+    version = "0.0.0",
+)
+
+# Autoconf-style feature probes that resolve against the CONSUMER's C/C++
+# toolchain, so a converted module's configure_file config header is computed
+# for whoever builds it rather than baked from the conversion host. See
+# ../docs/architecture/configure-file-and-toolchain-probes.md.
+bazel_dep(name = "rules_cc", version = "0.2.22")

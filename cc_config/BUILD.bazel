@@ -1,0 +1,2 @@
+# cc_config module root. The probe rules are loaded from
+# //cc_config:probe.bzl; this package is intentionally empty.

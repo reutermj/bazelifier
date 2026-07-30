@@ -9,6 +9,16 @@ module(
 bazel_dep(name = "llvm", version = "0.8.14")
 bazel_dep(name = "rules_cc", version = "0.2.22")
 
+# Autoconf-style toolchain probes for configure_file config headers. A local
+# module for now (see docs/architecture/configure-file-and-toolchain-probes.md);
+# converted modules will depend on it too. Built/tested here against the llvm
+# toolchain registered below.
+bazel_dep(name = "cc_config", version = "0.0.0")
+local_path_override(
+    module_name = "cc_config",
+    path = "cc_config",
+)
+
 # Rust toolchain + crate_universe for the translator itself. See
 # docs/architecture/overview.md for where this fits in the pipeline.
 bazel_dep(name = "rules_rs", version = "0.0.98")
