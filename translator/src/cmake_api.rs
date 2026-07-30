@@ -16,7 +16,7 @@ use std::process::Command;
 
 use serde::Deserialize;
 
-use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind, Test};
+use crate::model::{BuildGraph, ConfigHeader, ModuleInfo, Target, TargetKind, Test};
 use crate::needs_attention::{
     NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
     header_visibility_needs_attention, inert_convenience_targets_needs_attention,
@@ -368,6 +368,12 @@ pub fn discover(
     let mut tests = read_tests(build_dir)?;
     rebase_tests_to_module_root(&mut tests, &codemodel.module_root);
 
+    let cache = read_cache_values(&reply_dir)?;
+    let (config_headers, config_escalations) =
+        build_config_headers(&configure_files, &codemodel.module_root, &cache);
+    let mut needs_attention = codemodel.needs_attention;
+    needs_attention.extend(config_escalations);
+
     Ok(Discovery {
         graph: BuildGraph {
             module: ModuleInfo {
@@ -376,10 +382,62 @@ pub fn discover(
             },
             targets: codemodel.targets,
             tests,
+            config_headers,
         },
-        needs_attention: codemodel.needs_attention,
+        needs_attention,
         module_root: codemodel.module_root,
     })
+}
+
+/// Builds the `config_header` plans for a project's `configure_file` calls,
+/// reading and parsing each template. Returns the plans and escalations for
+/// any header the translator couldn't fully resolve (an unmapped
+/// `#cmakedefine`, or a template that reaches outside the module root).
+///
+/// A template outside the module root can't be a Bazel label in the module,
+/// so that header is escalated rather than planned — the same boundary
+/// `rebase_to_module_root` enforces for sources.
+fn build_config_headers(
+    configure_files: &[ConfigureFile],
+    module_root: &Path,
+    cache: &HashMap<String, String>,
+) -> (Vec<ConfigHeader>, Vec<NeedsAttention>) {
+    let mut headers = Vec::new();
+    let mut escalations = Vec::new();
+    for call in configure_files {
+        let Ok(template_rel) = call.template.strip_prefix(module_root) else {
+            // The template ships outside the deliverable; can't reference it.
+            escalations.push(generated_config_header_needs_attention(
+                &call.output.to_string_lossy(),
+                &[call.template.to_string_lossy().into_owned()],
+            ));
+            continue;
+        };
+        let Ok(template_text) = fs::read_to_string(&call.template) else {
+            continue;
+        };
+        let macros = parse_template_macros(&template_text);
+        let output_name = call
+            .output
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| call.output.to_string_lossy().into_owned());
+
+        let (header, unmapped) = resolve_config_header(
+            &template_rel.to_string_lossy(),
+            &output_name,
+            &macros,
+            cache,
+        );
+        if !unmapped.is_empty() {
+            escalations.push(generated_config_header_needs_attention(
+                &output_name,
+                &unmapped,
+            ));
+        }
+        headers.push(header);
+    }
+    (headers, escalations)
 }
 
 fn request_file_api_queries(build_dir: &Path) -> Result<(), Error> {
@@ -430,6 +488,77 @@ struct ConfigureFile {
 struct TemplateMacros {
     cmakedefines: Vec<String>,
     vars: Vec<String>,
+}
+
+/// The macros the shared `cc_config` catalog provides a probe for. This is a
+/// hand-maintained copy of the catalog's define set (declared in Starlark in
+/// `cc_config/catalog/BUILD.bazel`, which this Rust cannot read at codegen
+/// time). The two lists are kept in sync by hand — the facts are stable
+/// autoconf checks that rarely change — and a drift check
+/// (cc_config/check_catalog_sync.py, run in review) fails if they diverge.
+///
+/// A template `#cmakedefine` naming one of these maps to
+/// `@cc_config//catalog:<name lowercased>`; anything else the translator
+/// cannot confidently resolve and escalates. Exact match only: a project that
+/// prefixes its macros (json-c's `JSON_C_HAVE_INTTYPES_H`) does not match
+/// `HAVE_INTTYPES_H` and is escalated rather than guessed.
+const CATALOG_DEFINES: &[&str] = &[
+    "HAVE_ARC4RANDOM",
+    "HAVE_DLFCN_H",
+    "HAVE_DUPLOCALE",
+    "HAVE_ENDIAN_H",
+    "HAVE_FCNTL_H",
+    "HAVE_GETRANDOM",
+    "HAVE_GETRUSAGE",
+    "HAVE_INTTYPES_H",
+    "HAVE_LIMITS_H",
+    "HAVE_LOCALE_H",
+    "HAVE_MEMORY_H",
+    "HAVE_OPEN",
+    "HAVE_REALLOC",
+    "HAVE_SETLOCALE",
+    "HAVE_SETRLIMIT",
+    "HAVE_SNPRINTF",
+    "HAVE_STDARG_H",
+    "HAVE_STDINT_H",
+    "HAVE_STDLIB_H",
+    "HAVE_STRCASECMP",
+    "HAVE_STRDUP",
+    "HAVE_STRERROR",
+    "HAVE_STRING_H",
+    "HAVE_STRINGS_H",
+    "HAVE_STRNCASECMP",
+    "HAVE_STRTOLL",
+    "HAVE_STRTOULL",
+    "HAVE_SYS_CDEFS_H",
+    "HAVE_SYS_PARAM_H",
+    "HAVE_SYS_RANDOM_H",
+    "HAVE_SYS_RESOURCE_H",
+    "HAVE_SYS_STAT_H",
+    "HAVE_SYS_TYPES_H",
+    "HAVE_SYSLOG_H",
+    "HAVE_UNISTD_H",
+    "HAVE_USELOCALE",
+    "HAVE_VASPRINTF",
+    "HAVE_VPRINTF",
+    "HAVE_VSNPRINTF",
+    "HAVE_VSYSLOG",
+    "HAVE_XLOCALE_H",
+    "SIZEOF_INT",
+    "SIZEOF_INT64_T",
+    "SIZEOF_LONG",
+    "SIZEOF_LONG_LONG",
+    "SIZEOF_SIZE_T",
+    "SIZEOF_SSIZE_T",
+];
+
+/// The `@cc_config//catalog:<target>` label for a catalog define, or `None`
+/// if the define isn't in the catalog. The target name is the define
+/// lowercased — the convention `cc_config_catalog` uses (see catalog.bzl).
+fn catalog_label(define: &str) -> Option<String> {
+    CATALOG_DEFINES
+        .contains(&define)
+        .then(|| format!("@cc_config//catalog:{}", define.to_lowercase()))
 }
 
 /// Parses a `configure_file` template's text for the macros it references,
@@ -516,6 +645,59 @@ fn parse_configure_files(trace: &str, source_dir: &Path) -> Vec<ConfigureFile> {
         });
     }
     calls
+}
+
+/// Turns a `configure_file` call into a plan for a `config_header` rule: maps
+/// each `#cmakedefine` to a catalog probe, resolves `@VAR@`s from the cache,
+/// and returns the plan alongside the `#cmakedefine`s the catalog does not
+/// cover (which the caller escalates rather than emitting a header that would
+/// be missing defines). `template_relative` and `output_relative` are already
+/// module-relative.
+///
+/// `cache` maps a CMake variable name to its value; `@VAR@`s found there
+/// become substitution values, and a `#cmakedefine`'s name found there is
+/// treated as covered even without a catalog probe (its value drives the
+/// define directly — e.g. an `ENABLE_*` option). A `#cmakedefine` that is
+/// neither in the catalog nor the cache is unmapped.
+fn resolve_config_header(
+    call_template_relative: &str,
+    output_relative: &str,
+    macros: &TemplateMacros,
+    cache: &HashMap<String, String>,
+) -> (ConfigHeader, Vec<String>) {
+    let mut catalog_probes = Vec::new();
+    let mut unmapped = Vec::new();
+    for define in &macros.cmakedefines {
+        if let Some(label) = catalog_label(define) {
+            catalog_probes.push(label);
+        } else if cache.contains_key(define) {
+            // Covered by a cache value rather than a probe (an option, say);
+            // the value is added below via the vars pass.
+        } else {
+            unmapped.push(define.clone());
+        }
+    }
+
+    let mut values = Vec::new();
+    let mut value_names = HashSet::new();
+    // Both @VAR@ references and cache-covered #cmakedefines need their value.
+    for name in macros.vars.iter().chain(macros.cmakedefines.iter()) {
+        if value_names.contains(name) {
+            continue;
+        }
+        if let Some(value) = cache.get(name) {
+            value_names.insert(name.clone());
+            values.push((name.clone(), value.clone()));
+        }
+    }
+
+    let header = ConfigHeader {
+        output: output_relative.to_string(),
+        template: call_template_relative.to_string(),
+        catalog_probes,
+        values,
+    };
+    (header, unmapped)
 }
 
 fn build(build_dir: &Path) -> Result<(), Error> {
@@ -948,6 +1130,21 @@ fn read_cmake_root(reply_dir: &Path) -> Result<Option<String>, Error> {
         .filter(|v| !v.is_empty()))
 }
 
+/// The whole cache as a name -> value map, for resolving a `configure_file`
+/// template's `@VAR@` substitutions (which reference arbitrary CMake
+/// variables). Unlike `read_project_version`/`read_cmake_root`, which pick a
+/// single entry, this returns everything since a template can reference any of
+/// it.
+fn read_cache_values(reply_dir: &Path) -> Result<HashMap<String, String>, Error> {
+    let cache_path = find_reply_file(reply_dir, "cache-v2-")?;
+    let cache: CacheReply = serde_json::from_str(&fs::read_to_string(cache_path)?)?;
+    Ok(cache
+        .entries
+        .into_iter()
+        .map(|e| (e.name, e.value))
+        .collect())
+}
+
 /// Finds a File API reply by filename prefix, since the replies cannot be
 /// opened by name: CMake documents them as
 /// `<kind>-v<major>-<unspecified>.json`, and the trailing part is CMake's
@@ -1340,6 +1537,52 @@ mod tests {
                 "PROJECT_VERSION".to_string(),
             ],
             "@VAR@ names, deduped; the `@@` escape yields no variable"
+        );
+    }
+
+    #[test]
+    fn resolve_config_header_maps_catalog_defines_and_escalates_the_rest() {
+        let macros = TemplateMacros {
+            cmakedefines: vec![
+                "HAVE_ENDIAN_H".to_string(),          // catalog -> label
+                "SIZEOF_LONG".to_string(),            // catalog -> label
+                "JSON_C_HAVE_INTTYPES_H".to_string(), // prefixed, no exact match -> unmapped
+                "ENABLE_RDRAND".to_string(),          // covered by a cache value, not a probe
+            ],
+            vars: vec!["PROJECT_VERSION".to_string()],
+        };
+        let cache: HashMap<String, String> = [
+            ("PROJECT_VERSION".to_string(), "1.2.3".to_string()),
+            ("ENABLE_RDRAND".to_string(), "1".to_string()),
+        ]
+        .into_iter()
+        .collect();
+
+        let (header, unmapped) =
+            resolve_config_header("cmake/config.h.in", "config.h", &macros, &cache);
+
+        assert_eq!(header.output, "config.h");
+        assert_eq!(header.template, "cmake/config.h.in");
+        assert_eq!(
+            header.catalog_probes,
+            vec![
+                "@cc_config//catalog:have_endian_h".to_string(),
+                "@cc_config//catalog:sizeof_long".to_string(),
+            ],
+            "catalog defines map to their lowercased catalog labels"
+        );
+        assert_eq!(
+            unmapped,
+            vec!["JSON_C_HAVE_INTTYPES_H".to_string()],
+            "a #cmakedefine that is neither a catalog probe nor a cache value is escalated"
+        );
+        assert_eq!(
+            header.values,
+            vec![
+                ("PROJECT_VERSION".to_string(), "1.2.3".to_string()),
+                ("ENABLE_RDRAND".to_string(), "1".to_string()),
+            ],
+            "@VAR@ refs and cache-covered #cmakedefines both contribute values"
         );
     }
 

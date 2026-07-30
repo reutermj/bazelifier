@@ -395,6 +395,7 @@ mod tests {
                 version: version.map(str::to_string),
             },
             tests: vec![],
+            config_headers: vec![],
             targets: vec![Target {
                 name: "hello".to_string(),
                 kind: TargetKind::Executable,
@@ -426,6 +427,7 @@ mod tests {
                 version: None,
             },
             tests: vec![],
+            config_headers: vec![],
             targets: vec![
                 Target {
                     name: "greet".to_string(),
@@ -475,6 +477,7 @@ mod tests {
                 version: None,
             },
             tests: vec![],
+            config_headers: vec![],
             targets: vec![Target {
                 name: "app".to_string(),
                 kind: TargetKind::Executable,
@@ -510,6 +513,7 @@ mod tests {
                     version: None,
                 },
                 tests: vec![],
+                config_headers: vec![],
                 targets: vec![Target {
                     name: "t".to_string(),
                     kind: kind.clone(),
@@ -605,6 +609,7 @@ mod tests {
                 artifacts: vec!["xmltest".to_string()],
             }],
             tests: vec![test],
+            config_headers: vec![],
         }
     }
 
@@ -682,6 +687,7 @@ mod tests {
                 version: None,
             },
             tests: vec![],
+            config_headers: vec![],
             targets: vec![target],
         }
     }
@@ -734,6 +740,7 @@ mod tests {
                 version: Some("1.0.0".to_string()),
             },
             tests: vec![],
+            config_headers: vec![],
             targets: vec![
                 Target {
                     name: "lib".to_string(),

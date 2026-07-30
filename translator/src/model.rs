@@ -124,11 +124,34 @@ pub struct Test {
     pub pass_regex: Option<String>,
 }
 
+/// A `configure_file`-generated config header the translator reproduces via a
+/// `cc_config//:config_header` rule, so it's computed against the consumer's
+/// toolchain rather than baked from the conversion host. Recovered from the
+/// configure trace (not the File API) — see docs/architecture/
+/// configure-file-and-toolchain-probes.md. Every path is module-relative.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigHeader {
+    /// The generated header's name (e.g. `config.h`), as the source files
+    /// `#include` it and as the emitted rule's `output`.
+    pub output: String,
+    /// The `.in`/`.cmakein` template it's generated from, module-relative.
+    pub template: String,
+    /// Catalog probe labels (`@cc_config//catalog:have_endian_h`) for the
+    /// template's `#cmakedefine`s the catalog covers.
+    pub catalog_probes: Vec<String>,
+    /// `@VAR@` substitutions resolved from the CMake cache at conversion time
+    /// (toolchain-independent, e.g. version strings), as (name, value).
+    pub values: Vec<(String, String)>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildGraph {
     pub module: ModuleInfo,
     pub targets: Vec<Target>,
     pub tests: Vec<Test>,
+    /// `configure_file`-generated config headers to reproduce; see
+    /// [`ConfigHeader`]. Empty for a project with no `configure_file`.
+    pub config_headers: Vec<ConfigHeader>,
 }
 
 #[cfg(test)]
