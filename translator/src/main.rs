@@ -154,19 +154,101 @@ fn copy_ground_truth_artifacts(
     fs::create_dir_all(&ground_truth_dir)?;
 
     let mut artifact_paths = Vec::new();
+    let mut shared_lib_names = Vec::new();
     for target in &graph.targets {
         for artifact in &target.artifacts {
             copy_into(&build_dir.join(artifact), &ground_truth_dir.join(artifact))?;
             artifact_paths.push(artifact.clone());
+
+            // A shared library the build produced (libfoo.so): a dynamically
+            // linked ground-truth binary loads it by its SONAME at run time,
+            // and the absolute RUNPATH CMake baked in points at this build dir,
+            // which is gone by then. So stage the whole versioned symlink chain
+            // (libfoo.so -> libfoo.so.5 -> libfoo.so.5.2.0) next to the binary
+            // and let the comparison test add ground_truth/ to LD_LIBRARY_PATH;
+            // the binary then finds whichever name it needs. A static lib (.a)
+            // is linked into the binary, so nothing to stage. See bzl-fxa.11
+            // and docs/architecture/build-verification.md.
+            if is_shared_library(artifact) {
+                for name in stage_shared_library_chain(build_dir, artifact, &ground_truth_dir)? {
+                    if !artifact_paths.contains(&name) {
+                        artifact_paths.push(name.clone());
+                    }
+                    if !shared_lib_names.contains(&name) {
+                        shared_lib_names.push(name);
+                    }
+                }
+            }
         }
     }
 
     fs::write(
         ground_truth_dir.join("BUILD.bazel"),
-        codegen::render_ground_truth_build_bazel(&artifact_paths),
+        codegen::render_ground_truth_build_bazel(&artifact_paths, &shared_lib_names),
     )?;
 
     Ok(())
+}
+
+/// Whether a build artifact is a shared library — i.e. something a dynamically
+/// linked binary loads at run time, as opposed to a static archive (`.a`) that
+/// is linked in. Matches both the plain `libfoo.so` and a versioned
+/// `libfoo.so.5` / `libfoo.so.5.2.0`. (macOS `.dylib` / Windows `.dll` would
+/// go here too when those platforms are supported; only ELF `.so` is exercised
+/// today.)
+fn is_shared_library(artifact: &str) -> bool {
+    let name = Path::new(artifact)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("");
+    name.ends_with(".so") || name.contains(".so.")
+}
+
+/// Stages every name in a shared library's versioned symlink chain into
+/// `ground_truth/`, copying the real file's bytes under each name, and returns
+/// those names. The build produces `libfoo.so -> libfoo.so.5 ->
+/// libfoo.so.5.2.0`; a binary's `DT_NEEDED` is the SONAME (`libfoo.so.5`), not
+/// the `artifact` path the File API reports (`libfoo.so`), so copying only the
+/// artifact would stage the wrong name. Copying the real bytes under every name
+/// in the chain means whichever one the loader asks for is present — without
+/// this translator having to read the binary's dynamic section.
+///
+/// The names are discovered by realpath, not by chasing links: every entry in
+/// the build dir that resolves to the same real file as `artifact` is part of
+/// the chain. Symlinks are deliberately flattened to real files because the
+/// ground_truth tree ships through a Bazel tree artifact and a tarball, where a
+/// dangling intra-build symlink would not survive.
+fn stage_shared_library_chain(
+    build_dir: &Path,
+    artifact: &str,
+    ground_truth_dir: &Path,
+) -> std::io::Result<Vec<String>> {
+    let artifact_path = build_dir.join(artifact);
+    let real = fs::canonicalize(&artifact_path)?;
+    let artifact_dir = artifact_path.parent().unwrap_or(build_dir);
+    let subdir = Path::new(artifact).parent();
+
+    let mut names = Vec::new();
+    for entry in fs::read_dir(artifact_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        // Same real file (the chain), following symlinks. canonicalize on a
+        // non-symlink returns itself, so this also matches the real file.
+        if fs::canonicalize(&path).ok().as_deref() != Some(real.as_path()) {
+            continue;
+        }
+        let file_name = entry.file_name();
+        // Preserve the artifact's own subdirectory (rare, but the File API can
+        // report an artifact under a subdir) so staged names line up with it.
+        let rel = match subdir {
+            Some(dir) if !dir.as_os_str().is_empty() => dir.join(&file_name),
+            _ => PathBuf::from(&file_name),
+        };
+        copy_into(&path, &ground_truth_dir.join(&rel))?;
+        names.push(rel.to_string_lossy().into_owned());
+    }
+    names.sort();
+    Ok(names)
 }
 
 /// Copies exactly the files the converted build graph references — every
@@ -352,5 +434,22 @@ mod tests {
                 "looks like Debug struct syntax, not a sentence:\n{reported}"
             );
         }
+    }
+
+    #[test]
+    fn is_shared_library_matches_so_and_versioned_so_only() {
+        // What decides staging (bzl-fxa.11): a shared library is loaded at run
+        // time, a static archive is linked in. Both the plain and the versioned
+        // SONAME forms must count — the binary's DT_NEEDED is the versioned one.
+        assert!(is_shared_library("libgreet.so"));
+        assert!(is_shared_library("libgreet.so.5"));
+        assert!(is_shared_library("libgreet.so.5.2.0"));
+        assert!(is_shared_library("sub/dir/libjson-c.so.5"));
+        // Not shared: a static archive, an executable, or a name that merely
+        // contains "so" without the extension.
+        assert!(!is_shared_library("libgreet.a"));
+        assert!(!is_shared_library("app"));
+        assert!(!is_shared_library("libsonic")); // no ".so"
+        assert!(!is_shared_library("json_parse"));
     }
 }

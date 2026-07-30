@@ -1645,9 +1645,14 @@ mod tests {
     // The real shapes json-c's templates use: a plain #cmakedefine (a header
     // check), a #cmakedefine with a @VAR@ value (project-prefixed), a
     // #cmakedefine with a quoted value, the CMake `@@` escape, and a bare
-    // @VAR@ (pure substitution).
+    // @VAR@ (pure substitution). The comment holds a literal @COMMENT_VAR@ on
+    // purpose: configure_file substitutes inside comments too (see
+    // docs/lore/configure-file-substitutes-inside-comments.md), so the parser
+    // MUST see it — skipping comments would miss a defined @VAR@ that CMake
+    // really substitutes, and would silently un-do the bzl-fxa.9 escalation
+    // for a stray comment @VAR@ (the trap that turned fixture 012 red).
     const TEMPLATE: &str = "\
-/* comment */
+/* comment @COMMENT_VAR@ */
 #cmakedefine HAVE_ENDIAN_H
 #cmakedefine JSON_C_HAVE_INTTYPES_H @JSON_C_HAVE_INTTYPES_H@
 #cmakedefine ENABLE_RDRAND \"@ENABLE_RDRAND@\"
@@ -1672,11 +1677,14 @@ mod tests {
         assert_eq!(
             macros.vars,
             vec![
+                // From the comment — parsed on purpose (see the TEMPLATE note).
+                "COMMENT_VAR".to_string(),
                 "JSON_C_HAVE_INTTYPES_H".to_string(),
                 "ENABLE_RDRAND".to_string(),
                 "PROJECT_VERSION".to_string(),
             ],
-            "@VAR@ names, deduped; the `@@` escape yields no variable"
+            "@VAR@ names, deduped; comment @VAR@s are included (configure_file \
+             substitutes them); the `@@` escape yields no variable"
         );
     }
 

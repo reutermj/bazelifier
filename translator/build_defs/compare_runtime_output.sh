@@ -75,7 +75,16 @@ tmpdir="${TEST_TMPDIR:-.}"
 ground_truth_stderr="${tmpdir}/ground_truth_stderr"
 bazel_stderr="${tmpdir}/bazel_stderr"
 
-ground_truth_stdout="$("${ground_truth_bin}" 2>"${ground_truth_stderr}")"
+# A dynamically linked ground-truth binary (e.g. json-c's json_parse against
+# libjson-c.so.5) loads its shared library by SONAME at run time, and the
+# absolute RUNPATH CMake baked in is dead by now. copy_ground_truth_artifacts
+# staged the .so chain into ground_truth/ alongside this binary, so its own
+# directory is where the loader must look. Scoped to the ground-truth run: the
+# Bazel binary links the library statically and is self-contained. See
+# bzl-fxa.11 and docs/architecture/build-verification.md.
+ground_truth_dir="$(cd "$(dirname "${ground_truth_bin}")" && pwd)"
+
+ground_truth_stdout="$(LD_LIBRARY_PATH="${ground_truth_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" "${ground_truth_bin}" 2>"${ground_truth_stderr}")"
 ground_truth_exit=$?
 bazel_stdout="$("${bazel_bin}" 2>"${bazel_stderr}")"
 bazel_exit=$?

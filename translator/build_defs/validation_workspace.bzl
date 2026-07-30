@@ -122,9 +122,15 @@ for fixture_dir in "${fixture_dirs[@]}"; do
       echo "        \\"\\$(location @${module_name}//ground_truth:${target_name})\\","
       echo "        \\"${module_name}+/needs_attention\\","
       echo "    ],"
+      # ground_truth:shared_libs is the staged .so chain a dynamically linked
+      # ground-truth binary needs at run time (empty for a static-only module).
+      # It lands in ground_truth/ next to the binary, so the script derives
+      # LD_LIBRARY_PATH from the binary's own dir — see compare_runtime_output.sh
+      # and copy_ground_truth_artifacts (bzl-fxa.11).
       echo "    data = ["
       echo "        \\"@${module_name}//:${target_name}\\","
       echo "        \\"@${module_name}//ground_truth:${target_name}\\","
+      echo "        \\"@${module_name}//ground_truth:shared_libs\\","
       echo "        \\"@${module_name}//needs_attention:all\\","
       echo "    ],"
       echo ")"

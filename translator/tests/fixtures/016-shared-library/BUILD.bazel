@@ -1,0 +1,13 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the shared-library ground-truth path (bzl-fxa.11): CMake links app
+# against libgreet.so dynamically, so the ground-truth binary needs its .so
+# chain staged into ground_truth/ and found via LD_LIBRARY_PATH at test time.
+# The Bazel side links greet statically. See the fixture's CMakeLists.txt and
+# docs/architecture/build-verification.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob(["src/**"]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

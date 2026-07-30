@@ -12,7 +12,7 @@
 /* Type size — substituted as a value. */
 #define SIZEOF_LONG @SIZEOF_LONG@
 
-/* A plain @VAR@ from the project() VERSION. */
+/* A plain substitution from the project() VERSION. */
 #define APP_VERSION "@PROJECT_VERSION@"
 
 #endif

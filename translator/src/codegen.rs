@@ -369,17 +369,38 @@ pub fn render_needs_attention_build_bazel() -> String {
 /// equivalence tests can reference them (e.g.
 /// `@<module>//ground_truth:hello`).
 ///
+/// `shared_libs` are the staged shared-library files (`libfoo.so.5`, ...) that
+/// a dynamically linked ground-truth binary loads at run time. They are also
+/// in `artifacts` (so `exports_files` covers them), and additionally grouped
+/// into a `shared_libs` filegroup the comparison test depends on wholesale —
+/// the test can't name them individually (it only knows the binary's target
+/// name), so it adds the group to its runfiles and points LD_LIBRARY_PATH at
+/// them. The filegroup is emitted even when empty so the comparison test can
+/// reference it unconditionally.
+///
 /// Deliberately its own nested package rather than entries in the module's
 /// top-level `BUILD.bazel`: validation-only targets must never appear in
 /// what a user checks into their own repo. See
 /// docs/architecture/build-verification.md.
-pub fn render_ground_truth_build_bazel(artifacts: &[String]) -> String {
+pub fn render_ground_truth_build_bazel(artifacts: &[String], shared_libs: &[String]) -> String {
     let exports = artifacts
         .iter()
         .map(|p| format!("\"{p}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    format!("exports_files([{exports}])\n")
+    let shared_srcs = shared_libs
+        .iter()
+        .map(|p| format!("\"{p}\""))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "exports_files([{exports}])\n\n\
+         filegroup(\n    \
+         name = \"shared_libs\",\n    \
+         srcs = [{shared_srcs}],\n    \
+         visibility = [\"//visibility:public\"],\n\
+         )\n"
+    )
 }
 
 /// The wrapper `sh_test` binary the generated module ships to run a
@@ -866,14 +887,46 @@ mod tests {
     #[test]
     fn ground_truth_build_bazel_exports_every_artifact() {
         let rendered =
-            render_ground_truth_build_bazel(&["hello".to_string(), "libgreet.a".to_string()]);
-        assert_eq!(rendered, "exports_files([\"hello\", \"libgreet.a\"])\n");
+            render_ground_truth_build_bazel(&["hello".to_string(), "libgreet.a".to_string()], &[]);
+        assert!(
+            rendered.contains("exports_files([\"hello\", \"libgreet.a\"])"),
+            "{rendered}"
+        );
+        // A static-only module still gets the (empty) shared_libs filegroup so
+        // the comparison test can depend on it unconditionally.
+        assert!(rendered.contains("name = \"shared_libs\""), "{rendered}");
+        assert!(rendered.contains("srcs = []"), "{rendered}");
+    }
+
+    #[test]
+    fn ground_truth_build_bazel_groups_shared_libraries() {
+        // The staged .so chain is both exported and collected into shared_libs,
+        // which the comparison test adds to its runfiles for LD_LIBRARY_PATH.
+        let rendered = render_ground_truth_build_bazel(
+            &[
+                "app".to_string(),
+                "libgreet.so".to_string(),
+                "libgreet.so.5".to_string(),
+                "libgreet.so.5.2.0".to_string(),
+            ],
+            &[
+                "libgreet.so".to_string(),
+                "libgreet.so.5".to_string(),
+                "libgreet.so.5.2.0".to_string(),
+            ],
+        );
+        assert!(
+            rendered.contains("srcs = [\"libgreet.so\", \"libgreet.so.5\", \"libgreet.so.5.2.0\"]"),
+            "the shared_libs filegroup must list every staged .so name:\n{rendered}"
+        );
     }
 
     // A fixture whose targets produce no artifacts still gets the package.
     #[test]
     fn ground_truth_build_bazel_handles_no_artifacts() {
-        assert_eq!(render_ground_truth_build_bazel(&[]), "exports_files([])\n");
+        let rendered = render_ground_truth_build_bazel(&[], &[]);
+        assert!(rendered.contains("exports_files([])"), "{rendered}");
+        assert!(rendered.contains("name = \"shared_libs\""), "{rendered}");
     }
 
     #[test]

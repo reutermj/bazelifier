@@ -149,6 +149,22 @@ Implemented today:
   binary and the Bazel-built binary, diff stdout, stderr, and exit code.
   Directly answers "does it behave the same," and works even for a
   fixture with no CMake-registered tests of its own.
+
+  A ground-truth binary that **dynamically links a project shared library**
+  (json-c's `json_parse` against `libjson-c.so.5`, exercised by fixture
+  `016-shared-library`) can't just be copied and run: the absolute RUNPATH
+  CMake baked in points at the throwaway build directory, gone by test time,
+  and the `.so` isn't otherwise in the test's runfiles. So
+  `copy_ground_truth_artifacts` stages the shared library's whole versioned
+  symlink chain (`libfoo.so` → `libfoo.so.5` → `libfoo.so.5.2.0`, flattened
+  to real files so they survive the tarball) into `ground_truth/` next to the
+  binary, groups them into a `shared_libs` filegroup the comparison test
+  depends on, and the script points `LD_LIBRARY_PATH` at that directory for
+  the ground-truth run. The Bazel-built binary needs none of this: a
+  `cc_library` links into a `cc_binary` statically by default, so it is
+  self-contained. This is functional-equivalence bookkeeping, not a change to
+  what is compared — the two binaries' stdout/stderr/exit are still the whole
+  contract.
 - **CMake's own registered tests** (CTest/`add_test()`): the strongest
   signal, since it reuses the project's own correctness assertions rather
   than ours. The File API has no test model, so these are read from `ctest

@@ -2,11 +2,15 @@
 
 #include "feature.h"
 
-/* Uses FEATURE_GUARD, whose value comes from the unresolved @VAR@. Until the
- * escalation is resolved (a values entry in the generated config_header) the
- * header carries a literal @FEATURE_INCLUDE_GUARD@ and this source will not
- * compile at all — which is the point: the gap must surface, not slip through. */
+/* Deliberately does NOT expand FEATURE_GUARD: the point of this fixture is the
+ * ESCALATION for the unresolved @VAR@ (bzl-fxa.9), which fires at conversion
+ * time regardless of this source. Expanding the literal @FEATURE_INCLUDE_GUARD@
+ * would make the module fail to *compile*, which (unlike 003/005) would abort
+ * the whole comparison suite's build instead of letting the needs_attention
+ * gate report the open item. So the module stays compilable and RED via the
+ * gate — the agent resolves the escalation (a values entry) and only then does
+ * anything downstream use the macro. */
 int main(void) {
-    printf("guard=%d\n", FEATURE_GUARD);
+    printf("feature fixture\n");
     return 0;
 }

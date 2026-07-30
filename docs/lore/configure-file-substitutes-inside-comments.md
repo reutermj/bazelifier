@@ -17,10 +17,24 @@ fixture's, or a real project's):
    a compile error, even though it sits in a comment. `configure_file` copies
    those bytes through untouched; the compiler is the one that rejects them.
 
-This surfaced writing fixture `013-configure-file-if-define`: a template whose
-comment used `check's`, backticks, an em-dash, and `@FOO@` produced a
-`config.h` that failed to compile with `missing terminating ' character` and
-several `stray` errors — none of them about the actual directives.
+3. **The translator's `parse_template_macros` scans comments too** — it must,
+   since a *defined* `@VAR@` in a comment really is substituted (consequence 1).
+   So an `@VAR@` written as comment prose is parsed as a real variable
+   reference. If it names nothing the translator can resolve, the unresolved-
+   `@VAR@` escalation (bzl-fxa.9) fires on it — even though CMake itself would
+   have left that undefined `@VAR@` literal and the build would have been fine.
+   The escalation is correct given what the translator can see; the template is
+   what's wrong.
+
+Both `@FOO@`-in-comment cases surfaced from fixtures. Consequence 2 was writing
+`013-configure-file-if-define`: a comment using `check's`, backticks, an
+em-dash, and `@FOO@` produced a `config.h` that failed to compile with
+`missing terminating ' character` and several `stray` errors — none about the
+actual directives. Consequence 3 was `012-configure-file`: a comment reading
+`A plain @VAR@ from the project() VERSION` made the translator escalate a
+phantom macro `VAR`, turning a green fixture red at test time (not at
+conversion time — the gate only fires when the comparison runs), which is the
+trap: a stray comment `@VAR@` is invisible until an unpacked-workspace run.
 
 **Rule for templates: keep comments plain 7-bit ASCII, no backticks, no
 apostrophes in contractions, and never write a literal `@VAR@`/`${VAR}` in a

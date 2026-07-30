@@ -17,17 +17,23 @@ explicitly forbidden by conventions elsewhere in `CLAUDE.md`.
 
 ## Know the baseline before calling anything a regression
 
-`003-library-no-file-set`, `005-unsupported-target-type`, and
-`015-configure-file-unresolved-var` are red in the unpacked validation
-workspace today, and that is the pipeline working, not a broken test. Each
-emits a `needs_attention/` item and the gate fails loud by design; these
-fixtures exist to test the *whole* pipeline including the agent stage, whose
-job is to resolve the item (in the generated output) and turn the fixture
-green. Red-with-an-open-item is the expected starting state of that cycle —
-see `CLAUDE.md`, "A red fixture is unfinished work, not a terminal state."
+Five fixtures are red in the unpacked validation workspace today, and that
+is the pipeline working, not a broken test: `003-library-no-file-set`
+(header not in a FILE_SET), `005-unsupported-target-type` (a custom target),
+`007-generated-source` (a generated source → genrule), `008-sources-outside-
+deliverable-root` (a sibling directory outside the root), and
+`015-configure-file-unresolved-var` (an unresolved plain `@VAR@`). Each emits
+a `needs_attention/` item and the gate fails loud by design; these fixtures
+exist to test the *whole* pipeline including the agent stage, whose job is to
+resolve the item (in the generated output) and turn the fixture green.
+Red-with-an-open-item is the expected starting state of that cycle — see
+`CLAUDE.md`, "A red fixture is unfinished work, not a terminal state."
 Everything else should be green. Sort failures into "known open" (an
 escalation-firing fixture with its item still open) and "new" *before*
 touching anything, or you will file a bug against the pipeline's own design.
+An escalation-firing fixture must still *compile* (fail via the gate, like
+these five) rather than fail to build — a build failure aborts the whole
+comparison suite and hides every other result; see 015's `main.c`.
 
 ## Run what actually runs here
 
