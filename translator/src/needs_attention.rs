@@ -337,15 +337,17 @@ pub fn inert_convenience_targets_needs_attention(target_names: &[String]) -> Nee
 /// The item exists because the gap is invisible in a green build, which is
 /// the case most needing explicit triage rather than least.
 pub fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
-    let title = format!("Library '{target_name}' has headers but no public FILE_SET");
+    let title = format!("Library '{target_name}' has headers with no public declaration");
     NeedsAttention {
         gap: format!(
             "Target '{target_name}' is a library with at least one other target depending \
              on it, and has header-like files among its sources, but none of them are \
-             declared as a public `FILE_SET` (`target_sources({target_name} PUBLIC FILE_SET \
-             ... TYPE HEADERS ...)`). The CMake File API does not report which plain-source \
-             headers are meant for consumers vs. internal-only use, so the translator cannot \
-             confidently populate `hdrs` for this target's generated `cc_library` — see \
+             declared public by either signal the translator trusts: a `target_sources` \
+             `FILE_SET` (`target_sources({target_name} PUBLIC FILE_SET ... TYPE HEADERS ...)`) \
+             or an `install(FILES ... TYPE INCLUDE)` / target `INCLUDES DESTINATION` rule. \
+             Absent both, the CMake File API does not report which plain-source headers are \
+             meant for consumers vs. internal-only use, so the translator cannot confidently \
+             populate `hdrs` for this target's generated `cc_library` — see \
              docs/architecture/cmake-frontend.md."
         ),
         context: format!(

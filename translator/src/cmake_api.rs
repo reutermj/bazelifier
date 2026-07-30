@@ -91,6 +91,11 @@ struct CodemodelPaths {
 struct CodemodelConfiguration {
     projects: Vec<CodemodelProject>,
     targets: Vec<CodemodelTargetRef>,
+    // Per-directory replies, carrying install() rules among other things.
+    // Read to recover install-declared public headers — see
+    // `installed_public_headers`.
+    #[serde(default)]
+    directories: Vec<CodemodelDirectoryRef>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -103,6 +108,44 @@ struct CodemodelTargetRef {
     id: String,
     #[serde(rename = "jsonFile")]
     json_file: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct CodemodelDirectoryRef {
+    #[serde(rename = "jsonFile")]
+    json_file: String,
+    // CMake's own flag for whether this directory has any install() rules —
+    // lets us skip reading (and skip the whole installers pass for) the
+    // common directory that installs nothing.
+    #[serde(default)]
+    #[serde(rename = "hasInstallRule")]
+    has_install_rule: bool,
+}
+
+/// A `directory-*.json` reply. Only its `installers` matter here.
+#[derive(Debug, Deserialize)]
+struct DirectoryReply {
+    #[serde(default)]
+    installers: Vec<Installer>,
+}
+
+/// One `install()` rule as the File API reports it. `install(FILES ... TYPE
+/// INCLUDE)` and `install(TARGETS ...)` both land here, distinguished by
+/// `installer_type` (`"file"` vs `"target"` vs `"export"`, ...).
+#[derive(Debug, Deserialize)]
+struct Installer {
+    #[serde(rename = "type")]
+    installer_type: String,
+    // Relative to CMAKE_INSTALL_PREFIX. `None` for installer types that
+    // carry no destination. A header installed to `include`/`include/...`
+    // is the project declaring it public.
+    #[serde(default)]
+    destination: Option<String>,
+    // Files this installer copies. For a project header these are
+    // project-relative; generated files can appear as absolute paths (which
+    // are never project sources, so they can't match a target's headers).
+    #[serde(default)]
+    paths: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -347,6 +390,20 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
         replies.push((target_ref.id.as_str(), reply));
     }
 
+    // Directory replies carry install() rules; read only those that have any
+    // (hasInstallRule) to recover install-declared public headers. A project
+    // with no install rules skips this entirely.
+    let mut directory_replies = Vec::new();
+    for dir_ref in &configuration.directories {
+        if !dir_ref.has_install_rule {
+            continue;
+        }
+        let dir_path = reply_dir.join(&dir_ref.json_file);
+        let dir_reply: DirectoryReply = serde_json::from_str(&fs::read_to_string(dir_path)?)?;
+        directory_replies.push(dir_reply);
+    }
+    let installed_headers = installed_public_headers(&directory_replies);
+
     // Target dependencies are reported by opaque id (e.g.
     // "greet::@6890427a1f51a3e7e1df"), not name, so translating one needs a
     // lookup back to names. Only targets that actually get a Bazel rule are
@@ -438,7 +495,8 @@ fn read_codemodel_reply(reply_dir: &Path, deliverable_root: &Path) -> Result<Cod
         };
 
         let is_depended_on = dependents_of.contains_key(id);
-        let (target, attention) = to_target(reply, kind, &translated_names, is_depended_on);
+        let (target, attention) =
+            to_target(reply, kind, &translated_names, is_depended_on, &installed_headers);
 
         targets.push(target);
         needs_attention.extend(attention);
@@ -677,6 +735,7 @@ fn to_target(
     kind: TargetKind,
     translated_names: &HashMap<&str, &str>,
     is_depended_on: bool,
+    installed_headers: &HashSet<String>,
 ) -> (Target, Vec<NeedsAttention>) {
     let mut sources = Vec::new();
     let mut public_headers = Vec::new();
@@ -699,13 +758,19 @@ fn to_target(
             continue;
         }
 
-        let is_public_header = source
+        // Two authoritative signals that a header is public, either
+        // sufficient: a target_sources FILE_SET (CMake 3.23+), or an
+        // install(FILES ... TYPE INCLUDE) rule (the pre-FILE_SET way, and
+        // the only one many real projects use) — see installed_public_headers.
+        let is_file_set_public = source
             .file_set_index
             .and_then(|i| reply.file_sets.get(i))
             .is_some_and(|fs| {
                 fs.fileset_type == "HEADERS"
                     && (fs.visibility == "PUBLIC" || fs.visibility == "INTERFACE")
             });
+        let is_public_header =
+            is_file_set_public || installed_headers.contains(&source.path);
 
         if is_public_header {
             public_headers.push(source.path.clone());
@@ -836,6 +901,49 @@ fn target_defines(reply: &TargetReply) -> Vec<String> {
     }
 
     defines
+}
+
+/// Whether an install destination names an include directory — i.e. a file
+/// installed there is being declared a public header. Matches `include` and
+/// anything under it (`include/tinyxml2`, ...), which is what
+/// `install(FILES ... TYPE INCLUDE)` and `CMAKE_INSTALL_INCLUDEDIR` produce.
+/// The destination is relative to `CMAKE_INSTALL_PREFIX`, so a leading
+/// component of `include` is the whole signal — a file installed to `lib`,
+/// `bin`, or `share` is not a header.
+fn is_include_destination(destination: &str) -> bool {
+    let first = Path::new(destination).components().next();
+    matches!(first, Some(Component::Normal(c)) if c == "include")
+}
+
+/// The set of header paths the project installs to an include destination,
+/// gathered across every directory reply — the project's own authoritative
+/// declaration of which headers are public, via `install(FILES ... TYPE
+/// INCLUDE)`. This is the pre-FILE_SET way to declare a public header, and
+/// the only signal for the many projects that never adopted `FILE_SET`.
+///
+/// Paths are returned exactly as the installer reported them (project-relative
+/// for checked-in headers); a target's own source paths are matched against
+/// this set by `to_target`. Absolute paths (generated files) can appear in an
+/// installer and are kept as-is — they simply never match a project source.
+fn installed_public_headers(directories: &[DirectoryReply]) -> HashSet<String> {
+    let mut headers = HashSet::new();
+    for dir in directories {
+        for installer in &dir.installers {
+            if installer.installer_type != "file" {
+                continue;
+            }
+            let Some(destination) = &installer.destination else {
+                continue;
+            };
+            if !is_include_destination(destination) {
+                continue;
+            }
+            for path in &installer.paths {
+                headers.insert(path.clone());
+            }
+        }
+    }
+    headers
 }
 
 /// The file in which this target's defining command (add_library,
@@ -1209,7 +1317,7 @@ mod tests {
         );
 
         let (target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), true);
+            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &HashSet::new());
 
         assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
         assert_eq!(target.public_headers, vec!["include/greet.hpp".to_string()]);
@@ -1238,7 +1346,7 @@ mod tests {
         );
 
         let (target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), true);
+            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &HashSet::new());
 
         // The plain header stays in srcs, NOT silently promoted to hdrs.
         assert_eq!(
@@ -1249,6 +1357,93 @@ mod tests {
 
         assert_eq!(needs_attention.len(), 1);
         assert!(needs_attention[0].title.contains("greet"));
+    }
+
+    // The mirror of the test above: the SAME plain header (no FILE_SET, on a
+    // depended-on library) is classified public and does NOT escalate once
+    // the project declares it via install(FILES ... TYPE INCLUDE). This is
+    // the whole point of reading install rules — the two tests differ only
+    // in whether the install-header set names the header.
+    #[test]
+    fn to_target_classifies_install_declared_header_as_public() {
+        let reply = library_reply(
+            vec![
+                TargetSource {
+                    path: "src/greet.cpp".to_string(),
+                    file_set_index: None,
+                    is_generated: false,
+                },
+                TargetSource {
+                    path: "greet.h".to_string(),
+                    file_set_index: None,
+                    is_generated: false,
+                },
+            ],
+            vec![],
+        );
+        let installed: HashSet<String> = ["greet.h".to_string()].into_iter().collect();
+
+        let (target, needs_attention) =
+            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &installed);
+
+        assert_eq!(
+            target.public_headers,
+            vec!["greet.h".to_string()],
+            "a header the project installs to an include destination is public (hdrs)"
+        );
+        assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
+        assert!(
+            needs_attention.is_empty(),
+            "an install-declared public header resolves the ambiguity, so no escalation: {:?}",
+            needs_attention.first().map(|n| &n.title)
+        );
+    }
+
+    #[test]
+    fn is_include_destination_matches_include_dirs_only() {
+        assert!(is_include_destination("include"));
+        assert!(is_include_destination("include/tinyxml2"));
+        // Not a header destination — these are where a target install, a
+        // pkgconfig file, and cmake package files land.
+        assert!(!is_include_destination("lib"));
+        assert!(!is_include_destination("lib/pkgconfig"));
+        assert!(!is_include_destination("lib/cmake/tinyxml2"));
+        assert!(!is_include_destination("share/doc"));
+        // A path that merely CONTAINS "include" deeper down is not an include
+        // destination — only a leading `include` component counts.
+        assert!(!is_include_destination("lib/include"));
+    }
+
+    #[test]
+    fn installed_public_headers_collects_only_file_installs_to_include() {
+        let dir = DirectoryReply {
+            installers: vec![
+                // A target install (the .a) — not a header.
+                Installer {
+                    installer_type: "target".to_string(),
+                    destination: Some("lib".to_string()),
+                    paths: vec!["libgreet.a".to_string()],
+                },
+                // A file install to include — the public header. KEEP.
+                Installer {
+                    installer_type: "file".to_string(),
+                    destination: Some("include".to_string()),
+                    paths: vec!["greet.h".to_string()],
+                },
+                // A file install elsewhere (pkgconfig) — not a header.
+                Installer {
+                    installer_type: "file".to_string(),
+                    destination: Some("lib/pkgconfig".to_string()),
+                    paths: vec!["greet.pc".to_string()],
+                },
+            ],
+        };
+        let headers = installed_public_headers(std::slice::from_ref(&dir));
+        assert_eq!(
+            headers,
+            ["greet.h".to_string()].into_iter().collect(),
+            "only files installed to an include destination are public headers"
+        );
     }
 
     #[test]
@@ -1273,7 +1468,7 @@ mod tests {
         // this library, so there's no consumer that could need a header
         // it isn't exposing — not worth flagging.
         let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), false);
+            to_target(&reply, TargetKind::Library, &HashMap::new(), false, &HashSet::new());
 
         assert!(needs_attention.is_empty());
     }
@@ -1292,7 +1487,7 @@ mod tests {
         );
 
         let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), true);
+            to_target(&reply, TargetKind::Library, &HashMap::new(), true, &HashSet::new());
 
         assert!(needs_attention.is_empty());
     }
@@ -1321,7 +1516,7 @@ mod tests {
             backtrace_graph: empty_backtrace_graph(),
         };
 
-        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false);
+        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false, &HashSet::new());
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
@@ -1355,7 +1550,7 @@ mod tests {
         // was escalated rather than translated.
         let translated_names = HashMap::from([("greet::@abc123", "greet")]);
 
-        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false);
+        let (target, _) = to_target(&reply, TargetKind::Executable, &translated_names, false, &HashSet::new());
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
 
@@ -1391,7 +1586,7 @@ mod tests {
         };
 
         let (target, needs_attention) =
-            to_target(&reply, TargetKind::Executable, &HashMap::new(), false);
+            to_target(&reply, TargetKind::Executable, &HashMap::new(), false, &HashSet::new());
 
         assert_eq!(
             target.sources,
@@ -1447,7 +1642,7 @@ mod tests {
         };
 
         let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Executable, &HashMap::new(), false);
+            to_target(&reply, TargetKind::Executable, &HashMap::new(), false, &HashSet::new());
 
         assert_eq!(needs_attention.len(), 1);
         assert!(
@@ -1471,7 +1666,7 @@ mod tests {
         );
 
         let (_target, needs_attention) =
-            to_target(&reply, TargetKind::Library, &HashMap::new(), false);
+            to_target(&reply, TargetKind::Library, &HashMap::new(), false, &HashSet::new());
 
         assert!(needs_attention.is_empty());
     }
@@ -2006,6 +2201,42 @@ mod tests {
         assert!(
             is_cmake_provided(&reply, Some("/usr/share/cmake-3.28")),
             "a real CTest dashboard target must be recognized as CMake-provided"
+        );
+    }
+
+    // Real tinyxml2 directory reply installers, captured verbatim. Exercises
+    // all the installer kinds present (a target install to lib, an export, a
+    // file install to lib/cmake, a file install to include, a file install
+    // to lib/pkgconfig) so the include-header extraction is proven to pick
+    // out tinyxml2.h and ONLY tinyxml2.h from real bytes — guarding the serde
+    // contract on Installer::{type,destination,paths}. See bzl-c54.7.
+    const DIRECTORY_TINYXML2_JSON: &str = r#"{
+  "installers": [
+    { "component": "tinyxml2_development", "destination": "lib",
+      "paths": ["libtinyxml2.a"], "type": "target" },
+    { "component": "tinyxml2_development", "destination": "lib/cmake/tinyxml2",
+      "paths": ["CMakeFiles/Export/x/tinyxml2-static-targets.cmake"], "type": "export" },
+    { "component": "tinyxml2_development", "destination": "lib/cmake/tinyxml2",
+      "paths": ["cmake/tinyxml2-config.cmake", "/abs/tinyxml2-config-version.cmake"],
+      "type": "file" },
+    { "component": "tinyxml2_development", "destination": "include",
+      "paths": ["tinyxml2.h"], "type": "file" },
+    { "component": "tinyxml2_development", "destination": "lib/pkgconfig",
+      "paths": ["/abs/tinyxml2.pc"], "type": "file" }
+  ],
+  "paths": { "build": ".", "source": "." }
+}"#;
+
+    #[test]
+    fn installed_public_headers_deserializes_from_real_capture() {
+        let dir: DirectoryReply = serde_json::from_str(DIRECTORY_TINYXML2_JSON)
+            .expect("real File API directory capture should parse");
+        assert_eq!(
+            installed_public_headers(std::slice::from_ref(&dir)),
+            ["tinyxml2.h".to_string()].into_iter().collect(),
+            "tinyxml2.h is installed to `include`; the pkgconfig/cmake files and the .a are \
+             not headers — an empty or larger result means a dropped serde rename on \
+             Installer::type/destination/paths"
         );
     }
 

@@ -1,0 +1,17 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the install-declared-public-header capability: mathlib's public
+# header is declared only via install(FILES ... TYPE INCLUDE), no FILE_SET.
+# The translator must classify it into `hdrs` from the install rule and emit
+# ZERO needs_attention items. Contrast fixture 003 (same shape, no install
+# rule) which still escalates. See the fixture's CMakeLists.txt and
+# docs/architecture/cmake-frontend.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "include/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)
