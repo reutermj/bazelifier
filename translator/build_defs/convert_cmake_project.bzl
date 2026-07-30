@@ -45,25 +45,7 @@ def _convert_cmake_project_impl(ctx):
         use_default_shell_env = True,
     )
 
-    return [
-        DefaultInfo(files = depset([out_dir])),
-        ConvertedCmakeModuleInfo(
-            module_name = ctx.attr.module_name,
-            expected_targets = ctx.attr.expected_targets,
-        ),
-    ]
-
-# Carries only what packaging can't get from DefaultInfo. The generated
-# module's tree artifact is NOT re-exposed here: consumers reach it as a
-# plain label (mtree_spec's srcs), so a second copy on the provider would
-# just be a way for the two to disagree.
-ConvertedCmakeModuleInfo = provider(
-    doc = "Identifies the standalone Bazel module a convert_cmake_project target produced, for use by validation-workspace packaging (see docs/architecture/build-verification.md).",
-    fields = {
-        "module_name": "The generated module's name, i.e. the value its MODULE.bazel declares via module(name = ...). Must match, since it's used to wire up local_path_override for validation.",
-        "expected_targets": "Names of the CMake executable targets this fixture is expected to produce (see the expected_targets attr doc) — used to generate ground-truth-vs-Bazel runtime comparison tests.",
-    },
-)
+    return [DefaultInfo(files = depset([out_dir]))]
 
 convert_cmake_project = rule(
     implementation = _convert_cmake_project_impl,
@@ -80,14 +62,6 @@ convert_cmake_project = rule(
         "deliverable_root": attr.string(
             default = "",
             doc = "Path (relative to the execroot) to the root of the source deliverable being converted — the directory the project ships as its sources. The generated module may grow to cover anything the build references inside it, so set this wider than source_dir when the CMake project compiles sources from a sibling directory that ships alongside it. Anything referenced from outside it is escalated via needs_attention/ rather than quietly packaged. Defaults to source_dir, i.e. the project converts on its own.",
-        ),
-        "module_name": attr.string(
-            mandatory = True,
-            doc = "The CMake project's name (its project() call's first argument), i.e. the name the generated MODULE.bazel will declare. Declared here (rather than discovered from the generated output) so the validation workspace's root MODULE.bazel can be assembled at analysis time.",
-        ),
-        "expected_targets": attr.string_list(
-            default = [],
-            doc = "Names of executable targets this CMake project defines (its add_executable() names), assumed to also be each target's ground-truth artifact filename (CMake's default when OUTPUT_NAME isn't overridden). Declared explicitly (rather than discovered from the generated output) so the validation workspace can generate ground-truth-vs-Bazel comparison tests at analysis time. Validation-only — does not affect the generated module itself.",
         ),
         "_bazelifier": attr.label(
             default = Label("//translator:bazelifier"),

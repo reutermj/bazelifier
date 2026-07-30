@@ -76,11 +76,12 @@ source in every fixture build.
     diffs stdout/stderr/exit code between ground-truth and Bazel-built
     binaries.
 - `translator/tests/fixtures/` — small, synthetic CMake "unit" projects
-  used to TDD the translator. Each fixture's `BUILD.bazel` calls
-  `convert_cmake_project` (declaring `module_name` and `expected_targets`
-  explicitly, since those aren't knowable from Starlark until the
-  translator action actually runs — see the doc comments in
-  `convert_cmake_project.bzl`).
+  used to TDD the translator. Each fixture's `BUILD.bazel` just calls
+  `convert_cmake_project` with its sources — the module name and
+  executable target names are read back out of the translator's own
+  generated `MODULE.bazel`/`BUILD.bazel` at execution time (see
+  `validation_workspace.bzl`), not hand-declared, so they can't drift from
+  what the translator actually emitted.
 - `translator/tests/BUILD.bazel` — calls `validation_workspace`, listing
   every fixture. Add new fixtures here.
 - `docs/architecture/` — design docs, one per major component/decision area.

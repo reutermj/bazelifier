@@ -14,8 +14,6 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project
 convert_cmake_project(
     name = "converted",
     srcs = ["CMakeLists.txt"] + glob(["src/**"]),
-    expected_targets = ["app"],
-    module_name = "unsupported_target_type",
     source_dir = package_name(),
     visibility = ["//translator/tests:__pkg__"],
 )

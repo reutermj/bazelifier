@@ -3,38 +3,6 @@
 Open items not yet tracked elsewhere. Keep entries actionable: what's
 unknown, why it matters, and what would settle it.
 
-## Derive `module_name`/`expected_targets` instead of declaring them
-
-**Status:** open. Previously blocked on network egress preventing
-`bazel build`; that's resolved as of 2026-07-30, so this is now
-actionable.
-
-Every fixture's `BUILD.bazel` hand-declares `module_name` and
-`expected_targets`, duplicating facts the translator already computed.
-`convert_cmake_project.bzl` explains why: the validation workspace's root
-`MODULE.bazel`/`BUILD.bazel` are generated at **analysis** time, and the
-converted module doesn't exist until **execution** time.
-
-That reasoning holds for `ctx.actions.write`, but not for the packaging as
-a whole — `_validation_tree` already runs a shell action over the fixture
-tree artifacts. The same trick applies to the root files: generate them in
-an execution-time action that reads each fixture's actual
-`MODULE.bazel` (for the module name) and `ground_truth/` (for the target
-list). Both attrs then disappear, along with `_root_build_bazel`.
-
-**Why it matters:** both attrs can drift from what the translator really
-emitted, and both fail badly when they do. A stale `module_name` breaks
-`local_path_override` with a bzlmod error pointing nowhere near the
-fixture; a fixture that gains a target simply never gets a comparison
-test, silently — which is the failure mode this whole pipeline exists to
-catch.
-
-**Note:** the tempting alternative — having the translator emit the
-comparison `sh_test` into the module's own `ground_truth/BUILD.bazel` —
-should be rejected. It would put `bazel_dep(name = "rules_shell")` into
-every converted module's `MODULE.bazel`, which is user-facing output, for
-a validation-only reason.
-
 ## No fixture exercises two of the four escalations, or a project version
 
 **Status:** open.

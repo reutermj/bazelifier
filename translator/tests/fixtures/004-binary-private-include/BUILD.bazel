@@ -14,8 +14,6 @@ convert_cmake_project(
         "src/**",
         "inc/**",
     ]),
-    expected_targets = ["app"],
-    module_name = "binary_private_include",
     source_dir = package_name(),
     visibility = ["//translator/tests:__pkg__"],
 )

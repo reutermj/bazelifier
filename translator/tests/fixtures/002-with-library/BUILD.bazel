@@ -6,8 +6,6 @@ convert_cmake_project(
         "src/**",
         "include/**",
     ]),
-    expected_targets = ["hello"],
-    module_name = "with_library",
     source_dir = package_name(),
     visibility = ["//translator/tests:__pkg__"],
 )

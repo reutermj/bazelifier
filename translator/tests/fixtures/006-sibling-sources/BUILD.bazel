@@ -18,8 +18,6 @@ convert_cmake_project(
         "shared/**",
     ]),
     deliverable_root = package_name(),
-    expected_targets = ["app"],
-    module_name = "sibling_sources",
     source_dir = package_name() + "/proj",
     visibility = ["//translator/tests:__pkg__"],
 )

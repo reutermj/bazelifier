@@ -111,9 +111,9 @@ Implemented today:
   `needs_attention/` exists in the test's runfiles: Bazel drops an empty
   `data` filegroup from runfiles entirely rather than leaving an empty
   directory behind, so a fixture with genuinely zero items and one whose
-  runfiles wiring is simply broken (stale `module_name`, a change to
-  Bazel's canonical repo naming) would look identical — both silently skip
-  the gate and fall through to the comparison. To close that gap, the
+  runfiles wiring is simply broken (e.g. a change to Bazel's canonical
+  repo naming) would look identical — both silently skip the gate and fall
+  through to the comparison. To close that gap, the
   translator always writes a `needs_attention/MANIFEST` file (see
   `main::write_needs_attention`) alongside the `.md` items, and
   `render_needs_attention_build_bazel` adds it to the `filegroup`'s `srcs`
