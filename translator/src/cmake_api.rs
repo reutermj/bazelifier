@@ -682,6 +682,24 @@ fn resolve_trace_path(path: &str, site_dir: Option<&Path>) -> PathBuf {
 /// be missing defines). `template_relative` and `output_relative` are already
 /// module-relative.
 ///
+/// Looks a template variable up in the CMake cache, with a fallback for the
+/// handful of common variables `project()` sets as plain variables that the
+/// cache records under a `CMAKE_`-prefixed name: `@PROJECT_VERSION@` (and its
+/// `_MAJOR`/`_MINOR`/`_PATCH` variants) live in the cache as
+/// `CMAKE_PROJECT_VERSION*`. CMake variables and cache entries are different
+/// namespaces; this covers the version family, which real config headers
+/// reference constantly, without a general variable-resolution pass.
+fn cache_value(name: &str, cache: &HashMap<String, String>) -> Option<String> {
+    if let Some(v) = cache.get(name) {
+        return Some(v.clone());
+    }
+    if let Some(rest) = name.strip_prefix("PROJECT_VERSION") {
+        // PROJECT_VERSION{,_MAJOR,_MINOR,_PATCH} -> CMAKE_PROJECT_VERSION{...}
+        return cache.get(&format!("CMAKE_PROJECT_VERSION{rest}")).cloned();
+    }
+    None
+}
+
 /// A name a template references (as a `#cmakedefine` or an `@VAR@`) is
 /// resolved by, in order:
 ///
@@ -719,7 +737,7 @@ fn resolve_config_header(
     // drives the define; its value is added below.)
     let mut unmapped = Vec::new();
     for define in &macros.cmakedefines {
-        if catalog_label(define).is_none() && !cache.contains_key(define) {
+        if catalog_label(define).is_none() && cache_value(define, cache).is_none() {
             unmapped.push(define.clone());
         }
     }
@@ -732,9 +750,9 @@ fn resolve_config_header(
         if catalog_label(name).is_some() || valued.contains(name) {
             continue;
         }
-        if let Some(value) = cache.get(name) {
+        if let Some(value) = cache_value(name, cache) {
             valued.insert(name.clone());
-            values.push((name.clone(), value.clone()));
+            values.push((name.clone(), value));
         }
     }
 
@@ -1646,6 +1664,29 @@ mod tests {
             "only non-catalog names get cache values; HAVE_STDLIB_H and SIZEOF_LONG are catalog \
              facts, so their HOST cache answers must NOT appear here — the probe supplies them"
         );
+    }
+
+    #[test]
+    fn cache_value_falls_back_to_cmake_project_version() {
+        // project() sets PROJECT_VERSION as a plain variable; the cache records
+        // it under CMAKE_PROJECT_VERSION. A template's @PROJECT_VERSION@ must
+        // still resolve.
+        let cache: HashMap<String, String> = [
+            ("CMAKE_PROJECT_VERSION".to_string(), "3.7.0".to_string()),
+            ("CMAKE_PROJECT_VERSION_MAJOR".to_string(), "3".to_string()),
+        ]
+        .into_iter()
+        .collect();
+
+        assert_eq!(
+            cache_value("PROJECT_VERSION", &cache).as_deref(),
+            Some("3.7.0")
+        );
+        assert_eq!(
+            cache_value("PROJECT_VERSION_MAJOR", &cache).as_deref(),
+            Some("3")
+        );
+        assert_eq!(cache_value("NOT_A_VAR", &cache), None);
     }
 
     fn empty_backtrace_graph() -> BacktraceGraph {

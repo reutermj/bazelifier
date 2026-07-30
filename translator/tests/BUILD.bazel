@@ -17,6 +17,7 @@ validation_workspace(
         "//translator/tests/fixtures/009-compile-definitions:converted",
         "//translator/tests/fixtures/010-ctest-utility-targets:converted",
         "//translator/tests/fixtures/011-install-declared-header:converted",
+        "//translator/tests/fixtures/012-configure-file:converted",
         "//translator/tests/corpus/tinyxml2:converted",
     ],
 )

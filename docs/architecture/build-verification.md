@@ -63,6 +63,24 @@ level. What must match is behavior.
    `bazel test //:all_ground_truth_comparisons` resolves every fixture as
    a real Bzlmod dependency and builds/tests it. This is the step that
    actually proves independence — see "Why unpack it" below.
+
+   A fixture that reproduces a `configure_file` config header depends on
+   `cc_config` (the toolchain-probing module — see
+   [configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md)).
+   `cc_config` is not published yet, so the validation run supplies it with a
+   flag rather than baking a path into the portable tarball:
+
+   ```sh
+   bazel test //:all_ground_truth_comparisons \
+       --override_module=cc_config=<bazelifier-checkout>/cc_config
+   ```
+
+   This overrides a genuine third-party dependency to a local checkout, the
+   standard dev-mode mechanism; it does **not** reference bazelifier's own
+   module. It stays on the validation invocation (our harness), not in the
+   tarball, so the deliverable remains path-free and portable — a real
+   consumer would resolve `cc_config` from a registry. A fixture with no
+   `configure_file` needs no flag.
 4. **Agent triage.** Any fixture that emitted `needs_attention/` items is
    an unfinished conversion. An agent reads each item and resolves it by
    editing the *generated* `BUILD.bazel` in the unpacked workspace, then
