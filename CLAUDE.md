@@ -54,10 +54,15 @@ source in every fixture build.
 
 - `translator/` — the Rust translator crate:
   - `src/cmake_api.rs` — CMake frontend: reads the File API
-    (`codemodel-v2` + `cache-v2`) and the `configure_file` calls only the
-    configure trace exposes, and runs the real build to capture ground-truth
-    artifacts. Derives the module root and rebases reported paths onto it
-    (building on `src/paths.rs`).
+    (`codemodel-v2` + `cache-v2`) and runs the real build to capture
+    ground-truth artifacts. Derives the module root and rebases reported
+    paths onto it (building on `src/paths.rs`).
+  - `src/configure_file.rs` — `configure_file` handling, separate because
+    it's the one part of the frontend that parses TEXT: these calls appear
+    in no File API reply, so they're recovered from `cmake --trace-expand`
+    and the templates read off disk. Owns the `@cc_config` catalog mapping
+    (`CATALOG_DEFINES`, kept in step with the Starlark catalog by
+    `//:catalog_sync_check`).
   - `src/ctest.rs` — the CTest frontend, separate because it reads a
     different source: the File API has no test model, so registered tests
     come from `ctest --show-only=json-v1`. Owns reading the reply, rebasing

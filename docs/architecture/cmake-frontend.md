@@ -14,11 +14,18 @@ The initial target is CMake projects that generate Ninja build files
   actually gets built.
 
 **Decision:** the frontend uses CMake's own resolved output as its primary
-source of truth, not `CMakeLists.txt` parsing. Four sources feed it. Three
-live in `translator/src/cmake_api.rs`; the CTest one has its own module,
-`translator/src/ctest.rs`, because it is the one source that is not the File
-API at all. The first three are structured APIs; the fourth is a text stream,
-and it exists only because CMake exposes `configure_file` nowhere else:
+source of truth, not `CMakeLists.txt` parsing. Four sources feed it, and each
+one that is *not* the File API has its own module, so `cmake_api.rs` holds
+only File API work:
+
+| source | module |
+|---|---|
+| `codemodel-v2`, `cache-v2` | `translator/src/cmake_api.rs` |
+| `ctest --show-only=json-v1` | `translator/src/ctest.rs` |
+| `cmake --trace-expand` | `translator/src/configure_file.rs` |
+
+The first three are structured APIs; the fourth is a text stream, and it
+exists only because CMake exposes `configure_file` nowhere else:
 
 - **`codemodel-v2`** (File API) — configures the project (`cmake -B <dir> -G
   Ninja`) and reads the reply for each target's name, type, sources, build
@@ -63,7 +70,8 @@ and it exists only because CMake exposes `configure_file` nowhere else:
   invocations, then reads the named templates off disk to find their
   `#cmakedefine`/`@VAR@` names. This is the one place the frontend parses
   text rather than consuming a structured reply, and it is a deliberate
-  exception, not a precedent. See
+  exception, not a precedent — which is why it lives in its own module rather
+  than beside the File API code. See
   [../lore/cmake-configure-file-is-in-the-trace-not-the-file-api.md](../lore/cmake-configure-file-is-in-the-trace-not-the-file-api.md)
   and
   [configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md).

@@ -4,7 +4,7 @@
 # The catalog's set of probed defines is declared twice, deliberately: once in
 # Starlark (cc_config/catalog/BUILD.bazel), which the Rust translator cannot
 # read at codegen time, and once as CATALOG_DEFINES in
-# translator/src/cmake_api.rs. Two hand-maintained copies are acceptable only
+# translator/src/configure_file.rs. Two hand-maintained copies are acceptable only
 # if drift is caught — and until bzl-2eu the checker existed but nothing ran
 # it, which is weaker than a check that looks at nothing: it wasn't looking at
 # all.

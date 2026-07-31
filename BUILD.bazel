@@ -17,10 +17,10 @@ sh_test(
     srcs = ["//translator/build_defs:run_catalog_sync_check.sh"],
     args = [
         "$(location @cc_config//catalog:BUILD.bazel)",
-        "$(location //translator:src/cmake_api.rs)",
+        "$(location //translator:src/configure_file.rs)",
     ],
     data = [
-        "//translator:src/cmake_api.rs",
+        "//translator:src/configure_file.rs",
         "@cc_config//catalog:BUILD.bazel",
     ],
 )

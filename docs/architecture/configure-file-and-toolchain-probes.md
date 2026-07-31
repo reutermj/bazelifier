@@ -180,7 +180,7 @@ This is its own subsystem, not a translator tweak. All of it has landed:
 The catalog is a fixed, hand-written set (see below). A project naming a fact
 it lacks escalates rather than being guessed at; extending the catalog means
 editing `cc_config/catalog/BUILD.bazel` **and** `CATALOG_DEFINES` in
-`cmake_api.rs`, which `//:catalog_sync_check` enforces.
+`translator/src/configure_file.rs`, which `//:catalog_sync_check` enforces.
 
 ## Ownership
 

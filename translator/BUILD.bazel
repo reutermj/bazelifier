@@ -7,6 +7,7 @@ rust_binary(
     srcs = [
         "src/cmake_api.rs",
         "src/codegen.rs",
+        "src/configure_file.rs",
         "src/ctest.rs",
         "src/main.rs",
         "src/model.rs",
@@ -24,7 +25,7 @@ rust_test(
     edition = "2024",
 )
 
-# The frontend source, as data for the catalog drift check — it holds the
-# CATALOG_DEFINES copy being compared against the Starlark catalog. See
+# The configure_file module, as data for the catalog drift check — it holds
+# the CATALOG_DEFINES copy being compared against the Starlark catalog. See
 # //:catalog_sync_check.
-exports_files(["src/cmake_api.rs"])
+exports_files(["src/configure_file.rs"])
