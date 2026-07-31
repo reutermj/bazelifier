@@ -71,9 +71,15 @@ level. What must match is behavior.
    flag rather than baking a path into the portable tarball:
 
    ```sh
-   bazel test //:all_ground_truth_comparisons \
+   bazel test //:all_ground_truth_comparisons --keep_going \
        --override_module=cc_config=<bazelifier-checkout>/cc_config
    ```
+
+   `--keep_going` is not optional in practice. Without it a single fixture
+   that fails to *build* aborts the whole invocation — every other fixture
+   reports `NO STATUS` and the run yields no signal at all. That is exactly
+   the situation the suite is most needed in: one corpus project mid-
+   conversion should not blind you to the other twenty-odd.
 
    This overrides a genuine third-party dependency to a local checkout, the
    standard dev-mode mechanism; it does **not** reference bazelifier's own

@@ -1379,7 +1379,11 @@ mod tests {
         assert!(target.public_headers.is_empty());
 
         assert_eq!(needs_attention.len(), 1);
-        assert!(needs_attention[0].title.contains("greet"));
+        assert!(
+            needs_attention[0].title.contains("greet"),
+            "the escalation must name the target it is about: {}",
+            needs_attention[0].title
+        );
     }
 
     // The mirror of the test above: the SAME plain header (no FILE_SET, on a
@@ -1648,7 +1652,11 @@ mod tests {
             "a generated source must never reach srcs"
         );
         assert_eq!(needs_attention.len(), 1);
-        assert!(needs_attention[0].title.contains("app"));
+        assert!(
+            needs_attention[0].title.contains("app"),
+            "the escalation must name the target it is about: {}",
+            needs_attention[0].title
+        );
         assert!(
             needs_attention[0]
                 .gap

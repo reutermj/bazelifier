@@ -632,7 +632,10 @@ mod tests {
     #[test]
     fn unsupported_type_guidance_falls_back_for_unknown_types() {
         let guidance = unsupported_type_guidance("SOMETHING_NEW");
-        assert!(guidance.contains("no mapping in the translator yet"));
+        assert!(
+            guidance.contains("no mapping in the translator yet"),
+            "an unknown type falls back to generic guidance:\n{guidance}"
+        );
     }
 
     // The escalation has to name the knob that resolves the common case.
@@ -848,9 +851,15 @@ mod tests {
         };
         let rendered = render(&item);
         assert!(rendered.starts_with("# Library 'greet' has no public headers\n"));
-        assert!(rendered.contains("## Gap\n\ngap text\n"));
-        assert!(rendered.contains("## Context\n\ncontext text\n"));
-        assert!(rendered.contains("## Expected output\n\nexpected text\n"));
+        // The section headings are the schema an agent reads, so each is
+        // asserted with its body attached — a heading present but empty is
+        // the failure worth catching.
+        assert!(rendered.contains("## Gap\n\ngap text\n"), "{rendered}");
+        assert!(rendered.contains("## Context\n\ncontext text\n"), "{rendered}");
+        assert!(
+            rendered.contains("## Expected output\n\nexpected text\n"),
+            "{rendered}"
+        );
     }
 
     #[test]

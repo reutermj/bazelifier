@@ -28,8 +28,11 @@ building a config_header fixture therefore fails module resolution with
 `module cc_config@0.0.0 not found in registries` until the validation
 invocation supplies it:
 
-    bazel test //:all_ground_truth_comparisons \\
+    bazel test //:all_ground_truth_comparisons --keep_going \\
         --override_module=cc_config=<bazelifier-checkout>/cc_config
+
+`--keep_going` because one fixture failing to BUILD otherwise aborts the
+run and every other fixture reports NO STATUS — no signal from any of them.
 
 That error is the expected state of the tarball, not a defect in it. Adding
 the override to the generated MODULE.bazel would bake an absolute path to a
@@ -79,7 +82,7 @@ fixture_dirs=("$@")
   echo "# cc_config, which is not published to a registry yet, so building"
   echo "# them from this unpacked root requires:"
   echo "#"
-  echo "#     bazel test //:all_ground_truth_comparisons \\\\"
+  echo "#     bazel test //:all_ground_truth_comparisons --keep_going \\\\"
   echo "#         --override_module=cc_config=<bazelifier-checkout>/cc_config"
   echo "#"
   echo "# The flag lives on the validation invocation rather than in this file"

@@ -580,14 +580,27 @@ mod tests {
         };
 
         let rendered = render(&graph).build_bazel;
-        assert!(rendered.contains("load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")"));
-        assert!(rendered.contains("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")"));
-        assert!(rendered.contains(
-            "cc_library(\n    name = \"greet\",\n    srcs = [\n        \"src/greet.cpp\",\n    ],\n    hdrs = [\n        \"include/greet.hpp\",\n    ],\n    includes = [\n        \"include\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
-        ));
-        assert!(rendered.contains(
-            "cc_binary(\n    name = \"hello\",\n    srcs = [\n        \"src/main.cpp\",\n    ],\n    deps = [\n        \":greet\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
-        ));
+        assert!(
+            rendered.contains("load(\"@rules_cc//cc:cc_binary.bzl\", \"cc_binary\")"),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")"),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains(
+                "cc_library(\n    name = \"greet\",\n    srcs = [\n        \"src/greet.cpp\",\n    ],\n    hdrs = [\n        \"include/greet.hpp\",\n    ],\n    includes = [\n        \"include\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
+            ),
+            "the whole cc_library block must render exactly, attribute order \
+             included — a diff anywhere in it fails here:\n{rendered}"
+        );
+        assert!(
+            rendered.contains(
+                "cc_binary(\n    name = \"hello\",\n    srcs = [\n        \"src/main.cpp\",\n    ],\n    deps = [\n        \":greet\",\n    ],\n    visibility = [\"//visibility:public\"],\n)\n"
+            ),
+            "the whole cc_binary block must render exactly:\n{rendered}"
+        );
     }
 
     // An executable with its own `target_include_directories()` (and no
@@ -738,6 +751,30 @@ mod tests {
             tests: vec![test],
             config_headers: vec![],
         }
+    }
+
+    // bzl-fxa.20: model::Test::command says "only the escalation path reads
+    // it", which is a claim about codegen, so codegen is where it is checked.
+    // The command is an absolute path on the conversion machine before
+    // rebasing and a source-tree path after — neither is a Bazel label, so
+    // rendering it would emit something unresolvable.
+    #[test]
+    fn the_test_command_never_reaches_the_generated_build_file() {
+        let graph = graph_with_test(model::Test {
+            name: "xmltest".to_string(),
+            target: "xmltest".to_string(),
+            command: "tests/run-xmltest.sh".to_string(),
+            working_directory: String::new(),
+            pass_regex: None,
+        });
+        let generated = render(&graph);
+
+        assert!(
+            !generated.build_bazel.contains("run-xmltest.sh"),
+            "the CTest command is escalation evidence, not codegen input; \
+             emitting it would put a non-label path in a rule:\n{}",
+            generated.build_bazel
+        );
     }
 
     // A CTest test's name need not match the binary it runs. Every other test
@@ -1056,16 +1093,22 @@ mod tests {
     fn renders_module_bazel_without_version_when_absent() {
         let rendered = render(&graph(None)).module_bazel;
         let module_block = rendered.split(")\n\n").next().unwrap();
-        assert!(module_block.contains("name = \"hello_world\""));
-        assert!(!module_block.contains("version ="));
-        assert!(rendered.contains("bazel_dep(name = \"rules_cc\""));
-        assert!(rendered.contains("bazel_dep(name = \"llvm\""));
-        assert!(rendered.contains("register_toolchains(\"@llvm//toolchain:all\")"));
+        assert!(module_block.contains("name = \"hello_world\""), "{module_block}");
+        assert!(
+            !module_block.contains("version ="),
+            "a project with no CMAKE_PROJECT_VERSION must omit version entirely:\n{module_block}"
+        );
+        assert!(rendered.contains("bazel_dep(name = \"rules_cc\""), "{rendered}");
+        assert!(rendered.contains("bazel_dep(name = \"llvm\""), "{rendered}");
+        assert!(
+            rendered.contains("register_toolchains(\"@llvm//toolchain:all\")"),
+            "{rendered}"
+        );
     }
 
     #[test]
     fn renders_module_bazel_with_version_when_present() {
         let rendered = render(&graph(Some("1.2.3"))).module_bazel;
-        assert!(rendered.contains("version = \"1.2.3\""));
+        assert!(rendered.contains("version = \"1.2.3\""), "{rendered}");
     }
 }
