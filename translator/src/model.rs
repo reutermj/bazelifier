@@ -109,9 +109,20 @@ pub struct Test {
     /// The CTest test name (`add_test(NAME ...)`).
     pub name: String,
     /// Name of the generated target this test runs — the basename of the
-    /// test command's executable, which matches a `cc_binary` this module
-    /// also emits. The test wraps that binary rather than re-locating it.
+    /// test command's executable. A test only reaches the model when this
+    /// matches a `cc_binary` the module also emits (a test whose command is
+    /// anything else is escalated instead, see
+    /// `ctest_command_not_a_target_needs_attention`), so the generated
+    /// `sh_test` can wrap that binary rather than re-locating it.
     pub target: String,
+    /// The test command's executable as CTest reported it, absolute. Kept
+    /// alongside `target` because the basename alone cannot answer whether
+    /// the command is a binary this module builds: json-c's tests are
+    /// checked-in shell scripts in the SOURCE tree
+    /// (`<src>/tests/test1.test`) while tinyxml2's is a built executable in
+    /// the BUILD tree (`<build>/xmltest`), and the two are indistinguishable
+    /// once reduced to a file name. Only the escalation path reads it.
+    pub command: String,
     /// The directory the binary must run in, relative to the module root
     /// (from CTest's `WORKING_DIRECTORY`, rebased). The build's runtime data
     /// (e.g. tinyxml2's `resources/`) lives here. Empty means the module

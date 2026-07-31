@@ -459,6 +459,80 @@ pub fn inert_convenience_targets_needs_attention(target_names: &[String]) -> Nee
     }
 }
 
+/// Escalates CTest tests whose command is not a target the module builds.
+///
+/// Grouped into one item rather than one per test: a project that drives its
+/// suite this way does it for every test (json-c: all 28), and 28 items
+/// repeating one paragraph is worse to triage than one naming 28 tests.
+///
+/// `commands` is parallel to `test_names` — the command as CTest reported it,
+/// which is the evidence an agent needs and cannot recover from the test name.
+pub fn ctest_command_not_a_target_needs_attention(
+    test_names: &[String],
+    commands: &[String],
+) -> NeedsAttention {
+    let title = format!(
+        "{} CTest test(s) run a command the translator did not build",
+        test_names.len()
+    );
+    let listing = test_names
+        .iter()
+        .zip(commands)
+        .map(|(name, command)| format!("- `{name}` runs `{command}`"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    NeedsAttention {
+        gap: format!(
+            "CMake registered these tests with `add_test()`, but each one's command is not \
+             an executable this module builds:\n\n{listing}\n\nThe translator emits an \
+             `sh_test` for a registered test by wrapping the `cc_binary` the test runs — \
+             that is the only shape it can express, because it knows how to point a label \
+             at a target it emitted itself. A command that is anything else (a checked-in \
+             shell script, an interpreter invoked on a script, a system tool) has no such \
+             target to wrap, so NO `sh_test` was generated for the tests above and they are \
+             simply absent from the converted module.\n\nThe most common shape by far is a \
+             shell script that lives in the project's SOURCE tree and drives a built binary \
+             indirectly — comparing its output against a checked-in `.expected` file, \
+             looping over fixtures, or setting environment the binary needs."
+        ),
+        context:
+            "This is a translator capability gap, not a problem with the project. Driving a \
+             test suite through scripts is ordinary practice, and those scripts ship with the \
+             sources, so nothing here is missing or unreproducible — what the translator \
+             cannot yet do is express 'run this script' as a Bazel test.\n\nThree things are \
+             worth checking before writing the replacement, because each is a way the \
+             obvious translation goes wrong:\n\n\
+             - **What the script actually runs.** It usually invokes a binary this module DOES \
+               build, so the Bazel test should depend on that `cc_binary` target rather than \
+               on whatever path the script hardcodes (typically a build-directory path that \
+               does not exist here).\n\
+             - **Its working directory.** CTest's `WORKING_DIRECTORY` for these tests often \
+               points into the CMake BUILD tree, which has no counterpart in the converted \
+               module — so it could not be rebased and is not carried in the generated output. \
+               A script that locates its data relative to `$0`, `$srcdir`, or the current \
+               directory will not find it unless the test sets that up explicitly.\n\
+             - **Files it reads.** Anything the script consumes — `.expected` files, JSON \
+               fixtures, a sourced helper like `test-defs.sh` — has to be listed in the test's \
+               `data`, or it will not be present when the test runs.\n\n\
+             A test that is absent is invisible: unlike a build failure, nothing reports it. \
+             Whatever these tests were checking is currently unchecked in the converted module."
+                .to_string(),
+        expected_output:
+            "For each test listed above, add a test to the generated `BUILD.bazel` that \
+             reproduces what it checked — typically an `sh_test` whose `srcs` is the project's \
+             own script, with the `cc_binary` it exercises and every data file it reads in \
+             `data`. Where a script only wraps a binary whose exit code is the real pass \
+             criterion, a direct test of that binary is an equally good resolution: reproduce \
+             the CHECK, not necessarily the script.\n\nIf a test genuinely has no Bazel \
+             equivalent, say so explicitly in the resolution rather than leaving it out \
+             silently — a deliberate omission and an overlooked one are indistinguishable in \
+             the output otherwise. Resolve this in the GENERATED output only — do NOT edit the \
+             project's CMakeLists.txt or its test scripts."
+                .to_string(),
+        title,
+    }
+}
+
 /// Escalates a library whose headers CMake never declared public, so the
 /// translator has no basis for populating `hdrs` — see the
 /// `has_unclassified_headers` check in `to_target`, and

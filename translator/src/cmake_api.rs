@@ -18,7 +18,8 @@ use serde::Deserialize;
 
 use crate::model::{BuildGraph, ConfigHeader, ModuleInfo, Target, TargetKind, Test};
 use crate::needs_attention::{
-    NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
+    NeedsAttention, ctest_command_not_a_target_needs_attention,
+    generated_config_header_needs_attention, generated_sources_needs_attention,
     header_visibility_needs_attention, inert_convenience_targets_needs_attention,
     sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
     unsupported_target_needs_attention,
@@ -387,12 +388,15 @@ pub fn discover(
     // targets' paths were.
     let mut tests = read_tests(build_dir)?;
     rebase_tests_to_module_root(&mut tests, &codemodel.module_root);
+    let (tests, test_escalation) =
+        partition_tests_by_buildable_command(tests, &codemodel.targets);
 
     let cache = read_cache_values(&reply_dir)?;
     let (config_headers, config_escalations) =
         build_config_headers(&configure_files, &codemodel.module_root, &cache);
     let mut needs_attention = codemodel.needs_attention;
     needs_attention.extend(config_escalations);
+    needs_attention.extend(test_escalation);
 
     Ok(Discovery {
         graph: BuildGraph {
@@ -897,6 +901,7 @@ fn ctest_reply_to_tests(reply: CtestReply) -> Vec<Test> {
         tests.push(Test {
             name: test.name,
             target,
+            command: executable.clone(),
             working_directory,
             pass_regex,
         });
@@ -1206,6 +1211,46 @@ fn rebase_to_module_root(
 /// empty string (run at the module root): the tinyxml2-shaped scope does not
 /// yet escalate a test whose data lives outside the deliverable, and running
 /// at the root is the safe default rather than baking in an absolute path.
+/// Splits tests into those the translator can emit an `sh_test` for and one
+/// escalation covering the rest.
+///
+/// A generated `sh_test` wraps a `cc_binary` this module emits, so a test
+/// whose command is anything else has nothing to point at. The check is
+/// against the emitted targets, NOT against the command's path or extension:
+/// json-c's commands are checked-in `.test` shell scripts under the source
+/// tree while tinyxml2's is a built executable under the build tree, and no
+/// rule about where a command lives distinguishes "a binary we built" from
+/// "a file that happens to sit there" — only the target list does.
+///
+/// Emitting a broken label instead would fail at analysis time in the
+/// unpacked workspace with `missing input file`, which says nothing about
+/// the construct that wasn't understood.
+fn partition_tests_by_buildable_command(
+    tests: Vec<Test>,
+    targets: &[Target],
+) -> (Vec<Test>, Option<NeedsAttention>) {
+    let executables: HashSet<&str> = targets
+        .iter()
+        .filter(|t| t.kind == TargetKind::Executable)
+        .map(|t| t.name.as_str())
+        .collect();
+
+    let (buildable, unbuildable): (Vec<Test>, Vec<Test>) = tests
+        .into_iter()
+        .partition(|test| executables.contains(test.target.as_str()));
+
+    if unbuildable.is_empty() {
+        return (buildable, None);
+    }
+
+    let names: Vec<String> = unbuildable.iter().map(|t| t.name.clone()).collect();
+    let commands: Vec<String> = unbuildable.iter().map(|t| t.command.clone()).collect();
+    (
+        buildable,
+        Some(ctest_command_not_a_target_needs_attention(&names, &commands)),
+    )
+}
+
 fn rebase_tests_to_module_root(tests: &mut [Test], module_root: &Path) {
     for test in tests {
         let absolute = normalize_lexically(Path::new(&test.working_directory));
@@ -1213,6 +1258,18 @@ fn rebase_tests_to_module_root(tests: &mut [Test], module_root: &Path) {
             .strip_prefix(module_root)
             .map(|rel| rel.to_string_lossy().into_owned())
             .unwrap_or_default();
+
+        // The command is rebased too, because it is quoted verbatim into an
+        // escalation an agent reads in the unpacked workspace, where this
+        // machine's absolute path (a Bazel sandbox path, under a hash that
+        // changes every run) names nothing. Unlike working_directory, a
+        // command OUTSIDE the module root is kept absolute rather than
+        // emptied: it still identifies which command was meant, and losing
+        // it would leave the escalation naming no command at all.
+        let absolute = normalize_lexically(Path::new(&test.command));
+        if let Ok(relative) = absolute.strip_prefix(module_root) {
+            test.command = relative.to_string_lossy().into_owned();
+        }
     }
 }
 
@@ -3594,18 +3651,149 @@ mod tests {
         assert!(ctest_reply_to_tests(reply).is_empty());
     }
 
+    // Real `ctest --show-only=json-v1` output for json-c 0.19's `test1`,
+    // captured from a real configure. The mirror image of CTEST_XMLTEST_JSON
+    // above, and the pair is the point: json-c's command is a checked-in
+    // shell script in the SOURCE tree while its WORKING_DIRECTORY is in the
+    // BUILD tree, and tinyxml2's is the other way round. See bzl-fxa.16.
+    const CTEST_JSON_C_SCRIPT_JSON: &str = r#"{
+  "kind": "ctestInfo",
+  "version": { "major": 1, "minor": 0 },
+  "tests": [
+    {
+      "backtrace": 3,
+      "command": [ "/abs/src/tests/test1.test" ],
+      "name": "test1",
+      "properties": [
+        { "name": "WORKING_DIRECTORY", "value": "/abs/build/tests" }
+      ]
+    }
+  ]
+}"#;
+
+    #[test]
+    fn ctest_reply_carries_the_command_path_not_just_its_basename() {
+        let reply: CtestReply = serde_json::from_str(CTEST_JSON_C_SCRIPT_JSON)
+            .expect("real json-c ctest capture should parse");
+        let tests = ctest_reply_to_tests(reply);
+        assert_eq!(tests.len(), 1);
+        assert_eq!(
+            tests[0].command, "/abs/src/tests/test1.test",
+            "the full command path must survive: the basename alone cannot tell a \
+             checked-in script from a binary the module builds"
+        );
+    }
+
+    fn executable_target(name: &str) -> Target {
+        Target {
+            name: name.to_string(),
+            kind: TargetKind::Executable,
+            sources: Vec::new(),
+            public_headers: Vec::new(),
+            dependencies: Vec::new(),
+            includes: Vec::new(),
+            local_defines: Vec::new(),
+            artifacts: Vec::new(),
+        }
+    }
+
+    fn test_running(name: &str, target: &str, command: &str) -> Test {
+        Test {
+            name: name.to_string(),
+            target: target.to_string(),
+            command: command.to_string(),
+            working_directory: String::new(),
+            pass_regex: None,
+        }
+    }
+
+    // The direction that must NOT escalate: tinyxml2's shape, where the
+    // command is an executable the module emits. Without this, an escalation
+    // wired to fire on everything would look correct.
+    #[test]
+    fn a_test_running_a_built_binary_does_not_escalate() {
+        let tests = vec![test_running("xmltest", "xmltest", "/abs/build/xmltest")];
+        let targets = vec![executable_target("xmltest")];
+
+        let (kept, escalation) = partition_tests_by_buildable_command(tests, &targets);
+
+        assert_eq!(kept.len(), 1, "the test must still be emitted");
+        assert!(
+            escalation.is_none(),
+            "a test wrapping a cc_binary this module emits is fully translated, so \
+             nothing should escalate; got: {:?}",
+            escalation.map(|e| e.title)
+        );
+    }
+
+    // The direction that must escalate: json-c's shape.
+    #[test]
+    fn a_test_running_a_script_escalates_and_is_not_emitted() {
+        let tests = vec![test_running("test1", "test1.test", "/abs/src/tests/test1.test")];
+        // The module builds an executable, just not the one the test runs —
+        // so an empty target list isn't what makes this fire.
+        let targets = vec![executable_target("json_parse")];
+
+        let (kept, escalation) = partition_tests_by_buildable_command(tests, &targets);
+
+        assert!(
+            kept.is_empty(),
+            "a test whose command isn't a target we emit has no cc_binary to wrap, so \
+             emitting an sh_test for it would produce a label that can't resolve"
+        );
+        let item = escalation.expect("a test that can't be translated must escalate");
+        assert!(
+            item.gap.contains("/abs/src/tests/test1.test"),
+            "the escalation must name the actual command, which the agent can't \
+             recover from the test name:\n{}",
+            item.gap
+        );
+        assert!(
+            item.gap.contains("test1"),
+            "the escalation must name the test:\n{}",
+            item.gap
+        );
+    }
+
+    // A project mixing both shapes must keep the translatable half rather
+    // than escalating the whole suite.
+    #[test]
+    fn a_mixed_suite_keeps_the_buildable_tests_and_escalates_only_the_rest() {
+        let tests = vec![
+            test_running("xmltest", "xmltest", "/abs/build/xmltest"),
+            test_running("test1", "test1.test", "/abs/src/tests/test1.test"),
+        ];
+        let targets = vec![executable_target("xmltest")];
+
+        let (kept, escalation) = partition_tests_by_buildable_command(tests, &targets);
+
+        assert_eq!(
+            kept.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(),
+            vec!["xmltest"],
+            "only the test whose command is a target we emit survives"
+        );
+        let item = escalation.expect("the untranslatable test must still escalate");
+        assert!(
+            !item.gap.contains("xmltest"),
+            "the translated test must not appear in the escalation:\n{}",
+            item.gap
+        );
+    }
+
     #[test]
     fn rebase_tests_makes_working_directory_module_relative() {
         let mut tests = vec![
             Test {
                 name: "at_root".to_string(),
                 target: "t".to_string(),
+                command: "/proj/build/t".to_string(),
                 working_directory: "/proj".to_string(),
                 pass_regex: None,
             },
             Test {
                 name: "in_subdir".to_string(),
                 target: "t".to_string(),
+                command: "/proj/build/t".to_string(),
                 working_directory: "/proj/tests/data".to_string(),
                 pass_regex: None,
             },
@@ -3614,6 +3802,27 @@ mod tests {
         // The module root itself becomes empty; a subdir becomes relative.
         assert_eq!(tests[0].working_directory, "");
         assert_eq!(tests[1].working_directory, "tests/data");
+    }
+
+    #[test]
+    fn rebase_tests_makes_the_command_module_relative() {
+        let mut tests = vec![
+            test_running("inside", "t", "/proj/tests/check.sh"),
+            test_running("outside", "t", "/elsewhere/check.sh"),
+        ];
+        rebase_tests_to_module_root(&mut tests, Path::new("/proj"));
+
+        assert_eq!(
+            tests[0].command, "tests/check.sh",
+            "a command under the module root must be rebased: the escalation quoting it \
+             is read in the unpacked workspace, where this machine's absolute path names \
+             nothing"
+        );
+        assert_eq!(
+            tests[1].command, "/elsewhere/check.sh",
+            "a command outside the module root stays absolute — unlike working_directory, \
+             emptying it would leave the escalation naming no command at all"
+        );
     }
 
     #[test]

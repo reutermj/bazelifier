@@ -1,0 +1,18 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the CTest script-command escalation (bzl-fxa.16). Registers one test
+# per direction — a built binary (translated) and a source-tree script
+# (escalated) — so the classification is exercised both ways.
+#
+# Like fixtures 003/005/015, this one STARTS RED in the validation workspace:
+# it escalates by design, and the agent stage resolving that item is the half
+# of the pipeline it exists to exercise. See CLAUDE.md on red fixtures.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "tests/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

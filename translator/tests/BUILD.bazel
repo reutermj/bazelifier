@@ -28,6 +28,7 @@ validation_workspace(
         "//translator/tests/fixtures/019-nondeterministic-stderr:converted",
         "//translator/tests/fixtures/020-gnu-source-symbol:converted",
         "//translator/tests/fixtures/021-subdir-binary-shared-library:converted",
+        "//translator/tests/fixtures/022-ctest-script-command:converted",
         "//translator/tests/corpus/tinyxml2:converted",
         "//translator/tests/corpus/json-c:converted",
     ],

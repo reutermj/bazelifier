@@ -739,6 +739,7 @@ mod tests {
         let graph = graph_with_test(model::Test {
             name: "xmltest".to_string(),
             target: "xmltest".to_string(),
+            command: "/abs/build/xmltest".to_string(),
             working_directory: String::new(),
             pass_regex: Some(", Fail 0".to_string()),
         });
