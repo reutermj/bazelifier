@@ -202,6 +202,22 @@ for fixture_dir in "${fixture_dirs[@]}"; do
   done < <(sed -n 's/^cc_binary($/&/p; /^cc_binary($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}" | grep -v '^cc_binary($')
 done
 
+# A sed extraction that matches nothing yields no tests, not an error — the
+# suite then passes by looking at nothing, which is the failure this repo
+# keeps producing (bzl-0pd was exactly it). Every fixture emits at least one
+# cc_binary or sh_test, so an empty label set means the patterns stopped
+# matching codegen's output rather than that there is nothing to check.
+#
+# This is a floor, not a substitute for bzl-dmf's real fix (a manifest the
+# translator writes, instead of regexing its own formatting back out).
+if [[ ${#test_labels[@]} -eq 0 ]]; then
+  echo "generate_root_files: extracted ZERO test targets from ${#fixture_dirs[@]} fixture(s)." >&2
+  echo "  The sed patterns above no longer match the translator's output —" >&2
+  echo "  most likely codegen's formatting changed (see bzl-dmf). The suite" >&2
+  echo "  would otherwise be generated empty and pass while checking nothing." >&2
+  exit 1
+fi
+
 {
   echo "test_suite("
   echo "    name = \\"all_ground_truth_comparisons\\","
