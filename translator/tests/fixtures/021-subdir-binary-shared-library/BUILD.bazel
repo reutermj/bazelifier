@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the loader-path fix in compare_runtime_output.sh (bzl-0x7): a
+# SUBDIRECTORY binary linked against a SHARED library whose .so chain is staged
+# at the ground_truth/ root, one level above the binary. Fixtures 016 and 018
+# each cover half of this and both pass without the fix. See the fixture's
+# CMakeLists.txt and docs/architecture/build-verification.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "app/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

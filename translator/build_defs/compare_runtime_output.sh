@@ -81,11 +81,23 @@ tmpdir="${TEST_TMPDIR:-.}"
 # A dynamically linked ground-truth binary (e.g. json-c's json_parse against
 # libjson-c.so.5) loads its shared library by SONAME at run time, and the
 # absolute RUNPATH CMake baked in is dead by now. copy_ground_truth_artifacts
-# staged the .so chain into ground_truth/ alongside this binary, so its own
-# directory is where the loader must look. Scoped to the ground-truth run: the
-# Bazel binary links the library statically and is self-contained. See
-# bzl-fxa.11 and docs/architecture/build-verification.md.
+# stages the .so chain at the ground_truth/ ROOT, but a binary from a CMake
+# subdirectory lands in a subdir of it (json-c: libs at ground_truth/, binary
+# at ground_truth/apps/json_parse), so the binary's own directory is NOT
+# necessarily where the loader must look — assuming it was, which held while
+# every fixture was flat, made the ground-truth run die at exit 127 before
+# main. Search both: the binary's dir and every ancestor up to the
+# ground_truth/ root. Scoped to the ground-truth run — the Bazel binary links
+# the library statically and is self-contained. See bzl-fxa.11, bzl-0x7 and
+# docs/architecture/build-verification.md.
 ground_truth_dir="$(cd "$(dirname "${ground_truth_bin}")" && pwd)"
+ground_truth_lib_path="${ground_truth_dir}"
+probe_dir="${ground_truth_dir}"
+while [[ "${probe_dir}" == */* && "$(basename "${probe_dir}")" != "ground_truth" ]]; do
+  probe_dir="$(dirname "${probe_dir}")"
+  ground_truth_lib_path="${ground_truth_lib_path}:${probe_dir}"
+  [[ "${probe_dir}" == "/" ]] && break
+done
 
 # Each binary is run TWICE. Comparing a binary's two runs to each other tells us
 # which output lines are nondeterministic (json-c's json_parse prints
@@ -96,7 +108,7 @@ ground_truth_dir="$(cd "$(dirname "${ground_truth_bin}")" && pwd)"
 # byte-exact. This is self-calibrating per binary: no per-fixture config, no
 # global relaxation. See bzl-fxa.12 and docs/architecture/build-verification.md.
 run_gt() {
-  LD_LIBRARY_PATH="${ground_truth_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" "${ground_truth_bin}" 2>"$2" >"$1"
+  LD_LIBRARY_PATH="${ground_truth_lib_path}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" "${ground_truth_bin}" 2>"$2" >"$1"
 }
 run_bazel() {
   "${bazel_bin}" 2>"$2" >"$1"
