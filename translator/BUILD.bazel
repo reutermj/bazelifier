@@ -22,3 +22,8 @@ rust_test(
     crate = ":bazelifier",
     edition = "2024",
 )
+
+# The frontend source, as data for the catalog drift check — it holds the
+# CATALOG_DEFINES copy being compared against the Starlark catalog. See
+# //:catalog_sync_check.
+exports_files(["src/cmake_api.rs"])

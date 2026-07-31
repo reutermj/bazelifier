@@ -190,3 +190,9 @@ assert_config_header_test(
         "@SIZEOF_LONG@",  # substituted
     ],
 )
+
+# The catalog's own BUILD file, as data for the drift check that compares this
+# list of defines against the translator's CATALOG_DEFINES copy. Exported
+# rather than read from the source tree because the check runs as a Bazel test,
+# where inputs are sandboxed. See //:catalog_sync_check.
+exports_files(["BUILD.bazel"])

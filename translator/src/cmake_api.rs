@@ -534,8 +534,11 @@ struct TemplateMacros {
 /// hand-maintained copy of the catalog's define set (declared in Starlark in
 /// `cc_config/catalog/BUILD.bazel`, which this Rust cannot read at codegen
 /// time). The two lists are kept in sync by hand — the facts are stable
-/// autoconf checks that rarely change — and a drift check
-/// (cc_config/check_catalog_sync.py, run in review) fails if they diverge.
+/// autoconf checks that rarely change — and the `//:catalog_sync_check` test
+/// fails if they diverge, in either direction. Editing this list without the
+/// catalog is the worse direction: the translator then emits a
+/// `@cc_config//catalog:` label for a probe that does not exist, and the
+/// generated module dies at analysis time in the unpacked workspace.
 ///
 /// A template `#cmakedefine` naming one of these maps to
 /// `@cc_config//catalog:<name lowercased>`; anything else the translator

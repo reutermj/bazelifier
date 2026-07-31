@@ -4,4 +4,5 @@
 exports_files([
     "check_root_module_cc_config_note.sh",
     "compare_runtime_output.sh",
+    "run_catalog_sync_check.sh",
 ])

@@ -174,7 +174,8 @@ pub fn unmapped_config_macros_needs_attention(
              - a common toolchain fact the catalog should simply carry — add it to \
              `cc_config/catalog/BUILD.bazel` (a one-line `check_include_file` / \
              `check_symbol_exists` / `check_type_size`) and keep the translator's \
-             `CATALOG_DEFINES` in sync (see `cc_config/check_catalog_sync.py`); then it maps \
+             `CATALOG_DEFINES` in sync (the `catalog_sync_check` test fails if you \
+             update one and not the other); then it maps \
              automatically here and for every later project;\n\
              - an alias of a fact the catalog already has (the `{output}` name differs only by \
              a project prefix from a catalog `HAVE_*`/`SIZEOF_*`): wire the aliased define to \
@@ -734,8 +735,10 @@ mod tests {
         // The three resolution paths: extend the catalog, wire an alias, or a
         // value. Check the two that are load-bearing guidance.
         assert!(
-            item.context.contains("catalog") && item.context.contains("check_catalog_sync"),
-            "the escalation must offer extending the catalog (kept in sync) as a resolution:\n{}",
+            item.context.contains("catalog") && item.context.contains("catalog_sync_check"),
+            "the escalation must offer extending the catalog as a resolution AND name the \
+             check that enforces keeping CATALOG_DEFINES in step — an agent told to edit one \
+             file will not discover the other on its own:\n{}",
             item.context
         );
         assert!(

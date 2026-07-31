@@ -1,4 +1,29 @@
 load("@buildifier_prebuilt//:rules.bzl", "buildifier", "buildifier_test")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+# CATALOG_DEFINES in translator/src/cmake_api.rs duplicates the catalog declared
+# in Starlark, because Rust cannot read Starlark at codegen time. That
+# duplication is only acceptable if drift is caught, and until now the checker
+# existed but nothing ran it (bzl-2eu) — a check looking at nothing.
+#
+# The worse drift direction is a define in CATALOG_DEFINES but not the catalog:
+# the translator then emits `@cc_config//catalog:have_foo` and the generated
+# module fails at ANALYSIS time in the unpacked workspace with "no such target",
+# far from the cause. The other direction escalates a macro that has a working
+# probe, burning an agent cycle on a non-gap.
+sh_test(
+    name = "catalog_sync_check",
+    size = "small",
+    srcs = ["//translator/build_defs:run_catalog_sync_check.sh"],
+    args = [
+        "$(location @cc_config//catalog:BUILD.bazel)",
+        "$(location //translator:src/cmake_api.rs)",
+    ],
+    data = [
+        "//translator:src/cmake_api.rs",
+        "@cc_config//catalog:BUILD.bazel",
+    ],
+)
 
 # bazel run //:buildifier -- to format/fix BUILD, MODULE.bazel, and .bzl files in place.
 buildifier(
