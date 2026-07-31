@@ -105,12 +105,20 @@ def _toolchain(ctx):
     )
     return cc_toolchain, feature_configuration
 
-def _compile_command_line(cc_toolchain, feature_configuration):
+def _compile_command_line(cc_toolchain, feature_configuration, defines = []):
+    # A probe's `defines` become preprocessor_defines on the compile variables,
+    # so the toolchain renders them as it would any -D (correct flag spelling
+    # per compiler). This is how a probe is compiled under a feature-test macro
+    # like _GNU_SOURCE: glibc gates symbols (vasprintf, strdup, uselocale, ...)
+    # behind it, and the autoconf projects the catalog serves set it globally
+    # (json-c via CMAKE_REQUIRED_DEFINITIONS), so a bare probe would answer
+    # "absent" for a symbol the consumer's real build can see. See bzl-fxa.7.
     compile_variables = cc_common.create_compile_variables(
         feature_configuration = feature_configuration,
         cc_toolchain = cc_toolchain,
         source_file = _SOURCE_PLACEHOLDER,
         output_file = _OBJECT_PLACEHOLDER,
+        preprocessor_defines = depset(defines),
     )
     return struct(
         command_line = cc_common.get_memory_inefficient_command_line(
@@ -154,17 +162,18 @@ def _link_command_line(cc_toolchain, feature_configuration):
         ),
     )
 
-def _run_probe(ctx, source_content, define, link):
+def _run_probe(ctx, source_content, define, link, defines = []):
     """Compiles (and, when `link`, links) `source_content` against the toolchain.
 
     Returns a ProbeResultInfo whose result file is "true"/"false" depending
     on whether the snippet built — a failed build is the answer "no", not a
     build failure. `link` distinguishes check_include_file (compile only,
     enough to know a header parses) from check_symbol_exists (must link, so a
-    declared-but-undefined symbol fails).
+    declared-but-undefined symbol fails). `defines` are preprocessor defines
+    the snippet compiles under (e.g. `_GNU_SOURCE`).
     """
     cc_toolchain, feature_configuration = _toolchain(ctx)
-    compile = _compile_command_line(cc_toolchain, feature_configuration)
+    compile = _compile_command_line(cc_toolchain, feature_configuration, defines)
 
     stem = ctx.label.name
     source = ctx.actions.declare_file(stem + "_probe.c")
@@ -335,6 +344,7 @@ def _check_include_file_impl(ctx):
         source_content = "#include <%s>\n" % ctx.attr.header,
         define = ctx.attr.define,
         link = False,
+        defines = ctx.attr.defines,
     )
     return [
         info,
@@ -352,6 +362,12 @@ check_include_file = rule(
         "define": attr.string(
             mandatory = True,
             doc = "The preprocessor macro to control (e.g. \"HAVE_ENDIAN_H\").",
+        ),
+        "defines": attr.string_list(
+            default = [],
+            doc = "Feature-test macros to compile the probe under, without the -D " +
+                  "(e.g. [\"_GNU_SOURCE\"]). A header gated behind one is only visible " +
+                  "when the probe compiles with it set.",
         ),
     },
     toolchains = use_cc_toolchain(),
@@ -380,6 +396,7 @@ int main(void) {{
         source_content = source,
         define = ctx.attr.define,
         link = True,
+        defines = ctx.attr.defines,
     )
     return [
         info,
@@ -401,6 +418,13 @@ check_symbol_exists = rule(
         "define": attr.string(
             mandatory = True,
             doc = "The preprocessor macro to control (e.g. \"HAVE_GETRANDOM\").",
+        ),
+        "defines": attr.string_list(
+            default = [],
+            doc = "Feature-test macros to compile the probe under, without the -D " +
+                  "(e.g. [\"_GNU_SOURCE\"]). glibc gates symbols like vasprintf/strdup " +
+                  "behind _GNU_SOURCE, so a bare probe reports them absent even though a " +
+                  "consumer setting _GNU_SOURCE (the autoconf norm) can use them.",
         ),
     },
     toolchains = use_cc_toolchain(),

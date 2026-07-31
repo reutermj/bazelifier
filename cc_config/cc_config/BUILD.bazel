@@ -73,6 +73,31 @@ assert_probe_result_test(
     probe = ":have_no_such_symbol",
 )
 
+# bzl-fxa.7: a probe compiled under _GNU_SOURCE. glibc gates strdup (and
+# vasprintf, uselocale, ...) behind _GNU_SOURCE, so a bare probe reports them
+# absent on a strict toolchain, and the project's *_compat.h then defines a
+# colliding fallback. This asserts the `defines` attr yields a valid TRUE.
+#
+# The both-DIRECTIONS proof (bare -> false, _GNU_SOURCE -> true) can't live
+# here: cc_config's own tests run against the HOST cc (gcc), whose -std=gnu*
+# default implies _GNU_SOURCE, so the bare probe is already true. The gating
+# only manifests under the strict llvm/libc++ toolchain the CONVERTED modules
+# build with — so the negative direction is a translator fixture
+# (020-gnu-source-symbol), which builds under llvm in the unpacked workspace.
+check_symbol_exists(
+    name = "have_strdup_gnu",
+    define = "HAVE_STRDUP",
+    defines = ["_GNU_SOURCE"],
+    headers = ["string.h"],
+    symbol = "strdup",
+)
+
+assert_probe_result_test(
+    name = "strdup_present_with_gnu_source",
+    expected = True,
+    probe = ":have_strdup_gnu",
+)
+
 # A size probe, exercised through the config header below: sizeof(long) is
 # determined at compile time and substituted as a value.
 check_type_size(

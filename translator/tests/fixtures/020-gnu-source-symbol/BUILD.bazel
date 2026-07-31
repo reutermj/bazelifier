@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the _GNU_SOURCE-gated symbol case (bzl-fxa.7): HAVE_VASPRINTF must
+# detect true so main.c's fallback (which would collide with glibc's vasprintf)
+# is not compiled. glibc gates vasprintf behind _GNU_SOURCE, and the llvm
+# toolchain does not imply it, so a bare probe reports it absent — the catalog's
+# symbol probes now compile under _GNU_SOURCE. See the fixture's CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "*.in",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

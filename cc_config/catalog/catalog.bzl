@@ -43,6 +43,17 @@ def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = []):
             symbol = symbol,
             headers = symbol_headers,
             define = define,
+            # The catalog serves autoconf-style projects, which set _GNU_SOURCE
+            # globally (json-c via CMAKE_REQUIRED_DEFINITIONS). glibc gates a set
+            # of these symbols (vasprintf, strdup, uselocale, duplocale, vsyslog,
+            # arc4random, ...) behind it, so a bare probe reports them absent and
+            # the project's *_compat.h then defines a colliding fallback. Probing
+            # under _GNU_SOURCE matches what the consumer actually compiles with;
+            # it only ever widens what's declared, never hides a standard symbol.
+            # See bzl-fxa.7. Still ONE shared target per define, so once-per-
+            # toolchain sharing is intact — a probe with defines is simply a
+            # different shared probe, not a per-project one.
+            defines = ["_GNU_SOURCE"],
             visibility = ["//visibility:public"],
         )
     for type_name, type_headers, define in types:

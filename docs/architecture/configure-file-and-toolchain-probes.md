@@ -52,7 +52,14 @@ autoconf primitives as Bazel rules:
 - `check_include_file(name, header)` — succeeds iff `#include <header>`
   compiles under the resolved toolchain.
 - `check_symbol_exists(name, symbol, headers)` — iff a reference to
-  `symbol` (declared by `headers`) compiles/links.
+  `symbol` (declared by `headers`) compiles/links. Takes an optional
+  `defines` (feature-test macros like `_GNU_SOURCE`): glibc gates a set of
+  symbols (`vasprintf`, `strdup`, `uselocale`, ...) behind `_GNU_SOURCE`, and
+  the autoconf projects the catalog serves set it globally, so the catalog's
+  symbol probes compile under it — otherwise a gated symbol probes absent and
+  the project's `*_compat.h` defines a colliding fallback (bzl-fxa.7). A probe
+  with `defines` is still one shared target, so once-per-toolchain sharing
+  holds. See [../lore/gnu-source-gated-symbols-differ-by-toolchain.md](../lore/gnu-source-gated-symbols-differ-by-toolchain.md).
 - `check_type_size(name, type)` — emits the type's size for the target ABI.
 
 Each is a real Bazel rule that resolves the C/C++ toolchain (via

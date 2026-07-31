@@ -1,0 +1,10 @@
+/* Generated from config.h.in by configure_file. */
+#ifndef CONFIG_H
+#define CONFIG_H
+
+/* vasprintf is gated behind _GNU_SOURCE in glibc. If the probe compiled bare
+   (no _GNU_SOURCE) it would report vasprintf absent, this would stay undefined,
+   and the fallback in main.c would collide with glibc. */
+#cmakedefine HAVE_VASPRINTF
+
+#endif
