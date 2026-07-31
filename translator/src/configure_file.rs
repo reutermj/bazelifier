@@ -44,7 +44,18 @@ use crate::needs_attention::{
     NeedsAttention, generated_config_header_needs_attention,
     unmapped_config_macros_needs_attention,
 };
-use crate::paths::{normalize_lexically, resolve_against};
+use crate::paths::normalize_lexically;
+
+/// Whether a `configure_file` output is a C/C++ header, and so something a
+/// `config_header` rule should reproduce. `configure_file` also generates
+/// pkg-config files, CMake package files and CTest configs; those are
+/// install/packaging artifacts a converted module omits.
+pub(crate) fn is_config_header_output(output: &Path) -> bool {
+    matches!(
+        output.extension().and_then(|e| e.to_str()),
+        Some("h" | "hpp" | "hh" | "hxx")
+    )
+}
 
 /// Builds the `config_header` plans for a project's `configure_file` calls,
 /// reading and parsing each template. Returns the plans and escalations for
@@ -54,13 +65,6 @@ use crate::paths::{normalize_lexically, resolve_against};
 /// A template outside the module root can't be a Bazel label in the module,
 /// so that header is escalated rather than planned — the same boundary
 /// `rebase_to_module_root` enforces for sources.
-pub(crate) fn is_config_header_output(output: &Path) -> bool {
-    matches!(
-        output.extension().and_then(|e| e.to_str()),
-        Some("h" | "hpp" | "hh" | "hxx")
-    )
-}
-
 pub(crate) fn build_config_headers(
     configure_files: &[ConfigureFile],
     module_root: &Path,

@@ -1,0 +1,15 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the recursive include-dir walk (bzl-htv): app.c includes
+# "proj/util.h", which lives one level below the declared include directory.
+# Fixture 023 covers the flat case and passes either way, so only this one
+# fails when the walk is not recursive. See the fixture's CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "include/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

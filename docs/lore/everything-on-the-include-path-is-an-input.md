@@ -45,8 +45,8 @@ declaration** — no way to say a target uses one header from a directory and
 not another — so the directory listing is the entire available signal, and
 there is nothing to be more precise than.
 
-So the translator copies every header in a target's own include directories
-(non-recursive, bounded to the source tree) and declares them.
+So the translator copies every header at or below a target's own include
+directories (bounded to the source tree) and declares them.
 
 ## The rejected approach, and why it was wrong
 
@@ -77,6 +77,29 @@ The reverted version also came with a fixture asserting that an
 unreferenced header must **not** be copied. That requirement was invented
 alongside the implementation that satisfied it; under the rule above it is
 simply wrong, and the fixture no longer makes that claim.
+
+## The walk is recursive, and follows symlinks
+
+Two corrections that each cost a debugging session:
+
+**Recursive.** `-Iinclude` with `#include "sub/foo.h"` is ordinary C — the
+header is at `include/sub/foo.h`, and a flat listing of `include/` misses it.
+The first implementation listed each include directory non-recursively, which
+json-c does not catch because its headers are flat. Fixture 024 covers it.
+
+The reason this one is worth a paragraph: its symptom is *identical* to the
+bug this whole entry is about — `fatal error: 'proj/util.h' file not found`
+for a header the `-I` flag plainly covers. Someone hitting it reads this
+entry, sees the fix already applied, and has nowhere to go.
+
+**Follows symlinks.** `fs::metadata`, not `symlink_metadata`. Bazel stages
+every input file into the sandbox **as a symlink**, so refusing to follow
+them makes the walk find nothing at all under Bazel while working perfectly
+on a plain checkout. That difference is invisible to unit tests — they build
+real directories in `temp_dir` — and shows up only in the fixture tier. It
+did: fixture 024 stayed red with a passing unit test until the predicate was
+changed, which is the fixture tier doing precisely the job the unit tier
+structurally cannot.
 
 ## Two things that look wrong and are load-bearing
 

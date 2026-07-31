@@ -1,6 +1,7 @@
 mod cmake_api;
 mod configure_file;
 mod error;
+mod headers;
 mod ctest;
 mod codegen;
 mod model;

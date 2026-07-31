@@ -68,6 +68,12 @@ source in every fixture build.
     come from `ctest --show-only=json-v1`. Owns reading the reply, rebasing
     test paths, and deciding which tests the translator can express at all
     (one whose command isn't a binary this module builds escalates).
+  - `src/headers.rs` — header classification: which headers a target must
+    carry (everything at or below its own include dirs) and which the
+    project declared PUBLIC (an `install()` to an include destination, or a
+    `FILE_SET`). The two questions have different evidence and different
+    failure directions — see the module doc on why its two header predicates
+    deliberately disagree.
   - `src/error.rs` — the frontend's error type. Its own module so
     `cmake_api`, `ctest` and `configure_file` can share it without any of
     them importing another: `cmake_api` drives and the other two are
