@@ -1064,6 +1064,10 @@ fn read_codemodel_reply(
     }
 
     inject_unenumerated_installed_headers(&mut targets, &installed_headers, &source_dir);
+    // After the install()-declared pass, whose headers this one then sees as
+    // already accounted for. Both run before rebasing, while sources are
+    // project-relative and include dirs absolute.
+    inject_headers_on_include_dirs(&mut targets, &source_dir);
 
     let (module_root, rebase_escalations) = rebase_to_module_root(
         &mut targets,
@@ -1679,6 +1683,104 @@ fn inject_unenumerated_installed_headers(
             }
         }
     }
+}
+
+/// Attaches every header sitting in a target's own include directories that
+/// no target enumerated, so Bazel stages it into the compile sandbox.
+///
+/// The two build systems disagree about what a header *is*. CMake compiles a
+/// `.c` and lets the preprocessor find headers on disk via `-I`; a header is
+/// therefore never a build input and the File API never reports it as a
+/// target source. Bazel stages only DECLARED inputs, so the same header is
+/// absent at compile time and the build fails with `file not found` while the
+/// `-I` flag is present and correct.
+///
+/// **Everything on the include path is an input.** That is CMake's own
+/// semantic, and it is the whole declaration available: CMake has no per-file
+/// statement that a target uses one header from a directory and not another,
+/// so there is nothing here to be more precise than.
+///
+/// An earlier version of this scanned each source for `#include "..."` and
+/// staged only the named headers. That was rejected: it re-implemented a
+/// preprocessor badly (no `#if` evaluation, no computed includes, quoted form
+/// only), it made the frontend read source text when its source of truth is
+/// the File API (docs/architecture/cmake-frontend.md), and it bought nothing
+/// — on json-c the two approaches select the identical set of headers.
+///
+/// Distinct from `inject_unenumerated_installed_headers`, which acts on the
+/// project's `install()` declarations — its authoritative statement that a
+/// header is PUBLIC — and populates a library's `public_headers` (→ `hdrs`).
+/// An include directory carries no such claim, so headers land in `sources`,
+/// where a header contributes nothing but its presence in the sandbox.
+///
+/// Include dirs outside the source tree are skipped: those are the build
+/// directory (whose headers the config_header machinery reproduces) and
+/// toolchain paths, neither of which the module may carry. Non-recursive, so
+/// a directory on the include path contributes the headers a compiler would
+/// actually resolve from it rather than an entire nested tree.
+///
+/// Paths are in the File API's frame (pre-rebase): `sources` are
+/// project-relative, include dirs absolute.
+fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir: &Path) {
+    for target in targets.iter_mut() {
+        // Per-target, NOT global: a header can be enumerated on one target and
+        // reachable only via the include path on another, and asking "does any
+        // target list it?" would suppress it exactly where it is needed.
+        // json-c is the live case — `test1Formatted` lists parse_flags.h while
+        // its sibling `test1` (same include dir, one source) does not.
+        let enumerated: HashSet<&str> = target
+            .sources
+            .iter()
+            .chain(target.public_headers.iter())
+            .map(String::as_str)
+            .collect();
+
+        let mut discovered: Vec<String> = Vec::new();
+
+        for dir in &target.includes {
+            let absolute = normalize_lexically(Path::new(dir));
+            // The `strip_prefix` below would also reject an outside directory,
+            // so this looks redundant and is not: it skips the `read_dir` of a
+            // toolchain include path entirely (/usr/include and friends are
+            // large), rather than listing it and discarding every entry.
+            if !absolute.starts_with(source_dir) {
+                continue;
+            }
+            let Ok(entries) = fs::read_dir(&absolute) else {
+                continue;
+            };
+
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if !path.is_file() || !is_header_file(&path) {
+                    continue;
+                }
+                let Ok(relative) = path.strip_prefix(source_dir) else {
+                    continue;
+                };
+                let relative = relative.to_string_lossy().into_owned();
+                if !enumerated.contains(relative.as_str()) && !discovered.contains(&relative) {
+                    discovered.push(relative);
+                }
+            }
+        }
+
+        // Sorted: read_dir order is filesystem-dependent, and the generated
+        // `srcs` must not vary between runs.
+        discovered.sort();
+        target.sources.extend(discovered);
+    }
+}
+
+/// Whether a path names a C/C++ header by extension. Extension-based because
+/// that is what a compiler's include resolution and CMake's own header
+/// classification go on; a directory on the include path can also hold `.c`
+/// files (json-c's `tests/`), which are sources of some other target and must
+/// not be swept in as headers.
+fn is_header_file(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .is_some_and(|e| matches!(e, "h" | "hpp" | "hh" | "hxx" | "inc" | "ipp"))
 }
 
 /// The file in which this target's defining command (add_library,
@@ -2469,6 +2571,127 @@ mod tests {
             local_defines: Vec::new(),
             artifacts: Vec::new(),
         }
+    }
+
+    #[test]
+    // bzl-fxa.18: json-c's `test1` lists one .c and reaches parse_flags.h
+    // purely through its own include dir. CMake finds it on disk; Bazel stages
+    // only declared inputs, so it must become a source.
+    #[test]
+    fn headers_on_a_targets_include_dirs_are_added_to_its_sources() {
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_incdir_{}_{}", std::process::id(), line!()));
+        let tests_dir = dir.join("tests");
+        fs::create_dir_all(&tests_dir).unwrap();
+        fs::write(tests_dir.join("test1.c"), b"int main(void){return 0;}\n").unwrap();
+        fs::write(tests_dir.join("parse_flags.h"), b"#pragma once\n").unwrap();
+        // A .c in the same directory: it is another target's source, and a
+        // header injection must not sweep it in.
+        fs::write(tests_dir.join("parse_flags.c"), b"int f(void){return 0;}\n").unwrap();
+        let src = dir.to_string_lossy().into_owned();
+
+        let mut targets = vec![{
+            let mut t = library_target("test1", vec![tests_dir.to_string_lossy().into_owned()]);
+            t.kind = TargetKind::Executable;
+            t.sources.push("tests/test1.c".to_string());
+            t
+        }];
+
+        inject_headers_on_include_dirs(&mut targets, Path::new(&src));
+
+        assert_eq!(
+            targets[0].sources,
+            vec![
+                "tests/test1.c".to_string(),
+                "tests/parse_flags.h".to_string()
+            ],
+            "every header on the include path is an input (CMake's own semantic), but a \
+             .c file there belongs to some other target and must not be swept in"
+        );
+    }
+
+    // The dedup must be PER-TARGET. Asking "does any target list this header?"
+    // suppresses it exactly where it's missing — json-c's test1Formatted lists
+    // parse_flags.h while its sibling test1, same include dir, does not.
+    #[test]
+    fn a_header_enumerated_on_a_sibling_target_is_still_injected_here() {
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_incdir_{}_{}", std::process::id(), line!()));
+        let tests_dir = dir.join("tests");
+        fs::create_dir_all(&tests_dir).unwrap();
+        fs::write(tests_dir.join("test1.c"), b"int main(void){return 0;}\n").unwrap();
+        fs::write(tests_dir.join("parse_flags.h"), b"#pragma once\n").unwrap();
+        let src = dir.to_string_lossy().into_owned();
+        let include = tests_dir.to_string_lossy().into_owned();
+
+        let mut targets = vec![
+            {
+                let mut t = library_target("test1", vec![include.clone()]);
+                t.kind = TargetKind::Executable;
+                t.sources.push("tests/test1.c".to_string());
+                t
+            },
+            {
+                let mut t = library_target("test1Formatted", vec![include]);
+                t.kind = TargetKind::Executable;
+                t.sources.push("tests/test1.c".to_string());
+                // CMake enumerated it here, and only here.
+                t.sources.push("tests/parse_flags.h".to_string());
+                t
+            },
+        ];
+
+        inject_headers_on_include_dirs(&mut targets, Path::new(&src));
+
+        let by_name = |n: &str| targets.iter().find(|t| t.name == n).unwrap();
+        assert!(
+            by_name("test1")
+                .sources
+                .contains(&"tests/parse_flags.h".to_string()),
+            "the sibling listing it must not suppress it here:\n{:?}",
+            by_name("test1").sources
+        );
+        assert_eq!(
+            by_name("test1Formatted")
+                .sources
+                .iter()
+                .filter(|s| *s == "tests/parse_flags.h")
+                .count(),
+            1,
+            "and the target that DID enumerate it must not list it twice:\n{:?}",
+            by_name("test1Formatted").sources
+        );
+    }
+
+    #[test]
+    fn an_include_dir_outside_the_source_tree_contributes_nothing() {
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_incdir_{}_{}", std::process::id(), line!()));
+        let src_root = dir.join("proj");
+        let build_dir = dir.join("build");
+        fs::create_dir_all(&src_root).unwrap();
+        fs::create_dir_all(&build_dir).unwrap();
+        fs::write(src_root.join("app.c"), b"int main(void){return 0;}\n").unwrap();
+        // A generated header in the build tree: reproduced by the
+        // config_header machinery, never copied.
+        fs::write(build_dir.join("config.h"), b"#pragma once\n").unwrap();
+        let src = src_root.to_string_lossy().into_owned();
+
+        let mut targets = vec![{
+            let mut t = library_target("app", vec![build_dir.to_string_lossy().into_owned()]);
+            t.kind = TargetKind::Executable;
+            t.sources.push("app.c".to_string());
+            t
+        }];
+
+        inject_headers_on_include_dirs(&mut targets, Path::new(&src));
+
+        assert_eq!(
+            targets[0].sources,
+            vec!["app.c".to_string()],
+            "a build-dir include path must contribute nothing — its headers are \
+             reproduced by config_header, and the module may not carry them"
+        );
     }
 
     #[test]

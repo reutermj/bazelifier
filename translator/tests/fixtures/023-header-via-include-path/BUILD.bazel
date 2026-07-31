@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the include-dir header injection (bzl-fxa.18): app.c #includes
+# helpers/util.h, which CMake never lists as a source because putting the
+# directory on the include path is the whole declaration. Bazel stages only
+# declared inputs, so the header has to become one. See the fixture's
+# CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "helpers/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)
