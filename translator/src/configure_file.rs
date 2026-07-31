@@ -14,16 +14,22 @@
 //! See docs/lore/cmake-configure-file-is-in-the-trace-not-the-file-api.md
 //! and docs/architecture/configure-file-and-toolchain-probes.md.
 //!
-//! Two things cross back to `cmake_api`, and both are deliberate:
+//! Nothing here reaches back into `cmake_api`: this module imports no part
+//! of it, and every entry point is a pure function of its arguments.
+//! `cmake_api::discover` is the driver — it calls down, gets values back,
+//! and sequences them. Two consequences of that sequencing are worth knowing
+//! before editing either side:
 //!
-//! - [`is_config_header_output`] is also called there, to build the set of
-//!   generated header *names*. `rebase_to_module_root` needs it to tell a
-//!   build-dir source that a `config_header` rule reproduces (drop it — the
-//!   rule supplies it via a label) from one nothing reproduces (escalate).
-//!   Without that the same header would be both escalated and regenerated.
-//! - [`build_config_headers`] runs *after* the codemodel is read, because
-//!   it rebases template paths against the module root, which the codemodel
-//!   walk derives.
+//! - [`is_config_header_output`] is also called by the driver, to build the
+//!   set of generated header *names* before the codemodel is read.
+//!   `rebase_to_module_root` needs it to tell a build-dir source that a
+//!   `config_header` rule reproduces (drop it — the rule supplies it via a
+//!   label) from one nothing reproduces (escalate). Without that the same
+//!   header would be both escalated and regenerated.
+//! - [`build_config_headers`] has to run *after* the codemodel is read: it
+//!   rebases template paths against the module root, and deriving that root
+//!   is part of the codemodel walk. A data dependency in the driver, not a
+//!   coupling between the modules.
 //!
 //! The `@cc_config//catalog:` labels in a plan's `catalog_probes` are built
 //! here rather than in codegen, which is a layering wart — see bzl-689.
