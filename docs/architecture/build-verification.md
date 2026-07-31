@@ -165,6 +165,25 @@ Implemented today:
   self-contained. This is functional-equivalence bookkeeping, not a change to
   what is compared — the two binaries' stdout/stderr/exit are still the whole
   contract.
+
+  Some binaries emit **nondeterministic** output — json-c's `json_parse`
+  prints `maxrss: <ru_maxrss> KB` to stderr, and that value differs between
+  any two runs and between the two builds — so a byte-exact diff can never
+  pass even when behavior is identical. Rather than a per-fixture filter (which
+  would have to be hand-declared and could silently hide a real difference) or
+  a global relaxation (which would weaken every fixture's check), the script is
+  **self-calibrating**: it runs each binary *twice* and treats any output line
+  that differs between a binary's own two runs as nondeterministic, excluding
+  exactly those lines from the ground-truth-vs-Bazel comparison. A deterministic
+  binary has zero such lines, so its comparison stays byte-exact — the check is
+  not weakened for it. The masks from both binaries are unioned (a line that
+  varies in either build is excluded from both), and the excluded set is
+  line-indexed, so a *structural* nondeterminism (a binary's two runs differing
+  in line count, not just a value) is failed loudly rather than masked, since
+  the line-position model can't represent it. Fixture
+  `019-nondeterministic-stderr` exercises this with a program that prints its
+  PID. A binary whose two runs disagree on *exit code* is likewise surfaced,
+  not reconciled.
 - **CMake's own registered tests** (CTest/`add_test()`): the strongest
   signal, since it reuses the project's own correctness assertions rather
   than ours. The File API has no test model, so these are read from `ctest

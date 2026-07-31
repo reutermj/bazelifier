@@ -24,6 +24,7 @@ validation_workspace(
         "//translator/tests/fixtures/016-shared-library:converted",
         "//translator/tests/fixtures/017-installed-header-not-in-sources:converted",
         "//translator/tests/fixtures/018-subdir-target:converted",
+        "//translator/tests/fixtures/019-nondeterministic-stderr:converted",
         "//translator/tests/corpus/tinyxml2:converted",
     ],
 )

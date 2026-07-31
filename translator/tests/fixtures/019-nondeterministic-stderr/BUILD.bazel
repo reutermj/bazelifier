@@ -1,0 +1,13 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the nondeterministic-diagnostic case (bzl-fxa.12): app prints its PID
+# to stderr, which differs on every run. The comparison must exclude that line
+# (self-calibrated by running each binary twice) while still matching the
+# deterministic output. See the fixture's CMakeLists.txt and
+# docs/architecture/build-verification.md.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob(["src/**"]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

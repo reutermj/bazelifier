@@ -5,6 +5,11 @@
 # code must match. See docs/architecture/build-verification.md — this is
 # NOT a binary-identical check, only a behavioral-equivalence check.
 #
+# Each binary is run twice so a line that varies between a binary's OWN two
+# runs (a nondeterministic diagnostic like json_parse's "maxrss: <N> KB") can
+# be excluded from the ground-truth-vs-Bazel comparison without weakening it
+# for a deterministic binary — see compare_stream below and bzl-fxa.12.
+#
 # needs_attention/ means the translator could not confidently resolve
 # something for THIS conversion (see
 # docs/architecture/needs-attention-interface.md) — the pipeline's agent
@@ -72,8 +77,6 @@ if [[ "${#needs_attention_files[@]}" -gt 0 ]]; then
 fi
 
 tmpdir="${TEST_TMPDIR:-.}"
-ground_truth_stderr="${tmpdir}/ground_truth_stderr"
-bazel_stderr="${tmpdir}/bazel_stderr"
 
 # A dynamically linked ground-truth binary (e.g. json-c's json_parse against
 # libjson-c.so.5) loads its shared library by SONAME at run time, and the
@@ -84,30 +87,101 @@ bazel_stderr="${tmpdir}/bazel_stderr"
 # bzl-fxa.11 and docs/architecture/build-verification.md.
 ground_truth_dir="$(cd "$(dirname "${ground_truth_bin}")" && pwd)"
 
-ground_truth_stdout="$(LD_LIBRARY_PATH="${ground_truth_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" "${ground_truth_bin}" 2>"${ground_truth_stderr}")"
-ground_truth_exit=$?
-bazel_stdout="$("${bazel_bin}" 2>"${bazel_stderr}")"
-bazel_exit=$?
+# Each binary is run TWICE. Comparing a binary's two runs to each other tells us
+# which output lines are nondeterministic (json-c's json_parse prints
+# "maxrss: <ru_maxrss> KB" to stderr, and ru_maxrss varies between runs and
+# between the two builds), so those lines can be excluded from the ground-truth
+# vs Bazel comparison WITHOUT weakening it for a deterministic binary — one
+# whose two runs are identical has nothing excluded, so the comparison stays
+# byte-exact. This is self-calibrating per binary: no per-fixture config, no
+# global relaxation. See bzl-fxa.12 and docs/architecture/build-verification.md.
+run_gt() {
+  LD_LIBRARY_PATH="${ground_truth_dir}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" "${ground_truth_bin}" 2>"$2" >"$1"
+}
+run_bazel() {
+  "${bazel_bin}" 2>"$2" >"$1"
+}
+
+run_gt "${tmpdir}/gt_out_a" "${tmpdir}/gt_err_a"; ground_truth_exit=$?
+run_gt "${tmpdir}/gt_out_b" "${tmpdir}/gt_err_b"; ground_truth_exit_b=$?
+run_bazel "${tmpdir}/bz_out_a" "${tmpdir}/bz_err_a"; bazel_exit=$?
+run_bazel "${tmpdir}/bz_out_b" "${tmpdir}/bz_err_b"; bazel_exit_b=$?
 
 status=0
+
+# A binary whose two runs disagree on exit code is nondeterministic in a way
+# this methodology can't reconcile — surface it rather than compare noise.
+if [[ "${ground_truth_exit}" -ne "${ground_truth_exit_b}" ]]; then
+  echo "FAIL: ground-truth exit code is nondeterministic (${ground_truth_exit} vs ${ground_truth_exit_b})"
+  status=1
+fi
+if [[ "${bazel_exit}" -ne "${bazel_exit_b}" ]]; then
+  echo "FAIL: Bazel exit code is nondeterministic (${bazel_exit} vs ${bazel_exit_b})"
+  status=1
+fi
 
 if [[ "${ground_truth_exit}" -ne "${bazel_exit}" ]]; then
   echo "FAIL: exit code mismatch: ground_truth=${ground_truth_exit} bazel=${bazel_exit}"
   status=1
 fi
 
-if [[ "${ground_truth_stdout}" != "${bazel_stdout}" ]]; then
-  echo "FAIL: stdout mismatch:"
-  echo "  ground_truth: ${ground_truth_stdout}"
-  echo "  bazel:        ${bazel_stdout}"
-  status=1
-fi
+# Masks the lines that vary between a binary's own two runs (a_file vs b_file)
+# to a sentinel, in BOTH the ground-truth and Bazel copies of the same stream,
+# then diffs. The masks are unioned: a line nondeterministic in EITHER binary is
+# excluded from both, so a value that happens to be stable across the ground
+# truth's two runs but varies across Bazel's is still not required to match. A
+# line-count difference between a binary's own two runs means the nondeterminism
+# is structural (lines added/removed, not just a value), which the line-indexed
+# mask can't model — that is failed loudly rather than masked.
+compare_stream() {
+  local label="$1" gt_a="$2" gt_b="$3" bz_a="$4" bz_b="$5"
 
-if ! diff -q "${ground_truth_stderr}" "${bazel_stderr}" > /dev/null; then
-  echo "FAIL: stderr mismatch:"
-  diff "${ground_truth_stderr}" "${bazel_stderr}" || true
-  status=1
-fi
+  local n_gt_a n_gt_b n_bz_a n_bz_b
+  n_gt_a=$(wc -l <"${gt_a}"); n_gt_b=$(wc -l <"${gt_b}")
+  n_bz_a=$(wc -l <"${bz_a}"); n_bz_b=$(wc -l <"${bz_b}")
+  if [[ "${n_gt_a}" -ne "${n_gt_b}" ]]; then
+    echo "FAIL: ground-truth ${label} line count is nondeterministic (${n_gt_a} vs ${n_gt_b})"
+    return 1
+  fi
+  if [[ "${n_bz_a}" -ne "${n_bz_b}" ]]; then
+    echo "FAIL: Bazel ${label} line count is nondeterministic (${n_bz_a} vs ${n_bz_b})"
+    return 1
+  fi
+
+  # Line numbers (1-based) that differ between the two runs of either binary.
+  local nondeterministic
+  nondeterministic="$(
+    {
+      diff --unchanged-line-format= --old-line-format='%dn
+' --new-line-format= "${gt_a}" "${gt_b}"
+      diff --unchanged-line-format= --old-line-format='%dn
+' --new-line-format= "${bz_a}" "${bz_b}"
+    } | sort -un
+  )"
+
+  # Replace those line numbers with a sentinel in both streams, then diff.
+  local masked_gt masked_bz
+  masked_gt="${tmpdir}/masked_gt_${label}"
+  masked_bz="${tmpdir}/masked_bz_${label}"
+  awk -v drop="${nondeterministic}" '
+    BEGIN { n = split(drop, a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") d[a[i]] = 1 }
+    { print (FNR in d) ? "<nondeterministic>" : $0 }
+  ' "${gt_a}" >"${masked_gt}"
+  awk -v drop="${nondeterministic}" '
+    BEGIN { n = split(drop, a, "\n"); for (i = 1; i <= n; i++) if (a[i] != "") d[a[i]] = 1 }
+    { print (FNR in d) ? "<nondeterministic>" : $0 }
+  ' "${bz_a}" >"${masked_bz}"
+
+  if ! diff -q "${masked_gt}" "${masked_bz}" >/dev/null; then
+    echo "FAIL: ${label} mismatch (nondeterministic lines already excluded):"
+    diff "${masked_gt}" "${masked_bz}" || true
+    return 1
+  fi
+  return 0
+}
+
+compare_stream stdout "${tmpdir}/gt_out_a" "${tmpdir}/gt_out_b" "${tmpdir}/bz_out_a" "${tmpdir}/bz_out_b" || status=1
+compare_stream stderr "${tmpdir}/gt_err_a" "${tmpdir}/gt_err_b" "${tmpdir}/bz_err_a" "${tmpdir}/bz_err_b" || status=1
 
 if [[ "${status}" -eq 0 ]]; then
   echo "PASS: ${ground_truth_bin} and ${bazel_bin} behave equivalently"
