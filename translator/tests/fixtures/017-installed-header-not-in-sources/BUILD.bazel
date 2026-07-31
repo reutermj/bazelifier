@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the install-declared-but-unenumerated public-header case (bzl-fxa.10 +
+# bzl-fxa.14): greet.h is install()d to an absolute include destination and
+# #included by the sources, but listed on no target. The translator must
+# recognize the absolute destination and inject greet.h as a public header so
+# it's copied and the library compiles. See the fixture's CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "*.c",
+        "*.h",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

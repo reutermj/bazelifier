@@ -91,12 +91,34 @@ public, and stays in `srcs` otherwise:
   which the many projects that never adopted `FILE_SET` still use. The File
   API reports these in the directory reply's `installers[]`; a file
   installed to an `include` destination is being declared public (see
-  `installed_public_headers`).
+  `installed_public_headers`). The destination is matched by
+  `is_include_destination`, which accepts both the relative `include[/sub]`
+  and the absolute `<prefix>/include[/sub]` that
+  `CMAKE_INSTALL_FULL_INCLUDEDIR` expands to (json-c installs there); an
+  `include` nested under `lib`/`lib64`/`share` is a build-private tree and
+  does not count.
 
 The translator does **not** guess beyond those declarations. A header in
 `srcs` with neither signal, on a library something depends on, is the gap
 the `needs_attention/` mechanism below flags — it is genuinely ambiguous,
 not merely undeclared.
+
+**Headers no target enumerated.** A large class of C projects lists only
+`.c` files on a target and leaves headers ambient on the include path —
+CMake compiles each source and finds its headers via `-I`, so a header that
+is never a build input is never reported as a target source, and
+`copy_referenced_sources` would never copy it. The converted library then
+fails to compile the moment one of its own sources `#include`s that header.
+When such a header is `install()`-declared public (the authoritative signal
+above), `inject_unenumerated_installed_headers` adds it to the `hdrs` of
+every library whose own include directories contain it — so it is copied and
+reachable. This is deliberately scoped to headers the project *declared*
+public: it does not copy every header sitting under an include dir, so a
+header with no public evidence still defaults to private/absent rather than
+being guessed public. json-c is the live case — a `CMakeLists` ordering bug
+drops `json_pointer.h`/`json_patch.h` from the library's header list, yet
+`json_pointer.c` includes `json_pointer.h`; both are `install()`d public, so
+both are injected.
 
 ### Include directories
 
