@@ -31,6 +31,8 @@ validation_workspace(
         "//translator/tests/fixtures/022-ctest-script-command:converted",
         "//translator/tests/fixtures/023-header-via-include-path:converted",
         "//translator/tests/fixtures/024-header-in-include-subdir:converted",
+        "//translator/tests/fixtures/025-sibling-header-no-include-dir:converted",
+        "//translator/tests/fixtures/026-interface-usage-requirement:converted",
         "//translator/tests/corpus/tinyxml2:converted",
         "//translator/tests/corpus/json-c:converted",
         "//translator/tests/corpus/fmt:converted",

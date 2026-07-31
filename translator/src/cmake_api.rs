@@ -456,6 +456,7 @@ fn read_codemodel_reply(
 
     let mut targets = Vec::new();
     let mut needs_attention = Vec::new();
+    let mut inherited_by_name: HashMap<String, Vec<String>> = HashMap::new();
     // Project-authored convenience targets (UTILITY-ish, no artifacts, no
     // dependents) that aren't from a CMake module — aggregated into ONE
     // escalation at the end instead of one apiece, so a project with a
@@ -515,9 +516,14 @@ fn read_codemodel_reply(
             &installed_headers,
         );
 
+        // Kept alongside the built target so the reconciliation pass below
+        // can re-derive what own_include_dirs dropped for it.
+        inherited_by_name.insert(target.name.clone(), own_include_dirs(reply).1);
         targets.push(target);
         needs_attention.extend(attention);
     }
+
+    reinstate_unsupplied_inherited_includes(&mut targets, &inherited_by_name);
 
     if !inert_convenience.is_empty() {
         needs_attention.push(inert_convenience_targets_needs_attention(
@@ -902,7 +908,7 @@ fn to_target(
         .filter_map(|d| translated_names.get(d.id.as_str()).map(|n| n.to_string()))
         .collect();
 
-    let includes = own_include_dirs(reply);
+    let (includes, _inherited) = own_include_dirs(reply);
     let local_defines = target_defines(reply);
 
     let mut needs_attention = Vec::new();
@@ -934,6 +940,59 @@ fn to_target(
     (target, needs_attention)
 }
 
+/// Reinstates an include directory that `own_include_dirs` dropped as
+/// "inherited via `target_link_libraries`" when no emitted dependency
+/// actually supplies it.
+///
+/// The drop is right in the common case: Bazel propagates `includes`
+/// transitively, so a consumer receives the directory through its `deps`
+/// edge and re-stating it would be noise. That reasoning assumes the edge
+/// exists — and CMake can apply a usage requirement with no build-graph node
+/// behind it. An `INTERFACE` library is the live case: it has no sources and
+/// no artifact, so CMake resolves its requirements into the consumer at
+/// configure time and reports nothing in `dependencies[]`.
+///
+/// fmt is the live example. `target_link_libraries(unicode-test gtest
+/// fmt-header-only)` yields `dependencies: [gtest]`, because
+/// `fmt-header-only` is `INTERFACE` and appears nowhere in the codemodel —
+/// yet `include/` shows up in the target's include dirs, tagged with a
+/// `target_link_libraries` backtrace. Dropped, it is supplied by nothing:
+/// `gtest` exports only its own directory, and the build fails with
+/// `fatal error: 'fmt/os.h' file not found`, five test binaries at a time.
+///
+/// So the assumption is checked rather than trusted: an inherited directory
+/// stays dropped when some emitted dependency exports it, and is put back
+/// when none does. Restoring costs a redundant `includes` entry in the rare
+/// case the check is too conservative; not restoring costs a build.
+///
+/// Transitive on purpose — a dep's own `includes` are what it re-exports, and
+/// those are themselves already reconciled for targets built before it.
+fn reinstate_unsupplied_inherited_includes(
+    targets: &mut [Target],
+    inherited_by_name: &HashMap<String, Vec<String>>,
+) {
+    let exported: HashMap<String, Vec<String>> = targets
+        .iter()
+        .map(|t| (t.name.clone(), t.includes.clone()))
+        .collect();
+
+    for target in targets.iter_mut() {
+        let Some(inherited) = inherited_by_name.get(&target.name) else {
+            continue;
+        };
+        for dir in inherited {
+            let supplied = target.dependencies.iter().any(|dep| {
+                exported
+                    .get(dep)
+                    .is_some_and(|dirs| dirs.iter().any(|d| d == dir))
+            });
+            if !supplied && !target.includes.contains(dir) {
+                target.includes.push(dir.clone());
+            }
+        }
+    }
+}
+
 /// Extracts this target's OWN include directories from its compile groups,
 /// excluding ones inherited from a dependency via `target_link_libraries`.
 /// Returned exactly as the File API reported them — absolute;
@@ -950,23 +1009,28 @@ fn to_target(
 /// `BASE_DIRS`) trace to some other command. Bazel's `includes` is
 /// transitive, so only the target's own dirs need to be captured — a
 /// consuming target already gets them via its `deps` edge.
-fn own_include_dirs(reply: &TargetReply) -> Vec<String> {
+fn own_include_dirs(reply: &TargetReply) -> (Vec<String>, Vec<String>) {
     let mut seen = HashSet::new();
     let mut includes = Vec::new();
+    let mut inherited = Vec::new();
 
     for group in &reply.compile_groups {
         for include in &group.includes {
-            if is_inherited_via_link_libraries(include.backtrace, &reply.backtrace_graph) {
+            if !seen.insert(include.path.clone()) {
                 continue;
             }
-
-            if seen.insert(include.path.clone()) {
-                includes.push(include.path.clone());
+            if is_inherited_via_link_libraries(include.backtrace, &reply.backtrace_graph) {
+                // Returned rather than discarded: dropping assumes a deps edge
+                // will re-supply it, and `reinstate_unsupplied_inherited_includes`
+                // checks that assumption once every target is built.
+                inherited.push(include.path.clone());
+                continue;
             }
+            includes.push(include.path.clone());
         }
     }
 
-    includes
+    (includes, inherited)
 }
 
 /// Collects the preprocessor definitions effective on this target's own
@@ -1168,7 +1232,17 @@ mod tests {
 
         // Absolute at this stage; rebase_to_module_root makes it
         // module-relative once the module root is known.
-        assert_eq!(own_include_dirs(&reply), vec!["/proj/include".to_string()]);
+        let (own, inherited) = own_include_dirs(&reply);
+        assert_eq!(own, vec!["/proj/include".to_string()]);
+        // The inherited ones are RETURNED, not discarded: dropping them
+        // assumes a deps edge re-supplies them, which
+        // reinstate_unsupplied_inherited_includes then verifies.
+        assert_eq!(
+            inherited,
+            vec!["/proj/other_lib_include".to_string()],
+            "an inherited dir must be reported so the assumption behind \
+             dropping it can be checked"
+        );
     }
 
     // Layer A collects every effective define, deduped across groups, in

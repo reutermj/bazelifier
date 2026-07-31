@@ -225,7 +225,30 @@ pub(crate) fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir:
 
         let mut discovered: Vec<String> = Vec::new();
 
-        for dir in &target.includes {
+        // Each compiled source's OWN directory is an include path the File API
+        // never reports, because it is a language rule rather than a build
+        // setting: the QUOTED form of #include searches the including file's
+        // directory first, before any -I. fmt's test/util.cc does
+        // `#include "util.h"` with test/util.h beside it, listed on no target
+        // and covered by no include dir (bzl-2wi.4).
+        //
+        // Scanned NON-recursively, unlike a declared include dir: the rule
+        // reaches siblings, not a nested tree. `#include "sub/foo.h"` from
+        // here resolves relative to this directory, and sub/ would need to be
+        // walked for that — deliberately left out until a project needs it,
+        // since recursing here would sweep in a whole source tree for any
+        // target with a source at its root.
+        let implicit: Vec<String> = target
+            .sources
+            .iter()
+            .filter(|s| !is_header_file(Path::new(s)))
+            .filter_map(|s| Path::new(s).parent())
+            .map(|p| source_dir.join(p).to_string_lossy().into_owned())
+            .collect();
+
+        let declared = target.includes.iter().map(|d| (d, true));
+        let implicit_dirs = implicit.iter().map(|d| (d, false));
+        for (dir, recursive) in declared.chain(implicit_dirs) {
             let absolute = normalize_lexically(Path::new(dir));
             // The `strip_prefix` below would also reject an outside directory,
             // so this looks redundant and is not: it skips the `read_dir` of a
@@ -234,7 +257,7 @@ pub(crate) fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir:
             if !absolute.starts_with(source_dir) {
                 continue;
             }
-            for path in headers_under(&absolute) {
+            for path in headers_in(&absolute, recursive) {
                 let Ok(relative) = path.strip_prefix(source_dir) else {
                     continue;
                 };
@@ -252,7 +275,8 @@ pub(crate) fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir:
     }
 }
 
-/// Every header at or below `dir`, recursively.
+/// Every header in `dir` — at or below it when `recursive`, otherwise only
+/// its immediate entries.
 ///
 /// Recursive because `-Iinclude` with `#include "sub/foo.h"` is ordinary C:
 /// the header sits at `include/sub/foo.h`, and a flat listing of `include/`
@@ -267,7 +291,7 @@ pub(crate) fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir:
 /// one, and the alternative — working on a checkout and silently doing
 /// nothing under Bazel — is far worse, since the fixture tier is the only
 /// place that difference is visible.
-fn headers_under(dir: &Path) -> Vec<PathBuf> {
+fn headers_in(dir: &Path, recursive: bool) -> Vec<PathBuf> {
     let mut found = Vec::new();
     let mut stack = vec![dir.to_path_buf()];
     while let Some(current) = stack.pop() {
@@ -285,7 +309,9 @@ fn headers_under(dir: &Path) -> Vec<PathBuf> {
                 continue;
             };
             if meta.is_dir() {
-                stack.push(path);
+                if recursive {
+                    stack.push(path);
+                }
             } else if meta.is_file() && is_header_file(&path) {
                 found.push(path);
             }

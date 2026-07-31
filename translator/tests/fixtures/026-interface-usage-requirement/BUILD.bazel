@@ -1,0 +1,15 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the inherited-include reconciliation (bzl-2wi.3): an INTERFACE
+# library's usage requirement puts pub/ on app's include path with a
+# target_link_libraries backtrace, but creates no dependency edge to carry it.
+# See the fixture's CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "app/**",
+        "pub/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)

@@ -1,0 +1,13 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the implicit source-directory include path (bzl-2wi.4): app.c
+# includes helper.h from its own directory, which no include dir declares.
+# Fixtures 023 and 024 both declare one, so only this fixture fails when a
+# source's own directory is not treated as a search path. See the fixture's
+# CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob(["lib/**"]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)
