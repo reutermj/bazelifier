@@ -242,10 +242,23 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
     // that is not a substitution.
     must_not_contain.extend(header.values.iter().map(|(n, _)| format!("@{n}@")));
 
+    // Only values that can actually fail a `grep -qF`. An EMPTY value is
+    // vacuous — `grep -qF -- ""` matches any non-empty file — and a very short
+    // one ("1", "ON", "OFF") is an unanchored substring that a real header
+    // hits by accident. Emitting either produces an assertion that passes
+    // regardless of whether the substitution happened, which is worse than
+    // emitting nothing: it reads as coverage. See bzl-0pd.
+    //
+    // The `@VAR@` check in `must_not_contain` still covers those values, and
+    // is the stronger test anyway: a surviving placeholder proves the
+    // substitution did not run, whatever the value was.
+    const MIN_DISTINGUISHING_LEN: usize = 4;
     let must_contain: Vec<String> = header
         .values
         .iter()
-        .map(|(_, value)| value.clone())
+        .map(|(_, value)| value)
+        .filter(|value| value.len() >= MIN_DISTINGUISHING_LEN)
+        .cloned()
         .collect();
 
     out.push_str(&format!(
@@ -1489,6 +1502,57 @@ mod tests {
             "a binary-only module still needs the cc_library load once a \
              companion is emitted:\n{rendered}"
         );
+    }
+
+    // bzl-0pd: an empty value made `grep -qF -- ""` match any non-empty file,
+    // so the assertion passed whether or not the substitution ran. Short
+    // values ("1", "OFF") are unanchored substrings a real header hits by
+    // accident. Both read as coverage while checking nothing.
+    #[test]
+    fn config_header_assertion_omits_values_that_cannot_fail() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![
+                ("VERSION".to_string(), "3.7.0".to_string()),
+                ("EMPTY".to_string(), String::new()),
+                ("FLAG".to_string(), "1".to_string()),
+                ("OPTION".to_string(), "OFF".to_string()),
+            ],
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("must_contain = [\n        \"3.7.0\",\n    ],"),
+            "a distinguishing value is still asserted, and is the only entry:\n{rendered}"
+        );
+        // Scoped to must_contain: the same literals legitimately appear
+        // elsewhere (must_not_contain carries every @NAME@).
+        let must_contain = rendered
+            .split("must_contain = [")
+            .nth(1)
+            .and_then(|rest| rest.split("],").next())
+            .expect("the assertion must render a must_contain list");
+        for vacuous in ["\"\"", "\"1\"", "\"OFF\""] {
+            assert!(
+                !must_contain.contains(vacuous),
+                "{vacuous} cannot fail a grep -qF against a real header, so \
+                 emitting it reads as coverage while checking nothing:\n\
+                 must_contain = [{must_contain}]"
+            );
+        }
+        // The placeholder check is what actually proves substitution ran, and
+        // it must still cover every value including the omitted ones.
+        for name in ["@VERSION@", "@EMPTY@", "@FLAG@", "@OPTION@"] {
+            assert!(
+                rendered.contains(name),
+                "{name} must stay in must_not_contain — a surviving placeholder \
+                 proves the substitution did not run, whatever the value:\n{rendered}"
+            );
+        }
     }
 
     // bzl-i4i.1: linkage is not a different Bazel rule — both forms are a

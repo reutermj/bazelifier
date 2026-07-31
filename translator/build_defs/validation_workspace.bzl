@@ -142,6 +142,17 @@ for fixture_dir in "${fixture_dirs[@]}"; do
   while IFS= read -r test_target; do
     test_labels+=("        \\"@${module_name}//:${test_target}\\",")
   done < <(sed -n '/^sh_test($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}")
+
+  # assert_config_header_test targets, which codegen emits next to every
+  # config_header (see render_config_header_assertion). They are the ONLY
+  # check on a generated header's content — the runtime comparison sees a
+  # binary's stdout, and a config header can be wrong in ways that change no
+  # output at all. Collected here because they match neither of the two
+  # patterns above, so without this they are emitted and never run: the
+  # failure mode of a gate wired to nothing (bzl-0pd).
+  while IFS= read -r assert_target; do
+    test_labels+=("        \\"@${module_name}//:${assert_target}\\",")
+  done < <(sed -n '/^assert_config_header_test($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}")
   # Scoped to the `args = [` block and taking only its first entry: codegen
   # renders args as [binary, working_dir, pass_regex] (see render_sh_test).
   # Reading every quoted string in the rule instead would also pick up `data`.
