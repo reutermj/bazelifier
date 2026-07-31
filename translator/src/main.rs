@@ -173,11 +173,14 @@ fn copy_ground_truth_artifacts(
             // linked ground-truth binary loads it by its SONAME at run time,
             // and the absolute RUNPATH CMake baked in points at this build dir,
             // which is gone by then. So stage the whole versioned symlink chain
-            // (libfoo.so -> libfoo.so.5 -> libfoo.so.5.2.0) next to the binary
-            // and let the comparison test add ground_truth/ to LD_LIBRARY_PATH;
-            // the binary then finds whichever name it needs. A static lib (.a)
-            // is linked into the binary, so nothing to stage. See bzl-fxa.11
-            // and docs/architecture/build-verification.md.
+            // (libfoo.so -> libfoo.so.5 -> libfoo.so.5.2.0) at the artifact's
+            // own path under ground_truth/ and let the comparison test search
+            // for it; the binary then finds whichever name it needs. That path
+            // is NOT necessarily the binary's own directory — a subdirectory
+            // binary sits below the libs — which is why the search walks up to
+            // the ground_truth/ root (bzl-0x7). A static lib (.a) is linked
+            // into the binary, so nothing to stage. See bzl-fxa.11 and
+            // docs/architecture/build-verification.md.
             if is_shared_library(artifact) {
                 for name in stage_shared_library_chain(build_dir, artifact, &ground_truth_dir)? {
                     if !artifact_paths.contains(&name) {

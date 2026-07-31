@@ -715,13 +715,6 @@ fn resolve_trace_path(path: &str, site_dir: Option<&Path>) -> PathBuf {
     normalize_lexically(&joined)
 }
 
-/// Turns a `configure_file` call into a plan for a `config_header` rule: maps
-/// each `#cmakedefine` to a catalog probe, resolves `@VAR@`s from the cache,
-/// and returns the plan alongside the `#cmakedefine`s the catalog does not
-/// cover (which the caller escalates rather than emitting a header that would
-/// be missing defines). `template_relative` and `output_relative` are already
-/// module-relative.
-///
 /// Looks a template variable up in the CMake cache, with a fallback for the
 /// handful of common variables `project()` sets as plain variables that the
 /// cache records under a `CMAKE_`-prefixed name: `@PROJECT_VERSION@` (and its
@@ -740,6 +733,13 @@ fn cache_value(name: &str, cache: &HashMap<String, String>) -> Option<String> {
     None
 }
 
+/// Turns a `configure_file` call into a plan for a `config_header` rule: maps
+/// each `#cmakedefine` to a catalog probe, resolves `@VAR@`s from the cache,
+/// and returns the plan alongside the `#cmakedefine`s the catalog does not
+/// cover (which the caller escalates rather than emitting a header that would
+/// be missing defines). `call_template_relative` and `output_relative` are
+/// already module-relative.
+///
 /// A name a template references (as a `#cmakedefine` or an `@VAR@`) is
 /// resolved by, in order:
 ///
@@ -841,8 +841,10 @@ fn build(build_dir: &Path) -> Result<(), Error> {
 ///
 /// A ctest invocation that fails (no CTest, no tests configured) yields an
 /// empty test list rather than an error: a project with no registered tests
-/// is the common case, not a failure. Tests whose command never resolved
-/// (executable not built) are skipped — there is no binary to run.
+/// is the common case, not a failure. A test CTest reports with an empty
+/// command is skipped — there is nothing to wrap. That is distinct from a
+/// test whose command resolved to something this module doesn't build,
+/// which is escalated: see `partition_tests_by_buildable_command`.
 fn read_tests(build_dir: &Path) -> Result<Vec<Test>, Error> {
     let output = Command::new("ctest")
         .arg("--show-only=json-v1")
@@ -1208,13 +1210,6 @@ fn rebase_to_module_root(
     (module_root, escalations)
 }
 
-/// Rewrites each test's `working_directory` from the absolute path CTest
-/// reported to one relative to `module_root`, in place — the same rebasing
-/// target paths get, but for tests. A working directory at the module root
-/// becomes empty. One that resolves outside the module root is left as the
-/// empty string (run at the module root): the tinyxml2-shaped scope does not
-/// yet escalate a test whose data lives outside the deliverable, and running
-/// at the root is the safe default rather than baking in an absolute path.
 /// Splits tests into those the translator can emit an `sh_test` for and one
 /// escalation covering the rest.
 ///
@@ -1255,6 +1250,13 @@ fn partition_tests_by_buildable_command(
     )
 }
 
+/// Rewrites each test's `working_directory` from the absolute path CTest
+/// reported to one relative to `module_root`, in place — the same rebasing
+/// target paths get, but for tests. A working directory at the module root
+/// becomes empty. One that resolves outside the module root is left as the
+/// empty string (run at the module root): the tinyxml2-shaped scope does not
+/// yet escalate a test whose data lives outside the deliverable, and running
+/// at the root is the safe default rather than baking in an absolute path.
 fn rebase_tests_to_module_root(tests: &mut [Test], module_root: &Path) {
     for test in tests {
         let absolute = normalize_lexically(Path::new(&test.working_directory));
@@ -2573,7 +2575,6 @@ mod tests {
         }
     }
 
-    #[test]
     // bzl-fxa.18: json-c's `test1` lists one .c and reaches parse_flags.h
     // purely through its own include dir. CMake finds it on disk; Bazel stages
     // only declared inputs, so it must become a source.
@@ -3859,9 +3860,10 @@ mod tests {
         );
     }
 
-    // A test whose command never resolved (executable not built) has no
-    // binary to wrap and is skipped, rather than emitting a test that can't
-    // run.
+    // A test CTest reports with an EMPTY command has no binary to wrap and is
+    // skipped, rather than emitting a test that can't run. A command that
+    // resolved but names something we don't build is a different case, and is
+    // escalated — see the partition_tests_by_buildable_command tests.
     #[test]
     fn ctest_reply_skips_a_test_with_no_command() {
         let reply = CtestReply {
