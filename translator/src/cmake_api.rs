@@ -287,7 +287,7 @@ pub fn discover(
     // configure_file calls (template -> output) come from the configure
     // trace, not the File API — see parse_configure_files.
     let abs_source_dir = absolutize(source_dir)?;
-    let configure_files = parse_configure_files(&trace, &abs_source_dir);
+    let configure_files = parse_configure_files(&trace, &abs_source_dir, &absolutize(build_dir)?);
 
     // The generated config headers appear in a target's sources as absolute
     // build-dir paths. read_codemodel_reply must know their names so it drops
@@ -327,7 +327,7 @@ pub fn discover(
 
     let cache = read_cache_values(&reply_dir)?;
     let (config_headers, config_escalations) =
-        build_config_headers(&configure_files, &codemodel.module_root, &cache);
+        build_config_headers(&configure_files, &codemodel.module_root, &abs_build_dir, &cache);
     let mut needs_attention = codemodel.needs_attention;
     needs_attention.extend(config_escalations);
     needs_attention.extend(test_escalation);

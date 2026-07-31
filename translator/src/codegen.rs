@@ -1463,6 +1463,7 @@ mod tests {
         g.config_headers = vec![model::ConfigHeader {
             output: "config.h".to_string(),
             template: "config.h.in".to_string(),
+            template_source: None,
             catalog_probes: vec!["@cc_config//catalog:have_unistd_h".to_string()],
             values: vec![("PROJECT_VERSION".to_string(), "3.7.0".to_string())],
         }];

@@ -176,6 +176,21 @@ pub struct ConfigHeader {
     pub output: String,
     /// The `.in`/`.cmakein` template it's generated from, module-relative.
     pub template: String,
+    /// Where to copy the template FROM, when it is not already in the source
+    /// tree at `template`.
+    ///
+    /// Some projects generate the template itself at configure time, into the
+    /// build directory, and then `configure_file` that (zlib assembles
+    /// `zconf.h.cmakein` with `file(READ/WRITE/APPEND)`). A Bazel label cannot
+    /// point outside the module, so the template is staged in like a source
+    /// and `template` names its position once staged.
+    ///
+    /// Staging the TEMPLATE is not the same as vendoring the generated HEADER,
+    /// which stays forbidden: a template carries only `#cmakedefine`
+    /// directives, so it is still expanded against the CONSUMER's toolchain by
+    /// `cc_config`. The header carries this host's probe answers, which is
+    /// what makes copying it wrong. The two look alike in a diff.
+    pub template_source: Option<std::path::PathBuf>,
     /// Catalog probe labels (`@cc_config//catalog:have_endian_h`) for the
     /// template's `#cmakedefine`s the catalog covers.
     pub catalog_probes: Vec<String>,

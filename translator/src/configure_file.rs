@@ -68,6 +68,7 @@ pub(crate) fn is_config_header_output(output: &Path) -> bool {
 pub(crate) fn build_config_headers(
     configure_files: &[ConfigureFile],
     module_root: &Path,
+    build_dir: &Path,
     cache: &HashMap<String, String>,
 ) -> (Vec<ConfigHeader>, Vec<NeedsAttention>) {
     let mut headers = Vec::new();
@@ -82,14 +83,40 @@ pub(crate) fn build_config_headers(
         if !is_config_header_output(&call.output) {
             continue;
         }
-        let Ok(template_rel) = call.template.strip_prefix(module_root) else {
-            // The template ships outside the deliverable; can't reference it.
+        // Where the template will live inside the module, and where to copy it
+        // from if it is not there already.
+        let staged = match call.template.strip_prefix(module_root) {
+            // The common case: a checked-in .in/.cmakein, already staged with
+            // the other sources.
+            Ok(relative) => Some((relative.to_path_buf(), None)),
+            // Generated into the build directory at configure time, then
+            // expanded — zlib assembles zconf.h.cmakein with
+            // file(READ/WRITE/APPEND). The translator cannot reproduce that
+            // assembly, but it does not need to: the file exists on disk now
+            // and carries only #cmakedefine directives, so staging it and
+            // expanding it against the CONSUMER's toolchain reproduces what
+            // CMake did. Leaving it unresolved instead would ship a header with
+            // no feature detection at all, which silently picks the project's
+            // fallback code paths on any toolchain but this one.
+            //
+            // NOT the same as vendoring the generated HEADER, which stays
+            // forbidden: that carries this host's probe answers.
+            Err(_) if call.template.starts_with(build_dir) => call
+                .template
+                .file_name()
+                .map(|name| (PathBuf::from(name), Some(call.template.clone()))),
+            // Genuinely outside the deliverable — a system path, another
+            // checkout. Nothing to stage.
+            Err(_) => None,
+        };
+        let Some((template_rel, template_source)) = staged else {
             escalations.push(generated_config_header_needs_attention(
                 &call.output.to_string_lossy(),
                 &[call.template.to_string_lossy().into_owned()],
             ));
             continue;
         };
+        let template_rel = template_rel.as_path();
         let Ok(template_text) = fs::read_to_string(&call.template) else {
             continue;
         };
@@ -101,7 +128,9 @@ pub(crate) fn build_config_headers(
             .unwrap_or_else(|| call.output.to_string_lossy().into_owned());
 
         let template_rel = template_rel.to_string_lossy().into_owned();
-        let (header, unmapped) = resolve_config_header(&template_rel, &output_name, &macros, cache);
+        let (mut header, unmapped) =
+            resolve_config_header(&template_rel, &output_name, &macros, cache);
+        header.template_source = template_source;
         if !unmapped.is_empty() {
             // The header IS reproduced (the probing module and template
             // wiring exist); the gap is specific macros with no catalog
@@ -273,7 +302,11 @@ fn parse_template_macros(template: &str) -> TemplateMacros {
 /// relative (`configure_file(config.h.in config.h)` — the common form); a
 /// relative path is resolved against the calling file's own directory, taken
 /// from the `<file>` site prefix, matching CMake's own resolution.
-pub(crate) fn parse_configure_files(trace: &str, source_dir: &Path) -> Vec<ConfigureFile> {
+pub(crate) fn parse_configure_files(
+    trace: &str,
+    source_dir: &Path,
+    build_dir: &Path,
+) -> Vec<ConfigureFile> {
     let mut calls = Vec::new();
     for line in trace.lines() {
         let Some(idx) = line.find("configure_file(") else {
@@ -297,7 +330,14 @@ pub(crate) fn parse_configure_files(trace: &str, source_dir: &Path) -> Vec<Confi
         };
 
         let template = resolve_trace_path(template, site_dir);
-        if !template.starts_with(source_dir) {
+        // Keep the project's own calls and drop CMake's internal ones (whose
+        // templates live under the CMake installation). The BUILD directory
+        // counts as the project's: a project can generate a template at
+        // configure time and then expand it (zlib assembles zconf.h.cmakein),
+        // and that call is as much the project's own as a checked-in one —
+        // dropping it here silently loses the whole config header, before any
+        // of the reachability logic downstream gets a say.
+        if !template.starts_with(source_dir) && !template.starts_with(build_dir) {
             continue;
         }
         calls.push(ConfigureFile {
@@ -419,6 +459,7 @@ fn resolve_config_header(
     let header = ConfigHeader {
         output: output_relative.to_string(),
         template: call_template_relative.to_string(),
+        template_source: None,
         catalog_probes,
         values,
     };
@@ -445,7 +486,7 @@ mod tests {
 
     #[test]
     fn parse_configure_files_keeps_only_project_templates() {
-        let calls = parse_configure_files(CONFIGURE_TRACE, Path::new("/src"));
+        let calls = parse_configure_files(CONFIGURE_TRACE, Path::new("/src"), Path::new("/build"));
         assert_eq!(
             calls,
             vec![

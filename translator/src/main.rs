@@ -326,10 +326,15 @@ fn copy_referenced_sources(
     // the module root, like a source.
     for config_header in &graph.config_headers {
         if copied.insert(config_header.template.as_str()) {
-            copy_into(
-                &module_root.join(&config_header.template),
-                &out_dir.join(&config_header.template),
-            )?;
+            // `template_source` is set when the template is not in the source
+            // tree — a project that generates it at configure time and then
+            // expands it. See `model::ConfigHeader::template_source` for why
+            // staging a TEMPLATE is not vendoring a generated HEADER.
+            let from = match &config_header.template_source {
+                Some(absolute) => absolute.clone(),
+                None => module_root.join(&config_header.template),
+            };
+            copy_into(&from, &out_dir.join(&config_header.template))?;
         }
     }
 
