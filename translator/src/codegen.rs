@@ -801,9 +801,20 @@ pass_regex="${3:-}"
 module_runfiles="$(cd "$(dirname "$0")" && pwd)"
 
 # Runfiles are read-only and the test writes into its working directory
-# (tinyxml2's xmltest writes resources/out/), so stage a writable copy and
-# run there. The binary is copied along with everything else, then run from
-# the staged tree so its relative data paths resolve.
+# (tinyxml2's xmltest writes resources/out/), so stage a writable copy of the
+# module's DATA and run with that as the working directory.
+#
+# The binary itself is deliberately NOT run from the staged copy. A binary
+# linked against a cc_shared_library finds its .so through an $ORIGIN-relative
+# RUNPATH into Bazel's _solib_* tree; moving the executable out from under
+# runfiles severs every one of those paths and it dies with "cannot open
+# shared object file". Left in place it resolves with no LD_LIBRARY_PATH at
+# all. Verified both ways (bzl-i4i.8).
+#
+# Safe because the test binaries resolve their data relative to the WORKING
+# DIRECTORY, not to their own location — checked across the corpus; the only
+# argv[0] uses are usage strings and minigzip's basename-based mode switch,
+# neither of which cares where the executable sits.
 work_root="${TEST_TMPDIR:-$(mktemp -d)}/work"
 mkdir -p "${work_root}"
 cp -RL "${module_runfiles}/." "${work_root}/" 2>/dev/null || true
@@ -812,23 +823,9 @@ cp -RL "${module_runfiles}/." "${work_root}/" 2>/dev/null || true
 run_dir="${work_root}/${working_dir}"
 mkdir -p "${run_dir}"
 
-binary="${work_root}/${binary_name}"
+# In runfiles, not in the staged copy — see above.
+binary="${module_runfiles}/${binary_name}"
 chmod +x "${binary}" 2>/dev/null || true
-
-# A binary linked against a cc_shared_library in this module finds it through
-# an $ORIGIN-relative RUNPATH into Bazel's _solib_* directory. Staging into a
-# writable tree above breaks every one of those relative paths, so the loader
-# fails with "cannot open shared object file" even though the .so IS in
-# runfiles. Point LD_LIBRARY_PATH at the staged copies instead.
-#
-# Searched from the runfiles ROOT, not just this module's directory: the .so
-# is staged both beside the binary and under _solib_*/ in the workspace's own
-# tree, and which one exists depends on whether this module is the root or a
-# dependency. Missing directories in LD_LIBRARY_PATH are ignored, so listing
-# both is harmless.
-runfiles_root="$(dirname "${module_runfiles}")"
-solib_dirs="$(find "${runfiles_root}" -type d -name '_solib_*' 2>/dev/null | tr '\n' ':')"
-export LD_LIBRARY_PATH="${work_root}:${solib_dirs}${LD_LIBRARY_PATH:-}"
 
 output="$(cd "${run_dir}" && "${binary}" 2>&1)"
 exit_code=$?
