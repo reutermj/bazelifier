@@ -45,6 +45,16 @@ pub enum TargetKind {
 pub struct Target {
     pub name: String,
     pub kind: TargetKind,
+    /// Whether CMake declared this library SHARED. Only meaningful when
+    /// `kind` is [`TargetKind::Library`].
+    ///
+    /// A separate field rather than a `TargetKind::Library(Linkage)` payload
+    /// because linkage does not change which Bazel rule the target becomes —
+    /// both forms are a `cc_library`. Shared-ness is an ADDITIONAL
+    /// `cc_shared_library` wrapping it plus a `dynamic_deps` edge on the
+    /// consumers that link it, so it rides alongside the kind rather than
+    /// inside it. See `codegen::render_shared_library`.
+    pub is_shared: bool,
     /// Private source file paths (compiled, not exposed to consumers).
     pub sources: Vec<String>,
     /// Files this target's sources `#include` TEXTUALLY rather than compile —

@@ -4,6 +4,8 @@
 //! must build on its own, with no reference back to bazelifier's own
 //! MODULE.bazel/toolchains.
 
+use std::collections::HashSet;
+
 use crate::model::{self, BuildGraph, Target, TargetKind};
 
 // Pinned versions for the toolchain/rules every generated module currently
@@ -134,6 +136,11 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     if graph.targets.iter().any(|t| !t.textual_sources.is_empty()) {
         rules.push("cc_library");
     }
+    // A shared library is an extra rule alongside its cc_library, so its load
+    // is needed even though the target's own kind is Library.
+    if graph.targets.iter().any(|t| t.is_shared) {
+        rules.push("cc_shared_library");
+    }
     rules.sort_unstable();
     rules.dedup();
 
@@ -154,11 +161,21 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         out.push('\n');
     }
 
+    // Which of this module's targets are shared libraries, so a consumer
+    // linking one can be given the dynamic_deps edge that makes Bazel link
+    // against the .so instead of absorbing it statically.
+    let shared: HashSet<&str> = graph
+        .targets
+        .iter()
+        .filter(|t| t.is_shared)
+        .map(|t| t.name.as_str())
+        .collect();
+
     for (i, target) in graph.targets.iter().enumerate() {
         if i > 0 {
             out.push('\n');
         }
-        render_cc_rule(&mut out, target, &graph.config_headers);
+        render_cc_rule(&mut out, target, &graph.config_headers, &shared);
     }
 
     for test in &graph.tests {
@@ -348,7 +365,12 @@ const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
 /// transitivity supplies a *consumer* with its dependencies' include dirs
 /// but never a target with its own, so an `add_executable` carrying its own
 /// `target_include_directories()` fails to compile without it.
-fn render_cc_rule(out: &mut String, target: &Target, config_headers: &[model::ConfigHeader]) {
+fn render_cc_rule(
+    out: &mut String,
+    target: &Target,
+    config_headers: &[model::ConfigHeader],
+    shared: &HashSet<&str>,
+) {
     // A textually-included source needs `textual_hdrs` — "header files that
     // cannot be compiled on their own", which is exactly what a `.cc` pulled
     // in with `#include "other.cc"` is. `textual_hdrs` is a `cc_library`-only
@@ -392,6 +414,53 @@ fn render_cc_rule(out: &mut String, target: &Target, config_headers: &[model::Co
     let mut deps: Vec<String> = target.dependencies.clone();
     deps.extend(textual_dep);
     render_deps(out, &deps);
+
+    // A dependency CMake declared SHARED gets a dynamic_deps edge ALONGSIDE
+    // its deps entry, not instead of it: deps carries CcInfo (headers,
+    // include paths), which cc_shared_library does not provide, while
+    // dynamic_deps carries CcSharedLibraryInfo. Dropping either breaks the
+    // build — see docs/architecture/bazel-codegen.md.
+    //
+    // Only on binaries: cc_library has no dynamic_deps attribute, so a
+    // LIBRARY linking a shared library cannot express that in Bazel. Nothing
+    // in the corpus hits it yet; when something does it needs an escalation
+    // rather than this silent static downgrade (bzl-i4i.4).
+    if target.kind == TargetKind::Executable {
+        let dynamic: Vec<String> = target
+            .dependencies
+            .iter()
+            .filter(|d| shared.contains(d.as_str()))
+            .map(|d| format!(":{}", shared_library_name(d)))
+            .collect();
+        render_string_list(out, "dynamic_deps", &dynamic);
+    }
+
+    out.push_str(PUBLIC_VISIBILITY);
+    out.push_str(")\n");
+
+    render_shared_library(out, target);
+}
+
+/// The `cc_shared_library` name for a library target.
+fn shared_library_name(target_name: &str) -> String {
+    format!("{target_name}_shared")
+}
+
+/// Emits the `cc_shared_library` for a target CMake declared SHARED.
+///
+/// It WRAPS the `cc_library` rather than replacing it: `cc_shared_library`
+/// provides `CcSharedLibraryInfo` and not `CcInfo`, so it can never stand in
+/// for the library in a consumer's `deps` — putting it there is an analysis
+/// error. Both rules are emitted and consumers reference both.
+fn render_shared_library(out: &mut String, target: &Target) {
+    if !target.is_shared {
+        return;
+    }
+    out.push_str(&format!(
+        "\ncc_shared_library(\n    name = \"{}\",\n",
+        shared_library_name(&target.name)
+    ));
+    render_string_list(out, "deps", &[format!(":{}", target.name)]);
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
 }
@@ -1263,6 +1332,78 @@ mod tests {
             rendered.contains("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")"),
             "a binary-only module still needs the cc_library load once a \
              companion is emitted:\n{rendered}"
+        );
+    }
+
+    // bzl-i4i.1: linkage is not a different Bazel rule — both forms are a
+    // cc_library — so a shared library silently converting to static builds
+    // fine and produces identical output. Both directions are pinned here
+    // because the runtime comparison provably cannot see the difference.
+    #[test]
+    fn a_shared_library_gets_a_cc_shared_library_and_its_consumer_gets_dynamic_deps() {
+        let mut g = graph(None);
+        g.targets = vec![
+            Target {
+                name: "greet_shared".to_string(),
+                kind: TargetKind::Library,
+                is_shared: true,
+                sources: vec!["lib/greet.c".to_string()],
+                ..Default::default()
+            },
+            Target {
+                name: "greet_static".to_string(),
+                kind: TargetKind::Library,
+                sources: vec!["lib/greet.c".to_string()],
+                ..Default::default()
+            },
+            Target {
+                name: "app_shared".to_string(),
+                kind: TargetKind::Executable,
+                sources: vec!["app/main.c".to_string()],
+                dependencies: vec!["greet_shared".to_string()],
+                ..Default::default()
+            },
+            Target {
+                name: "app_static".to_string(),
+                kind: TargetKind::Executable,
+                sources: vec!["app/main.c".to_string()],
+                dependencies: vec!["greet_static".to_string()],
+                ..Default::default()
+            },
+        ];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("cc_shared_library(\n    name = \"greet_shared_shared\","),
+            "a SHARED library needs a cc_shared_library wrapping it:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("load(\"@rules_cc//cc:cc_shared_library.bzl\", \"cc_shared_library\")"),
+            "and its load:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("name = \"greet_static_shared\""),
+            "a STATIC library must NOT get one:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("dynamic_deps = [\n        \":greet_shared_shared\",\n    ],"),
+            "the consumer of the shared library needs the dynamic_deps edge, \
+             or Bazel absorbs the library statically:\n{rendered}"
+        );
+        // deps AND dynamic_deps, not one or the other: cc_shared_library
+        // provides CcSharedLibraryInfo and not CcInfo, so dropping deps loses
+        // the headers and is an analysis error.
+        assert!(
+            rendered.contains("\":greet_shared\","),
+            "the consumer must ALSO keep its deps edge for CcInfo:\n{rendered}"
+        );
+        let static_consumer = rendered
+            .split("name = \"app_static\"")
+            .nth(1)
+            .expect("app_static must render");
+        assert!(
+            !static_consumer.contains("dynamic_deps"),
+            "a consumer of a STATIC library must not get dynamic_deps:\n{rendered}"
         );
     }
 

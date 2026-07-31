@@ -721,6 +721,17 @@ fn target_kind(cmake_type: &str) -> Option<TargetKind> {
     }
 }
 
+/// Whether a CMake target type is a shared library.
+///
+/// Kept apart from `target_kind` because the two answer different questions:
+/// `target_kind` decides which Bazel rule the target becomes (both library
+/// forms are a `cc_library`), while this decides whether that rule also needs
+/// a `cc_shared_library` wrapping it. Collapsing them onto one enum would
+/// make every match on `TargetKind` care about linkage.
+fn is_shared_library(cmake_type: &str) -> bool {
+    cmake_type == "SHARED_LIBRARY"
+}
+
 /// Reads `CMAKE_PROJECT_VERSION` from the cache-v2 reply, when CMake's
 /// top-level `project()` call specified a `VERSION`. Returns `None`
 /// otherwise (CMake never sets the cache entry in that case).
@@ -955,6 +966,7 @@ fn to_target(
     let target = Target {
         name: reply.name.clone(),
         kind,
+        is_shared: is_shared_library(&reply.cmake_type),
         sources,
         public_headers,
         dependencies,

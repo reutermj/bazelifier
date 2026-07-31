@@ -34,6 +34,7 @@ validation_workspace(
         "//translator/tests/fixtures/025-sibling-header-no-include-dir:converted",
         "//translator/tests/fixtures/026-interface-usage-requirement:converted",
         "//translator/tests/fixtures/027-textually-included-source:converted",
+        "//translator/tests/fixtures/028-shared-and-static-library:converted",
         "//translator/tests/corpus/tinyxml2:converted",
         "//translator/tests/corpus/json-c:converted",
         "//translator/tests/corpus/fmt:converted",
