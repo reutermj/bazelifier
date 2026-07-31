@@ -1,4 +1,7 @@
 # Marks this directory as a package so convert_cmake_project.bzl and
 # validation_workspace.bzl can be loaded from other packages.
 
-exports_files(["compare_runtime_output.sh"])
+exports_files([
+    "check_root_module_cc_config_note.sh",
+    "compare_runtime_output.sh",
+])

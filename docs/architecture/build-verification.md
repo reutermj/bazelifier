@@ -81,6 +81,15 @@ level. What must match is behavior.
    tarball, so the deliverable remains path-free and portable — a real
    consumer would resolve `cc_config` from a registry. A fixture with no
    `configure_file` needs no flag.
+
+   Without the flag, module resolution fails with `module cc_config@0.0.0
+   not found in registries`. **That is the tarball's expected state, not a
+   packaging defect** — the two "fixes" it invites (writing the override
+   into the generated root `MODULE.bazel`, or staging a copy of
+   `cc_config/` inside the tarball) each destroy the portability this step
+   exists to prove, and both have been attempted here. See
+   [the lore entry](../lore/cc-config-is-supplied-by-flag-not-shipped-in-the-tarball.md);
+   `//translator/tests:root_module_cc_config_note_test` enforces it.
 4. **Agent triage.** Any fixture that emitted `needs_attention/` items is
    an unfinished conversion. An agent reads each item and resolves it by
    editing the *generated* `BUILD.bazel` in the unpacked workspace, then

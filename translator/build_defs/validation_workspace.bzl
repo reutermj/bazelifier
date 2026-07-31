@@ -19,6 +19,26 @@ synthesized parent-directory entries producing a nested `fixtures/fixtures/`,
 and `package_dir` being unable to rename a basename. Each failed by
 producing a subtly wrong tarball rather than an error. Staging on disk
 removes the class: one directory in, one mtree out.
+
+`cc_config` is deliberately NOT staged here, and no `bazel_dep`/
+`local_path_override` for it is emitted into the root MODULE.bazel — even
+though every generated `config_header` rule depends on it and it is not
+published to any registry yet (bzl-fxa.4). Unpacking the tarball and
+building a config_header fixture therefore fails module resolution with
+`module cc_config@0.0.0 not found in registries` until the validation
+invocation supplies it:
+
+    bazel test //:all_ground_truth_comparisons \\
+        --override_module=cc_config=<bazelifier-checkout>/cc_config
+
+That error is the expected state of the tarball, not a defect in it. Adding
+the override to the generated MODULE.bazel would bake an absolute path to a
+bazelifier checkout into the deliverable, and staging a copy of cc_config
+inside the tarball would fork it per conversion; both destroy the property
+the unpack step exists to prove — that the tarball is path-free and
+portable, resolving cc_config the way a real consumer would, from a
+registry. The flag stays on our harness. See
+docs/architecture/build-verification.md ("Unpack, fully outside this repo").
 """
 
 load("@tar.bzl//tar:mtree.bzl", "mtree_mutate", "mtree_spec")
@@ -49,6 +69,23 @@ fixture_dirs=("$@")
   echo ")"
   echo
   echo "bazel_dep(name = \\"rules_shell\\", version = \\"0.8.0\\")"
+  echo
+  # This comment ships in the unpacked workspace on purpose: when a
+  # config_header fixture fails with "module cc_config@0.0.0 not found in
+  # registries", Bazel names this file in the dependency chain, so the
+  # answer has to be readable from here — the repo's docs are not in view.
+  echo "# NOTE: no bazel_dep/local_path_override for cc_config appears below,"
+  echo "# and that is deliberate. Generated config_header rules depend on"
+  echo "# cc_config, which is not published to a registry yet, so building"
+  echo "# them from this unpacked root requires:"
+  echo "#"
+  echo "#     bazel test //:all_ground_truth_comparisons \\\\"
+  echo "#         --override_module=cc_config=<bazelifier-checkout>/cc_config"
+  echo "#"
+  echo "# The flag lives on the validation invocation rather than in this file"
+  echo "# so the tarball stays path-free and portable: a real consumer would"
+  echo "# resolve cc_config from a registry. Do not \\"fix\\" this by writing an"
+  echo "# override here or by copying cc_config into the tarball."
   echo
 } > "${out_dir}/MODULE.bazel"
 

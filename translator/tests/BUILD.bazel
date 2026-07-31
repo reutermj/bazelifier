@@ -1,3 +1,4 @@
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("//translator/build_defs:validation_workspace.bzl", "validation_workspace")
 
 # This list is what enrols a fixture in validation: a fixture directory
@@ -28,5 +29,15 @@ validation_workspace(
         "//translator/tests/fixtures/020-gnu-source-symbol:converted",
         "//translator/tests/fixtures/021-subdir-binary-shared-library:converted",
         "//translator/tests/corpus/tinyxml2:converted",
+        "//translator/tests/corpus/json-c:converted",
     ],
+)
+
+# Asserts over the REAL staged tree, not a re-derivation of the generating
+# script's logic, so it can actually contradict us.
+sh_test(
+    name = "root_module_cc_config_note_test",
+    srcs = ["//translator/build_defs:check_root_module_cc_config_note.sh"],
+    args = ["$(location :validation_workspace_tree)/MODULE.bazel"],
+    data = [":validation_workspace_tree"],
 )

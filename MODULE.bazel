@@ -58,6 +58,11 @@ bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.3", dev_dependency = Tr
 # docs/architecture/build-verification.md.
 bazel_dep(name = "tar.bzl", version = "0.10.7", dev_dependency = True)
 
+# For sh_test targets that assert over the staged validation tree. The
+# generated root module declares its own rules_shell dep independently — this
+# one is ours, and only for tests that run inside this repo.
+bazel_dep(name = "rules_shell", version = "0.8.0", dev_dependency = True)
+
 # First real upstream CMake project driving new translator work (corpus),
 # pinned to tinyxml2 11.0.0. This is INPUT to the translator only — its
 # sources feed a convert_cmake_project target as `srcs`, and the translator
