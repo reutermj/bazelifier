@@ -4,3 +4,9 @@
 #cmakedefine PACKAGE_NAME "@PACKAGE_NAME@"
 #define PACKAGE_VERSION "@PACKAGE_VERSION@"
 #define SIZEOF_LONG @SIZEOF_LONG@
+
+/* bzl-fxa.24: CMake expands a #cmakedefine wherever it appears on the line,
+   not only at the start. json-c writes exactly this shape. Both forms below
+   must expand, and the unset one drops the prefix the way CMake does. */
+/* #cmakedefine HAVE_STDLIB_H @PACKAGE_NAME@*/
+/* #cmakedefine HAVE_NO_SUCH_SYMBOL @PACKAGE_NAME@ */

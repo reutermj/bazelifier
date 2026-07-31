@@ -25,8 +25,17 @@ import json
 import re
 import sys
 
-_CMAKEDEFINE01 = re.compile(r"^(\s*)#cmakedefine01\s+(\S+)\s*$")
-_CMAKEDEFINE = re.compile(r"^(\s*)#cmakedefine\s+(\S+)(.*)$")
+# The prefix is anything before the directive, not just indentation. CMake
+# does not require `#cmakedefine` to start the line — json-c writes
+# `/* #cmakedefine json_c_strtoll @json_c_strtoll@*/`, and CMake expands it to
+# `/* #define json_c_strtoll strtoll*/`. Anchoring on `^(\s*)` left those
+# lines verbatim, so the generated header kept a literal "#cmakedefine" that
+# CMake's own output does not have (bzl-fxa.24).
+#
+# Verified against CMake 3.28: a prefix of `/* `, of two spaces, and of `xx`
+# all expand, so the rule is "wherever it appears", not "in comments".
+_CMAKEDEFINE01 = re.compile(r"^(.*?)#cmakedefine01\s+(\S+)\s*$")
+_CMAKEDEFINE = re.compile(r"^(.*?)#cmakedefine\s+(\S+)(.*)$")
 _VAR = re.compile(r"@([A-Za-z0-9_]+)@|\$\{([A-Za-z0-9_]+)\}")
 
 # CMake's if()-false constants (docs: "Constant"). A #cmakedefine tests the
@@ -66,19 +75,27 @@ def expand(template, is_set, values):
 
         m01 = _CMAKEDEFINE01.match(body)
         if m01:
-            indent, name = m01.group(1), m01.group(2)
-            out.append("%s#define %s %d%s" % (indent, name, 1 if is_set(name) else 0, eol))
+            prefix, name = m01.group(1), m01.group(2)
+            out.append("%s#define %s %d%s" % (prefix, name, 1 if is_set(name) else 0, eol))
             continue
 
         mdef = _CMAKEDEFINE.match(body)
         if mdef:
-            indent, name, rest = mdef.group(1), mdef.group(2), mdef.group(3)
+            prefix, name, rest = mdef.group(1), mdef.group(2), mdef.group(3)
             if is_set(name):
                 # The value after the name is itself @VAR@-expanded, e.g.
                 # `#cmakedefine FOO "@FOO_VALUE@"`.
-                out.append("%s#define %s%s%s" % (indent, name, _substitute_vars(rest, values), eol))
+                out.append(
+                    "%s#define %s%s%s" % (prefix, name, _substitute_vars(rest, values), eol)
+                )
             else:
-                out.append("%s/* #undef %s */%s" % (indent, name, eol))
+                # The prefix is DROPPED here, not preserved. CMake renders the
+                # unset form as its own comment and discards whatever preceded
+                # the directive: `/* #cmakedefine FOO @V@*/` becomes
+                # `/* #undef FOO */`, not `/* /* #undef FOO */`. Keeping the
+                # prefix would nest comment openers and, for a C prefix,
+                # produce something that no longer compiles.
+                out.append("/* #undef %s */%s" % (name, eol))
             continue
 
         out.append(_substitute_vars(body, values) + eol)

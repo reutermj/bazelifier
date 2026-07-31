@@ -136,11 +136,20 @@ assert_config_header_test(
         # A size probe's number substituted as a value (8 on the linux
         # x86-64 toolchain this builds against).
         "#define SIZEOF_LONG 8",
+        # bzl-fxa.24: a directive that does not start the line still expands,
+        # and the unset form drops whatever preceded it rather than nesting
+        # comment openers. Both verified against CMake 3.28's own output.
+        "/* #define HAVE_STDLIB_H cc_config_test*/",
     ],
     must_not_contain = [
         "#define HAVE_NO_SUCH_SYMBOL",
         "@PACKAGE_VERSION@",
         "@SIZEOF_LONG@",
+        # The literal directive must not survive anywhere — that is exactly
+        # what json-c's generated header retained (bzl-fxa.24).
+        "#cmakedefine",
+        # And the unset form must not nest comment openers.
+        "/* /* #undef",
     ],
 )
 
