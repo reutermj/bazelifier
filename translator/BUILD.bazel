@@ -16,6 +16,7 @@ rust_binary(
         "src/needs_attention.rs",
         "src/ninja_deps.rs",
         "src/paths.rs",
+        "src/resolutions.rs",
     ],
     edition = "2024",
     visibility = ["//translator/build_defs:__pkg__"],

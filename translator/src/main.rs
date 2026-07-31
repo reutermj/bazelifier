@@ -7,6 +7,7 @@ mod codegen;
 mod model;
 mod ninja_deps;
 mod needs_attention;
+mod resolutions;
 mod paths;
 
 use std::collections::HashSet;
@@ -94,6 +95,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
     write_needs_attention(&args.out_module, &discovery.needs_attention)?;
+    write_resolutions(&args.out_module)?;
 
     Ok(())
 }
@@ -141,6 +143,24 @@ fn write_needs_attention(
         codegen::render_needs_attention_build_bazel(),
     )?;
 
+    Ok(())
+}
+
+/// Writes the recommended-resolution recipes into `<out_module>/resolutions/`.
+///
+/// Always, not only when something escalated: a module whose items were
+/// resolved and deleted still benefits if a later re-conversion reopens one,
+/// and a complete directory cannot be mistaken for a truncated one.
+///
+/// Not a Bazel package — unlike `needs_attention/`, nothing depends on these
+/// as build inputs, so there is no `BUILD.bazel` and no glob to keep
+/// non-empty. They are documentation that travels with the module.
+fn write_resolutions(out_module: &Path) -> std::io::Result<()> {
+    let dir = out_module.join("resolutions");
+    fs::create_dir_all(&dir)?;
+    for recipe in resolutions::all() {
+        fs::write(dir.join(recipe.filename), recipe.body)?;
+    }
     Ok(())
 }
 

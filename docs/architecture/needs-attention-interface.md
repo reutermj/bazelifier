@@ -104,6 +104,28 @@ grep the escalation text for the limitation it just removed.
   the live example). See
   [build-verification.md](build-verification.md#header-visibility-is-not-enforced-by-default).
 
+## `resolutions/`: the other half of the handoff
+
+Each converted module also carries a `resolutions/` directory (from
+`translator/src/resolutions.rs`) holding one markdown recipe per *shape* of
+gap. The split is by lifetime and scope:
+
+- a `needs_attention/` item is about **this project** and disappears when
+  resolved;
+- a `resolutions/` recipe is about **the shape of the gap** and evolves with
+  the translator's capabilities.
+
+Both ship inside the module rather than in this repo, for the same reason:
+the resolving agent works in an unpacked module with no access to
+bazelifier's checkout, and the module is meant to be liftable out of the
+tarball entirely. Duplication across modules is the accepted cost.
+
+There is deliberately **no machine-readable mapping** from an item to its
+recipe. Filenames are descriptive and `resolutions/README.md` explains the
+directory; an agent that can read an escalation can find the matching
+recipe. Threading a `kind` slug through the item schema would be two things
+to keep in sync, one of them emitted text, to save a directory listing.
+
 ## Not to be confused with `docs/runbooks/`
 
 [docs/runbooks/](../runbooks/) holds **repo maintenance** procedures for

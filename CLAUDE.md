@@ -89,6 +89,11 @@ source in every fixture build.
     from Rust, it goes here.
   - `src/needs_attention.rs` — the translator → agent handoff: the text of
     every escalation, plus its markdown rendering.
+  - `src/resolutions.rs` — the recipes shipped into each module's
+    `resolutions/`: how a *shape* of gap is usually closed, as opposed to
+    what went wrong in this project (which is `needs_attention/`'s job).
+    Sketches to adapt, never patches to apply, and deliberately duplicated
+    per module because a module is meant to be lifted out on its own.
   - `src/model.rs` — shared internal build-graph model.
   - `src/main.rs` — CLI: writes the standalone module (sources +
     generated files + `ground_truth/`) to an output directory.

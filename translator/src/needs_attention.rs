@@ -244,22 +244,25 @@ pub fn generated_config_header_needs_attention(
              the portable, hermetic module the pipeline is supposed to produce.\n\n\
              The values in these headers are facts about the target platform and toolchain, so \
              they must be computed against whatever toolchain the CONSUMER of this module \
-             builds with, not captured from the conversion host. The intended design is a \
-             shared Bazel-native probing module that reproduces CMake's `check_include_file` / \
-             `check_symbol_exists` / `check_type_size` as rules resolving the consumer's \
-             toolchain — see docs/architecture/configure-file-and-toolchain-probes.md. That \
-             capability is not built yet.\n\n\
+             builds with, not captured from the conversion host. That capability EXISTS and \
+             this module already depends on it: `cc_config` is a Bazel-native probing module \
+             reproducing CMake's `check_include_file` / `check_symbol_exists` / \
+             `check_type_size` as rules that resolve the consumer's toolchain, and its \
+             `config_header` rule expands a template against them. See this module's \
+             `MODULE.bazel` for the `bazel_dep`, and `resolutions/` for a worked recipe.\n\n\
              Either way '{target_name}' will not compile until the header it includes is \
              available."
         ),
         expected_output: format!(
             "Produce the config header(s) for '{target_name}' in a way that stays correct for \
              the consumer's toolchain — not by copying the conversion host's generated file. \
-             Until the probing capability above exists, that means reproducing the substitution \
-             in the generated `BUILD.bazel` (a rule that resolves the needed values against the \
-             build's own toolchain and expands the project's `.in`/`.cmakein` template), and \
-             wiring the result into '{target_name}'. Do NOT edit the project's CMakeLists.txt, \
-             and do NOT vendor the host-generated header."
+             That means a `@cc_config//cc_config:config_header.bzl` `config_header` rule in the \
+             generated `BUILD.bazel`: it expands the project's template against catalog probes \
+             resolved by the build's own toolchain. Wire its output into '{target_name}'s \
+             `srcs`. `resolutions/generated-config-header.md` in this module carries a worked \
+             example, including what to do when the template itself is not in the source tree. \
+             Do NOT edit the project's CMakeLists.txt, and do NOT vendor the host-generated \
+             header."
         ),
         title,
     }
@@ -591,6 +594,37 @@ pub fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // bzl-fxa.23: this text told the agent the cc_config probing capability
+    // "is not built yet" long after it shipped, steering them toward
+    // hand-rolling or vendoring — the very thing the same item forbids two
+    // paragraphs earlier. A capability landing must not leave a shipped
+    // escalation claiming it is missing.
+    #[test]
+    fn generated_config_header_escalation_points_at_cc_config_not_at_a_future_capability() {
+        let item = generated_config_header_needs_attention("mylib", &["/build/config.h".into()]);
+        let text = format!("{}\n{}", item.context, item.expected_output);
+
+        assert!(
+            text.contains("cc_config"),
+            "the escalation must name the mechanism that resolves it:\n{text}"
+        );
+        assert!(
+            text.contains("config_header"),
+            "and the rule to use:\n{text}"
+        );
+        for stale in ["is not built yet", "Until the probing capability"] {
+            assert!(
+                !text.contains(stale),
+                "escalation still claims the probing capability is missing ({stale:?}); \
+                 cc_config exists and this module already depends on it:\n{text}"
+            );
+        }
+        assert!(
+            text.contains("do NOT vendor") || text.contains("Do NOT vendor"),
+            "the do-not-vendor guidance is still load-bearing and must survive:\n{text}"
+        );
+    }
     #[test]
     fn unsupported_target_escalation_names_type_and_target() {
         let item = unsupported_target_needs_attention("gen_docs", "UTILITY", &[]);
