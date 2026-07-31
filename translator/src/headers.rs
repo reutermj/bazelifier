@@ -34,7 +34,7 @@
 //! `#include`d bodies rather than interface headers, so staging them is
 //! right and escalating on them is not.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
@@ -57,6 +57,53 @@ pub(crate) fn looks_like_header(path: &str) -> bool {
         Path::new(path).extension().and_then(|e| e.to_str()),
         Some("h") | Some("hpp") | Some("hh") | Some("hxx")
     )
+}
+
+/// Adds files the compiler actually opened for a target but that nothing
+/// declared — the enrichment `ninja_deps` exists to supply.
+///
+/// Two shapes reach here and nothing else does:
+///
+/// - A header found by the **quoted-include rule** searching the including
+///   file's own directory. `inject_headers_on_include_dirs` covers the common
+///   version by treating each source's directory as an implicit include path,
+///   but only non-recursively; a relative include escaping that directory
+///   (`"../other/x.h"`) is invisible to it.
+/// - A **source textually `#include`d** rather than compiled, which CMake
+///   deliberately keeps out of the target's source list so it is not also
+///   built separately. fmt's `posix-mock-test` does
+///   `#include "../src/os.cc"`.
+///
+/// Everything lands in `sources`, never `public_headers`: having been opened
+/// is evidence of a compile-time dependency, not of membership in the
+/// interface — the same distinction that separates the two passes above.
+///
+/// Only ever adds. It cannot remove: `ninja_deps` sees one configuration, and
+/// a header behind a disabled `#ifdef` is absent from it while still being a
+/// real input for a consumer configuring differently.
+pub(crate) fn inject_opened_files(
+    targets: &mut [Target],
+    opened_by_target: &HashMap<String, Vec<String>>,
+) {
+    for target in targets.iter_mut() {
+        let Some(opened) = opened_by_target.get(&target.name) else {
+            continue;
+        };
+        let accounted: HashSet<&str> = target
+            .sources
+            .iter()
+            .chain(target.public_headers.iter())
+            .map(String::as_str)
+            .collect();
+
+        let mut discovered: Vec<String> = opened
+            .iter()
+            .filter(|f| !accounted.contains(f.as_str()))
+            .cloned()
+            .collect();
+        discovered.sort();
+        target.sources.extend(discovered);
+    }
 }
 
 /// Whether an `install(FILES ...)` destination is a public-header include

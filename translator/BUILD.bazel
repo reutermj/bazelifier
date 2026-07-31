@@ -14,6 +14,7 @@ rust_binary(
         "src/main.rs",
         "src/model.rs",
         "src/needs_attention.rs",
+        "src/ninja_deps.rs",
         "src/paths.rs",
     ],
     edition = "2024",

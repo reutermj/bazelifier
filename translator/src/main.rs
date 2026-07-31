@@ -5,6 +5,7 @@ mod headers;
 mod ctest;
 mod codegen;
 mod model;
+mod ninja_deps;
 mod needs_attention;
 mod paths;
 

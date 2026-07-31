@@ -20,10 +20,11 @@ use crate::configure_file::{build_config_headers, is_config_header_output, parse
 use crate::ctest;
 use crate::error::Error;
 use crate::headers::{
-    inject_headers_on_include_dirs, inject_unenumerated_installed_headers, is_include_destination,
+    inject_headers_on_include_dirs, inject_opened_files, inject_unenumerated_installed_headers, is_include_destination,
     looks_like_header,
 };
 use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
+use crate::ninja_deps;
 use crate::needs_attention::{
     NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
     header_visibility_needs_attention,
@@ -109,6 +110,11 @@ struct TargetReply {
     name: String,
     #[serde(rename = "type")]
     cmake_type: String,
+    /// Where CMake puts this target's build outputs, relative to the build
+    /// directory ("." at the root, "test" for a subdirectory target). Used to
+    /// derive its object-file prefix — see `ninja_deps::build_prefix`.
+    #[serde(default)]
+    paths: TargetPaths,
     sources: Vec<TargetSource>,
     #[serde(default)]
     #[serde(rename = "fileSets")]
@@ -130,6 +136,13 @@ struct TargetReply {
     #[serde(default)]
     #[serde(rename = "backtraceGraph")]
     backtrace_graph: BacktraceGraph,
+}
+
+/// A target's own source/build directories, as the File API reports them.
+#[derive(Debug, Default, Deserialize)]
+struct TargetPaths {
+    #[serde(default)]
+    build: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -457,6 +470,7 @@ fn read_codemodel_reply(
     let mut targets = Vec::new();
     let mut needs_attention = Vec::new();
     let mut inherited_by_name: HashMap<String, Vec<String>> = HashMap::new();
+    let mut build_prefixes: HashMap<String, String> = HashMap::new();
     // Project-authored convenience targets (UTILITY-ish, no artifacts, no
     // dependents) that aren't from a CMake module — aggregated into ONE
     // escalation at the end instead of one apiece, so a project with a
@@ -519,6 +533,10 @@ fn read_codemodel_reply(
         // Kept alongside the built target so the reconciliation pass below
         // can re-derive what own_include_dirs dropped for it.
         inherited_by_name.insert(target.name.clone(), own_include_dirs(reply).1);
+        build_prefixes.insert(
+            target.name.clone(),
+            ninja_deps::build_prefix(&target.name, &reply.paths.build),
+        );
         targets.push(target);
         needs_attention.extend(attention);
     }
@@ -544,6 +562,14 @@ fn read_codemodel_reply(
     // already accounted for. Both run before rebasing, while sources are
     // project-relative and include dirs absolute.
     inject_headers_on_include_dirs(&mut targets, &source_dir);
+    // Supplements the walk above with what the compiler ACTUALLY opened —
+    // a sibling header found by the quoted-include rule, a source textually
+    // #included rather than compiled. Never replaces it: the database
+    // reflects one configuration, so a header behind a disabled #ifdef is
+    // absent from it yet still an input for a consumer configuring
+    // differently. See ninja_deps.
+    let opened = ninja_deps::opened_files_by_target(build_dir, &source_dir, &build_prefixes);
+    inject_opened_files(&mut targets, &opened);
 
     let (module_root, rebase_escalations) = rebase_to_module_root(
         &mut targets,
@@ -1199,6 +1225,7 @@ mod tests {
         let reply = TargetReply {
             name: "hello".to_string(),
             cmake_type: "EXECUTABLE".to_string(),
+            paths: TargetPaths::default(),
             sources: vec![],
             file_sets: vec![],
             dependencies: vec![],
@@ -1256,6 +1283,7 @@ mod tests {
         let reply = TargetReply {
             name: "app".to_string(),
             cmake_type: "EXECUTABLE".to_string(),
+            paths: TargetPaths::default(),
             sources: vec![],
             file_sets: vec![],
             dependencies: vec![],
@@ -1305,6 +1333,7 @@ mod tests {
         TargetReply {
             name: name.to_string(),
             cmake_type: "UTILITY".to_string(),
+            paths: TargetPaths::default(),
             sources: vec![],
             file_sets: vec![],
             dependencies: vec![],
@@ -1416,6 +1445,7 @@ mod tests {
         TargetReply {
             name: "greet".to_string(),
             cmake_type: "STATIC_LIBRARY".to_string(),
+            paths: TargetPaths::default(),
             sources,
             file_sets,
             dependencies: vec![],
@@ -1687,6 +1717,7 @@ mod tests {
         let reply = TargetReply {
             name: "hello".to_string(),
             cmake_type: "EXECUTABLE".to_string(),
+            paths: TargetPaths::default(),
             sources: vec![TargetSource {
                 path: "src/main.cpp".to_string(),
                 file_set_index: None,
@@ -1724,6 +1755,7 @@ mod tests {
         let reply = TargetReply {
             name: "app".to_string(),
             cmake_type: "EXECUTABLE".to_string(),
+            paths: TargetPaths::default(),
             sources: vec![],
             file_sets: vec![],
             dependencies: vec![
@@ -1763,6 +1795,7 @@ mod tests {
         let reply = TargetReply {
             name: "app".to_string(),
             cmake_type: "EXECUTABLE".to_string(),
+            paths: TargetPaths::default(),
             sources: vec![
                 TargetSource {
                     path: "src/main.cpp".to_string(),
@@ -1823,6 +1856,7 @@ mod tests {
         let reply = TargetReply {
             name: "app".to_string(),
             cmake_type: "EXECUTABLE".to_string(),
+            paths: TargetPaths::default(),
             sources: vec![
                 TargetSource {
                     path: "src/main.cpp".to_string(),
