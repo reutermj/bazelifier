@@ -318,6 +318,7 @@ mod tests {
             includes: Vec::new(),
             local_defines: Vec::new(),
             artifacts: Vec::new(),
+            ..Default::default()
         }
     }
 

@@ -96,13 +96,24 @@ pub(crate) fn inject_opened_files(
             .map(String::as_str)
             .collect();
 
-        let mut discovered: Vec<String> = opened
+        let (mut headers, mut textual): (Vec<String>, Vec<String>) = opened
             .iter()
             .filter(|f| !accounted.contains(f.as_str()))
+            .filter(|f| !target.textual_sources.contains(f))
             .cloned()
-            .collect();
-        discovered.sort();
-        target.sources.extend(discovered);
+            .partition(|f| is_header_file(Path::new(f)));
+
+        headers.sort();
+        target.sources.extend(headers);
+
+        // A non-header that was opened is a source #included TEXTUALLY: CMake
+        // left it out of this target's sources precisely so it is not also
+        // compiled separately. It cannot go in `srcs` — Bazel treats a .cc
+        // there as a translation unit and never stages it for the compile
+        // that includes it — so it becomes `textual_hdrs`. See
+        // `model::Target::textual_sources`.
+        textual.sort();
+        target.textual_sources.extend(textual);
     }
 }
 
@@ -397,6 +408,7 @@ mod tests {
             includes,
             local_defines: Vec::new(),
             artifacts: Vec::new(),
+            ..Default::default()
         }
     }
 

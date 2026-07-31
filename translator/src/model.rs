@@ -25,8 +25,9 @@ pub fn is_module_relative(path: &str) -> bool {
     !path.is_absolute() && !path.components().any(|c| matches!(c, Component::ParentDir))
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum TargetKind {
+    #[default]
     Executable,
     Library,
     // Other CMake target types (OBJECT_LIBRARY, INTERFACE_LIBRARY, ...) are
@@ -40,12 +41,24 @@ pub enum TargetKind {
 /// all have to meet. That root is derived rather than assumed to be the
 /// CMake project directory, so these are not simply the paths the File API
 /// reported; `cmake_api::rebase_to_module_root` rewrites them.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Target {
     pub name: String,
     pub kind: TargetKind,
     /// Private source file paths (compiled, not exposed to consumers).
     pub sources: Vec<String>,
+    /// Files this target's sources `#include` TEXTUALLY rather than compile —
+    /// a `.c`/`.cc` pulled in with `#include "other.cc"`, which CMake
+    /// deliberately keeps out of the target's source list so it is not also
+    /// built separately (fmt's `posix-mock-test` does
+    /// `#include "../src/os.cc"`).
+    ///
+    /// Kept apart from `sources` because the two need different Bazel
+    /// attributes: a `.cc` in `srcs` is a translation unit Bazel compiles, so
+    /// it is never staged as an input to the sibling compile that includes
+    /// it. These become `textual_hdrs` — "header files that cannot be
+    /// compiled on their own", which is what a textually-included source is.
+    pub textual_sources: Vec<String>,
     /// Public header file paths — only ones CMake can confidently identify
     /// as public, from either of two authoritative declarations: a
     /// `target_sources(... FILE_SET ... TYPE HEADERS)` with

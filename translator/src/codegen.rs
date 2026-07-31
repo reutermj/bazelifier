@@ -128,6 +128,12 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     // output doesn't depend on target order (and matches what buildifier
     // would produce anyway).
     let mut rules: Vec<&str> = graph.targets.iter().map(|t| rule_name(&t.kind)).collect();
+    // A target with textually-included sources gets a companion cc_library
+    // (render_textual_hdrs_library), which needs its load even in a module
+    // that otherwise emits only binaries.
+    if graph.targets.iter().any(|t| !t.textual_sources.is_empty()) {
+        rules.push("cc_library");
+    }
     rules.sort_unstable();
     rules.dedup();
 
@@ -343,6 +349,14 @@ const PUBLIC_VISIBILITY: &str = "    visibility = [\"//visibility:public\"],\n";
 /// but never a target with its own, so an `add_executable` carrying its own
 /// `target_include_directories()` fails to compile without it.
 fn render_cc_rule(out: &mut String, target: &Target, config_headers: &[model::ConfigHeader]) {
+    // A textually-included source needs `textual_hdrs` — "header files that
+    // cannot be compiled on their own", which is exactly what a `.cc` pulled
+    // in with `#include "other.cc"` is. `textual_hdrs` is a `cc_library`-only
+    // attribute (`cc_binary` has neither it nor `hdrs`), so a companion
+    // library carries it and this target depends on it. That also keeps the
+    // file out of `srcs`, where Bazel would compile it a second time.
+    let textual_dep = render_textual_hdrs_library(out, target);
+
     out.push_str(&format!("{}(\n", rule_name(&target.kind)));
     out.push_str(&format!("    name = \"{}\",\n", target.name));
 
@@ -375,9 +389,31 @@ fn render_cc_rule(out: &mut String, target: &Target, config_headers: &[model::Co
     // Not render_path_list: a define (`FOO`, `FOO=1`) is not a path and
     // must not be run through the module-relative assertion.
     render_string_list(out, "local_defines", &target.local_defines);
-    render_deps(out, &target.dependencies);
+    let mut deps: Vec<String> = target.dependencies.clone();
+    deps.extend(textual_dep);
+    render_deps(out, &deps);
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
+}
+
+/// Emits a companion `cc_library` holding `target`'s textually-included
+/// sources, returning its name for the target's `deps` — or `None` when there
+/// are none.
+///
+/// A separate rule rather than an attribute on the target itself because
+/// `textual_hdrs` exists only on `cc_library`, and the targets that textually
+/// include a source are usually executables (fmt's `posix-mock-test`).
+/// Emitted immediately before its consumer so the two read together.
+fn render_textual_hdrs_library(out: &mut String, target: &Target) -> Option<String> {
+    if target.textual_sources.is_empty() {
+        return None;
+    }
+    let name = format!("{}_textual", target.name);
+    out.push_str(&format!("cc_library(\n    name = \"{name}\",\n"));
+    render_path_list(out, "textual_hdrs", &target.textual_sources);
+    out.push_str(PUBLIC_VISIBILITY);
+    out.push_str(")\n\n");
+    Some(name)
 }
 
 /// Renders the `BUILD.bazel` for the generated module's `needs_attention/`
@@ -573,6 +609,7 @@ mod tests {
                 includes: vec![],
                 local_defines: vec![],
                 artifacts: vec!["hello".to_string()],
+                ..Default::default()
             }],
         }
     }
@@ -606,6 +643,7 @@ mod tests {
                     includes: vec!["include".to_string()],
                     local_defines: vec![],
                     artifacts: vec!["libgreet.a".to_string()],
+                    ..Default::default()
                 },
                 Target {
                     name: "hello".to_string(),
@@ -616,6 +654,7 @@ mod tests {
                     includes: vec![],
                     local_defines: vec![],
                     artifacts: vec!["hello".to_string()],
+                    ..Default::default()
                 },
             ],
         };
@@ -668,6 +707,7 @@ mod tests {
                 includes: vec!["inc".to_string()],
                 local_defines: vec![],
                 artifacts: vec!["app".to_string()],
+                ..Default::default()
             }],
         };
 
@@ -704,6 +744,7 @@ mod tests {
                     includes: vec!["inc".to_string()],
                     local_defines: vec![],
                     artifacts: vec![],
+                    ..Default::default()
                 }],
             };
 
@@ -788,6 +829,7 @@ mod tests {
                 includes: vec![],
                 local_defines: vec![],
                 artifacts: vec!["xmltest".to_string()],
+                ..Default::default()
             }],
             tests: vec![test],
             config_headers: vec![],
@@ -942,6 +984,7 @@ mod tests {
             includes: vec![],
             local_defines: vec![],
             artifacts: vec![],
+            ..Default::default()
         };
         mutate(&mut target);
         BuildGraph {
@@ -1014,6 +1057,7 @@ mod tests {
                     includes: vec!["include".to_string()],
                     local_defines: vec![],
                     artifacts: vec!["liblib.a".to_string()],
+                    ..Default::default()
                 },
                 Target {
                     name: "app".to_string(),
@@ -1024,6 +1068,7 @@ mod tests {
                     includes: vec!["inc".to_string()],
                     local_defines: vec![],
                     artifacts: vec!["app".to_string()],
+                    ..Default::default()
                 },
             ],
         };
@@ -1179,6 +1224,45 @@ mod tests {
             rendered.contains("name = \"fmt\""),
             "an unnormalized name makes the generated MODULE.bazel unloadable, \
              and the error names this file rather than the CMake project:\n{rendered}"
+        );
+    }
+
+    // bzl-2wi.5: a textually-included source cannot go in `srcs` — Bazel
+    // treats a .cc there as a translation unit, compiling it a second time
+    // and never staging it for the compile that includes it. It goes in
+    // `textual_hdrs`, which only cc_library has, hence the companion rule.
+    #[test]
+    fn a_textually_included_source_becomes_a_companion_textual_hdrs_library() {
+        let mut g = graph(None);
+        g.targets = vec![Target {
+            name: "impl-test".to_string(),
+            kind: TargetKind::Executable,
+            sources: vec!["test/impl-test.c".to_string()],
+            textual_sources: vec!["src/impl.c".to_string()],
+            ..Default::default()
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains(
+                "cc_library(\n    name = \"impl-test_textual\",\n    textual_hdrs = [\n        \"src/impl.c\",\n    ],"
+            ),
+            "the companion library must carry the file in textual_hdrs:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("\":impl-test_textual\""),
+            "the target must depend on its companion, or the file is never \
+             staged for the compile that includes it:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("        \"src/impl.c\",\n    ],\n    deps"),
+            "the file must NOT also appear in srcs — Bazel would compile it a \
+             second time, producing duplicate symbols:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")"),
+            "a binary-only module still needs the cc_library load once a \
+             companion is emitted:\n{rendered}"
         );
     }
 

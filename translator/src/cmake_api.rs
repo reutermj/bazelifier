@@ -961,6 +961,7 @@ fn to_target(
         includes,
         local_defines,
         artifacts: reply.artifacts.iter().map(|a| a.path.clone()).collect(),
+        ..Default::default()
     };
 
     (target, needs_attention)
@@ -1651,6 +1652,7 @@ mod tests {
             includes,
             local_defines: Vec::new(),
             artifacts: Vec::new(),
+            ..Default::default()
         }
     }
 
@@ -1934,6 +1936,7 @@ mod tests {
             includes: includes.into_iter().map(str::to_string).collect(),
             local_defines: vec![],
             artifacts: vec![],
+            ..Default::default()
         }
     }
 

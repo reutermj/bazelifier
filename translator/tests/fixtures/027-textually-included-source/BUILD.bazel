@@ -1,0 +1,15 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives textual_hdrs generation (bzl-2wi.5): impl-test.c includes
+# ../src/impl.c textually, which no header-based staging rule reaches and
+# which cannot go in srcs without being compiled twice. See the fixture's
+# CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "test/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)
