@@ -126,3 +126,24 @@ git_repository(
     commit = "1be298e1bd68957e4cd352e1f676f00e07dcfb57",  # tag 12.2.0
     remote = "https://github.com/fmtlib/fmt",
 )
+
+# Fourth corpus project: zlib 1.3.2. Brings the first SHARED_LIBRARY in the
+# corpus — and unusually, builds the same sources both ways (libz.so as
+# target `zlib`, libz.a as `zlibstatic`) with executables linking each, so a
+# conversion either reproduces that split or is provably wrong. It also has a
+# configure_file whose TEMPLATE is itself generated into the build directory
+# (zconf.h.cmakein), and 10 CTest tests whose command is cmake/gcov rather
+# than a built binary — the first real project to exercise that escalation.
+# INPUT to the translator only, same copy-through model as the others.
+# See bzl-i4i.
+git_repository(
+    name = "zlib",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    commit = "216c70c020aa53f0c40920d155f808b6b59c9acb",  # tag v1.3.2
+    remote = "https://github.com/madler/zlib",
+)

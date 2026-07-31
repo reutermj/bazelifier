@@ -1,0 +1,23 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Fourth corpus project (after tinyxml2, json-c and fmt). zlib 1.3.2 is here
+# for shared libraries: it is the first corpus project with a SHARED_LIBRARY,
+# and it builds the same sources both ways — libz.so (target `zlib`) and
+# libz.a (`zlibstatic`) — with executables linking each. That makes it a
+# direct test of whether a conversion reproduces the project's own linkage
+# split or silently normalizes it to static.
+#
+# It also brings two shapes no earlier project has: a configure_file whose
+# template is itself generated into the build directory, and CTest tests
+# whose command is cmake/gcov rather than a binary this module builds.
+#
+# Sources come from the @zlib git_repository (pinned in MODULE.bazel), not
+# vendored. source_dir is left empty so the rule derives it from the root
+# CMakeLists.
+#
+# See bzl-i4i.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["@zlib//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)

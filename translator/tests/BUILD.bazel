@@ -37,6 +37,7 @@ validation_workspace(
         "//translator/tests/corpus/tinyxml2:converted",
         "//translator/tests/corpus/json-c:converted",
         "//translator/tests/corpus/fmt:converted",
+        "//translator/tests/corpus/zlib:converted",
     ],
 )
 
