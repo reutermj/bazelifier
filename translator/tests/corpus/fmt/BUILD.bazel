@@ -1,0 +1,25 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Third corpus project (after tinyxml2 and json-c). fmt 12.2.0 is a C++
+# formatting library, chosen for a shape neither predecessor has: 26 targets
+# across three directories (., test, test/gtest), 22 executables against one
+# library, and a vendored gtest built as a real sub-library rather than
+# fetched.
+#
+# Unlike json-c it needs no new frontend capability to convert — it has no
+# configure_file headers, no generated sources, and its 21 CTest commands are
+# all build-tree binaries whose names match their targets. It is here for
+# scale and for C++: the first corpus project where the bulk of the work is
+# many executables sharing one library.
+#
+# Sources come from the @fmt git_repository (pinned in MODULE.bazel), not
+# vendored — the pinned commit is the version record and the translator
+# copies the referenced sources into the standalone module it emits.
+# source_dir is left empty so the rule derives it from the root CMakeLists.
+#
+# See bzl-2wi.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["@fmt//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)

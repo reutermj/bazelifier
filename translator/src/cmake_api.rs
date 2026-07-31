@@ -768,6 +768,34 @@ fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<PathBuf, Error> {
     )))
 }
 
+/// Whether a path is something a C/C++ rule can take in `srcs`/`hdrs` — a
+/// compilable translation unit or a header.
+///
+/// Deliberately an allowlist, not a denylist of "docs and metadata": a new
+/// extension the translator has not seen should be dropped and noticed, not
+/// passed through to fail deep in `rules_cc` analysis with an error naming
+/// the generated file rather than the CMake input. Assembly and ObjC are
+/// included though the current corpus has none — they are genuinely
+/// buildable, and leaving them out would silently drop real inputs.
+fn is_buildable_source(path: &str) -> bool {
+    // Lowercased: extensions are case-insensitive in practice (a .S assembly
+    // file is the same input as .s, and Windows-origin projects ship .CPP).
+    let ext = Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase);
+    matches!(
+        ext.as_deref(),
+        Some(
+            // Compiled translation units.
+            "c" | "cc" | "cpp" | "cxx" | "c++" | "m" | "mm" | "s" | "asm"
+            // Headers: not compiled, but rules_cc accepts them and they must
+            // ship so the sandbox has them.
+            | "h" | "hpp" | "hh" | "hxx" | "inc" | "ipp" | "tcc" | "def"
+        )
+    )
+}
+
 /// The set of header paths the project installs to an include destination,
 /// gathered across every directory reply — the project's own authoritative
 /// declaration of which headers are public, via `install(FILES ... TYPE
@@ -824,6 +852,21 @@ fn to_target(
                 continue;
             }
             generated_sources.push(source.path.clone());
+            continue;
+        }
+
+        // CMake accepts non-buildable files in a target's source list — a
+        // common IDE convenience that makes docs and metadata show up in the
+        // generated project (fmt lists README.md and ChangeLog.md on its
+        // library) — and simply does not compile them. The File API reports
+        // them as ordinary sources, but rules_cc rejects anything it can't
+        // build with "source file '...' is misplaced here", at analysis time.
+        //
+        // Dropped rather than escalated: CMake does not build the file
+        // either, so nothing is missing from the conversion and there is no
+        // gap for an agent to close — an escalation per README would be
+        // noise on a large fraction of projects.
+        if !is_buildable_source(&source.path) {
             continue;
         }
 
@@ -1308,6 +1351,36 @@ mod tests {
             compile_groups: vec![],
             backtrace: None,
             backtrace_graph: empty_backtrace_graph(),
+        }
+    }
+
+    // bzl-2wi.2: fmt lists README.md and ChangeLog.md on its library. CMake
+    // accepts non-buildable files in a source list and ignores them; rules_cc
+    // fails analysis with "source file '...' is misplaced here".
+    #[test]
+    fn is_buildable_source_accepts_only_what_a_cc_rule_can_take() {
+        for src in [
+            "src/format.cc",
+            "a.c",
+            "a.cpp",
+            "a.cxx",
+            "a.m",
+            "a.mm",
+            "a.s",
+            "a.S",
+            "a.asm",
+        ] {
+            assert!(is_buildable_source(src), "{src} is a translation unit");
+        }
+        for hdr in ["a.h", "a.hpp", "a.hxx", "a.inc", "a.tcc", "a.def"] {
+            assert!(is_buildable_source(hdr), "{hdr} is a header rules_cc takes");
+        }
+        for other in ["README.md", "ChangeLog.md", "LICENSE", "a.natvis", "a.txt"] {
+            assert!(
+                !is_buildable_source(other),
+                "{other} is not buildable — CMake ignores it too, so dropping it \
+                 loses nothing, while passing it through fails rules_cc analysis"
+            );
         }
     }
 

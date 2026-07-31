@@ -103,3 +103,26 @@ git_repository(
     commit = "25602128ed580416222601b4da5a50cdb1bc2a58",  # tag json-c-0.19-20260627
     remote = "https://github.com/json-c/json-c",
 )
+
+# Third corpus project: fmt 12.2.0, a C++ formatting library. Different in
+# shape from the first two on purpose — 26 targets across three directories,
+# 22 executables, and a VENDORED gtest as a real sub-library, where tinyxml2
+# is one library plus one test and json-c is autoconf-style C.
+#
+# It needs NO new capability to reach a first conversion: no configure_file
+# headers (only .pc/.cmake outputs, already filtered), no generated sources,
+# all 21 CTest commands are build-tree binaries with test name == binary name.
+# What it does bring is scale, C++, and non-source files listed as target
+# sources (README.md/ChangeLog.md on the fmt library). INPUT to the translator
+# only, same copy-through model as the others. See bzl-2wi.
+git_repository(
+    name = "fmt",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    commit = "1be298e1bd68957e4cd352e1f676f00e07dcfb57",  # tag 12.2.0
+    remote = "https://github.com/fmtlib/fmt",
+)

@@ -37,6 +37,47 @@ pub fn render(graph: &BuildGraph) -> GeneratedModule {
     }
 }
 
+/// Normalizes a CMake `project()` name into a valid Bazel module name.
+///
+/// Bazel's grammar is stricter than CMake's: a module name may contain only
+/// lowercase letters, digits, `.`, `-` and `_`, must begin with a lowercase
+/// letter, and must end with a lowercase letter or digit. CMake project names
+/// are conventionally capitalized (`FMT`, `GTest`, `ZLIB`), so passing one
+/// through unchanged produces a `MODULE.bazel` that fails at module
+/// RESOLUTION — before any target is analyzed, with an error naming the
+/// generated file rather than the project it came from.
+///
+/// Deliberately total rather than fallible: every generated `bazel_dep` and
+/// `local_path_override` refers to this name, so returning an error here
+/// would fail a conversion over a cosmetic mismatch, and escalating would ask
+/// an agent to invent a name the rest of the output already assumes. The
+/// mapping is lossy but deterministic — two different CMake names can collide
+/// (`My-Lib` and `my_lib` both become... different, but `MY.LIB` and `my.lib`
+/// do not), which is acceptable because a module holds one project.
+fn module_name(project_name: &str) -> String {
+    let mut name: String = project_name
+        .chars()
+        .map(|c| match c.to_ascii_lowercase() {
+            c @ ('a'..='z' | '0'..='9' | '.' | '-' | '_') => c,
+            _ => '_',
+        })
+        .collect();
+
+    // Must begin with a lowercase letter: a leading digit or separator is
+    // prefixed rather than stripped, so `3d-engine` stays distinguishable
+    // from `d-engine`.
+    if !name.starts_with(|c: char| c.is_ascii_lowercase()) {
+        name.insert_str(0, "m_");
+    }
+    // Must end with a lowercase letter or digit.
+    while name
+        .ends_with(|c: char| !(c.is_ascii_lowercase() || c.is_ascii_digit()))
+    {
+        name.pop();
+    }
+    name
+}
+
 fn render_module_bazel(graph: &BuildGraph) -> String {
     // Bazel's `module()` does not require a version, so one is omitted
     // rather than fabricated when the CMake `project()` didn't declare one.
@@ -66,7 +107,7 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
          bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\
          {rules_shell}{cc_config}\n\
          register_toolchains(\"@llvm//toolchain:all\")\n",
-        name = graph.module.name,
+        name = module_name(&graph.module.name),
     )
 }
 
@@ -1103,6 +1144,41 @@ mod tests {
         assert!(
             rendered.contains("register_toolchains(\"@llvm//toolchain:all\")"),
             "{rendered}"
+        );
+    }
+
+    // bzl-2wi.1: Bazel's module-name grammar is stricter than CMake's project
+    // name. fmt declares project(FMT), and an unnormalized name fails at
+    // module RESOLUTION in the validation root — taking down every fixture,
+    // not just the offending one.
+    #[test]
+    fn module_name_normalizes_a_cmake_project_name_for_bazel() {
+        // The live case.
+        assert_eq!(module_name("FMT"), "fmt");
+        // Mixed case and characters Bazel allows are preserved lowercased.
+        assert_eq!(module_name("TinyXML-2"), "tinyxml-2");
+        assert_eq!(module_name("json-c"), "json-c");
+        assert_eq!(module_name("My.Lib_1"), "my.lib_1");
+        // Anything else becomes an underscore rather than vanishing, so two
+        // distinct project names stay distinct.
+        assert_eq!(module_name("My Lib++"), "my_lib");
+        // Must begin with a lowercase letter: prefixed, not stripped, so
+        // `3d` does not collide with `d`.
+        assert_eq!(module_name("3D"), "m_3d");
+        assert_eq!(module_name("_private"), "m__private");
+        // Must end with a letter or digit.
+        assert_eq!(module_name("trailing-"), "trailing");
+    }
+
+    #[test]
+    fn renders_module_bazel_uses_the_normalized_name() {
+        let mut g = graph(None);
+        g.module.name = "FMT".to_string();
+        let rendered = render(&g).module_bazel;
+        assert!(
+            rendered.contains("name = \"fmt\""),
+            "an unnormalized name makes the generated MODULE.bazel unloadable, \
+             and the error names this file rather than the CMake project:\n{rendered}"
         );
     }
 
