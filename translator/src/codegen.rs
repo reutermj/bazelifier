@@ -815,6 +815,21 @@ mkdir -p "${run_dir}"
 binary="${work_root}/${binary_name}"
 chmod +x "${binary}" 2>/dev/null || true
 
+# A binary linked against a cc_shared_library in this module finds it through
+# an $ORIGIN-relative RUNPATH into Bazel's _solib_* directory. Staging into a
+# writable tree above breaks every one of those relative paths, so the loader
+# fails with "cannot open shared object file" even though the .so IS in
+# runfiles. Point LD_LIBRARY_PATH at the staged copies instead.
+#
+# Searched from the runfiles ROOT, not just this module's directory: the .so
+# is staged both beside the binary and under _solib_*/ in the workspace's own
+# tree, and which one exists depends on whether this module is the root or a
+# dependency. Missing directories in LD_LIBRARY_PATH are ignored, so listing
+# both is harmless.
+runfiles_root="$(dirname "${module_runfiles}")"
+solib_dirs="$(find "${runfiles_root}" -type d -name '_solib_*' 2>/dev/null | tr '\n' ':')"
+export LD_LIBRARY_PATH="${work_root}:${solib_dirs}${LD_LIBRARY_PATH:-}"
+
 output="$(cd "${run_dir}" && "${binary}" 2>&1)"
 exit_code=$?
 
