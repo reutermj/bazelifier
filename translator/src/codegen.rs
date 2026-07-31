@@ -149,7 +149,9 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     }
     render_test_load(&mut out, !graph.tests.is_empty());
     if !graph.config_headers.is_empty() {
-        out.push_str("load(\"@cc_config//cc_config:config_header.bzl\", \"config_header\")\n");
+        out.push_str(
+            "load(\"@cc_config//cc_config:config_header.bzl\", \"assert_config_header_test\", \"config_header\")\n",
+        );
     }
     if !rules.is_empty() || !graph.tests.is_empty() || !graph.config_headers.is_empty() {
         out.push('\n');
@@ -204,6 +206,51 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
         }
         out.push_str("    },\n");
     }
+    out.push_str(")\n");
+
+    render_config_header_assertion(out, header);
+}
+
+/// Emits an `assert_config_header_test` for a generated config header.
+///
+/// Without it, nothing checks the header's CONTENT. The runtime comparison
+/// sees only a binary's stdout, and a config header can be wrong in ways that
+/// change no output at all — zlib's `#if HAVE_UNISTD_H-0` treats an undefined
+/// macro as `0`, so a header missing that macro compiles, links, runs, and
+/// quietly takes a different code path. Fixtures 012-014 only catch this
+/// because they were written to print their macros; real projects are not.
+///
+/// What it asserts is deliberately toolchain-INDEPENDENT:
+///
+/// - no `#cmakedefine` and no `@VAR@` survive, which would mean the expansion
+///   did not happen at all;
+/// - each `values` substitution appears with its value — those come from the
+///   CMake cache (version strings and the like), not from probing, so they are
+///   the same for every consumer.
+///
+/// It deliberately does NOT assert `HAVE_UNISTD_H 1`. Whether a probe resolves
+/// true is a fact about the CONSUMER's toolchain, and pinning this host's
+/// answer would recreate the exact bug the probing design exists to prevent.
+fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader) {
+    let name = config_header_name(header);
+
+    let mut must_not_contain = vec!["#cmakedefine".to_string()];
+    // A surviving `@NAME@` means the substitution never ran. Only checked for
+    // names we actually supply — a template may legitimately contain an `@`
+    // that is not a substitution.
+    must_not_contain.extend(header.values.iter().map(|(n, _)| format!("@{n}@")));
+
+    let must_contain: Vec<String> = header
+        .values
+        .iter()
+        .map(|(_, value)| value.clone())
+        .collect();
+
+    out.push_str(&format!(
+        "\nassert_config_header_test(\n    name = \"{name}_test\",\n    header = \":{name}\",\n"
+    ));
+    render_string_list(out, "must_contain", &must_contain);
+    render_string_list(out, "must_not_contain", &must_not_contain);
     out.push_str(")\n");
 }
 
@@ -1404,6 +1451,51 @@ mod tests {
         assert!(
             !static_consumer.contains("dynamic_deps"),
             "a consumer of a STATIC library must not get dynamic_deps:\n{rendered}"
+        );
+    }
+
+    // bzl-fxa.22: nothing checked a generated config header's CONTENT. The
+    // runtime comparison sees only stdout, and zlib's `#if HAVE_UNISTD_H-0`
+    // treats a missing macro as 0 — so a wrong header runs and is wrong.
+    #[test]
+    fn a_config_header_gets_an_assertion_that_cannot_bake_in_host_answers() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            catalog_probes: vec!["@cc_config//catalog:have_unistd_h".to_string()],
+            values: vec![("PROJECT_VERSION".to_string(), "3.7.0".to_string())],
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("assert_config_header_test(\n    name = \"config_h_test\","),
+            "every config_header needs a companion assertion:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("\"assert_config_header_test\", \"config_header\""),
+            "and the load must bring both rules in:\n{rendered}"
+        );
+        // A surviving directive means the expansion never ran.
+        assert!(
+            rendered.contains("\"#cmakedefine\""),
+            "must assert no #cmakedefine survives:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("\"@PROJECT_VERSION@\""),
+            "must assert the substitution actually happened:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("must_contain = [\n        \"3.7.0\",\n    ],"),
+            "cache-derived values are toolchain-independent, so their presence \
+             is safe to assert:\n{rendered}"
+        );
+        // The whole point of probing is that this differs per consumer.
+        // Asserting it would recreate the bug cc_config exists to prevent.
+        assert!(
+            !rendered.contains("HAVE_UNISTD_H 1") && !rendered.contains("have_unistd_h 1"),
+            "must NOT assert a probe's resolved value — that is a fact about \
+             the consumer's toolchain, not about this project:\n{rendered}"
         );
     }
 
