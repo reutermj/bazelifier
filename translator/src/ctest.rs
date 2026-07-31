@@ -30,7 +30,7 @@ use crate::model::{Target, TargetKind, Test};
 use crate::needs_attention::{NeedsAttention, ctest_command_not_a_target_needs_attention};
 use crate::paths::normalize_lexically;
 
-use crate::cmake_api::Error;
+use crate::error::Error;
 
 /// `ctest --show-only=json-v1` output. The File API has no test model, so
 /// registered tests (add_test) and their properties come from here instead

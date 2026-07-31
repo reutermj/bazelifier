@@ -1,5 +1,6 @@
 mod cmake_api;
 mod configure_file;
+mod error;
 mod ctest;
 mod codegen;
 mod model;
@@ -63,7 +64,7 @@ fn main() -> ExitCode {
 /// Returning `Result<_, Box<dyn Error>>` from `main` looks like it does
 /// this already, but Rust's termination path formats the error with
 /// `Debug`, which makes every `Display` impl in the crate dead code and
-/// turns `cmake_api::Error`'s human-readable text — CMake's own multi-line
+/// turns `error::Error`'s human-readable text — CMake's own multi-line
 /// stderr, passed straight through — into one escaped blob in struct
 /// syntax. That is the output a user gets for the most common failure
 /// there is, a CMake project that doesn't configure.
@@ -406,7 +407,7 @@ mod tests {
     // nothing else in the suite would notice.
     #[test]
     fn report_formats_with_display_not_debug() {
-        let error = cmake_api::Error::CmakeConfigureFailed {
+        let error = error::Error::CmakeConfigureFailed {
             stderr: "CMake Error at CMakeLists.txt:3 (add_executable):\n  Cannot find source \
                      file:\n\n    does_not_exist.cpp\n"
                 .to_string(),
@@ -430,11 +431,11 @@ mod tests {
     #[test]
     fn report_covers_every_error_variant_readably() {
         let variants: Vec<Box<dyn std::error::Error>> = vec![
-            Box::new(cmake_api::Error::NoProject),
-            Box::new(cmake_api::Error::CmakeBuildFailed {
+            Box::new(error::Error::NoProject),
+            Box::new(error::Error::CmakeBuildFailed {
                 stderr: "ninja: build stopped\n".to_string(),
             }),
-            Box::new(cmake_api::Error::SourceDirOutsideDeliverableRoot {
+            Box::new(error::Error::SourceDirOutsideDeliverableRoot {
                 source_dir: "/a/proj".to_string(),
                 deliverable_root: "/b".to_string(),
             }),

@@ -20,6 +20,7 @@ use crate::configure_file::{
     self, build_config_headers, is_config_header_output, parse_configure_files,
 };
 use crate::ctest;
+use crate::error::Error;
 use crate::model::{BuildGraph, ConfigHeader, ModuleInfo, Target, TargetKind};
 use crate::needs_attention::{
     NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
@@ -28,62 +29,6 @@ use crate::needs_attention::{
     unsupported_target_needs_attention,
 };
 use crate::paths::{absolutize, common_ancestor, normalize_lexically, resolve_against};
-
-#[derive(Debug)]
-pub enum Error {
-    Io(std::io::Error),
-    Json(serde_json::Error),
-    CmakeConfigureFailed {
-        stderr: String,
-    },
-    CmakeBuildFailed {
-        stderr: String,
-    },
-    NoProject,
-    SourceDirOutsideDeliverableRoot {
-        source_dir: String,
-        deliverable_root: String,
-    },
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::Io(e) => write!(f, "I/O error: {e}"),
-            Error::Json(e) => write!(f, "failed to parse CMake File API JSON: {e}"),
-            Error::CmakeConfigureFailed { stderr } => {
-                write!(f, "cmake configure failed:\n{stderr}")
-            }
-            Error::CmakeBuildFailed { stderr } => {
-                write!(f, "cmake build failed:\n{stderr}")
-            }
-            Error::NoProject => write!(f, "codemodel reply contains no project()"),
-            Error::SourceDirOutsideDeliverableRoot {
-                source_dir,
-                deliverable_root,
-            } => write!(
-                f,
-                "the CMake project directory ({source_dir}) is not inside the declared \
-                 deliverable root ({deliverable_root}); the deliverable root must contain \
-                 the project being converted"
-            ),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(e: serde_json::Error) -> Self {
-        Error::Json(e)
-    }
-}
 
 #[derive(Debug, Deserialize)]
 struct CodemodelIndexReply {

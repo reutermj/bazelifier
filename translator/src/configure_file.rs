@@ -15,9 +15,10 @@
 //! and docs/architecture/configure-file-and-toolchain-probes.md.
 //!
 //! Nothing here reaches back into `cmake_api`: this module imports no part
-//! of it, and every entry point is a pure function of its arguments.
-//! `cmake_api::discover` is the driver — it calls down, gets values back,
-//! and sequences them. Two consequences of that sequencing are worth knowing
+//! of it — only the shared `model`, `needs_attention` and `paths` — and
+//! every entry point is a pure function of its arguments.
+//! `cmake_api::discover` is the driver: it calls down, gets values back, and
+//! sequences them. Two consequences of that sequencing are worth knowing
 //! before editing either side:
 //!
 //! - [`is_config_header_output`] is also called by the driver, to build the

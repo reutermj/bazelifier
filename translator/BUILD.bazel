@@ -9,6 +9,7 @@ rust_binary(
         "src/codegen.rs",
         "src/configure_file.rs",
         "src/ctest.rs",
+        "src/error.rs",
         "src/main.rs",
         "src/model.rs",
         "src/needs_attention.rs",

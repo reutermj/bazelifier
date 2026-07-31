@@ -68,6 +68,11 @@ source in every fixture build.
     come from `ctest --show-only=json-v1`. Owns reading the reply, rebasing
     test paths, and deciding which tests the translator can express at all
     (one whose command isn't a binary this module builds escalates).
+  - `src/error.rs` — the frontend's error type. Its own module so
+    `cmake_api`, `ctest` and `configure_file` can share it without any of
+    them importing another: `cmake_api` drives and the other two are
+    dependency-free modules it calls into, so homing the error in the driver
+    made the callees import their own caller.
   - `src/paths.rs` — pure path geometry (normalize, absolutize, common
     ancestor, resolve-against-source-dir) the frontend's rebasing is built
     on; no CMake or build-graph knowledge, so it generalizes to other
