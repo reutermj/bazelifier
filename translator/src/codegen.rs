@@ -568,27 +568,26 @@ fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
     // and `zlib.h` includes it with angle brackets. Left out, the staged
     // `zlib.h` resolves and then fails on `#include <zconf.h>`, which reads as
     // the staging not working at all rather than as one missing header.
-    let generated: Vec<String> = graph
-        .config_headers
-        .iter()
-        .map(|h| format!(":{}", config_header_name(h)))
-        .collect();
 
-    let mut outs: Vec<String> = headers
+    // (source label or path, staged output path). Built as pairs so `outs`
+    // and `cmd` cannot disagree — they did, and Bazel reports it only as a
+    // missing declared output far from the cause (bzl-5yv).
+    let mut staged: Vec<(String, String)> = headers
         .iter()
-        .map(|h| format!("{STAGED_INCLUDE_DIR}/{h}"))
+        .map(|h| (h.clone(), format!("{STAGED_INCLUDE_DIR}/{h}")))
         .collect();
-    outs.extend(
-        graph
-            .config_headers
-            .iter()
-            .map(|h| format!("{STAGED_INCLUDE_DIR}/{}", h.output)),
-    );
+    staged.extend(graph.config_headers.iter().map(|h| {
+        (
+            format!(":{}", config_header_name(h)),
+            format!("{STAGED_INCLUDE_DIR}/{}", h.output),
+        )
+    }));
+    let outs: Vec<String> = staged.iter().map(|(_, o)| o.clone()).collect();
 
-    let headers: Vec<String> = headers.into_iter().chain(generated).collect();
-    if headers.is_empty() {
+    if staged.is_empty() {
         return false;
     }
+    let srcs: Vec<String> = staged.iter().map(|(s, _)| s.clone()).collect();
 
     out.push_str(
         "# Staged so `includes` can name the directory these headers are in.\n\
@@ -598,13 +597,28 @@ fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
          # and emit the headers in place once upstream supports this.\n",
     );
     out.push_str(&format!("genrule(\n    name = \"{STAGED_HEADERS_TARGET}\",\n"));
-    render_path_list(out, "srcs", &headers);
+    render_path_list(out, "srcs", &srcs);
     render_path_list(out, "outs", &outs);
-    out.push_str("    cmd = \"mkdir -p $(RULEDIR)/");
-    out.push_str(STAGED_INCLUDE_DIR);
-    out.push_str(" && cp $(SRCS) $(RULEDIR)/");
-    out.push_str(STAGED_INCLUDE_DIR);
-    out.push_str("/\",\n");
+    // One explicit `cp` per header, with both paths written out by codegen.
+    //
+    // A single loop over `$(SRCS)` cannot work: the destination has to be the
+    // header's path RELATIVE TO THE MODULE, and deriving that in shell means
+    // stripping a prefix that differs between a module built directly and the
+    // same module consumed as an external repo (where `$(RULEDIR)` carries an
+    // `external/<module>+/` segment). Both dirname- and RULEDIR-stripping
+    // attempts failed exactly there, passing in-tree and failing as a
+    // dependency (bzl-5yv).
+    //
+    // `$(location <src>)` and `$(RULEDIR)/<out>` are both resolved by Bazel,
+    // so the command carries no path arithmetic of its own.
+    out.push_str("    cmd = \"");
+    for (src, out_path) in &staged {
+        out.push_str(&format!(
+            "mkdir -p $$(dirname $(RULEDIR)/{out_path}) && \
+             cp $(location {src}) $(RULEDIR)/{out_path} && "
+        ));
+    }
+    out.push_str("true\",\n");
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
     true
@@ -1501,6 +1515,48 @@ mod tests {
             rendered.contains("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")"),
             "a binary-only module still needs the cc_library load once a \
              companion is emitted:\n{rendered}"
+        );
+    }
+
+    // bzl-5yv: `outs` kept a header's subdirectory while the copy flattened
+    // it, so Bazel failed with "declared output ... was not created". zlib hid
+    // it because its public headers sit at the module root, where the two
+    // spellings coincide. Also pins the negative bzl-41q found missing: a
+    // project that never asked for its root on the include path gets nothing.
+    #[test]
+    fn staged_headers_keep_their_subdirectory_and_only_fire_when_needed() {
+        let staged_target = |root: bool| {
+            let mut g = graph(None);
+            g.targets = vec![Target {
+                name: "lib".to_string(),
+                kind: TargetKind::Library,
+                needs_root_include: root,
+                sources: vec!["lib.c".to_string()],
+                public_headers: vec!["proj/api.h".to_string()],
+                ..Default::default()
+            }];
+            render(&g).build_bazel
+        };
+
+        let rendered = staged_target(true);
+        assert!(
+            rendered.contains("\"_include/proj/api.h\","),
+            "the staged output must keep the header's directory, or an angled \
+             #include <proj/api.h> cannot resolve:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("cp $(location proj/api.h) $(RULEDIR)/_include/proj/api.h"),
+            "and the copy must write exactly the path `outs` declares — when \
+             they disagree Bazel reports only a missing output, far from the \
+             cause:\n{rendered}"
+        );
+
+        let without = staged_target(false);
+        assert!(
+            !without.contains("_staged_hdrs"),
+            "a project that never asked for its module root on the include \
+             path must not get a staging genrule — the workaround exists only \
+             for the case Bazel cannot express:\n{without}"
         );
     }
 
