@@ -128,11 +128,23 @@ for fixture_dir in "${fixture_dirs[@]}"; do
   # run both binaries with no data, see them fail identically, and false-pass.
   # So: collect the tested binaries, skip their comparison, and add their own
   # test to the suite instead.
+  # The binary is read from the rule's FIRST arg, not by stripping `_test` off
+  # its name. codegen renders `name = "<ctest test name>_test"`, and a CTest
+  # test's name need not match the binary it runs — so the strip recovers the
+  # TEST name and the skip below silently misses, emitting the very
+  # false-passing comparison this block exists to suppress. It only ever
+  # looked correct because tinyxml2 names its test `xmltest` after its binary
+  # `xmltest`; fixture 022's `app_test` on binary `app` breaks it.
   tested_binaries=" "
   while IFS= read -r test_target; do
-    tested_binaries="${tested_binaries}${test_target%_test} "
     test_labels+=("        \\"@${module_name}//:${test_target}\\",")
   done < <(sed -n '/^sh_test($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}")
+  # Scoped to the `args = [` block and taking only its first entry: codegen
+  # renders args as [binary, working_dir, pass_regex] (see render_sh_test).
+  # Reading every quoted string in the rule instead would also pick up `data`.
+  while IFS= read -r tested_binary; do
+    tested_binaries="${tested_binaries}${tested_binary} "
+  done < <(sed -n '/^sh_test($/,/^)$/ { /^ *args = \\[$/,/^ *\\],$/ { s/^ *"\\([^"]*\\)",$/\\1/p } }' "${build_bazel}" | sed -n '1~3p')
 
   # cc_binary(name = "...") is likewise always rendered this way — see
   # codegen::render_cc_rule via rule_name — so every executable target

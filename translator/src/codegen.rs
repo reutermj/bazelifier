@@ -453,7 +453,13 @@ set -uo pipefail
 
 binary_name="$1"
 working_dir="$2"
-pass_regex="$3"
+# Defaulted, not "$3": Bazel DROPS a trailing empty string when it tokenizes
+# `args`, so a test with no PASS_REGULAR_EXPRESSION arrives with argc=2 and a
+# bare "$3" aborts under `set -u` before the binary ever runs. The
+# working-directory slot dodges this by never being empty (codegen sends "."),
+# but the regex is genuinely empty whenever CMake declared none — which is the
+# common case, and every prior sh_test producer happened to declare one.
+pass_regex="${3:-}"
 
 # This wrapper, the test binary, and the module's runtime data are all in
 # the same package, so in runfiles they are siblings in this script's own
@@ -732,6 +738,63 @@ mod tests {
             tests: vec![test],
             config_headers: vec![],
         }
+    }
+
+    // A CTest test's name need not match the binary it runs. Every other test
+    // here uses tinyxml2's shape, where they are both "xmltest" — which
+    // collapses the two identifiers and hid a real bug in
+    // validation_workspace.bzl, whose dedup recovered the binary by stripping
+    // `_test` off the test name and so silently got the TEST name back.
+    #[test]
+    fn a_test_named_differently_from_its_binary_still_names_the_binary_in_args() {
+        let graph = graph_with_test(model::Test {
+            name: "app_test".to_string(),
+            target: "xmltest".to_string(),
+            command: "/abs/build/xmltest".to_string(),
+            working_directory: String::new(),
+            pass_regex: None,
+        });
+        let generated = render(&graph);
+
+        assert!(
+            generated.build_bazel.contains("name = \"app_test_test\""),
+            "the rule is named after the CTest test:\n{}",
+            generated.build_bazel
+        );
+        // Scoped to the args block: the graph also emits cc_binary(name =
+        // "xmltest"), so a bare `contains("xmltest")` over the whole file is
+        // satisfied by that rule and asserts nothing about the args.
+        let args_block = generated
+            .build_bazel
+            .split("args = [")
+            .nth(1)
+            .and_then(|rest| rest.split(']').next())
+            .expect("the sh_test must render an args list");
+        assert!(
+            args_block.contains("\"xmltest\","),
+            "the first arg is the BINARY, which is the only place the binary \
+             name survives — stripping `_test` off the rule name would yield \
+             `app_test`, not `xmltest`. args block was:\n{args_block}"
+        );
+        assert!(
+            !args_block.contains("\"app_test\","),
+            "and the TEST name must not appear there:\n{args_block}"
+        );
+    }
+
+    // A test with no PASS_REGULAR_EXPRESSION renders an empty third arg, and
+    // Bazel DROPS a trailing empty string when it tokenizes `args` — so the
+    // wrapper receives argc=2 and must not index $3 bare under `set -u`.
+    // tinyxml2 declares a pass regex, so this shape went unexercised until
+    // fixture 022 and every generated sh_test without one aborted before
+    // running its binary.
+    #[test]
+    fn the_test_wrapper_tolerates_a_dropped_trailing_pass_regex() {
+        assert!(
+            RUN_CMAKE_TEST_SH.contains("pass_regex=\"${3:-}\""),
+            "the wrapper must default the pass-regex arg rather than read $3 \
+             bare, because Bazel drops the trailing empty arg:\n{RUN_CMAKE_TEST_SH}"
+        );
     }
 
     #[test]
