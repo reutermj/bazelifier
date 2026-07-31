@@ -9,9 +9,14 @@ project(shared_and_static_library LANGUAGES C)
 # CMake's File API reports SHARED_LIBRARY and STATIC_LIBRARY as distinct
 # types. Both become a cc_library in Bazel — linkage is not a different rule
 # — so a conversion that ignores the distinction still BUILDS and still
-# produces identical runtime output. That is why this fixture's value is in
-# the linkage assertion, not only in the ground-truth comparison: a silent
-# downgrade to static is invisible to stdout.
+# produces identical runtime output.
+#
+# So be precise about what this fixture proves. It is the only REAL-CMake
+# evidence that the File API reports the two types distinctly and that both
+# forms convert, build and run. It does NOT check linkage: the ground-truth
+# comparison sees stdout, and both consumers print the same thing, so a
+# silent downgrade to static would pass here. The linkage assertion lives in
+# codegen's unit tests; a fixture-tier check would need readelf (bzl-rqi).
 #
 # DO NOT "simplify" this to a single library: two libraries over the same
 # sources, with one consumer each, is the case under test, and this file is

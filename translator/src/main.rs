@@ -322,8 +322,10 @@ fn copy_referenced_sources(
 
     // configure_file templates are referenced too — the config_header rule
     // expands them (their generated outputs are NOT copied; they're produced
-    // at the consumer's build). The template is a source-tree file relative to
-    // the module root, like a source.
+    // at the consumer's build). Usually the template is a source-tree file
+    // relative to the module root, like a source; when the project generated
+    // it at configure time, `template_source` says where to copy it from
+    // instead.
     for config_header in &graph.config_headers {
         if copied.insert(config_header.template.as_str()) {
             // `template_source` is set when the template is not in the source

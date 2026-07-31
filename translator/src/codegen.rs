@@ -49,10 +49,12 @@ pub fn render(graph: &BuildGraph) -> GeneratedModule {
 /// RESOLUTION — before any target is analyzed, with an error naming the
 /// generated file rather than the project it came from.
 ///
-/// Deliberately total rather than fallible: every generated `bazel_dep` and
-/// `local_path_override` refers to this name, so returning an error here
-/// would fail a conversion over a cosmetic mismatch, and escalating would ask
-/// an agent to invent a name the rest of the output already assumes. The
+/// Deliberately total rather than fallible: this is the module's identity, and
+/// anything depending on it reads the name back out of the generated
+/// `MODULE.bazel` (`validation_workspace.bzl` does exactly that to emit its
+/// `bazel_dep`/`local_path_override`). Returning an error would fail a
+/// conversion over a cosmetic mismatch, and escalating would ask an agent to
+/// invent a name the rest of the output already assumes. The
 /// mapping is lossy but deterministic — two different CMake names can collide
 /// (`My-Lib` and `my_lib` both become... different, but `MY.LIB` and `my.lib`
 /// do not), which is acceptable because a module holds one project.
@@ -492,7 +494,7 @@ fn render_cc_rule(
     // its deps entry, not instead of it: deps carries CcInfo (headers,
     // include paths), which cc_shared_library does not provide, while
     // dynamic_deps carries CcSharedLibraryInfo. Dropping either breaks the
-    // build — see docs/architecture/bazel-codegen.md.
+    // build — see docs/architecture/bazel-codegen.md's "Shared libraries".
     //
     // Only on binaries: cc_library has no dynamic_deps attribute, so a
     // LIBRARY linking a shared library cannot express that in Bazel. Nothing
@@ -527,9 +529,9 @@ const STAGED_INCLUDE_DIR: &str = "_include";
 /// error ("generated file ... conflicts with existing generated file").
 const STAGED_HEADERS_TARGET: &str = "_staged_hdrs";
 
-/// Copies a target's public headers into [`STAGED_INCLUDE_DIR`] so an
-/// `includes` entry can name the directory they are in, returning the genrule
-/// name — or `None` when the target does not need it.
+/// Emits the module-wide genrule copying public headers into
+/// [`STAGED_INCLUDE_DIR`], so an `includes` entry can name the directory they
+/// are in. Returns whether it emitted anything.
 ///
 /// **This is a workaround for a rules_cc limitation and is meant to be
 /// removed.** A header at the module ROOT cannot be reached by
@@ -537,18 +539,22 @@ const STAGED_HEADERS_TARGET: &str = "_staged_hdrs";
 /// rejects `includes = ["."]` outright ("resolves to the workspace root, which
 /// would allow this rule and all of its transitive dependents to include any
 /// file in your workspace"). zlib's `zlib.h` does `#include <zconf.h>`, so
-/// without this the module does not compile. There is active upstream
-/// discussion about fixing it; when that lands, delete this and emit the
-/// headers in place — see bzl-i4i.6.
+/// without this the module does not compile. When rules_cc supports reaching a
+/// module-root header from an angled include, delete this and emit the headers
+/// in place — see bzl-i4i.6 for the revert criteria.
 ///
 /// Fires only when the project actually asked for its root on the include
 /// path (`Target::needs_root_include`), so a project that names real
-/// subdirectories is untouched. Across the current corpus that is one header
-/// in one project.
+/// subdirectories is untouched. The trigger is deliberately broader than
+/// necessary — a project can ask for its root and still use only quoted
+/// includes, which need no staging — see bzl-i4i.7.
 ///
-/// Stages only PUBLIC headers, not every header at the root. Staging
-/// everything would recreate the exact objection Bazel raises when it rejects
-/// `"."` — exposing the whole tree to dependents — just spelled differently.
+/// Of the headers a target enumerates, only the PUBLIC ones are staged:
+/// staging everything would recreate the exact objection Bazel raises when it
+/// rejects `"."`, exposing the whole tree to dependents. Generated config
+/// headers are staged unconditionally alongside them, because a source header
+/// that includes one with angle brackets (zlib's `zlib.h` does) cannot resolve
+/// it otherwise.
 fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
     if !graph.targets.iter().any(|t| t.needs_root_include) {
         return false;

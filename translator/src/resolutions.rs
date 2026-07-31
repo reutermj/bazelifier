@@ -71,8 +71,13 @@ gap is usually closed in Bazel.
 
 1. Read the `needs_attention` item. It is the authority on what is actually
    wrong here — the item's own guidance wins over anything in this directory.
-2. Find the recipe whose name matches the shape of the gap (the filenames are
-   descriptive; there is no index to look up).
+2. Find the recipe whose name matches the shape of the gap:
+
+   - `generated-config-header.md` — a header the build generates from a
+     template (`configure_file`), or macros with no probe.
+   - `header-visibility.md` — a library whose headers nothing declares public.
+   - `ctest-command-not-a-target.md` — a registered test whose command is not
+     a binary this module builds.
 3. **Adapt it.** A recipe cannot know this project's macro names, header
    layout, or release. It shows the shape of a correct answer, not a patch to
    apply.
@@ -359,11 +364,12 @@ mod tests {
             .expect("resolutions/ must ship a README");
 
         for r in recipes.iter().filter(|r| r.filename != "README.md") {
-            let stem = r.filename.trim_end_matches(".md");
             assert!(
-                readme.body.contains(stem) || readme.body.contains("descriptive"),
-                "README gives no way to find {}: an agent has only the filenames",
-                r.filename
+                readme.body.contains(r.filename),
+                "README does not list {}, so an agent has no way to know it \
+                 exists — the directory has no index but this:\n{}",
+                r.filename,
+                readme.body
             );
         }
     }

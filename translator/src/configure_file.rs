@@ -62,8 +62,11 @@ pub(crate) fn is_config_header_output(output: &Path) -> bool {
 /// any header the translator couldn't fully resolve (an unmapped
 /// `#cmakedefine`, or a template that reaches outside the module root).
 ///
-/// A template outside the module root can't be a Bazel label in the module,
-/// so that header is escalated rather than planned — the same boundary
+/// A template's location decides how it is handled, in three cases: one
+/// already in the source tree is used where it sits; one the project generated
+/// into the BUILD directory is staged into the module and planned against the
+/// staged copy (see `ConfigHeader::template_source`); one anywhere else is
+/// genuinely unreachable and escalates, the same boundary
 /// `rebase_to_module_root` enforces for sources.
 pub(crate) fn build_config_headers(
     configure_files: &[ConfigureFile],
@@ -289,12 +292,15 @@ fn parse_template_macros(template: &str) -> TemplateMacros {
 }
 
 /// Extracts the project's own `configure_file` calls from a `--trace-expand`
-/// trace, keeping only those whose template lives inside the source tree.
+/// trace, keeping only the project's own.
 ///
 /// CMake makes ~10 internal `configure_file` calls of its own (from
 /// CMakeSystem.cmake.in, DartConfiguration.tcl.in, CPack templates, ...);
-/// those originate under the CMake installation, not the project, so filtering
-/// on the template being under `source_dir` selects exactly the project's.
+/// those originate under the CMake installation. Filtering on the template
+/// being under `source_dir` OR `build_dir` selects exactly the project's: the
+/// build directory counts because a project can generate a template at
+/// configure time and then expand it (zlib assembles `zconf.h.cmakein`), and
+/// that call is as much its own as a checked-in one.
 ///
 /// Trace lines look like `<file>(<line>):  configure_file(<in> <out> <flags>)`.
 /// A path argument may be absolute (json-c writes

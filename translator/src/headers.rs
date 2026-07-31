@@ -74,9 +74,11 @@ pub(crate) fn looks_like_header(path: &str) -> bool {
 ///   built separately. fmt's `posix-mock-test` does
 ///   `#include "../src/os.cc"`.
 ///
-/// Everything lands in `sources`, never `public_headers`: having been opened
-/// is evidence of a compile-time dependency, not of membership in the
-/// interface — the same distinction that separates the two passes above.
+/// Nothing lands in `public_headers`: having been opened is evidence of a
+/// compile-time dependency, not of membership in the interface — the same
+/// distinction that separates the two passes above. Headers go to `sources`
+/// and non-headers to `textual_sources`, which need different Bazel
+/// attributes (`srcs` compiles a `.cc`; `textual_hdrs` only stages it).
 ///
 /// Only ever adds. It cannot remove: `ninja_deps` sees one configuration, and
 /// a header behind a disabled `#ifdef` is absent from it while still being a
