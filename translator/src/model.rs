@@ -86,6 +86,22 @@ pub struct Target {
     /// against (from `target_link_libraries`), resolved from the CMake
     /// File API's opaque dependency ids back to target names.
     pub dependencies: Vec<String>,
+    /// Whether this target declared its own module root as an include
+    /// directory, which Bazel cannot express.
+    ///
+    /// `includes = ["."]` is a hard analysis error ("resolves to the workspace
+    /// root, which would allow this rule and all of its transitive dependents
+    /// to include any file in your workspace"), and Bazel passes only
+    /// `-iquote .` for a root package — never `-I`. So a header at the module
+    /// root is unreachable by `#include <angled>`, which zlib's `zlib.h` does
+    /// for `zconf.h`. Codegen works around it by staging the target's PUBLIC
+    /// headers into a private subdirectory it can name; see
+    /// `codegen::render_staged_headers`.
+    ///
+    /// Recorded rather than acted on here because it is a fact about the
+    /// project (it asked for its root on the include path), while the
+    /// workaround is a fact about Bazel.
+    pub needs_root_include: bool,
     /// Include directories (from `target_include_directories`). Emitted as
     /// the `includes` attribute, which Bazel propagates transitively to
     /// consumers — so this only needs to be captured on the target that

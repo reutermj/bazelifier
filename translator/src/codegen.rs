@@ -173,8 +173,10 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         .map(|t| t.name.as_str())
         .collect();
 
+    let staged = render_staged_headers(&mut out, graph);
+
     for (i, target) in graph.targets.iter().enumerate() {
-        if i > 0 {
+        if i > 0 || staged {
             out.push('\n');
         }
         render_cc_rule(&mut out, target, &graph.config_headers, &shared);
@@ -452,9 +454,20 @@ fn render_cc_rule(
     // `hdrs` is a `cc_library`-only attribute; `cc_binary` has none, and
     // Bazel rejects it as an unknown attribute rather than ignoring it.
     if target.kind == TargetKind::Library {
-        render_path_list(out, "hdrs", &target.public_headers);
+        let mut hdrs = target.public_headers.clone();
+        if target.needs_root_include && !target.public_headers.is_empty() {
+            // The staged copies replace the originals: listing both would give
+            // every header two labels for the same file.
+            hdrs.clear();
+            hdrs.push(format!(":{STAGED_HEADERS_TARGET}"));
+        }
+        render_path_list(out, "hdrs", &hdrs);
     }
-    render_path_list(out, "includes", &target.includes);
+    let mut includes = target.includes.clone();
+    if target.needs_root_include && !target.public_headers.is_empty() {
+        includes.push(STAGED_INCLUDE_DIR.to_string());
+    }
+    render_path_list(out, "includes", &includes);
     // Not render_path_list: a define (`FOO`, `FOO=1`) is not a path and
     // must not be run through the module-relative assertion.
     render_string_list(out, "local_defines", &target.local_defines);
@@ -486,6 +499,102 @@ fn render_cc_rule(
     out.push_str(")\n");
 
     render_shared_library(out, target);
+}
+
+/// Where staged public headers land inside the module. Leading underscore so
+/// it cannot collide with a directory the project authored (`include/` is
+/// common), and so it reads as generated rather than as project layout.
+const STAGED_INCLUDE_DIR: &str = "_include";
+
+/// The single module-wide genrule staging public headers.
+///
+/// Module-wide rather than per-target because two targets can legitimately
+/// export the SAME header — zlib builds `zlib` and `zlibstatic` from one set
+/// of sources — and two genrules writing `_include/zlib.h` is a hard analysis
+/// error ("generated file ... conflicts with existing generated file").
+const STAGED_HEADERS_TARGET: &str = "_staged_hdrs";
+
+/// Copies a target's public headers into [`STAGED_INCLUDE_DIR`] so an
+/// `includes` entry can name the directory they are in, returning the genrule
+/// name — or `None` when the target does not need it.
+///
+/// **This is a workaround for a rules_cc limitation and is meant to be
+/// removed.** A header at the module ROOT cannot be reached by
+/// `#include <angled>`: Bazel passes only `-iquote .` for a root package and
+/// rejects `includes = ["."]` outright ("resolves to the workspace root, which
+/// would allow this rule and all of its transitive dependents to include any
+/// file in your workspace"). zlib's `zlib.h` does `#include <zconf.h>`, so
+/// without this the module does not compile. There is active upstream
+/// discussion about fixing it; when that lands, delete this and emit the
+/// headers in place — see bzl-i4i.6.
+///
+/// Fires only when the project actually asked for its root on the include
+/// path (`Target::needs_root_include`), so a project that names real
+/// subdirectories is untouched. Across the current corpus that is one header
+/// in one project.
+///
+/// Stages only PUBLIC headers, not every header at the root. Staging
+/// everything would recreate the exact objection Bazel raises when it rejects
+/// `"."` — exposing the whole tree to dependents — just spelled differently.
+fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
+    if !graph.targets.iter().any(|t| t.needs_root_include) {
+        return false;
+    }
+
+    let mut headers: Vec<String> = graph
+        .targets
+        .iter()
+        .filter(|t| t.needs_root_include)
+        .flat_map(|t| t.public_headers.iter().cloned())
+        .collect();
+    headers.sort_unstable();
+    headers.dedup();
+
+    // A config header is generated, so it is a LABEL rather than a file — but
+    // it is just as public (zlib installs zconf.h to its include destination)
+    // and `zlib.h` includes it with angle brackets. Left out, the staged
+    // `zlib.h` resolves and then fails on `#include <zconf.h>`, which reads as
+    // the staging not working at all rather than as one missing header.
+    let generated: Vec<String> = graph
+        .config_headers
+        .iter()
+        .map(|h| format!(":{}", config_header_name(h)))
+        .collect();
+
+    let mut outs: Vec<String> = headers
+        .iter()
+        .map(|h| format!("{STAGED_INCLUDE_DIR}/{h}"))
+        .collect();
+    outs.extend(
+        graph
+            .config_headers
+            .iter()
+            .map(|h| format!("{STAGED_INCLUDE_DIR}/{}", h.output)),
+    );
+
+    let headers: Vec<String> = headers.into_iter().chain(generated).collect();
+    if headers.is_empty() {
+        return false;
+    }
+
+    out.push_str(
+        "# Staged so `includes` can name the directory these headers are in.\n\
+         # Bazel rejects `includes = [\".\"]` and passes only `-iquote .` for a\n\
+         # root package, so a header at the module root is unreachable by\n\
+         # `#include <angled>`. Workaround for a rules_cc limitation; remove it\n\
+         # and emit the headers in place once upstream supports this.\n",
+    );
+    out.push_str(&format!("genrule(\n    name = \"{STAGED_HEADERS_TARGET}\",\n"));
+    render_path_list(out, "srcs", &headers);
+    render_path_list(out, "outs", &outs);
+    out.push_str("    cmd = \"mkdir -p $(RULEDIR)/");
+    out.push_str(STAGED_INCLUDE_DIR);
+    out.push_str(" && cp $(SRCS) $(RULEDIR)/");
+    out.push_str(STAGED_INCLUDE_DIR);
+    out.push_str("/\",\n");
+    out.push_str(PUBLIC_VISIBILITY);
+    out.push_str(")\n");
+    true
 }
 
 /// The `cc_shared_library` name for a library target.

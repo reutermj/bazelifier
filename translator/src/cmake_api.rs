@@ -678,6 +678,7 @@ fn rebase_to_module_root(
             *list = kept;
         }
 
+        let mut needs_root_include = false;
         target.includes = target
             .includes
             .iter()
@@ -687,11 +688,19 @@ fn rebase_to_module_root(
                     .ok()?
                     .to_string_lossy()
                     .into_owned();
-                // The module root itself isn't expressible as an `includes`
-                // entry, and adds nothing Bazel doesn't already do.
-                (!relative.is_empty()).then_some(relative)
+                // The module root is not expressible as an `includes` entry —
+                // Bazel rejects "." outright. It is NOT true that it adds
+                // nothing: `-iquote .` covers the quoted form only, so an
+                // angled include of a root header fails without it. Recorded
+                // so codegen can work around it. See Target::needs_root_include.
+                if relative.is_empty() {
+                    needs_root_include = true;
+                    return None;
+                }
+                Some(relative)
             })
             .collect();
+        target.needs_root_include = needs_root_include;
 
         if !outside_deliverable.is_empty() {
             escalations.push(sources_outside_deliverable_needs_attention(
