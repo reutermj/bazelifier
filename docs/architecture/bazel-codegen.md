@@ -20,8 +20,10 @@ Covers how bazelifier turns the internal build-graph model (see
   (CMake `EXECUTABLE`) and `cc_library` (`STATIC_LIBRARY`/`SHARED_LIBRARY`
   — codegen doesn't currently distinguish the two, since Bazel's
   `cc_library` picks static/dynamic linking per-consumer rather than
-  per-declaration). `cc_library` gets `srcs`, `hdrs` (only file-set-public
-  headers — see [cmake-frontend.md](cmake-frontend.md)), `includes`
+  per-declaration). `cc_library` gets `srcs`, `hdrs` (only headers the
+  project *declared* public, via a `FILE_SET` or an `install()` to an
+  include destination — see [cmake-frontend.md](cmake-frontend.md)),
+  `includes`
   (the target's own, not inherited ones — transitive via Bazel), and
   `deps` (resolved sibling target names, rendered as `":name"`).
   `cc_binary` gets `srcs`, `includes`, and `deps` — `includes` is not a

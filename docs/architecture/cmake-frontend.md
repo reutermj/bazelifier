@@ -14,8 +14,10 @@ The initial target is CMake projects that generate Ninja build files
   actually gets built.
 
 **Decision:** the frontend uses CMake's own resolved output as its primary
-source of truth, not `CMakeLists.txt` parsing. Three sources feed it, all
-in `translator/src/cmake_api.rs`:
+source of truth, not `CMakeLists.txt` parsing. Four sources feed it, all
+in `translator/src/cmake_api.rs`. The first three are structured APIs; the
+fourth is a text stream, and it exists only because CMake exposes
+`configure_file` nowhere else:
 
 - **`codemodel-v2`** (File API) — configures the project (`cmake -B <dir> -G
   Ninja`) and reads the reply for each target's name, type, sources, build
@@ -30,18 +32,40 @@ in `translator/src/cmake_api.rs`:
   a real `cmake` invocation in the pipeline (not yet hermetic on the CMake
   side — see [build-verification.md](build-verification.md)) and tying
   translation to a given CMake version's File API schema.
-- **`cache-v2`** (File API) — read for two cache entries:
+- **`cache-v2`** (File API) — two entries are read by name:
   `CMAKE_PROJECT_VERSION` (when the top-level `project()` specified a
   `VERSION`; becomes the generated `MODULE.bazel`'s own `version`, omitted
   when absent since Bazel's `module()` doesn't require one), and
   `CMAKE_ROOT` (the CMake installation path, used to recognize targets a
   CMake-provided module injected — see the UTILITY-target filtering below).
+  The cache is *also* read wholesale (`read_cache_values`) to resolve
+  `@VAR@` substitutions in `configure_file` templates, where the set of
+  names wanted isn't known until a template is parsed.
 - **`ctest --show-only=json-v1`** — the File API has *no* test model, so
   registered tests (`add_test`) come from CTest instead: each test's
   command, `WORKING_DIRECTORY`, and `PASS_REGULAR_EXPRESSION`. Run after the
-  build (so the test binaries' paths resolve). See
-  [../lore/cmake-test-model-lives-in-ctest-not-file-api.md](../lore/cmake-test-model-lives-in-ctest-not-file-api.md)
+  build (so the test binaries' paths resolve). A generated `sh_test` wraps a
+  `cc_binary` this module emits, so tests are partitioned against the emitted
+  executables and one whose command is anything else — a checked-in shell
+  script, an interpreter, a system tool — escalates rather than producing a
+  label that cannot resolve. The check is against the target list, not the
+  command's path or extension: tinyxml2's command is a built binary under the
+  build tree while json-c's are `.test` scripts under the source tree, and no
+  rule about *where* a command lives separates the two. See
+  [../lore/cmake-test-model-lives-in-ctest-not-file-api.md](../lore/cmake-test-model-lives-in-ctest-not-file-api.md),
+  [../lore/ctest-commands-are-not-always-binaries-you-built.md](../lore/ctest-commands-are-not-always-binaries-you-built.md),
   and the test-model section below.
+- **`cmake --trace-expand`** — `configure_file` calls appear in **no** File
+  API reply: the outputs are headers, not compiled units, so nothing reports
+  them and a target's dependence on one is visible only as an include path.
+  The frontend therefore parses the configure trace for `configure_file`
+  invocations, then reads the named templates off disk to find their
+  `#cmakedefine`/`@VAR@` names. This is the one place the frontend parses
+  text rather than consuming a structured reply, and it is a deliberate
+  exception, not a precedent. See
+  [../lore/cmake-configure-file-is-in-the-trace-not-the-file-api.md](../lore/cmake-configure-file-is-in-the-trace-not-the-file-api.md)
+  and
+  [configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md).
 
 After configuring, the frontend also runs the actual build (`cmake
 --build`) to produce ground-truth artifacts for validation — see
@@ -109,16 +133,40 @@ CMake compiles each source and finds its headers via `-I`, so a header that
 is never a build input is never reported as a target source, and
 `copy_referenced_sources` would never copy it. The converted library then
 fails to compile the moment one of its own sources `#include`s that header.
-When such a header is `install()`-declared public (the authoritative signal
-above), `inject_unenumerated_installed_headers` adds it to the `hdrs` of
-every library whose own include directories contain it — so it is copied and
-reachable. This is deliberately scoped to headers the project *declared*
-public: it does not copy every header sitting under an include dir, so a
-header with no public evidence still defaults to private/absent rather than
-being guessed public. json-c is the live case — a `CMakeLists` ordering bug
-drops `json_pointer.h`/`json_patch.h` from the library's header list, yet
-`json_pointer.c` includes `json_pointer.h`; both are `install()`d public, so
-both are injected.
+Two separate passes handle this, and the difference between them is what
+authority the project granted — not a difference of mechanism.
+
+**`inject_unenumerated_installed_headers`** acts on `install(FILES ...
+DESTINATION <include>)`, the project's authoritative statement that a header
+is *public*, and adds it to the `hdrs` of every library whose own include
+directories contain it. That is deliberately scoped to headers the project
+declared public: it never promotes a header to `hdrs` on filesystem evidence
+alone, so one with no such declaration still defaults to private/absent
+rather than being guessed public. json-c is the live case — a `CMakeLists`
+ordering bug drops `json_pointer.h`/`json_patch.h` from the library's header
+list, yet `json_pointer.c` includes `json_pointer.h`; both are `install()`d
+public, so both are injected.
+
+**`inject_headers_on_include_dirs`** acts on `target_include_directories()`
+and adds every header in a target's own include directories to its `sources`.
+That *is* copying every header sitting under an include dir, and it is
+correct: being on the include path is CMake's own statement that a header is
+an input, and CMake has no per-file header declaration to be more precise
+than. Bazel stages only *declared* inputs into the compile sandbox, so a
+header no rule names is absent at compile time even when `-I` points straight
+at it. json-c's `test1` is the live case — `add_executable(test1 test1.c)`
+lists one source, and `parse_flags.h` is reachable only through the include
+path.
+
+The two are not interchangeable, and the ordering is load-bearing: the
+`install()` pass runs first, and the include-dir pass treats anything already
+in `sources` or `public_headers` as accounted for. Reversed, a public header
+would land in both `hdrs` and `srcs`. Note what each claim licenses — an
+`install()` declaration makes a header part of the public interface (`hdrs`);
+an include directory only makes it *present* (`srcs`), which is all a
+compile needs. See
+[../lore/everything-on-the-include-path-is-an-input.md](../lore/everything-on-the-include-path-is-an-input.md)
+for why an earlier `#include`-scanning approach was rejected.
 
 ### Include directories
 
@@ -236,6 +284,30 @@ Currently implemented triggers:
 - **Sources the module cannot reach** — a target compiles a file the
   translator could not place inside the generated module. See
   `needs_attention.rs::sources_outside_deliverable_needs_attention`.
+- **Project convenience targets** — one or more `add_custom_target()`
+  (`UTILITY`) targets the project itself wrote, with no artifact and no
+  dependents. Grouped into a single item rather than one each, because a
+  project that has one usually has several and none is individual work.
+  CMake-*provided* utility targets (CTest's dashboard set) are recognized by
+  provenance and dropped silently instead — see "Targets CMake injects". See
+  `needs_attention.rs::inert_convenience_targets_needs_attention`.
+- **A CTest command that isn't a target we built** — the generated `sh_test`
+  wraps a `cc_binary` this module emits, so a test whose command is anything
+  else (json-c's checked-in `.test` shell scripts) has nothing to wrap and is
+  not emitted. Grouped, for the same reason as above. See
+  `needs_attention.rs::ctest_command_not_a_target_needs_attention`.
+- **A config header the translator could not reproduce** — a target compiles
+  against a `configure_file` output that did not come back from the trace, so
+  there is no `config_header` rule to point at. See
+  `needs_attention.rs::generated_config_header_needs_attention`.
+- **Config macros outside the shared catalog** — a `configure_file` template
+  names a `#cmakedefine` or `@VAR@` that has no probe in `@cc_config`'s
+  catalog and no value the translator could resolve. Deliberately *not*
+  matched to a lookalike catalog entry: a project-prefixed alias
+  (`JSON_C_HAVE_INTTYPES_H`) is resolved by the agent wiring it to the
+  existing probe, not by the translator guessing. See
+  `needs_attention.rs::unmapped_config_macros_needs_attention` and
+  [configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md).
 
 ### What actually makes an input a problem: reproducibility
 

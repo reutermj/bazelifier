@@ -1,10 +1,11 @@
 # configure_file and toolchain probes
 
-How the translator will handle CMake's `configure_file`-generated config
-headers — the autoconf-style `config.h` that a huge class of C projects
-compile against. **This is a design, not yet implemented** (tracked in
-bzl-fxa.2). It records the decision and the shape so the implementation
-doesn't have to re-derive them.
+How the translator handles CMake's `configure_file`-generated config headers
+— the autoconf-style `config.h` that a huge class of C projects compile
+against. **Implemented** (bzl-fxa.2): fixture 012 covers the clean path, 013
+the `#if`-consumed shape, 014 false-token values, and 015 the escalation when
+a `@VAR@` can't be resolved. json-c exercises it on a real project. What
+follows describes shipped behavior, not a proposal.
 
 See [../lore/cmake-configure-file-generated-headers.md](../lore/cmake-configure-file-generated-headers.md)
 for how these headers surface in the File API (two ways, one silent), which
@@ -153,26 +154,33 @@ Three kinds, by where the value comes from — see "Non-probe substitutions":
   strings (json.h's `@JSON_C_MAJOR_VERSION@` etc.); substituted from values
   the translator reads at conversion time, toolchain-independent.
 
-## Scope and sequencing
+## What exists now
 
-This is large — its own subsystem, not a translator tweak. Expected order:
+This is its own subsystem, not a translator tweak. All of it has landed:
 
-1. This design doc, reviewed.
-2. The `cc_config` module (local to this repo): the probe rules, toolchain
-   resolution, the shared-target sharing model, and the template-expansion
-   rule that consumes probe results plus a translator-supplied value map —
-   with its own tests (a probe for a header that exists and one that
-   doesn't; the once-per-toolchain sharing demonstrated across two
-   consumers; a `@VAR@` and an `#cmakedefine` both substituted).
-3. A **synthetic** `configure_file` fixture (a template with a probe
-   `#cmakedefine` *and* a plain `@VAR@`, and a source that includes the
-   output) — the focused driver, per the repo's "a capability isn't
-   finished until a fixture exercises it," covering both the source-listed
-   and include-only header shapes.
-4. Translator codegen: detection, the `bazel_dep(cc_config)`, copying the
-   templates, capturing the cache-value substitutions, and the wiring.
-5. **json-c as the integration proof** — its library compiles hermetically,
-   under the module's own toolchain, with no host-captured config.
+1. The **`cc_config` module** (local to this repo — see Ownership below for
+   why it isn't published yet): probe rules (`check_include_file`,
+   `check_symbol_exists`, `check_type_size`), toolchain resolution, the
+   shared-target sharing model, and `config_header`, which expands a template
+   from probe results plus a translator-supplied value map. `probe_alias`
+   republishes one probe's result under a second macro name, for a project
+   that stamps a catalog fact into a project-prefixed define
+   (json-c's `JSON_C_HAVE_INTTYPES_H` from `HAVE_INTTYPES_H`).
+2. **Synthetic fixtures**, one per shape: 012 (a probe `#cmakedefine` and a
+   plain `@VAR@`), 013 (`#cmakedefine FOO @FOO@` consumed by `#if FOO`),
+   014 (CMake-false option tokens normalized to empty), 015 (an unresolved
+   `@VAR@`, which must escalate rather than ship a literal `@NAME@`).
+3. **Translator codegen**: `configure_file` calls recovered from the
+   configure trace, macros mapped to catalog probes, the `bazel_dep`, the
+   templates copied, and the `config_header` rules wired into consumers.
+4. **json-c as the integration proof** — its library, static library and
+   `json_parse` compile hermetically under the module's own toolchain with no
+   host-captured config, and match the CMake build's runtime output.
+
+The catalog is a fixed, hand-written set (see below). A project naming a fact
+it lacks escalates rather than being guessed at; extending the catalog means
+editing `cc_config/catalog/BUILD.bazel` **and** `CATALOG_DEFINES` in
+`cmake_api.rs`, which `//:catalog_sync_check` enforces.
 
 ## Ownership
 

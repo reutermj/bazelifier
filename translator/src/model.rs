@@ -47,11 +47,17 @@ pub struct Target {
     /// Private source file paths (compiled, not exposed to consumers).
     pub sources: Vec<String>,
     /// Public header file paths — only ones CMake can confidently identify
-    /// as public, via a `target_sources(... FILE_SET ... TYPE HEADERS)`
-    /// with `PUBLIC`/`INTERFACE` visibility. Headers added as plain
-    /// sources (no file set) are NOT included here — see
-    /// docs/architecture/cmake-frontend.md on why that distinction can't
-    /// be guessed at.
+    /// as public, from either of two authoritative declarations: a
+    /// `target_sources(... FILE_SET ... TYPE HEADERS)` with
+    /// `PUBLIC`/`INTERFACE` visibility, or an `install(FILES ... DESTINATION
+    /// <include dir>)` (the latter also covers headers no target enumerated
+    /// at all — see `inject_unenumerated_installed_headers`).
+    ///
+    /// A header with neither signal is NOT here, however obviously public it
+    /// looks: being reachable on an include path makes a header an input, not
+    /// part of the interface, so those land in `sources` instead. See
+    /// docs/architecture/cmake-frontend.md on why that distinction can't be
+    /// guessed at.
     pub public_headers: Vec<String>,
     /// Names of other targets in this project that this target links
     /// against (from `target_link_libraries`), resolved from the CMake
