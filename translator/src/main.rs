@@ -96,6 +96,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
     write_needs_attention(&args.out_module, &discovery.needs_attention)?;
     write_resolutions(&args.out_module)?;
+    write_targets_manifest(&args.out_module, graph)?;
 
     Ok(())
 }
@@ -144,6 +145,61 @@ fn write_needs_attention(
     )?;
 
     Ok(())
+}
+
+/// Writes `TARGETS`, a machine-readable list of what this module emitted, for
+/// the validation harness to read instead of regexing `BUILD.bazel`.
+///
+/// The harness needs three facts per module — which binaries exist, which
+/// tests wrap them, and which config-header assertions to run — and used to
+/// recover all three with `sed` over the generated Starlark. That coupled it
+/// to codegen's exact whitespace and line breaking: a formatting change (the
+/// intended `buildifier`-on-output pass is the obvious one) would silently
+/// match nothing, and a `sed` that matches nothing yields no tests rather
+/// than an error. See bzl-dmf.
+///
+/// One `<kind> <name>` per line, sorted within each kind so the file does not
+/// churn on target order. Deliberately not JSON: the reader is a shell script
+/// in a genrule, and `while read kind name` needs no parser.
+fn write_targets_manifest(out_module: &Path, graph: &model::BuildGraph) -> std::io::Result<()> {
+    let mut lines = Vec::new();
+
+    let mut binaries: Vec<&str> = graph
+        .targets
+        .iter()
+        .filter(|t| t.kind == model::TargetKind::Executable)
+        .map(|t| t.name.as_str())
+        .collect();
+    binaries.sort_unstable();
+    lines.extend(binaries.iter().map(|n| format!("binary {n}")));
+
+    // The binary each generated sh_test wraps, so the harness can skip its
+    // naive ground-truth comparison — a data-driven test run with no data
+    // would fail identically on both sides and false-pass.
+    let mut tests: Vec<(&str, &str)> = graph
+        .tests
+        .iter()
+        .map(|t| (t.name.as_str(), t.target.as_str()))
+        .collect();
+    tests.sort_unstable();
+    lines.extend(
+        tests
+            .iter()
+            .map(|(name, target)| format!("test {name}_test {target}")),
+    );
+
+    let mut assertions: Vec<String> = graph
+        .config_headers
+        .iter()
+        .map(|h| format!("assertion {}_test", codegen::config_header_name(h)))
+        .collect();
+    assertions.sort_unstable();
+    lines.extend(assertions);
+
+    fs::write(
+        out_module.join("TARGETS"),
+        format!("{}\n", lines.join("\n")),
+    )
 }
 
 /// Writes the recommended-resolution recipes into `<out_module>/resolutions/`.

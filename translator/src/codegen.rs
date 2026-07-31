@@ -274,7 +274,7 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
 /// The rule name for a config header's target — its output with non-identifier
 /// characters replaced, so `config.h` becomes a valid target `config_h` that
 /// won't collide with the output file of the same base name.
-fn config_header_name(header: &model::ConfigHeader) -> String {
+pub fn config_header_name(header: &model::ConfigHeader) -> String {
     header
         .output
         .chars()

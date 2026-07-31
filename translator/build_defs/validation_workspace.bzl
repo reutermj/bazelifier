@@ -138,27 +138,45 @@ for fixture_dir in "${fixture_dirs[@]}"; do
   # false-passing comparison this block exists to suppress. It only ever
   # looked correct because tinyxml2 names its test `xmltest` after its binary
   # `xmltest`; fixture 022's `app_test` on binary `app` breaks it.
-  tested_binaries=" "
-  while IFS= read -r test_target; do
-    test_labels+=("        \\"@${module_name}//:${test_target}\\",")
-  done < <(sed -n '/^sh_test($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}")
+  # Read from the module's own TARGETS manifest, not by regexing its
+  # BUILD.bazel. The harness needs three facts — which binaries exist, which
+  # tests wrap them, and which config-header assertions to run — and used to
+  # recover all three with sed over generated Starlark, coupling it to
+  # codegen's exact formatting. A formatting change (the intended
+  # buildifier-on-output pass is the obvious one) would match nothing, and a
+  # sed matching nothing yields no tests rather than an error. See bzl-dmf and
+  # main.rs::write_targets_manifest.
+  manifest="${out_dir}/fixtures/${fixture_dir}/TARGETS"
+  if [[ ! -f "${manifest}" ]]; then
+    echo "generate_root_files: ${fixture_dir} has no TARGETS manifest" >&2
+    exit 1
+  fi
+  # Every fixture emits at least one target, so an empty manifest means the
+  # translator stopped writing it rather than that there is nothing to check —
+  # the difference between a suite that passes and one that looks at nothing.
+  if [[ ! -s "${manifest}" ]]; then
+    echo "generate_root_files: ${fixture_dir}'s TARGETS manifest is empty" >&2
+    exit 1
+  fi
 
-  # assert_config_header_test targets, which codegen emits next to every
-  # config_header (see render_config_header_assertion). They are the ONLY
-  # check on a generated header's content — the runtime comparison sees a
-  # binary's stdout, and a config header can be wrong in ways that change no
-  # output at all. Collected here because they match neither of the two
-  # patterns above, so without this they are emitted and never run: the
-  # failure mode of a gate wired to nothing (bzl-0pd).
-  while IFS= read -r assert_target; do
-    test_labels+=("        \\"@${module_name}//:${assert_target}\\",")
-  done < <(sed -n '/^assert_config_header_test($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}")
-  # Scoped to the `args = [` block and taking only its first entry: codegen
-  # renders args as [binary, working_dir, pass_regex] (see render_sh_test).
-  # Reading every quoted string in the rule instead would also pick up `data`.
-  while IFS= read -r tested_binary; do
-    tested_binaries="${tested_binaries}${tested_binary} "
-  done < <(sed -n '/^sh_test($/,/^)$/ { /^ *args = \\[$/,/^ *\\],$/ { s/^ *"\\([^"]*\\)",$/\\1/p } }' "${build_bazel}" | sed -n '1~3p')
+  # A binary with its own CTest test is validated by that test, NOT by the
+  # naive ground-truth stdout comparison: a data-driven test (tinyxml2's
+  # xmltest reads resources/) run with no data would fail identically on both
+  # sides and false-pass. The manifest names the binary each test wraps, so
+  # this no longer depends on a test being named after its binary — it need
+  # not be (fixture 022's app_test runs app).
+  tested_binaries=" "
+  while read -r kind name target; do
+    case "${kind}" in
+      test)
+        test_labels+=("        \\"@${module_name}//:${name}\\",")
+        tested_binaries="${tested_binaries}${target} "
+        ;;
+      assertion)
+        test_labels+=("        \\"@${module_name}//:${name}\\",")
+        ;;
+    esac
+  done < "${manifest}"
 
   # cc_binary(name = "...") is likewise always rendered this way — see
   # codegen::render_cc_rule via rule_name — so every executable target
@@ -199,7 +217,7 @@ for fixture_dir in "${fixture_dirs[@]}"; do
       echo ")"
       echo
     } >> "${out_dir}/BUILD.bazel"
-  done < <(sed -n 's/^cc_binary($/&/p; /^cc_binary($/,/^)$/ s/^ *name = "\\(.*\\)",$/\\1/p' "${build_bazel}" | grep -v '^cc_binary($')
+  done < <(awk '$1 == "binary" { print $2 }' "${manifest}")
 done
 
 # A sed extraction that matches nothing yields no tests, not an error — the
