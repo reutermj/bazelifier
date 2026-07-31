@@ -481,6 +481,7 @@ mod tests {
 /src/CMakeLists.txt(341):  configure_file(/src/cmake/json_config.h.in /build/json_config.h )
 /src/CMakeLists.txt(520):  configure_file(/src/json.h.cmakein /build/json.h @ONLY )
 /src/CMakeLists.txt(29):  configure_file(config.h.in config.h )
+/src/CMakeLists.txt(126):  configure_file(/build/zconf.h.cmakein /build/zconf.h )
 /usr/share/cmake-3.28/Modules/CTestTargets.cmake(28):  configure_file(/usr/share/cmake-3.28/Modules/DartConfiguration.tcl.in /build/DartConfiguration.tcl )
 ";
 
@@ -509,6 +510,15 @@ mod tests {
                     template: PathBuf::from("/src/config.h.in"),
                     output: PathBuf::from("/src/config.h"),
                 },
+                // A template the project GENERATED into the build directory
+                // and then expanded (zlib assembles zconf.h.cmakein). Kept:
+                // it is as much the project's own call as a checked-in one,
+                // and dropping it here loses the whole config header before
+                // any reachability logic downstream gets a say (bzl-41q).
+                ConfigureFile {
+                    template: PathBuf::from("/build/zconf.h.cmakein"),
+                    output: PathBuf::from("/build/zconf.h"),
+                },
             ],
             "project calls are kept (absolute OR relative-to-the-calling-file templates), \
              CMake's internal ones dropped, trailing @ONLY ignored"
@@ -533,6 +543,45 @@ mod tests {
 #cmakedefine HAVE_ENDIAN_H
 #define VERSION \"@PROJECT_VERSION@\"
 ";
+
+    // bzl-41q: dropping build-dir template support entirely left the suite
+    // green, so this pins the whole path — the call survives parsing, the
+    // plan names the STAGED location, and template_source says where to copy
+    // it from. Without the last one the module ships a config_header whose
+    // template is not in it.
+    #[test]
+    fn a_build_dir_template_is_planned_against_its_staged_copy() {
+        let dir = std::env::temp_dir().join(format!("bzlf_bdt_{}", std::process::id()));
+        let build = dir.join("build");
+        fs::create_dir_all(&build).unwrap();
+        let template = build.join("zconf.h.cmakein");
+        fs::write(&template, "#cmakedefine HAVE_UNISTD_H 1\n").unwrap();
+
+        let calls = vec![ConfigureFile {
+            template: template.clone(),
+            output: build.join("zconf.h"),
+        }];
+        let (headers, escalations) =
+            build_config_headers(&calls, &dir.join("src"), &build, &HashMap::new());
+
+        assert!(
+            escalations.is_empty(),
+            "a build-dir template is reachable — the translator stages it — so \
+             it must not escalate: {escalations:?}"
+        );
+        let header = headers.first().expect("the config header must be planned");
+        assert_eq!(
+            header.template, "zconf.h.cmakein",
+            "`template` must name where the file lands INSIDE the module, not \
+             where CMake generated it"
+        );
+        assert_eq!(
+            header.template_source.as_deref(),
+            Some(template.as_path()),
+            "and template_source must say where to copy it from, or the module \
+             ships a config_header whose template is absent"
+        );
+    }
 
     #[test]
     fn parse_template_macros_collects_defines_and_vars_deduped() {

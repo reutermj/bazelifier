@@ -1696,6 +1696,30 @@ mod tests {
             !static_consumer.contains("dynamic_deps"),
             "a consumer of a STATIC library must not get dynamic_deps:\n{rendered}"
         );
+
+        // bzl-41q: a LIBRARY depending on a shared library must not get
+        // dynamic_deps either — cc_library has no such attribute and Bazel
+        // rejects it as a hard analysis error. The check above cannot catch
+        // that: app_static is an executable, so the Executable guard is not
+        // what suppresses it there.
+        let mut with_lib = g.clone();
+        with_lib.targets.push(Target {
+            name: "midlib".to_string(),
+            kind: TargetKind::Library,
+            sources: vec!["mid.c".to_string()],
+            dependencies: vec!["greet_shared".to_string()],
+            ..Default::default()
+        });
+        let rendered = render(&with_lib).build_bazel;
+        let midlib = rendered
+            .split("name = \"midlib\"")
+            .nth(1)
+            .expect("midlib must render");
+        assert!(
+            !midlib.contains("dynamic_deps"),
+            "cc_library has no dynamic_deps attribute — emitting it fails \
+             analysis outright:\n{rendered}"
+        );
     }
 
     // bzl-fxa.22: nothing checked a generated config header's CONTENT. The

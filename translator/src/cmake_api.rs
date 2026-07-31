@@ -1510,6 +1510,58 @@ mod tests {
         }
     }
 
+    // bzl-41q: dropping `is_shared` from the Target construction left the
+    // suite green. target_kind("SHARED_LIBRARY") is covered but is the OTHER
+    // function — it deliberately maps both library forms to one variant, so
+    // it cannot notice linkage being lost here.
+    #[test]
+    fn to_target_records_shared_linkage_from_the_cmake_type() {
+        let shared = TargetReply {
+            cmake_type: "SHARED_LIBRARY".to_string(),
+            ..library_reply(
+                vec![TargetSource {
+                    path: "src/greet.cpp".to_string(),
+                    file_set_index: None,
+                    is_generated: false,
+                }],
+                vec![],
+            )
+        };
+        let (target, _) = to_target(
+            &shared,
+            TargetKind::Library,
+            &HashMap::new(),
+            false,
+            &HashSet::new(),
+        );
+        assert!(
+            target.is_shared,
+            "a SHARED_LIBRARY must be recorded as shared, or codegen emits no \
+             cc_shared_library and the link silently becomes static"
+        );
+
+        let static_lib = library_reply(
+            vec![TargetSource {
+                path: "src/greet.cpp".to_string(),
+                file_set_index: None,
+                is_generated: false,
+            }],
+            vec![],
+        );
+        let (target, _) = to_target(
+            &static_lib,
+            TargetKind::Library,
+            &HashMap::new(),
+            false,
+            &HashSet::new(),
+        );
+        assert!(
+            !target.is_shared,
+            "and a STATIC_LIBRARY must not be — the other direction is what \
+             stops every library becoming shared"
+        );
+    }
+
     #[test]
     fn to_target_classifies_file_set_header_as_public() {
         let reply = library_reply(
