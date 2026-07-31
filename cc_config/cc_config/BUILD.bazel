@@ -1,6 +1,6 @@
 load("@aspect_rules_py//py:defs.bzl", "py_binary")
 load(":config_header.bzl", "assert_config_header_test", "config_header")
-load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists", "check_type_size")
+load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists", "check_type_size", "probe_alias")
 
 exports_files([
     "probe.bzl",
@@ -231,6 +231,56 @@ assert_config_header_test(
         "#define ENABLE_RDRAND OFF",
         "#define ENABLE_THREADING FALSE",
         "#define OVERRIDE_GET_RANDOM_SEED NO",
+    ],
+)
+
+# probe_alias: a project stamps a catalog fact into a project-prefixed define
+# (json-c's JSON_C_HAVE_INTTYPES_H, set from HAVE_INTTYPES_H). The alias must
+# report the UNDERLYING probe's answer, so both directions are asserted — an
+# alias hardwired to "1" would satisfy the present case on its own. Reuses the
+# existing true/false probes above rather than declaring new ones, which also
+# demonstrates the point of the rule: no second probe action is created.
+probe_alias(
+    name = "aliased_have_present",
+    define = "ALIASED_HAVE_PRESENT",
+    probe = ":have_stdlib_h",
+)
+
+probe_alias(
+    name = "aliased_have_absent",
+    define = "ALIASED_HAVE_ABSENT",
+    probe = ":have_definitely_no_such_header",
+)
+
+config_header(
+    name = "probe_alias_h",
+    output = "probe_alias.h",
+    probes = [
+        ":aliased_have_present",
+        ":aliased_have_absent",
+    ],
+    template = "testdata/probe_alias.h.in",
+)
+
+assert_config_header_test(
+    name = "probe_alias_test",
+    header = ":probe_alias_h",
+    must_contain = [
+        # The alias carries the true probe's answer under the NEW name, and
+        # populates its @VAR@ (same contract as any boolean probe).
+        "#define ALIASED_HAVE_PRESENT 1",
+        # ... and the false probe's answer, rather than defaulting to present.
+        "/* #undef ALIASED_HAVE_ABSENT */",
+    ],
+    must_not_contain = [
+        # The failure this guards: an alias that reports its fact as found
+        # regardless of what the underlying probe answered.
+        "#define ALIASED_HAVE_ABSENT",
+        # The macro the alias renames FROM must not leak into the output —
+        # the alias republishes under the new name only.
+        "HAVE_STDLIB_H",
+        "@ALIASED_HAVE_PRESENT@",
+        "@ALIASED_HAVE_ABSENT@",
     ],
 )
 

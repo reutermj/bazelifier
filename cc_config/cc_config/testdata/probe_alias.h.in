@@ -1,0 +1,11 @@
+/* A project stamping catalog facts into project-prefixed defines — the json-c
+   json_config.h shape, where CMake does `if (HAVE_INTTYPES_H) set(
+   JSON_C_HAVE_INTTYPES_H 1)`. The alias must carry the UNDERLYING probe's
+   answer in BOTH directions, so a present and an absent fact are both here:
+   an alias that always reported "1" would look correct against the present
+   one alone.
+
+   Grepped, not compiled (assert_config_header_test does not run the
+   preprocessor), so this asserts the substituted TEXT. */
+#cmakedefine ALIASED_HAVE_PRESENT @ALIASED_HAVE_PRESENT@
+#cmakedefine ALIASED_HAVE_ABSENT @ALIASED_HAVE_ABSENT@

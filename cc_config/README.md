@@ -22,6 +22,12 @@ for the toolchain-probe mechanics.
 - `check_type_size(name, type, headers, define)` — sets `define` to
   `sizeof(type)`, found at compile time (no execution, so it works
   cross-target).
+- `probe_alias(name, probe, define)` — republishes an existing probe's result
+  under a different macro name, adding no action. For a project that stamps a
+  catalog fact into a project-prefixed define so its public headers can't
+  collide with a consumer's own `HAVE_*` (json-c sets `JSON_C_HAVE_INTTYPES_H`
+  from `HAVE_INTTYPES_H`). Aliasing rather than re-probing keeps it one shared
+  probe per toolchain and makes it impossible for the two names to disagree.
 - `config_header(name, template, output, probes, values)` — expands
   `template` into `output`, resolving `#cmakedefine` from probe results and
   `@VAR@` from `values`.

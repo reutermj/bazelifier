@@ -431,6 +431,35 @@ check_symbol_exists = rule(
     fragments = ["cpp"],
 )
 
+def _probe_alias_impl(ctx):
+    # Re-publishes the underlying probe's EXISTING result file under a new
+    # macro name. No new action, so the aliased fact stays one shared probe
+    # per toolchain — re-probing under the alias name would answer the same
+    # question a second time and silently allow the two to disagree.
+    return [
+        ProbeResultInfo(
+            define = ctx.attr.define,
+            result = ctx.attr.probe[ProbeResultInfo].result,
+        ),
+        DefaultInfo(files = depset([ctx.attr.probe[ProbeResultInfo].result])),
+    ]
+
+probe_alias = rule(
+    implementation = _probe_alias_impl,
+    doc = "Republishes an existing probe's result under a different macro name — for a project that stamps a catalog fact into a project-prefixed define (e.g. JSON_C_HAVE_INTTYPES_H from HAVE_INTTYPES_H).",
+    attrs = {
+        "probe": attr.label(
+            mandatory = True,
+            providers = [ProbeResultInfo],
+            doc = "The probe whose result to republish (e.g. @cc_config//catalog:have_inttypes_h).",
+        ),
+        "define": attr.string(
+            mandatory = True,
+            doc = "The macro name to publish the result as (e.g. \"JSON_C_HAVE_INTTYPES_H\").",
+        ),
+    },
+)
+
 def _assert_probe_result_impl(ctx):
     result = ctx.attr.probe[ProbeResultInfo].result
 
