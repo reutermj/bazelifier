@@ -1,4 +1,5 @@
 mod cmake_api;
+mod ctest;
 mod codegen;
 mod model;
 mod needs_attention;

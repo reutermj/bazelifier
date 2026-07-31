@@ -14,10 +14,11 @@ The initial target is CMake projects that generate Ninja build files
   actually gets built.
 
 **Decision:** the frontend uses CMake's own resolved output as its primary
-source of truth, not `CMakeLists.txt` parsing. Four sources feed it, all
-in `translator/src/cmake_api.rs`. The first three are structured APIs; the
-fourth is a text stream, and it exists only because CMake exposes
-`configure_file` nowhere else:
+source of truth, not `CMakeLists.txt` parsing. Four sources feed it. Three
+live in `translator/src/cmake_api.rs`; the CTest one has its own module,
+`translator/src/ctest.rs`, because it is the one source that is not the File
+API at all. The first three are structured APIs; the fourth is a text stream,
+and it exists only because CMake exposes `configure_file` nowhere else:
 
 - **`codemodel-v2`** (File API) — configures the project (`cmake -B <dir> -G
   Ninja`) and reads the reply for each target's name, type, sources, build
@@ -241,10 +242,24 @@ artifacts, no dependents):
 
 ### Registered tests (CTest)
 
+All of this lives in `translator/src/ctest.rs`, not `cmake_api.rs`: it is the
+one input that is not the File API, and its three steps run in a fixed order
+(read the reply → rebase paths → classify) that the module documents.
+
 The File API has no test model, so `add_test`-registered tests come from
 `ctest --show-only=json-v1` (above). Each becomes a `model::Test` carrying
 the target it runs, its `WORKING_DIRECTORY` (rebased module-relative), and
-its `PASS_REGULAR_EXPRESSION`. Codegen turns each into a Bazel `sh_test`
+its `PASS_REGULAR_EXPRESSION`.
+
+Not every registered test can be expressed. A generated `sh_test` wraps a
+`cc_binary` this module emits, so tests are partitioned against the emitted
+executables and one whose command is anything else escalates rather than
+producing a label that cannot resolve — see the escalation list above. The
+command is rebased module-relative *before* that split, because the
+escalation quotes it verbatim for an agent reading it in the unpacked
+workspace, where a path from the conversion machine names nothing.
+
+Codegen turns each surviving test into a Bazel `sh_test`
 that runs the binary at that working directory — with the runtime data
 staged writable — and asserts the pass regex, i.e. the project's own
 correctness criterion translated rather than invented. This is currently

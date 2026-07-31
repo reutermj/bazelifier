@@ -7,6 +7,7 @@ rust_binary(
     srcs = [
         "src/cmake_api.rs",
         "src/codegen.rs",
+        "src/ctest.rs",
         "src/main.rs",
         "src/model.rs",
         "src/needs_attention.rs",
