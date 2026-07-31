@@ -369,20 +369,36 @@ pub fn render_needs_attention_build_bazel() -> String {
 /// equivalence tests can reference them (e.g.
 /// `@<module>//ground_truth:hello`).
 ///
+/// `executables` are (target name, artifact path) for each executable. Each
+/// gets a `filegroup` named after the TARGET pointing at its artifact, because
+/// the two can differ: a target CMake builds under a subdirectory has a build
+/// path like `apps/json_parse` while its Bazel target name is `json_parse`.
+/// The comparison test in `validation_workspace.bzl` references
+/// `@module//ground_truth:<cc_binary name>`, i.e. by the target name, so
+/// without this alias the label would not resolve for any subdir target
+/// (bzl-fxa.13). Naming the filegroup after the target also sidesteps a
+/// basename collision between two subdir targets (`a/foo` and `b/foo`): the
+/// distinct CMake target names stay distinct.
+///
 /// `shared_libs` are the staged shared-library files (`libfoo.so.5`, ...) that
-/// a dynamically linked ground-truth binary loads at run time. They are also
-/// in `artifacts` (so `exports_files` covers them), and additionally grouped
-/// into a `shared_libs` filegroup the comparison test depends on wholesale —
-/// the test can't name them individually (it only knows the binary's target
-/// name), so it adds the group to its runfiles and points LD_LIBRARY_PATH at
-/// them. The filegroup is emitted even when empty so the comparison test can
-/// reference it unconditionally.
+/// a dynamically linked ground-truth binary loads at run time, grouped into a
+/// `shared_libs` filegroup the comparison test depends on wholesale — the test
+/// can't name them individually, so it adds the group to its runfiles and
+/// points LD_LIBRARY_PATH at them. Emitted even when empty so the comparison
+/// test can reference it unconditionally.
+///
+/// `artifacts` (every built file) is still `exports_files`d so a path-based
+/// reference keeps working and libraries remain exported.
 ///
 /// Deliberately its own nested package rather than entries in the module's
 /// top-level `BUILD.bazel`: validation-only targets must never appear in
 /// what a user checks into their own repo. See
 /// docs/architecture/build-verification.md.
-pub fn render_ground_truth_build_bazel(artifacts: &[String], shared_libs: &[String]) -> String {
+pub fn render_ground_truth_build_bazel(
+    artifacts: &[String],
+    executables: &[(String, String)],
+    shared_libs: &[String],
+) -> String {
     let exports = artifacts
         .iter()
         .map(|p| format!("\"{p}\""))
@@ -393,14 +409,26 @@ pub fn render_ground_truth_build_bazel(artifacts: &[String], shared_libs: &[Stri
         .map(|p| format!("\"{p}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    format!(
-        "exports_files([{exports}])\n\n\
-         filegroup(\n    \
-         name = \"shared_libs\",\n    \
-         srcs = [{shared_srcs}],\n    \
-         visibility = [\"//visibility:public\"],\n\
-         )\n"
-    )
+
+    let mut out = format!("exports_files([{exports}])\n");
+    // One filegroup per subdir executable, named by target so the comparison
+    // test's by-name label resolves regardless of the artifact's build path.
+    // Skipped when name == path (a root-level target): `exports_files` already
+    // provides a target of that name, and a second one would collide.
+    for (name, path) in executables {
+        if name == path {
+            continue;
+        }
+        out.push_str(&format!(
+            "\nfilegroup(\n    name = \"{name}\",\n    srcs = [\"{path}\"],\n    \
+             visibility = [\"//visibility:public\"],\n)\n"
+        ));
+    }
+    out.push_str(&format!(
+        "\nfilegroup(\n    name = \"shared_libs\",\n    srcs = [{shared_srcs}],\n    \
+         visibility = [\"//visibility:public\"],\n)\n"
+    ));
+    out
 }
 
 /// The wrapper `sh_test` binary the generated module ships to run a
@@ -886,16 +914,46 @@ mod tests {
 
     #[test]
     fn ground_truth_build_bazel_exports_every_artifact() {
-        let rendered =
-            render_ground_truth_build_bazel(&["hello".to_string(), "libgreet.a".to_string()], &[]);
+        // A root-level executable (name == artifact path): no extra filegroup,
+        // because exports_files already provides a `:hello` target and a second
+        // one of that name would collide.
+        let rendered = render_ground_truth_build_bazel(
+            &["hello".to_string(), "libgreet.a".to_string()],
+            &[("hello".to_string(), "hello".to_string())],
+            &[],
+        );
         assert!(
             rendered.contains("exports_files([\"hello\", \"libgreet.a\"])"),
             "{rendered}"
+        );
+        assert!(
+            !rendered.contains("name = \"hello\""),
+            "a root-level target needs no filegroup (would collide with exports_files):\n{rendered}"
         );
         // A static-only module still gets the (empty) shared_libs filegroup so
         // the comparison test can depend on it unconditionally.
         assert!(rendered.contains("name = \"shared_libs\""), "{rendered}");
         assert!(rendered.contains("srcs = []"), "{rendered}");
+    }
+
+    #[test]
+    fn ground_truth_build_bazel_aliases_subdir_executables_by_target_name() {
+        // bzl-fxa.13: a target CMake builds under a subdir has artifact path
+        // `apps/json_parse` but Bazel target name `json_parse`. The comparison
+        // test references `//ground_truth:json_parse`, so a filegroup named
+        // after the TARGET must point at the subdir artifact — otherwise the
+        // label doesn't resolve.
+        let rendered = render_ground_truth_build_bazel(
+            &["apps/json_parse".to_string()],
+            &[("json_parse".to_string(), "apps/json_parse".to_string())],
+            &[],
+        );
+        assert!(
+            rendered.contains(
+                "filegroup(\n    name = \"json_parse\",\n    srcs = [\"apps/json_parse\"],"
+            ),
+            "a subdir executable must be exposed by its target name:\n{rendered}"
+        );
     }
 
     #[test]
@@ -909,6 +967,7 @@ mod tests {
                 "libgreet.so.5".to_string(),
                 "libgreet.so.5.2.0".to_string(),
             ],
+            &[("app".to_string(), "app".to_string())],
             &[
                 "libgreet.so".to_string(),
                 "libgreet.so.5".to_string(),
@@ -924,7 +983,7 @@ mod tests {
     // A fixture whose targets produce no artifacts still gets the package.
     #[test]
     fn ground_truth_build_bazel_handles_no_artifacts() {
-        let rendered = render_ground_truth_build_bazel(&[], &[]);
+        let rendered = render_ground_truth_build_bazel(&[], &[], &[]);
         assert!(rendered.contains("exports_files([])"), "{rendered}");
         assert!(rendered.contains("name = \"shared_libs\""), "{rendered}");
     }

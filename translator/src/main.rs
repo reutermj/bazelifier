@@ -155,7 +155,16 @@ fn copy_ground_truth_artifacts(
 
     let mut artifact_paths = Vec::new();
     let mut shared_lib_names = Vec::new();
+    // (target name, artifact path) per executable, so the ground_truth
+    // BUILD.bazel can expose each under its TARGET name even when CMake built
+    // it under a subdirectory (apps/json_parse). See bzl-fxa.13.
+    let mut executables = Vec::new();
     for target in &graph.targets {
+        if target.kind == model::TargetKind::Executable
+            && let Some(artifact) = target.artifacts.first()
+        {
+            executables.push((target.name.clone(), artifact.clone()));
+        }
         for artifact in &target.artifacts {
             copy_into(&build_dir.join(artifact), &ground_truth_dir.join(artifact))?;
             artifact_paths.push(artifact.clone());
@@ -184,7 +193,7 @@ fn copy_ground_truth_artifacts(
 
     fs::write(
         ground_truth_dir.join("BUILD.bazel"),
-        codegen::render_ground_truth_build_bazel(&artifact_paths, &shared_lib_names),
+        codegen::render_ground_truth_build_bazel(&artifact_paths, &executables, &shared_lib_names),
     )?;
 
     Ok(())

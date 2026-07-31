@@ -1,0 +1,14 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# Drives the subdir-target ground-truth naming case (bzl-fxa.13): the app is
+# built under app/, so its artifact path (app/app) differs from its target name
+# (app). The ground_truth export must expose it by target name so the
+# comparison test's label resolves. See the fixture's CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "app/**",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)
