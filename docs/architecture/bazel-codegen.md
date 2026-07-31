@@ -17,10 +17,10 @@ Covers how bazelifier turns the internal build-graph model (see
 - Prefer native Bazel rules (`cc_library`, `cc_binary`, `cc_test`, etc.) over
   custom genrule-wrapping of the original build system wherever the
   translator can confidently produce them. Implemented: `cc_binary`
-  (CMake `EXECUTABLE`) and `cc_library` (`STATIC_LIBRARY`/`SHARED_LIBRARY`
-  — codegen doesn't currently distinguish the two, since Bazel's
-  `cc_library` picks static/dynamic linking per-consumer rather than
-  per-declaration). `cc_library` gets `srcs`, `hdrs` (only headers the
+  (CMake `EXECUTABLE`) and `cc_library` (both `STATIC_LIBRARY` and
+  `SHARED_LIBRARY`). Linkage is not a different rule — both forms are a
+  `cc_library` — but the distinction is preserved rather than normalized
+  away; see "Shared libraries" below. `cc_library` gets `srcs`, `hdrs` (only headers the
   project *declared* public, via a `FILE_SET` or an `install()` to an
   include destination — see [cmake-frontend.md](cmake-frontend.md)),
   `includes`
@@ -67,6 +67,14 @@ alongside `shared/helper.cpp`). Everything below is relative to that root.
                        and the project's own CMakeLists.txt is not among
                        them — see cmake-frontend.md's "only referenced files
                        enter the module"
+  _include/           copies of this module's public headers, present ONLY
+                       when a project declared its module root as an include
+                       directory — a rules_cc workaround, not project layout.
+                       See "_include/: a staging workaround" below
+  resolutions/        markdown recipes for the shapes of gap that appear in
+    README.md          needs_attention/, shipped with every module because
+    <shape>.md         the resolving agent has no access to this repo — see
+                       needs-attention-interface.md
   ground_truth/
     BUILD.bazel        exports_files(...) only — NOT part of the
                        user-facing output, validation-only (see
@@ -125,6 +133,63 @@ decide what to escalate. Codegen then enforces it again in
 Because the assert is always on, every real conversion exercises it — the
 fixtures don't need a separate "no absolute paths" assertion, since the
 translator refuses to produce such output in the first place.
+
+## Shared libraries
+
+A CMake `SHARED_LIBRARY` becomes a `cc_library` plus a `cc_shared_library`
+wrapping it, and consumers that link it get **both** `deps` and
+`dynamic_deps`:
+
+```python
+cc_library(name = "zlib", srcs = [...], hdrs = [...])
+cc_shared_library(name = "zlib_shared", deps = [":zlib"])
+
+cc_binary(
+    name = "zlib_example",
+    deps = [":zlib"],                 # CcInfo: headers, include paths
+    dynamic_deps = [":zlib_shared"],  # CcSharedLibraryInfo: link the .so
+)
+```
+
+Both edges are required and neither substitutes for the other:
+`cc_shared_library` provides `CcSharedLibraryInfo` and **not** `CcInfo`, so
+putting it in `deps` is an analysis error, and dropping `deps` loses the
+headers.
+
+The distinction is preserved rather than normalized to static because
+dropping it is invisible to the equivalence check: zlib builds the same
+sources both ways and its two consumers produce byte-identical output. What
+does differ is the symbol table — zlib's shared link applies a version script
+that hides internals the static archive exposes.
+
+`dynamic_deps` is emitted only on executables, because `cc_library` has no
+such attribute. A library that links a shared library therefore cannot express
+that in Bazel and would downgrade to a static link; no corpus project hits it
+yet, since every consumer of zlib's shared `libz` is an executable.
+
+A generated `sh_test` wrapping a dynamically linked binary needs
+`LD_LIBRARY_PATH`: the binary finds its `.so` through an `$ORIGIN`-relative
+`RUNPATH`, and `RUN_CMAKE_TEST_SH` stages runfiles into a writable tree (the
+binary writes into its working directory), which breaks those relative paths.
+
+## `_include/`: a staging workaround
+
+A converted module may carry an `_include/` directory holding copies of its
+public headers, with `includes = ["_include"]` on the targets that own them.
+**This is a workaround for a rules_cc limitation, not project layout**, and it
+is meant to be removed.
+
+A header at a module's ROOT cannot be reached by `#include <angled>`: Bazel
+passes only `-iquote .` for a root package and rejects `includes = ["."]`
+outright ("resolves to the workspace root, which would allow this rule and all
+of its transitive dependents to include any file in your workspace"). zlib's
+`zlib.h` does `#include <zconf.h>`, so without the staging the module does not
+compile.
+
+It fires only when a project declared its own module root as an include
+directory, and stages only headers the project declared public. When rules_cc
+supports reaching a module-root header from an angled include, delete the
+staging and emit the headers in place.
 
 ## Formatting and linting
 

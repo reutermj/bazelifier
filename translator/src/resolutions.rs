@@ -153,60 +153,40 @@ lookalike (a project's `MYPROJ_HAVE_STDINT_H` is not the catalog's
 
 ## When the template itself is generated
 
-Some projects `configure_file` a checked-in `.in`/`.cmakein`. That is the easy
-case: the file is already in this module, point `template =` at it and stop
-reading here.
+Some projects do not ship a `.in`/`.cmakein` at all — they BUILD one at
+configure time and then expand it. zlib assembles `zconf.h.cmakein` from its
+checked-in `zconf.h` with `file(READ/WRITE/APPEND)` and byte offsets.
 
-Others **build the template at configure time** and then expand it. When that
-happens there is nothing in the module to point `template =` at, and the
-files that look like the template are near-misses.
+**The translator already handles this**, so you should not have to. It stages
+the generated template into the module and points `template =` at the staged
+copy, exactly as if the project had shipped it. If your module has a
+`config_header` rule whose `template` names a file that is present beside your
+`BUILD.bazel`, that is what happened, and there is nothing to do here.
 
-zlib is the worked example. Its `CMakeLists.txt` does, in outline:
+You are reading this section because something ELSE went wrong. The likely
+cases, in order:
 
-```cmake
-file(READ  ${zlib_SOURCE_DIR}/zconf.h ZCONF_CONTENT LIMIT 245)   # first 245 bytes
-file(WRITE ${zlib_BINARY_DIR}/zconf.h.cmakein ${ZCONF_CONTENT})
-file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein "#cmakedefine Z_PREFIX 1\n")
-file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein "#cmakedefine HAVE_STDARG_H 1\n")
-file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein "#cmakedefine HAVE_UNISTD_H 1\n")
-file(READ  ${zlib_SOURCE_DIR}/zconf.h ZCONF_CONTENT OFFSET 244)  # the rest
-file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein ${OUT_CONTENT})
+- **A macro has no catalog probe.** That is the separate unmapped-macro
+  escalation, not this one. Resolve it by adding the probe to the catalog or,
+  if the macro is a project option rather than a toolchain fact (zlib's
+  `Z_PREFIX`), by supplying it through `values` instead.
+- **The template was unreadable at conversion time.** Then it is genuinely not
+  in the module, and the only honest resolution is to reconstruct it from
+  whatever the project DOES ship. Diff the checked-in header against the one
+  CMake generated in its build directory, take the checked-in file as your
+  template, and add the `#cmakedefine` lines the difference implies — to
+  **this module's own copy**, never upstream. For zlib 1.3.2 that difference
+  is four lines directly after `#define ZCONF_H`:
 
-configure_file(${zlib_BINARY_DIR}/zconf.h.cmakein ${zlib_BINARY_DIR}/zconf.h)
-```
+  ```c
+  /* #undef Z_PREFIX */
+  #define HAVE_STDARG_H 1
+  #define HAVE_UNISTD_H 1
+  ```
 
-That is the checked-in `zconf.h` split at a byte offset with three
-`#cmakedefine` lines spliced into the seam — the offset lands just after the
-include guard.
-
-**Reproduce the RESULT, not the process.** Do not model `file(READ/WRITE/
-APPEND)` or byte offsets. Take the checked-in header as your template, add
-the `#cmakedefine` lines the splice would have inserted, and let
-`config_header` expand it:
-
-```python
-config_header(
-    name = "zconf_h",
-    template = "zconf.h",   # this module's own copy, with the lines added
-    output = "zconf.h",
-    probes = [
-        "@cc_config//catalog:have_stdarg_h",
-        "@cc_config//catalog:have_unistd_h",
-    ],
-)
-```
-
-Work out which lines to add by diffing the project's checked-in header against
-the one CMake generated in its build directory. For zlib 1.3.2 the whole
-difference is four lines, inserted directly after `#define ZCONF_H`:
-
-```c
-/* #undef Z_PREFIX */
-#define HAVE_STDARG_H 1
-#define HAVE_UNISTD_H 1
-```
-
-Edit **this module's copy**. Never the project's upstream sources.
+**Never model the generation itself.** Reproducing `file(READ/WRITE/APPEND)`
+and byte offsets means reimplementing CMake, and the result rots against the
+next release. Reproduce the RESULT.
 
 ## Sharp edges
 
@@ -427,9 +407,24 @@ mod tests {
             .body;
 
         assert!(
-            recipe.contains("Reproduce the RESULT, not the process"),
+            recipe.contains("Reproduce the RESULT"),
             "the recipe must tell the agent to reproduce the OUTCOME rather \
              than model file(READ/WRITE/APPEND):\n{recipe}"
+        );
+        // bzl-8u1: this section told agents to hand-splice a template long
+        // after dee7639 made the translator stage it automatically, which
+        // would have them REPLACE correct generated output with a hand-edited
+        // copy. A capability landing must not leave the recipe claiming the
+        // agent still has to do it.
+        assert!(
+            recipe.contains("The translator already handles this"),
+            "the recipe must say the staged-template case is automatic — \
+             telling an agent to do it by hand undoes correct output:\n{recipe}"
+        );
+        assert!(
+            !recipe.contains("there is nothing in the module to point"),
+            "stale claim: the translator stages a build-dir template into the \
+             module, so `template =` does have something to point at:\n{recipe}"
         );
         assert!(
             recipe.contains("cc_config"),
@@ -438,7 +433,7 @@ mod tests {
         // zlib's trap: the template is assembled at configure time, so
         // `template =` has nothing in the module to point at.
         assert!(
-            recipe.contains("build the template at configure time"),
+            recipe.contains("they BUILD one at"),
             "must cover the case where the template itself is generated:\n{recipe}"
         );
 
