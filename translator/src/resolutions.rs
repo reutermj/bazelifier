@@ -99,7 +99,7 @@ That is expected — recipes exist for shapes seen often enough to be worth
 writing down, not for everything. Resolve from the item's own guidance.
 "#;
 
-const GENERATED_CONFIG_HEADER: &str = r#"# Recipe: a config header the build generates
+const GENERATED_CONFIG_HEADER: &str = r##"# Recipe: a config header the build generates
 
 **Matches items about**: a target compiling against a header that exists only
 in the CMake build directory, or `#cmakedefine`/`@VAR@` macros with no
@@ -151,30 +151,97 @@ macro with no catalog entry is a real gap — say so rather than guessing at a
 lookalike (a project's `MYPROJ_HAVE_STDINT_H` is not the catalog's
 `HAVE_STDINT_H`).
 
-## Adapting this — read carefully
+## When the template itself is generated
 
-**The template may not be where you expect.** Some projects `configure_file`
-a checked-in `.in`/`.cmakein`; that is the easy case and the file is in this
-module already. Others build the template itself at configure time, out of
-other files, and then expand it. When that happens the template is NOT in the
-module and there is nothing to point `template =` at directly.
+Some projects `configure_file` a checked-in `.in`/`.cmakein`. That is the easy
+case: the file is already in this module, point `template =` at it and stop
+reading here.
 
-For that case: find the checked-in file the template was derived from, use it
-as the template, and add the `#cmakedefine` lines the generation step would
-have inserted — **to this module's own copy**, not upstream. Work out which
-lines those are by comparing the project's checked-in header against what
-CMake generated, and by reading the `CMakeLists.txt` logic that assembles it.
+Others **build the template at configure time** and then expand it. When that
+happens there is nothing in the module to point `template =` at, and the
+files that look like the template are near-misses.
 
-**A missing macro can fail silently.** The idiom
+zlib is the worked example. Its `CMakeLists.txt` does, in outline:
 
-```c
-#if HAVE_UNISTD_H-0
+```cmake
+file(READ  ${zlib_SOURCE_DIR}/zconf.h ZCONF_CONTENT LIMIT 245)   # first 245 bytes
+file(WRITE ${zlib_BINARY_DIR}/zconf.h.cmakein ${ZCONF_CONTENT})
+file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein "#cmakedefine Z_PREFIX 1\n")
+file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein "#cmakedefine HAVE_STDARG_H 1\n")
+file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein "#cmakedefine HAVE_UNISTD_H 1\n")
+file(READ  ${zlib_SOURCE_DIR}/zconf.h ZCONF_CONTENT OFFSET 244)  # the rest
+file(APPEND ${zlib_BINARY_DIR}/zconf.h.cmakein ${OUT_CONTENT})
+
+configure_file(${zlib_BINARY_DIR}/zconf.h.cmakein ${zlib_BINARY_DIR}/zconf.h)
 ```
 
-evaluates to `0` when the macro is undefined — no error, no warning, just a
-different code path. So a header that is *nearly* right compiles and runs and
-is wrong. When the generated and checked-in headers share a name, make sure
-the target picks up the generated one.
+That is the checked-in `zconf.h` split at a byte offset with three
+`#cmakedefine` lines spliced into the seam — the offset lands just after the
+include guard.
+
+**Reproduce the RESULT, not the process.** Do not model `file(READ/WRITE/
+APPEND)` or byte offsets. Take the checked-in header as your template, add
+the `#cmakedefine` lines the splice would have inserted, and let
+`config_header` expand it:
+
+```python
+config_header(
+    name = "zconf_h",
+    template = "zconf.h",   # this module's own copy, with the lines added
+    output = "zconf.h",
+    probes = [
+        "@cc_config//catalog:have_stdarg_h",
+        "@cc_config//catalog:have_unistd_h",
+    ],
+)
+```
+
+Work out which lines to add by diffing the project's checked-in header against
+the one CMake generated in its build directory. For zlib 1.3.2 the whole
+difference is four lines, inserted directly after `#define ZCONF_H`:
+
+```c
+/* #undef Z_PREFIX */
+#define HAVE_STDARG_H 1
+#define HAVE_UNISTD_H 1
+```
+
+Edit **this module's copy**. Never the project's upstream sources.
+
+## Sharp edges
+
+These have all bitten. Check each one.
+
+**Several files look like the template, and the wrong ones expand to
+nothing.** zlib ships `zconf.h` (the checked-in header) and `zconf.h.in` (the
+*autotools* template, a different build system's), while the CMake template
+`zconf.h.cmakein` exists only in the build directory. Neither source file
+contains a single `#cmakedefine`, so pointing `template =` at either produces
+a header with none of the macros — and no error, because a template with
+nothing to substitute expands cleanly. Confirm your chosen template actually
+contains the directives you expect before wiring it up.
+
+**The augmented and unaugmented headers often share a name.** zlib generates
+`zconf.h` into the build directory while `zconf.h` also sits in the source
+tree, and CMake puts the build directory FIRST on the include path so the
+generated one wins. In Bazel the generated file must likewise be the one the
+compile resolves: reference the `config_header` target in `srcs` and make sure
+no `includes` entry lets the source-tree copy shadow it.
+
+**A missing macro can be silent.** zlib's own header does:
+
+```c
+#if HAVE_UNISTD_H-0     /* may be set to #if 1 by ./configure */
+```
+
+An *undefined* macro evaluates to `0` here — no error, no warning. So a header
+that is nearly right compiles, links, runs, and quietly takes a different code
+path. Do not treat a green build as proof the header is correct.
+
+**Do not vendor the generated header.** It is tempting once you have seen how
+small the diff is. Those values are the conversion host's answers; a consumer
+on another platform needs their own, which is the entire reason `config_header`
+resolves probes at build time.
 
 ## Checking your work
 
@@ -182,7 +249,7 @@ Compare the header your rule produces against the one CMake generated in the
 build directory. They should agree on which macros are defined. They may
 legitimately differ in *values* if the toolchains differ — that is the point
 of probing rather than copying.
-"#;
+"##;
 
 const HEADER_VISIBILITY: &str = r#"# Recipe: headers with no public declaration
 
@@ -360,8 +427,9 @@ mod tests {
             .body;
 
         assert!(
-            recipe.contains("Adapting this"),
-            "the recipe must be framed as something to adapt:\n{recipe}"
+            recipe.contains("Reproduce the RESULT, not the process"),
+            "the recipe must tell the agent to reproduce the OUTCOME rather \
+             than model file(READ/WRITE/APPEND):\n{recipe}"
         );
         assert!(
             recipe.contains("cc_config"),
@@ -370,10 +438,26 @@ mod tests {
         // zlib's trap: the template is assembled at configure time, so
         // `template =` has nothing in the module to point at.
         assert!(
-            recipe.contains("template is NOT in the module")
-                || recipe.contains("not in the source tree")
-                || recipe.contains("build the template itself"),
+            recipe.contains("build the template at configure time"),
             "must cover the case where the template itself is generated:\n{recipe}"
+        );
+
+        // The three sharp edges, each verified against zlib 1.3.2. Dropping
+        // any one leaves a mistake that produces a GREEN build.
+        assert!(
+            recipe.contains("the wrong ones expand to"),
+            "must warn that the near-miss templates (zconf.h, zconf.h.in) \
+             carry no #cmakedefine and expand silently:\n{recipe}"
+        );
+        assert!(
+            recipe.contains("share a name"),
+            "must warn that the generated and checked-in headers collide by \
+             name, so the wrong one can win the include:\n{recipe}"
+        );
+        assert!(
+            recipe.contains("HAVE_UNISTD_H-0"),
+            "must show the idiom where an undefined macro evaluates to 0, \
+             which is why a green build proves nothing here:\n{recipe}"
         );
     }
 }
