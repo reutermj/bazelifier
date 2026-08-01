@@ -6,14 +6,17 @@ See [README.md](README.md) for the human-facing overview.
 ## What this project is
 
 bazelifier converts build scripts from other build systems into Bazel
-`BUILD` files. The first supported source build system is **CMake**; the
-architecture should stay general enough to add others later (Make,
-Autotools, Meson, ...).
+`BUILD` files. Two frontends exist — **CMake** (first and more developed) and
+**Autotools** — sharing one model and one codegen. Others (Make, Meson, ...)
+remain possible later; the boundary that would let them in is now tested
+rather than assumed, since the Autotools frontend needed no codegen change and
+no new model field.
 
 ## Architecture (short version)
 
-1. A **deterministic translator**, written in Rust, discovers a CMake
-   project's targets via the CMake File API and mechanically emits a
+1. A **deterministic translator**, written in Rust, discovers a project's
+   targets through its own build system (the CMake File API, or `make -n` and
+   `make -p` for Autotools) and mechanically emits a
    **standalone Bazel module** for it: its own `MODULE.bazel` +
    `BUILD.bazel`, not a package inside bazelifier's own workspace. That
    distinction is the whole point — see
@@ -34,17 +37,21 @@ Autotools, Meson, ...).
      build via `bazel build`/`bazel test` with zero reference to
      bazelifier's own `MODULE.bazel`.
    - **Functional equivalence** (not binary compatibility) to the original
-     CMake build — currently a runtime output/exit-code comparison against
+     build — currently a runtime output/exit-code comparison against
      ground-truth artifacts the translator also captures.
 
 Full detail lives in [docs/architecture/](docs/architecture/). Read that
 before making non-trivial changes to the translator, codegen, or the
 validation pipeline.
 
-The frontend's source of truth is the CMake File API (`codemodel-v2` +
-`cache-v2`), not direct `CMakeLists.txt` parsing — see
-[docs/architecture/cmake-frontend.md](docs/architecture/cmake-frontend.md)
-for why. Generated `BUILD` files must build **hermetically**: C/C++ output
+Every frontend's source of truth is the build system's own RESOLVED output,
+never its input files: the CMake File API (`codemodel-v2` + `cache-v2`) rather
+than `CMakeLists.txt`, and `make -n`/`make -p` rather than `Makefile.am`. Both
+input forms carry unexpanded variables and conditionals, so the declared graph
+is not the built one — see
+[docs/architecture/cmake-frontend.md](docs/architecture/cmake-frontend.md) and
+[docs/architecture/autotools-frontend.md](docs/architecture/autotools-frontend.md)
+for why in each case. Generated `BUILD` files must build **hermetically**: C/C++ output
 is built via the `llvm` toolchain the generated `MODULE.bazel` itself
 depends on, not the host's system compiler — this is a hard requirement,
 verified in practice by the fact that `libc++`/`libunwind` compile from
@@ -53,6 +60,11 @@ source in every fixture build.
 ## Where things live
 
 - `translator/` — the Rust translator crate:
+  - `src/autotools.rs` — Autotools frontend: recovers the graph from `make -n`
+    (the resolved command stream, this frontend's File API analogue) joined
+    with `make -p` (make's variable database, which carries the target NAMES
+    the command stream lacks). See
+    [docs/architecture/autotools-frontend.md](docs/architecture/autotools-frontend.md).
   - `src/cmake_api.rs` — CMake frontend: reads the File API
     (`codemodel-v2` + `cache-v2`) and runs the real build to capture
     ground-truth artifacts. Derives the module root and rebases reported
@@ -108,9 +120,10 @@ source in every fixture build.
   - `build_defs/compare_runtime_output.sh` — the actual equivalence check:
     diffs stdout/stderr/exit code between ground-truth and Bazel-built
     binaries.
-- `translator/tests/fixtures/` — small, synthetic CMake "unit" projects
-  used to TDD the translator. Each fixture's `BUILD.bazel` just calls
-  `convert_cmake_project` with its sources — the module name and
+- `translator/tests/fixtures/` — small, synthetic "unit" projects used to TDD
+  the translator; the numbered ones are CMake and `autotools/` holds the
+  Autotools ones. Each fixture's `BUILD.bazel` just calls
+  `convert_cmake_project` (or `convert_autotools_project`) with its sources — the module name and
   executable target names are read back out of the translator's own
   generated `MODULE.bazel`/`BUILD.bazel` at execution time (see
   `validation_workspace.bzl`), not hand-declared, so they can't drift from

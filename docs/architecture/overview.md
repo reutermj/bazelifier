@@ -2,13 +2,17 @@
 
 ## Goal
 
-Convert a project's existing build scripts into Bazel `BUILD` files. Initial
-scope is **CMake** projects (typically CMake configured to generate Ninja
-build files); the overall project intends to support additional build
-systems (Make, Autotools, Meson, ...) later. Nothing in the pipeline design
-should be CMake-specific where it can reasonably be generalized, but we are
-not paying an abstraction tax up front for build systems we haven't
-implemented yet.
+Convert a project's existing build scripts into Bazel `BUILD` files. Two
+frontends exist: **CMake** (the first, and the more developed — see
+[cmake-frontend.md](cmake-frontend.md)) and **Autotools** (see
+[autotools-frontend.md](autotools-frontend.md)). Others (Make, Meson, ...)
+remain possible later.
+
+Nothing in the pipeline design should be build-system-specific where it can
+reasonably be generalized, but we are not paying an abstraction tax up front
+for build systems we have not implemented. That the boundary held is now
+demonstrated rather than assumed: the Autotools frontend renders through
+codegen with no change to it and no new `model::Target` field.
 
 ## Pipeline
 

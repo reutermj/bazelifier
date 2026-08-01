@@ -1,6 +1,10 @@
 # CMake frontend
 
-Covers how bazelifier reads and understands CMake input.
+Covers how bazelifier reads and understands CMake input. The Autotools
+frontend is documented in
+[autotools-frontend.md](autotools-frontend.md); the two make the same
+decisions for the same reasons and differ mainly in what evidence their build
+system exposes, so the pair is worth reading together.
 
 ## Scope
 
