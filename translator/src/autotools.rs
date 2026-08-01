@@ -323,6 +323,16 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
     vars
 }
 
+/// Whether a substituted value is a bare number, and so must NOT be quoted.
+///
+/// autoconf's own rule: `AC_DEFINE([SIZEOF_LONG], [8])` emits `8`, while
+/// `AC_DEFINE([PACKAGE], ["xz"])` emits `"xz"`. Getting this backwards fails
+/// in opposite directions — an unquoted string becomes stray identifiers, a
+/// quoted number becomes a type error in `#if`.
+fn is_numeric_literal(value: &str) -> bool {
+    !value.is_empty() && value.chars().all(|c| c.is_ascii_digit())
+}
+
 /// Whether `name` is an automake primary — `bin_PROGRAMS`, `lib_LTLIBRARIES`.
 ///
 /// Matched on the suffix alone, the same way [`declared_targets`] reads them,
@@ -369,9 +379,26 @@ pub(crate) fn plan_config_header(
             // variable is the absence of a value, so the macro falls through
             // to the escalation below where it belongs.
             //
-            // Stored unquoted: codegen renders a values entry as
-            // `"NAME": "value"`, so quoting here would double it.
-            values.push((name, value.clone()));
+            // Quoted the way autoconf itself would. `AC_DEFINE([PACKAGE_NAME],
+            // ["XZ Utils"])` puts a C STRING LITERAL in config.h — quotes
+            // included — while make's variable database carries the bare text.
+            // Passing that through raw emitted `#define PACKAGE_NAME XZ Utils`,
+            // which the preprocessor splices into `printf("xz (" XZ Utils ")")`
+            // and clang rejects as an undeclared identifier, several files from
+            // the config header that caused it.
+            //
+            // A purely numeric value is left bare, matching autoconf: SIZEOF_*
+            // and ASSUME_RAM are used in arithmetic and `#if`, where a string
+            // literal is a type error rather than a quoting nicety.
+            //
+            // Note this is C quoting, not Starlark quoting — codegen escapes
+            // the result again on the way into the BUILD file.
+            let value = if is_numeric_literal(value) {
+                value.clone()
+            } else {
+                format!("\"{value}\"")
+            };
+            values.push((name, value));
         } else {
             // Neither a catalog fact nor a substituted value. Escalated
             // rather than guessed at, exactly as the CMake frontend refuses
@@ -800,15 +827,42 @@ pub(crate) fn to_graph(
             continue;
         }
 
+        let decl_dir = declaring_dir(&decl.name);
+
         // Sources come from the DECLARATION, not from the link inputs: a
         // target's _SOURCES is what automake was told, while the link line
         // shows objects, which have to be mapped back. Headers appear in
         // _SOURCES too (automake accepts them so they reach the tarball), so
         // they are split out rather than compiled.
-        let declared_sources = vars
+        //
+        // Unless the declaration is UNEXPANDED, which is where that preference
+        // inverts. automake compiles conditional sources by appending
+        // `$(am__append_N)` to `_SOURCES`, one per `if`, and make's database
+        // reports those references verbatim. xz's liblzma is 45 of them around
+        // an 11-file base: taking the literal text yields 11 sources, the
+        // library builds, and the link fails on ~70 undefined symbols far from
+        // the cause. The command stream has all 80 — this is exactly the split
+        // the module doc describes, so when the declaration cannot answer, the
+        // stream does.
+        let declared_raw = vars
             .get(&format!("{canon}_SOURCES"))
-            .map(|v| v.split_whitespace().map(str::to_string).collect())
-            .unwrap_or_else(Vec::new);
+            .map(String::as_str)
+            .unwrap_or_default();
+        let declared_sources: Vec<String> = if declared_raw.contains("$(") {
+            link_inputs(built.get(&basename(&decl.name)).copied())
+                .iter()
+                .filter_map(|obj| source_of.get(obj.as_str()))
+                .map(|(source, dir)| {
+                    // Back to the declaring directory's frame, since that is
+                    // what the non-conditional path produces and everything
+                    // downstream rebases from there.
+                    let absolute = normalize_lexically(&dir.join(source));
+                    pathdiff(&absolute, &decl_dir)
+                })
+                .collect()
+        } else {
+            declared_raw.split_whitespace().map(str::to_string).collect()
+        };
         let (headers, declared_sources): (Vec<String>, Vec<String>) = declared_sources
             .into_iter()
             .partition(|s| !is_source_file(s));
@@ -820,7 +874,6 @@ pub(crate) fn to_graph(
         // tree; for an out-of-tree build the sources live under the SOURCE
         // tree, so the build-relative part of that directory is what carries
         // over.
-        let decl_dir = declaring_dir(&decl.name);
         let mut sources: Vec<String> = declared_sources
             .iter()
             .filter_map(|src| rebase(src, &decl_dir))
@@ -1108,6 +1161,43 @@ fn is_source_file(path: &str) -> bool {
         Path::new(path).extension().and_then(|e| e.to_str()),
         Some("c" | "cc" | "cpp" | "cxx" | "m" | "mm" | "s" | "S")
     )
+}
+
+/// The object files a link or archive command consumes.
+///
+/// Order is whatever the command used; the caller sorts, because generated
+/// `srcs` are sorted for determinism regardless of where they came from.
+fn link_inputs(cmd: Option<&BuildCommand>) -> Vec<String> {
+    let Some(cmd) = cmd else {
+        return Vec::new();
+    };
+    cmd.args
+        .iter()
+        .filter(|a| a.ends_with(".o") || a.ends_with(".lo"))
+        .cloned()
+        .collect()
+}
+
+/// Expresses `path` relative to `base`, walking up with `..` where it must.
+///
+/// `Path::strip_prefix` cannot do this — it fails outright when `path` is not
+/// under `base`, and a conditional source legitimately is not: liblzma is
+/// declared in `src/liblzma` and compiles `../common/tuklib_physmem.c`.
+fn pathdiff(path: &Path, base: &Path) -> String {
+    let mut p = path.components().peekable();
+    let mut b = base.components().peekable();
+    while p.peek().is_some() && p.peek() == b.peek() {
+        p.next();
+        b.next();
+    }
+    let ups = b.count();
+    let rest: PathBuf = p.collect();
+    let mut out = PathBuf::new();
+    for _ in 0..ups {
+        out.push("..");
+    }
+    out.push(rest);
+    out.to_string_lossy().into_owned()
 }
 
 fn is_library(path: &str) -> bool {
@@ -1510,6 +1600,116 @@ make[1]: Leaving directory '/src/app'\n\
     // — an unclosed string literal, so the generated module would not parse.
     // The macro belongs in the escalation instead.
     #[test]
+    // Both directions, because the two failures are opposite and each is
+    // silent at the point it is made. An unquoted string splices into
+    // neighbouring tokens (`printf("xz (" XZ Utils ")")` — clang reports
+    // undeclared identifiers in a file that never mentions the macro), while a
+    // quoted number is a type error wherever `#if` or arithmetic uses it.
+    // automake compiles conditional sources by appending `$(am__append_N)` to
+    // `_SOURCES`, one per `if`, and make's database reports those references
+    // VERBATIM. Taking the literal text drops every conditional source: xz's
+    // liblzma declares 45 of them around an 11-file base, so the library built
+    // from 11 sources and the link failed on ~70 undefined symbols, nowhere
+    // near the cause.
+    #[test]
+    fn conditional_sources_are_recovered_from_the_command_stream() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/lib'\n\
+gcc -c -o base.o base.c\n\
+gcc -c -o extra.o extra.c\n\
+gcc -c -o sibling.o ../common/shared.c\n\
+ar cru libfoo.a base.o extra.o sibling.o\n\
+make[1]: Leaving directory '/src/lib'\n\
+";
+        // Exactly the shape make reports: the base list, plus an unexpanded
+        // reference standing for everything the conditionals added.
+        let vars = parse_variables(
+            "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c $(am__append_1)\n",
+        );
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "conditional",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        assert_eq!(
+            graph.targets[0].sources,
+            vec![
+                "common/shared.c".to_string(),
+                "lib/base.c".to_string(),
+                "lib/extra.c".to_string()
+            ],
+            "an unexpanded declaration cannot answer, so the command stream \
+             does — including the sibling source, which is why the fallback \
+             cannot simply strip_prefix the declaring directory. Sorted, like \
+             every other source list"
+        );
+    }
+
+    // The other direction: a declaration that IS fully expanded stays
+    // authoritative. It carries headers and the automake-declared order, both
+    // of which the object list loses.
+    #[test]
+    fn a_fully_expanded_declaration_is_not_second_guessed() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/lib'\n\
+gcc -c -o base.o base.c\n\
+ar cru libfoo.a base.o\n\
+make[1]: Leaving directory '/src/lib'\n\
+";
+        let vars = parse_variables(
+            "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c base.h\n",
+        );
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "expanded",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        assert_eq!(
+            graph.targets[0].sources,
+            vec!["lib/base.c".to_string()],
+            "no `$(` in the declaration means no fallback; the header is split \
+             out as before rather than being invisible to the object list"
+        );
+    }
+
+    #[test]
+    fn a_substituted_value_is_quoted_unless_it_is_a_number() {
+        let vars: HashMap<String, String> = [
+            ("PACKAGE_NAME".to_string(), "XZ Utils".to_string()),
+            ("ASSUME_RAM".to_string(), "128".to_string()),
+        ]
+        .into_iter()
+        .collect();
+        let (header, _) = plan_config_header(
+            "config.h",
+            "config.in",
+            "#undef PACKAGE_NAME\n#undef ASSUME_RAM\n",
+            &vars,
+        );
+
+        assert_eq!(
+            header.values,
+            vec![
+                ("ASSUME_RAM".to_string(), "128".to_string()),
+                ("PACKAGE_NAME".to_string(), "\"XZ Utils\"".to_string()),
+            ],
+            "autoconf quotes a string value and leaves a numeric one bare; \
+             make's database carries both as plain text, so the distinction \
+             has to be restored here"
+        );
+    }
+
+    #[test]
     fn an_empty_make_variable_is_not_a_substituted_value() {
         let vars: HashMap<String, String> = [
             ("PACKAGE".to_string(), "hello".to_string()),
@@ -1526,9 +1726,10 @@ make[1]: Leaving directory '/src/app'\n\
 
         assert_eq!(
             header.values,
-            vec![("PACKAGE".to_string(), "hello".to_string())],
-            "only a real substitution is a value, and it is stored UNQUOTED — \
-             codegen renders `\"NAME\": \"value\"`, so quoting here doubles it"
+            vec![("PACKAGE".to_string(), "\"hello\"".to_string())],
+            "only a real substitution is a value, and a non-numeric one carries \
+             the C quotes autoconf itself would emit: `AC_DEFINE([PACKAGE], \
+             [\"hello\"])` puts a string LITERAL in config.h"
         );
         assert_eq!(
             header.catalog_probes,
