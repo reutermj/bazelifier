@@ -61,6 +61,39 @@ Produce one report:
 Then ask before filing beads or fixing anything. A review pass produces
 findings; acting on them is a separate decision.
 
+## Improve the skill that ran
+
+**Every dispatch asks its agent to critique its own skill**, and this is not
+a formality — on the first run of `architecture-review` the critique was more
+valuable than several of the findings. Add to each prompt:
+
+> Alongside your findings, tell me plainly: was anything in this skill wrong,
+> missing, or misleading? Did its standing questions lead you somewhere
+> useful, or did you find what you found in spite of them? Did its
+> do-not-report list stop you from reporting something you would otherwise
+> have flagged — and was that correct? Be blunt.
+
+The three shapes that came back, all worth acting on:
+
+- **A stale motivating example.** A question cited a bug that had since been
+  fixed, and the agent re-verified the fix before finding the live problem. A
+  skill that cites a fixed bug teaches the next agent to look backwards.
+- **An exemption that was too broad.** "Asymmetry is not imbalance" reads as
+  excusing any behavioural gap, since every gap first looks like one side
+  having code the other lacks. It nearly suppressed two real findings.
+- **A question that recognises but cannot search.** Fine for validating a
+  candidate you already have, useless for generating one.
+
+Fold the corrections in **before** filing beads for the findings. A skill
+edit is cheap now and expensive to remember later, and the next run inherits
+it. Findings age; a bad question keeps costing.
+
+Two cautions. A critique is one agent's experience of one run — a suggestion
+that would make the skill longer without making a future finding likelier is
+not an improvement, and skills earn their length. And when a run comes back
+clean, ask whether the skill's exemptions did that, not just whether the code
+is fine.
+
 ## Reporting back
 
 Lead with what is actionable now. Say how many passes ran and whether any

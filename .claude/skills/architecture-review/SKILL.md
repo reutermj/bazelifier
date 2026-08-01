@@ -13,12 +13,19 @@ The layering being measured against:
 ```
 cmake_api.rs / autotools.rs   frontends: read a build system, produce a model::BuildGraph
 ctest.rs, configure_file.rs   CMake-side, called BY cmake_api; they import nothing from it
+ninja_deps.rs                 CMake-side, reads `ninja -t deps`
 headers.rs                    header classification, shared by both frontends
 paths.rs                      pure path geometry, knows nothing about either
 model.rs                      build-system-neutral
 codegen.rs                    imports only model; must not learn which frontend ran
 error.rs, needs_attention.rs  shared
+resolutions.rs                static recipe text shipped into each module
+main.rs                       driver: consumes a Discovery WITHOUT knowing which
+                              frontend produced it
 ```
+
+`main.rs`'s contract is the one most easily forgotten, and it is where
+frontend knowledge escapes to.
 
 ## The standing questions
 
@@ -33,10 +40,22 @@ found something real:
 2. **Is there a seam worth extracting?** A *different input read a different
    way* is a seam; line count is not. `configure_file.rs` earned its module
    by reading the configure trace rather than the File API.
+
+   To find candidates rather than just judge them: **list every distinct
+   input each frontend reads, and check each is read from exactly one
+   module.** Doing that surfaces `main.rs` parsing libtool `.la` files and
+   wrapper scripts — a third Autotools input, read from the driver rather
+   than the frontend.
 3. **Where could the two frontends silently disagree?** The highest-value
-   question, because the answer is invisible by construction. Found:
-   `deliverable_root` accepted and ignored by one frontend, so equivalent
-   projects converted differently and nothing said so.
+   question, because the answer is invisible by construction — nothing fails,
+   two equivalent projects just convert differently.
+
+   Look for a field one frontend processes and the other does not. Found this
+   way: Autotools rebased `sources` but not `public_headers`, sitting in the
+   same struct literal; and its module-root survey reads a narrower path set
+   than CMake's. (An earlier instance, `deliverable_root` accepted and
+   ignored, is FIXED — do not go looking for it. A worked solution, not an
+   open lead.)
 4. **What does a shared field mean to each caller?** A model field two
    frontends populate with different conventions is a leak the type system
    does not catch — `ConfigHeader::values`, C-quoted by one and raw by the
@@ -51,7 +70,13 @@ found something real:
 - **The pipeline being non-hermetic.** A modelling choice. Do not propose
   designing the agent stage out in the name of determinism.
 - **A frontend having more code than the other.** CMake reads four sources;
-  Autotools reads three. Asymmetry is not imbalance.
+  Autotools reads three, so *volume* asymmetry is not imbalance.
+
+  But a **behavioural** gap is exactly the finding. If one frontend rebases a
+  field and the other does not, that is Q3, not asymmetry — and it will look
+  like this entry at first glance, because every behavioural gap presents as
+  one side having code the other lacks. When in doubt, Q3 wins: this entry is
+  about size, not behaviour.
 - **`ctest.rs` being CMake-only.** There is no Autotools test frontend yet;
   `graph.tests` is empty for it. That is absence, not a boundary violation.
 
@@ -76,3 +101,29 @@ it audits.
 - **P3** — naming or placement that will mislead later.
 
 **Require** what was checked and found sound, and what could not be verified.
+
+**Critique this skill when you are done.** Say plainly whether anything here
+was wrong, missing, or misleading; whether it led you to what you found or
+you found it anyway; and whether its do-not-report list suppressed something
+it should not have. That feedback is the mechanism by which this file stops
+being wrong — a stale motivating example teaches the next agent to look
+backwards, and an over-broad exemption silently costs findings. Report it
+alongside the findings, not instead of them.
+
+
+**Check fixture enrollment.** A fixture on disk but absent from
+`translator/tests/BUILD.bazel` is never validated, and nothing reports it —
+`translator/tests/BUILD.bazel`'s own comment says so. That is an architecture
+finding, not a test one: it means a boundary the fixture was written to prove
+has never been exercised.
+
+```sh
+comm -23 \
+  <(find translator/tests/fixtures -name BUILD.bazel -printf '%h\n' \
+      | xargs -n1 basename | sort -u) \
+  <(grep -oE 'fixtures/(autotools/)?[^:]+' translator/tests/BUILD.bazel \
+      | xargs -n1 basename | sort -u)
+```
+
+A hit is not automatically a defect — a fixture may be parked deliberately —
+but an unenrolled fixture with no comment and no bead saying why is.

@@ -55,6 +55,15 @@ diagnosis can be overtaken; `bzl-dc9` described a divergence that had
 already been half-fixed, and only a reviewer told to *verify* the bead
 would have found the other half.
 
+**Critique this skill when you are done.** Say plainly whether anything here
+was wrong, missing, or misleading; whether it led you to what you found or
+you found it anyway; and whether its do-not-report list suppressed something
+it should not have. That feedback is the mechanism by which this file stops
+being wrong — a stale motivating example teaches the next agent to look
+backwards, and an over-broad exemption silently costs findings. Report it
+alongside the findings, not instead of them.
+
+
 ## Run the reference checker
 
 ```sh

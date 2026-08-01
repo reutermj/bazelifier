@@ -101,6 +101,15 @@ a fourth copy that grew afterwards.
 - **P3** — borderline, judgement call.
 
 **Require** a list of what was examined and found genuinely distinct, and an
-explicit "what I could not verify". For the code lane, require a
+explicit "what I could not verify".
+
+**Critique this skill when you are done.** Say plainly whether anything here
+was wrong, missing, or misleading; whether it led you to what you found or
+you found it anyway; and whether its do-not-report list suppressed something
+it should not have. That feedback is the mechanism by which this file stops
+being wrong — a stale motivating example teaches the next agent to look
+backwards, and an over-broad exemption silently costs findings. Report it
+alongside the findings, not instead of them.
+ For the code lane, require a
 recommendation per finding — EXTRACT, PARAMETERISE (name the parameter), or
 LEAVE (name what distinguishes them) — plus a rough size.

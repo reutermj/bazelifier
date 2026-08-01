@@ -1015,10 +1015,18 @@ pub(crate) fn to_graph(
             // statement CMake makes with install(FILES ... DESTINATION
             // include). A header in _SOURCES that is not installed stays
             // private.
+            // Rebased like every other path-valued field. Matching happens
+            // on the RAW declaration text, because `include_HEADERS` and
+            // `_SOURCES` both name paths relative to the declaring
+            // Makefile.am — but what is STORED must be module-relative, which
+            // is the contract `model::Target` states and
+            // `codegen::render_path_list` asserts. Un-rebased, a subdirectory
+            // header yielded a label pointing at nothing, and a `../` one
+            // panicked that assert.
             public_headers: headers
                 .iter()
                 .filter(|h| public_headers(vars).contains(*h))
-                .cloned()
+                .filter_map(|h| rebase(h, &decl_dir))
                 .collect(),
             dependencies,
             includes,
@@ -1729,6 +1737,59 @@ make[1]: Leaving directory '/src/lib'\n\
     //
     // No fixture ships a C++ project, so this is the only tier that can catch
     // it (bzl-dc9).
+    // public_headers took the raw declaration text while sources next to it
+    // were rebased, so a header declared in a SUBDIRECTORY Makefile.am got a
+    // label pointing at nothing — and one declared as `../common/x.h` produced
+    // a `..` path that panics codegen's module-relative assert.
+    //
+    // Invisible to the frontend's other tests because their captures declare
+    // everything at the module root, where the un-rebased string happens to
+    // equal the rebased one.
+    #[test]
+    fn a_public_header_declared_in_a_subdirectory_is_rebased_like_its_sources() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/lib'\n\
+gcc -c -o greet.o greet.c\n\
+ar cru libgreet.a greet.o\n\
+make[1]: Leaving directory '/src/lib'\n\
+";
+        let vars = parse_variables(
+            "noinst_LIBRARIES = libgreet.a\n\
+             libgreet_a_SOURCES = greet.c greet.h\n\
+             include_HEADERS = greet.h\n",
+        );
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "sub",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        let t = &graph.targets[0];
+        assert_eq!(
+            t.sources,
+            vec!["lib/greet.c".to_string()],
+            "the source is rebased against the declaring directory"
+        );
+        assert_eq!(
+            t.public_headers,
+            vec!["lib/greet.h".to_string()],
+            "and so is the header — the raw `greet.h` names no file at the \
+             module root, so codegen would emit a label pointing at \
+             nothing:\n{t:#?}"
+        );
+        for path in t.sources.iter().chain(&t.public_headers) {
+            assert!(
+                crate::model::is_module_relative(path),
+                "every path-valued field must satisfy the contract \
+                 render_path_list asserts on: {path:?}"
+            );
+        }
+    }
+
     #[test]
     fn an_uppercase_or_cxx_source_is_compiled_not_silently_dropped() {
         const STREAM: &str = "\
