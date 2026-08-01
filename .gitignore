@@ -19,3 +19,7 @@
 # autoconf regenerates this from configure.ac; committing it makes a
 # sandboxed build try to re-run aclocal against a read-only tree.
 autom4te.cache/
+
+# Python bytecode from running the sweep scripts directly.
+__pycache__/
+*.pyc

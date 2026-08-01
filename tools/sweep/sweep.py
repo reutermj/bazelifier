@@ -268,6 +268,37 @@ def report(sweep: dict) -> str:
     return "\n".join(out)
 
 
+def append_history(path: pathlib.Path, sweep: dict) -> None:
+    """Appends one sweep to a JSONL history.
+
+    JSONL rather than a single JSON document so appending is a write, not a
+    read-modify-write — two sweeps racing would otherwise lose one, and a
+    truncated file would lose the whole series rather than one line.
+
+    A repeated commit is REPLACED rather than appended. Re-running a sweep on
+    the same commit is normal (it is how you check a change did nothing), and
+    every run would otherwise add a point the graph reads as elapsed time.
+    """
+    dated = dict(sweep)
+    dated["date"] = time.strftime("%Y-%m-%d")
+    dated["timestamp"] = int(time.time())
+
+    rows = []
+    if path.exists():
+        rows = [
+            json.loads(line)
+            for line in path.read_text().splitlines()
+            if line.strip()
+        ]
+    rows = [r for r in rows if r.get("commit") != dated["commit"]]
+    rows.append(dated)
+    rows.sort(key=lambda r: r.get("timestamp", 0))
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows))
+    print(f"\nappended to {path} ({len(rows)} sweeps)")
+
+
 def report_post_agent(r: dict) -> str:
     out = [f"project:   {r['project']}", f"workspace: {r['workspace']}", ""]
     if r["open_items"]:
@@ -293,7 +324,14 @@ def main() -> int:
     parser.add_argument(
         "--json",
         type=pathlib.Path,
-        help="also write the raw record here, for bzl-ccv.5's trend line",
+        help="also write this sweep's raw record here",
+    )
+    parser.add_argument(
+        "--append",
+        type=pathlib.Path,
+        metavar="HISTORY.jsonl",
+        help="append this sweep to a history file, one JSON object per line, "
+        "for the trend report",
     )
     parser.add_argument(
         "--post-agent",
@@ -336,6 +374,8 @@ def main() -> int:
     print(report(sweep))
     if args.json:
         args.json.write_text(json.dumps(sweep, indent=2, sort_keys=True) + "\n")
+    if args.append:
+        append_history(args.append, sweep)
     return 0
 
 
