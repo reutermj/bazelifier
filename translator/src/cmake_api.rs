@@ -23,7 +23,7 @@ use crate::headers::{
     inject_headers_on_include_dirs, is_buildable_source, is_config_header_output, inject_opened_files, inject_unenumerated_installed_headers, is_include_destination,
     looks_like_header,
 };
-use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
+use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind};
 use crate::ninja_deps;
 use crate::needs_attention::{
     NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
@@ -238,18 +238,6 @@ struct CacheEntry {
 
 /// A completed discovery pass: the build graph, the gaps that kept parts of
 /// the project out of it, and the directory on this machine that the
-/// graph's (module-relative) paths are relative to.
-pub struct Discovery {
-    pub graph: BuildGraph,
-    /// Gaps to escalate for this conversion — see
-    /// docs/architecture/needs-attention-interface.md.
-    pub needs_attention: Vec<NeedsAttention>,
-    /// Absolute path to the converted module's root — where
-    /// `copy_referenced_sources` reads the referenced files from. Equal to
-    /// the CMake project directory unless the build referenced files above
-    /// it that still ship with the project; see `rebase_to_module_root`.
-    pub module_root: PathBuf,
-}
 
 /// What one codemodel reply yields. Named rather than returned as a tuple:
 /// its two `Vec` members and two path-ish members are easy to transpose at

@@ -30,7 +30,7 @@ use std::path::Path;
 use std::process::Command;
 
 use crate::error::Error;
-use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
+use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind};
 
 /// One resolved command from the build stream, split into a program and its
 /// arguments with shell noise already removed.
@@ -38,6 +38,92 @@ use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
 pub(crate) struct BuildCommand {
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
+}
+
+/// Converts an Autotools project, mirroring `cmake_api::discover`.
+///
+/// Three steps, in this order for the same reasons the CMake frontend has
+/// them: the tree is CONFIGURED (so `make` has resolved variables to report),
+/// then really BUILT (so ground-truth artifacts exist for the equivalence
+/// check — see docs/architecture/build-verification.md), then interrogated.
+///
+/// Both interrogations happen after the build rather than before, so `make -n`
+/// reports what a rebuild would do. On a fully built tree that is nothing,
+/// which is why the dry run is taken BEFORE the build below.
+pub fn discover(
+    source_dir: &Path,
+    build_dir: &Path,
+    _deliverable_root: &Path,
+) -> Result<Discovery, Error> {
+    configure(source_dir, build_dir)?;
+
+    // Before `build`: `make -n` on an already-built tree prints nothing to do,
+    // and the command stream is the whole point.
+    let stream = dry_run(build_dir)?;
+    let database = variable_database(build_dir)?;
+    build(build_dir)?;
+
+    let vars = parse_variables(&database);
+    let declared = declared_targets(&vars);
+    let project_name = vars
+        .get("PACKAGE")
+        .or_else(|| vars.get("PACKAGE_NAME"))
+        .cloned()
+        .unwrap_or_else(|| "project".to_string());
+    let graph = to_graph(&parse_commands(&stream), &declared, &vars, &project_name);
+
+    Ok(Discovery {
+        graph,
+        // No escalations yet: this frontend models what it can see and does
+        // not yet detect the gaps worth escalating. Emitting none is honest
+        // for now and wrong later — see bzl-yjn.
+        needs_attention: Vec::new(),
+        module_root: source_dir.to_path_buf(),
+    })
+}
+
+/// Runs `configure` in `build_dir`, out of tree.
+///
+/// Autotools supports building outside the source directory, which is what
+/// keeps the source tree clean the way CMake's `-B` does.
+fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
+    std::fs::create_dir_all(build_dir)?;
+    let configure = source_dir.join("configure");
+    let output = Command::new(&configure)
+        .current_dir(build_dir)
+        .output()
+        .map_err(|e| {
+            // A source tree with configure.ac but no configure has not been
+            // bootstrapped; saying so beats "no such file or directory".
+            if e.kind() == std::io::ErrorKind::NotFound {
+                Error::CmakeConfigureFailed {
+                    stderr: format!(
+                        "{} not found — the project ships configure.ac but has not been \
+                         bootstrapped. Run autoreconf -i in the source tree first.",
+                        configure.display()
+                    ),
+                }
+            } else {
+                Error::Io(e)
+            }
+        })?;
+    if !output.status.success() {
+        return Err(Error::CmakeConfigureFailed {
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        });
+    }
+    Ok(())
+}
+
+/// Really builds the project, producing the ground-truth artifacts.
+fn build(build_dir: &Path) -> Result<(), Error> {
+    let output = Command::new("make").current_dir(build_dir).output()?;
+    if !output.status.success() {
+        return Err(Error::CmakeBuildFailed {
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        });
+    }
+    Ok(())
 }
 
 /// Runs `make -n` in a configured tree and returns its output.

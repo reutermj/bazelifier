@@ -18,7 +18,42 @@ use std::process::ExitCode;
 
 use clap::Parser;
 
-/// Convert a CMake project into a standalone Bazel module.
+/// Which build system a project uses, and so which frontend reads it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+enum Frontend {
+    Cmake,
+    Autotools,
+}
+
+/// Detects a project's build system from what it ships.
+///
+/// Detection rather than a required flag because the answer is unambiguous in
+/// practice — a project ships `CMakeLists.txt` or `configure.ac`, and one file
+/// decides it — and requiring the flag would push that decision onto every
+/// caller including every fixture's BUILD.bazel. `--frontend` overrides it for
+/// the case detection cannot settle: a project shipping BOTH, where which one
+/// to convert is a real choice rather than something to infer.
+///
+/// Deliberately does NOT fall back to a default. A directory with neither
+/// marker is not a project this tool can convert, and guessing CMake would
+/// produce a confusing failure deep in the frontend rather than here.
+fn detect_frontend(source_dir: &Path) -> Option<Frontend> {
+    let cmake = source_dir.join("CMakeLists.txt").is_file();
+    // `configure.ac` is the modern name and `configure.in` the historical one;
+    // a shipped tarball may have neither, having been bootstrapped already, so
+    // `configure` counts too.
+    let autotools = ["configure.ac", "configure.in", "configure"]
+        .iter()
+        .any(|f| source_dir.join(f).is_file());
+
+    match (cmake, autotools) {
+        (true, _) => Some(Frontend::Cmake),
+        (false, true) => Some(Frontend::Autotools),
+        (false, false) => None,
+    }
+}
+
+/// Convert a CMake or Autotools project into a standalone Bazel module.
 ///
 /// The output directory becomes an independent Bazel module: it gets its
 /// own MODULE.bazel and BUILD.bazel, plus a copy of the project's source
@@ -26,8 +61,15 @@ use clap::Parser;
 /// MODULE.bazel/toolchains.
 #[derive(Parser)]
 struct Args {
-    /// Path to the CMake project (directory containing CMakeLists.txt).
+    /// Path to the project (the directory containing CMakeLists.txt or
+    /// configure.ac).
     source_dir: PathBuf,
+
+    /// Which build system to read the project with. Detected from the
+    /// project's own files when omitted; pass this only when a project ships
+    /// more than one and the choice is genuinely yours.
+    #[arg(long, value_enum)]
+    frontend: Option<Frontend>,
 
     /// Directory to configure the CMake project in (a scratch build dir,
     /// must be outside source_dir).
@@ -80,7 +122,16 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let deliverable_root = args.deliverable_root.as_ref().unwrap_or(&args.source_dir);
-    let discovery = cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?;
+    let frontend = match args.frontend.or_else(|| detect_frontend(&args.source_dir)) {
+        Some(frontend) => frontend,
+        None => return Err(Box::new(error::Error::NoProject)),
+    };
+    let discovery = match frontend {
+        Frontend::Cmake => cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?,
+        Frontend::Autotools => {
+            autotools::discover(&args.source_dir, &args.build_dir, deliverable_root)?
+        }
+    };
     let graph = &discovery.graph;
     let generated = codegen::render(graph);
 
@@ -512,6 +563,47 @@ mod tests {
             !reported.contains("\\n"),
             "newlines were escaped rather than printed:\n{reported}"
         );
+    }
+
+    // Detection decides which frontend runs, so a wrong answer converts the
+    // project with the wrong reader entirely. Both directions and the
+    // ambiguous case are pinned.
+    #[test]
+    fn detect_frontend_reads_the_project_not_a_default() {
+        let root = std::env::temp_dir().join(format!("bzlf_det_{}", std::process::id()));
+        let make = |name: &str, files: &[&str]| {
+            let dir = root.join(name);
+            fs::create_dir_all(&dir).unwrap();
+            for f in files {
+                fs::write(dir.join(f), "").unwrap();
+            }
+            dir
+        };
+
+        assert_eq!(
+            detect_frontend(&make("cm", &["CMakeLists.txt"])),
+            Some(Frontend::Cmake)
+        );
+        assert_eq!(
+            detect_frontend(&make("ac", &["configure.ac"])),
+            Some(Frontend::Autotools)
+        );
+        // A shipped tarball is already bootstrapped: configure.ac may be
+        // absent while `configure` is present.
+        assert_eq!(
+            detect_frontend(&make("tarball", &["configure"])),
+            Some(Frontend::Autotools)
+        );
+        // A project shipping BOTH is a real choice, not something to infer.
+        // CMake wins as the default, and --frontend exists to override it.
+        assert_eq!(
+            detect_frontend(&make("both", &["CMakeLists.txt", "configure.ac"])),
+            Some(Frontend::Cmake)
+        );
+        // Neither marker is not a project this tool converts. Returning None
+        // rather than defaulting means the failure names the real problem
+        // instead of surfacing deep inside a frontend.
+        assert_eq!(detect_frontend(&make("empty", &[])), None);
     }
 
     #[test]

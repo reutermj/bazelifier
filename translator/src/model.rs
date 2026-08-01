@@ -1,7 +1,17 @@
-//! Internal build-graph model shared between the CMake frontend and Bazel codegen.
+//! Internal build-graph model: the contract between any frontend and Bazel
+//! codegen.
+//!
+//! Deliberately states nothing in terms of a particular build system. That was
+//! an untested claim while CMake was the only frontend; the Autotools frontend
+//! now produces a `BuildGraph` that renders through unmodified codegen, so the
+//! neutrality is real rather than aspirational. Adding a field here that only
+//! one frontend can populate is how that would be lost.
+//!
 //! See docs/architecture/cmake-frontend.md and docs/architecture/bazel-codegen.md.
 
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
+
+use crate::needs_attention::NeedsAttention;
 
 /// Whether `path` satisfies the contract every path-valued field of
 /// [`Target`] is required to meet: relative to the converted module's root,
@@ -247,4 +257,22 @@ mod tests {
         assert!(!is_module_relative("../shared/helper.cpp"));
         assert!(!is_module_relative("src/../../escape.cpp"));
     }
+}
+
+/// What a frontend hands the rest of the pipeline.
+///
+/// Lives here rather than in a frontend because it is the CONTRACT between
+/// them: `cmake_api` and `autotools` both produce one, and `main` consumes it
+/// without knowing which ran.
+#[derive(Debug)]
+pub struct Discovery {
+    pub graph: BuildGraph,
+    /// Gaps to escalate for this conversion — see
+    /// docs/architecture/needs-attention-interface.md.
+    pub needs_attention: Vec<NeedsAttention>,
+    /// Absolute path to the converted module's root — where
+    /// `copy_referenced_sources` reads the referenced files from. Equal to
+    /// the project directory unless the build referenced files above
+    /// it that still ship with the project; see `rebase_to_module_root`.
+    pub module_root: PathBuf,
 }
