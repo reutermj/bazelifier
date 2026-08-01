@@ -16,8 +16,17 @@ Pre-agent alone cannot tell whether an escalation is RESOLVABLE, and an
 escalation no agent can act on is worse than one that never fired. Post-agent
 alone cannot separate an improved translator from a luckier agent run.
 
-Only the pre-agent half is implemented; --post-agent is reserved and refuses
-rather than silently reporting half a sweep as a whole one.
+The pre-agent half runs the whole corpus for free. The post-agent half is
+opt-in and takes ONE project (`--post-agent xz`), because the agent stage
+costs real tokens per run — a full-corpus post-agent pass is a loop you launch
+deliberately, not the default.
+
+The post-agent half does not resolve anything itself. The agent stage is a
+stage of the pipeline, not a subroutine of this script: it needs judgement
+about project semantics, which is the whole reason the translator escalates
+instead of guessing. This sets the run up outside the repo, says what is open
+and where the recipes are, and measures the result once a resolution is in
+place.
 
 Reports PER PROJECT. 'Green is the only passing state' is a claim about one
 conversion, so an average would hide a project that regressed while another
@@ -44,6 +53,7 @@ is not a matter of counting.
 import argparse
 import json
 import pathlib
+import re
 import subprocess
 import sys
 import tarfile
@@ -86,6 +96,108 @@ def collect(unpacked: pathlib.Path) -> list[dict]:
             }
         )
     return records
+
+
+def unpack_workspace(dest: pathlib.Path) -> pathlib.Path:
+    """Builds the validation workspace and unpacks it into `dest`.
+
+    Unpacked OUTSIDE the repo on purpose: a fixture building in place proves
+    nothing, because it may just be inheriting bazelifier's own toolchains.
+    See docs/architecture/build-verification.md.
+    """
+    build = bazel("build", WORKSPACE_TARGET)
+    if build.returncode != 0:
+        sys.stderr.write(build.stderr)
+        raise SystemExit(
+            f"conversion failed; {WORKSPACE_TARGET} did not build, so there is "
+            "nothing to measure"
+        )
+    with tarfile.open(REPO / "bazel-bin/translator/tests/validation_workspace.tar") as a:
+        a.extractall(dest)
+    return dest
+
+
+def open_items(project_dir: pathlib.Path) -> list[pathlib.Path]:
+    return sorted(project_dir.glob("needs_attention/*.md"))
+
+
+def run_post_agent(project: str, work: pathlib.Path) -> dict:
+    """Measures what the project actually delivers, after the agent stage.
+
+    Deliberately does NOT resolve anything itself. The agent stage is a stage
+    of the pipeline, not a subroutine of this script — it needs judgement
+    about project semantics, which is the whole reason the translator
+    escalates instead of guessing. This sets the run up, reports what is open,
+    and measures the result once a resolution is in place.
+    """
+    # Unpacked only ONCE per workspace. Re-unpacking would overwrite the
+    # resolution the agent stage just wrote, silently re-measuring the
+    # unresolved conversion and reporting it as the resolved one.
+    if not (work / "BUILD.bazel").is_file():
+        unpack_workspace(work)
+    project_dir = work / "fixtures" / project
+    if not project_dir.is_dir():
+        raise SystemExit(
+            f"no project '{project}' in the workspace; it must be enrolled in "
+            "translator/tests/BUILD.bazel to be swept"
+        )
+
+    items = open_items(project_dir)
+
+    # The comparison targets are named "<project>_<binary>_matches_ground_truth"
+    # and read out of the generated root BUILD.bazel. NOT --test_filter, which
+    # selects cases WITHIN a test binary and silently matches nothing for an
+    # sh_test — it ran the whole corpus and reported 65 passes for one project.
+    names = re.findall(
+        rf'name = "({re.escape(project)}_[A-Za-z0-9_.-]+_matches_ground_truth)"',
+        (work / "BUILD.bazel").read_text(),
+    )
+    if not names:
+        raise SystemExit(
+            f"'{project}' has no comparison targets in the generated workspace. "
+            "A project with no runnable binary produces none, so there is "
+            "nothing for the post-agent half to measure."
+        )
+    tests = bazel(
+        "test",
+        *[f"//:{n}" for n in names],
+        "--override_module=cc_config=" + str(REPO / "cc_config"),
+        "--keep_going",
+        cwd=work,
+    )
+    # Counted per NAMED target, so a summary line mentioning "PASSED" cannot
+    # inflate the number.
+    combined = tests.stdout + tests.stderr
+    passed = sum(1 for n in names if re.search(rf"//:{re.escape(n)}\s+.*PASSED", combined))
+    failed = len(names) - passed
+
+    return {
+        "project": project,
+        "workspace": str(work),
+        "open_items": [
+            {
+                "file": f.name,
+                "kind": _header_field(f, "kind"),
+                "subject": _header_field(f, "subject"),
+            }
+            for f in items
+        ],
+        "resolved": not items,
+        "comparisons_passed": passed,
+        "comparisons_failed": failed,
+    }
+
+
+def _header_field(path: pathlib.Path, field: str) -> str:
+    """Reads one field from an item's machine-readable header.
+
+    Only the header — the prose below it is for the agent, and keying on it
+    is what the header exists to avoid.
+    """
+    for line in path.read_text().splitlines()[1:5]:
+        if line.startswith(f"{field}: "):
+            return line[len(field) + 2 :].strip('"')
+    return ""
 
 
 def run_pre_agent() -> dict:
@@ -156,6 +268,26 @@ def report(sweep: dict) -> str:
     return "\n".join(out)
 
 
+def report_post_agent(r: dict) -> str:
+    out = [f"project:   {r['project']}", f"workspace: {r['workspace']}", ""]
+    if r["open_items"]:
+        out.append(f"{len(r['open_items'])} OPEN escalation(s) — resolve in the")
+        out.append("GENERATED output under the workspace above, then re-run:")
+        for i in r["open_items"]:
+            out.append(f"  {i['kind']:<28} {i['subject']}")
+        out.append("")
+        out.append("Recipes for each shape are shipped alongside them, in")
+        out.append(f"  {r['workspace']}/fixtures/{r['project']}/resolutions/")
+    else:
+        out.append("no open escalations")
+    out.append("")
+    out.append(
+        f"comparisons: {r['comparisons_passed']} passed, "
+        f"{r['comparisons_failed']} failed"
+    )
+    return "\n".join(out)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -165,18 +297,40 @@ def main() -> int:
     )
     parser.add_argument(
         "--post-agent",
-        action="store_true",
-        help="not implemented (bzl-ccv.3); refuses rather than reporting a "
-        "pre-agent sweep as a full one",
+        metavar="PROJECT",
+        help="measure ONE project's post-agent state: unpack the workspace "
+        "outside the repo, report its open escalations, and run its "
+        "comparisons. Opt-in and single-project because the agent stage "
+        "costs real tokens per run",
+    )
+    parser.add_argument(
+        "--workspace",
+        type=pathlib.Path,
+        help="where to unpack (--post-agent only). Kept rather than deleted, "
+        "so a resolution can be written into it and re-measured",
     )
     args = parser.parse_args()
 
     if args.post_agent:
-        raise SystemExit(
-            "--post-agent is not implemented. The pre-agent numbers below it "
-            "would be real, which is exactly why this refuses: a half sweep "
-            "labelled as a whole one is the failure this epic exists to catch."
+        work = args.workspace or pathlib.Path(
+            tempfile.mkdtemp(prefix=f"sweep_{args.post_agent}_")
         )
+        work.mkdir(parents=True, exist_ok=True)
+        result = run_post_agent(args.post_agent, work)
+        print(report_post_agent(result))
+        if args.json:
+            args.json.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+        # Open items mean an unfinished conversion, so the exit code says so —
+        # green is the only passing state.
+        green = (
+            result["resolved"]
+            and result["comparisons_failed"] == 0
+            and result["comparisons_passed"] > 0
+        )
+        # comparisons_passed > 0 matters: a project whose comparisons all
+        # failed to BUILD reports 0 passed and 0 failed, which would otherwise
+        # read as success — a gate looking at nothing.
+        return 0 if green else 1
 
     sweep = run_pre_agent()
     print(report(sweep))
