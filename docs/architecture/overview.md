@@ -72,7 +72,7 @@ contract. Note this makes the pipeline deliberately non-hermetic, which is
 an accepted modelling choice rather than a defect to design out.
 
 Source build files are never edited to make a conversion succeed — see
-[build-verification.md](build-verification.md#the-input-cmake-is-immutable).
+[build-verification.md](build-verification.md#the-input-build-files-are-immutable).
 
 ## Components
 

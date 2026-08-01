@@ -1,5 +1,11 @@
 # Libtool puts a wrapper script where the binary goes
 
+**Resolved.** `main.rs::ground_truth_source` now detects the wrapper and
+captures the real binary instead; the decision recorded at the end of this
+entry is the one that was taken. Kept because the symptom is unrecognisable
+if you have not seen it before, and because the near-miss below is still the
+wrong turn to take.
+
 ## The symptom
 
 An Autotools project converts, the generated module builds hermetically, and
@@ -66,7 +72,20 @@ The fix therefore is not "also copy `.libs/`" by reflex — it is first deciding
 *what the ground-truth artifact should be* for a libtool program: the wrapper
 plus enough of its surroundings to run, the real binary from `.libs/`, or a
 recorded transcript of the wrapper's output. Each changes what "ground truth"
-means slightly, which is why it is a decision rather than a patch.
+means slightly, which is why it was a decision rather than a patch.
+
+**What was chosen: the real binary from `.libs/`.** The wrapper's only job is
+to point the loader at an uninstalled library, and the comparison harness
+already solves that problem for every other project — it searches upward from
+the binary for a `.so`. So the wrapper contributes nothing the harness needs
+and one thing it cannot cope with. A `.la`'s shared library is staged at the
+`ground_truth/` root (not in libtool's private `.libs/`, which no binary's
+search path reaches) via the `dlname=` the `.la` itself declares.
+
+The detection reads the file rather than testing whether `.libs/` exists:
+`.libs/` is present for every libtool target, including ones whose output
+path already holds the real binary, so its existence answers a different
+question.
 
 ## How to notice it quickly
 

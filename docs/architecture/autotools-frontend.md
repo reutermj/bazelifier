@@ -259,13 +259,6 @@ already decided by the time the graph is built.
 
 ## Known gaps
 
-- **Libtool wrapper scripts.** A program linking a `.la` gets a shell wrapper
-  at its output path, not the binary; the real one is in `.libs/` and the
-  wrapper re-execs it after setting `LD_LIBRARY_PATH`. Ground-truth capture
-  copies the wrapper, which cannot run once moved. This is libtool's
-  uninstalled-binary mechanism and has no CMake analogue — see
-  [../lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md](../lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md)
-  (bzl-yjn.4).
 - **Two gaps are recovered but not yet escalated.** The frontend escalates
   unmapped config macros and sources that escape the module; it collects two
   more and discards them (bzl-yjn.5):

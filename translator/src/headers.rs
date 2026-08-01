@@ -27,7 +27,7 @@
 //! | | accepts | drives | a wrong `true` costs |
 //! |---|---|---|---|
 //! | [`looks_like_header`] | `h hpp hh hxx` | the header-visibility **escalation** | a spurious `needs_attention` item, i.e. wasted agent work on a non-gap |
-//! | [`is_header_file`] | those **+ `inc ipp`** | what gets **staged** into the module | a file copied that nothing reads — free |
+//! | [`is_header_file`] | those **+ `inc ipp tcc`** | what gets **staged** into the module | a file copied that nothing reads — free |
 //!
 //! So the staging predicate can afford to be generous and the escalation
 //! predicate cannot. `.inc`/`.ipp` are the live case: they are frequently

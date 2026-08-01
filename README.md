@@ -15,7 +15,8 @@ frontend, not a second pipeline.
 ## How it works
 
 1. **Deterministic translator** — discovers a project's targets by asking
-   its build system (the CMake File API; `make -n`/`make -p` for Autotools)
+   its build system (the CMake File API; the build's own command output and
+   `make -p` for Autotools)
    and mechanically emits a **standalone Bazel module** for it (its own
    `MODULE.bazel` + `BUILD.bazel`, copied sources) for the patterns it
    recognizes. It also runs the project's real build to capture ground-truth

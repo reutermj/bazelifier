@@ -452,7 +452,7 @@ rather than the translator guessing which case it's in.
 
 Whatever an agent does about a dropped edge, it does in the generated
 output — the source `CMakeLists.txt` is immutable input. See
-[build-verification.md](build-verification.md#the-input-cmake-is-immutable).
+[build-verification.md](build-verification.md#the-input-build-files-are-immutable).
 
 ## Known hard cases (expect to escalate via `needs_attention/`)
 

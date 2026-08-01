@@ -42,7 +42,8 @@ level. What must match is behavior.
    author's choice. The translator:
    - Configures the project and interrogates its build system to discover
      targets — the CMake File API (`codemodel-v2`, `cache-v2`), see
-     [cmake-frontend.md](cmake-frontend.md); or `make -n`/`make -p`, see
+     [cmake-frontend.md](cmake-frontend.md); or the build's own command
+     output plus `make -p`, see
      [autotools-frontend.md](autotools-frontend.md).
    - Actually builds the project to produce **ground-truth artifacts** (the
      real binaries the project's own build system produced).

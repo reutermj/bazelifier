@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Gates on unresolved needs_attention/ items, then compares the
-# ground-truth (real cmake+ninja) binary's runtime behavior against the
-# Bazel-built binary for the same CMake target: stdout, stderr, and exit
-# code must match. See docs/architecture/build-verification.md — this is
+# Gates on unresolved needs_attention/ items, then compares the ground-truth
+# binary's runtime behavior against the Bazel-built binary for the same
+# target: stdout, stderr, and exit code must match. The ground truth is
+# whatever the project's OWN build system produced — cmake+ninja for a CMake
+# fixture, make+libtool for an Autotools one; this script does not care which,
+# which is why it says "ground truth" rather than naming a tool. See docs/architecture/build-verification.md — this is
 # NOT a binary-identical check, only a behavioral-equivalence check.
 #
 # Each binary is run twice so a line that varies between a binary's OWN two
@@ -22,8 +24,9 @@
 #
 # A failure here is an UNFINISHED conversion to be resolved and re-run, not
 # an expected steady state. Resolutions go in the generated output; the
-# source CMakeLists.txt is immutable input and is never edited to make a
-# conversion pass. See docs/architecture/build-verification.md.
+# project's own build files (CMakeLists.txt, Makefile.am, configure.ac) are
+# immutable input and are never edited to make a conversion pass. See
+# docs/architecture/build-verification.md.
 #
 # NOTE the deliberate absence of `-e`: a nonzero exit from either binary is
 # data this script compares, not a reason to stop, and `diff -q` reporting a

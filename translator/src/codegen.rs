@@ -1,5 +1,10 @@
 //! Bazel codegen: renders a standalone Bazel module (its own `MODULE.bazel`
-//! and `BUILD.bazel`) for a CMake project's `BuildGraph`. See
+//! and `BUILD.bazel`) from a `BuildGraph`.
+//!
+//! Which frontend produced that graph is deliberately unknowable here — this
+//! module imports `model` and nothing else, and an Autotools graph renders
+//! through it unmodified. That is the boundary `autotools-frontend.md`
+//! exists to have tested rather than assumed. See
 //! docs/architecture/bazel-codegen.md — the whole point is that this output
 //! must build on its own, with no reference back to bazelifier's own
 //! MODULE.bazel/toolchains.
@@ -39,7 +44,11 @@ pub fn render(graph: &BuildGraph) -> GeneratedModule {
     }
 }
 
-/// Normalizes a CMake `project()` name into a valid Bazel module name.
+/// Normalizes a project's own name into a valid Bazel module name.
+///
+/// CMake's `project()` for one frontend, automake's `PACKAGE` for the other;
+/// the rules below are about Bazel's module-name grammar, not about where the
+/// name came from.
 ///
 /// Bazel's grammar is stricter than CMake's: a module name may contain only
 /// lowercase letters, digits, `.`, `-` and `_`, must begin with a lowercase

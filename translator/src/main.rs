@@ -215,20 +215,6 @@ fn write_needs_attention(
     Ok(())
 }
 
-/// Writes `TARGETS`, a machine-readable list of what this module emitted, for
-/// the validation harness to read instead of regexing `BUILD.bazel`.
-///
-/// The harness needs three facts per module — which binaries exist, which
-/// tests wrap them, and which config-header assertions to run — and used to
-/// recover all three with `sed` over the generated Starlark. That coupled it
-/// to codegen's exact whitespace and line breaking: a formatting change (the
-/// intended `buildifier`-on-output pass is the obvious one) would silently
-/// match nothing, and a `sed` that matches nothing yields no tests rather
-/// than an error. See bzl-dmf.
-///
-/// One `<kind> <name>` per line, sorted within each kind so the file does not
-/// churn on target order. Deliberately not JSON: the reader is a shell script
-/// in a genrule, and `while read kind name` needs no parser.
 /// Writes `CONVERSION.json`: what this conversion produced and what it could
 /// not, in one machine-readable record.
 ///
@@ -306,6 +292,20 @@ fn write_conversion_summary(
     )
 }
 
+/// Writes `TARGETS`, a machine-readable list of what this module emitted, for
+/// the validation harness to read instead of regexing `BUILD.bazel`.
+///
+/// The harness needs three facts per module — which binaries exist, which
+/// tests wrap them, and which config-header assertions to run — and used to
+/// recover all three with `sed` over the generated Starlark. That coupled it
+/// to codegen's exact whitespace and line breaking: a formatting change (the
+/// intended `buildifier`-on-output pass is the obvious one) would silently
+/// match nothing, and a `sed` that matches nothing yields no tests rather
+/// than an error. See bzl-dmf.
+///
+/// One `<kind> <name>` per line, sorted within each kind so the file does not
+/// churn on target order. Deliberately not JSON: the reader is a shell script
+/// in a genrule, and `while read kind name` needs no parser.
 fn write_targets_manifest(out_module: &Path, graph: &model::BuildGraph) -> std::io::Result<()> {
     let mut lines = Vec::new();
 
@@ -365,8 +365,8 @@ fn write_resolutions(out_module: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// Copies the real cmake+ninja-built artifacts (e.g. each target's built
-/// binary) into `<out_module>/ground_truth/`, alongside a small
+/// Copies the artifacts the project's OWN build system produced (each
+/// target's built binary) into `<out_module>/ground_truth/`, alongside a small
 /// `BUILD.bazel` exporting them (`codegen::render_ground_truth_build_bazel`)
 /// so they're referenceable (e.g. `@<module>//ground_truth:hello`) when
 /// validating that the Bazel build is functionally equivalent — see
