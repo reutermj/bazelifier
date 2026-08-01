@@ -45,26 +45,34 @@ pub(crate) struct BuildCommand {
 
 /// Converts an Autotools project, mirroring `cmake_api::discover`.
 ///
-/// Three steps, in this order for the same reasons the CMake frontend has
-/// them: the tree is CONFIGURED (so `make` has resolved variables to report),
-/// then really BUILT (so ground-truth artifacts exist for the equivalence
-/// check — see docs/architecture/build-verification.md), then interrogated.
+/// Three steps: the tree is CONFIGURED (so `make` has resolved variables to
+/// report), then really BUILT (so ground-truth artifacts exist for the
+/// equivalence check — see docs/architecture/build-verification.md), then
+/// interrogated.
 ///
-/// Both interrogations happen after the build rather than before, so `make -n`
-/// reports what a rebuild would do. On a fully built tree that is nothing,
-/// which is why the dry run is taken BEFORE the build below.
+/// The interrogation comes AFTER the build, and the dry run uses `-B`. Both
+/// halves of that are load-bearing, and the obvious alternatives each fail on
+/// a real project:
+///
+/// - `make -n` BEFORE the build fails outright on a recursive project. xz's
+///   `src/xzdec` needs `../../src/liblzma/liblzma.la`, which no subdirectory
+///   has built yet, so make reports "No rule to make target" and exits 2.
+/// - `make -n` AFTER the build succeeds and prints NOTHING: every target is
+///   up to date, and the command stream is the entire input.
+///
+/// `-B` asks what a full rebuild would run, which is the question this
+/// frontend actually needs, and a built tree is the only state in which every
+/// subdirectory can answer it.
 pub fn discover(
     source_dir: &Path,
     build_dir: &Path,
     _deliverable_root: &Path,
 ) -> Result<Discovery, Error> {
     configure(source_dir, build_dir)?;
+    build(build_dir)?;
 
-    // Before `build`: `make -n` on an already-built tree prints nothing to do,
-    // and the command stream is the whole point.
     let stream = dry_run(build_dir)?;
     let database = variable_database(build_dir)?;
-    build(build_dir)?;
 
     let vars = parse_variables(&database);
     let declared = declared_targets(&vars);
@@ -165,6 +173,9 @@ fn build(build_dir: &Path) -> Result<(), Error> {
 pub(crate) fn dry_run(build_dir: &Path) -> Result<String, Error> {
     let output = Command::new("make")
         .arg("-n")
+        // Force-rebuild: without it a built tree reports nothing to do. See
+        // `discover` on why the tree must be built first anyway.
+        .arg("-B")
         .current_dir(build_dir)
         .output()?;
     if !output.status.success() {

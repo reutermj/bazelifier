@@ -76,6 +76,14 @@ def _convert_cmake_project_impl(ctx):
     args.add("--out-module", out_dir.path)
     args.add("--deliverable-root", deliverable_root)
 
+    # Passed explicitly rather than left to detection. A project can ship BOTH
+    # build systems — xz has CMakeLists.txt and configure.ac — and which one to
+    # convert is then a real choice the BUILD author is making, not something
+    # to infer. Without this the rule silently converted xz with the CMake
+    # frontend and failed deep inside it on a File API reply that was never
+    # written.
+    args.add("--frontend", ctx.attr.frontend)
+
     ctx.actions.run(
         outputs = [out_dir, build_scratch],
         inputs = srcs,
@@ -105,7 +113,7 @@ convert_cmake_project = rule(
         "frontend": attr.string(
             default = "cmake",
             values = ["cmake", "autotools"],
-            doc = "Which build system the project uses. Only affects how this rule finds the project root and what it calls the action; the translator detects the frontend from the source directory itself.",
+            doc = "Which build system to convert the project with. Passed through to the translator, so a project shipping both CMakeLists.txt and configure.ac converts with the one named here rather than whichever detection prefers. Also selects the file this rule looks for when deriving source_dir.",
         ),
         "source_dir": attr.string(
             doc = "Path (relative to the execroot) to the project's root directory, i.e. the directory containing its CMakeLists.txt or configure.ac. Leave empty to derive it from the single marker file in srcs — required when the sources come from an external repo (a corpus project) whose staged path the BUILD author can't name.",

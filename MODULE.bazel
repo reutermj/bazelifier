@@ -72,6 +72,13 @@ bazel_dep(name = "rules_shell", version = "0.8.0", dev_dependency = True)
 # docs/architecture/build-verification.md.
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
+# Fetched as a RELEASE TARBALL, not a git checkout, and that is the point: an
+# autotools tarball ships `configure` pre-generated, while a checkout needs
+# `autoreconf -i` first. Bootstrapping inside the conversion would make the
+# result depend on the host's autoconf/automake versions rather than on the
+# project — the same reason the CMake side does not vendor CMake.
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 git_repository(
     name = "tinyxml2",
     # tinyxml2 ships no Bazel BUILD; expose the whole checkout as one
@@ -146,4 +153,31 @@ git_repository(
 """,
     commit = "216c70c020aa53f0c40920d155f808b6b59c9acb",  # tag v1.3.2
     remote = "https://github.com/madler/zlib",
+)
+
+# First AUTOTOOLS corpus project: xz 5.4.7. Chosen over GNU hello, the
+# canonical autotools project, after measuring both — hello is 170 lines of its
+# own code around 72 vendored gnulib files, and gnulib GENERATES REPLACEMENT
+# SYSTEM HEADERS (lib/stdio.h, lib/string.h, ...) that shadow the real ones.
+# Converting it faithfully would mean building a gnulib-shaped feature no other
+# project wants. See bzl-yjn.8.
+#
+# xz is the inverse: 105 of its own C files to 2 vendored, one generated
+# header, and a target shape the frontend has never seen — a versioned shared
+# library (liblzma.la), multiple programs, and 13 check_PROGRAMS. Its 172
+# config macros are ~106 mechanical autoconf facts, which is catalog DATA work
+# rather than new capability.
+#
+# INPUT to the translator only, same copy-through model as the CMake corpus.
+http_archive(
+    name = "xz",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-jbZmTEjKB5CLkrrtz+fzuiP0nvJHaGRRirXbZyODbnE=",
+    strip_prefix = "xz-5.4.7",
+    url = "https://github.com/tukaani-project/xz/releases/download/v5.4.7/xz-5.4.7.tar.gz",
 )

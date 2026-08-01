@@ -1,0 +1,26 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# First Autotools corpus project. xz brings target shapes no CMake project in
+# the corpus has: a versioned libtool shared library (liblzma.la), several
+# programs from one Makefile.am, and 13 check_PROGRAMS forming a real test
+# suite.
+#
+# Sources come from the @xz http_archive (pinned in MODULE.bazel) as a release
+# TARBALL, which ships `configure` pre-generated — a git checkout would need
+# `autoreconf -i` and make the conversion depend on the host's autotools.
+# source_dir is left empty so the rule derives it from where configure.ac
+# landed.
+#
+# CURRENTLY FAILS, deliberately left wired up rather than commented out: the
+# conversion reaches codegen and stops at codegen's own module-relative
+# assertion on `../common/tuklib_physmem.c`. xz uses RECURSIVE make, so every
+# path in the command stream is relative to the subdirectory the command ran
+# in, and the frontend does not yet track that. See bzl-yjn.7 — this target
+# going green is that bead's acceptance test.
+#
+# See bzl-yjn.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@xz//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)
