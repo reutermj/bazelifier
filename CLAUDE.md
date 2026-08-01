@@ -275,10 +275,12 @@ source in every fixture build.
   lines above already saying otherwise.
 - **`needs_attention/` is a real interface, not a scratch file.** When the
   translator can't resolve something, it should emit a `needs_attention`
-  item matching the fixed section structure in
-  `translator/src/needs_attention.rs`, not an ad hoc error message. Keep
-  the schema in mind even while it's markdown-first — it's expected to
-  become machine-consumable later. The item's *text* is output too: when
+  item matching the fixed structure in
+  `translator/src/needs_attention.rs`, not an ad hoc error message. Each item
+  carries a machine-readable header (`kind`, `subject`) above the prose;
+  `kind` is the only stable key a tool may group by, since titles get reworded
+  and the filename slug is derived from the title. Adding a constructor means
+  adding a kind. The item's *text* is output too: when
   the translator gains a capability, grep the escalations for the
   limitation it just removed, and pin substantive guidance with a test.
   Because that text ships to an agent working in an unpacked workspace with

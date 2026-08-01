@@ -23,6 +23,23 @@
 /// and rendering that are the only things that ever touch them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NeedsAttention {
+    /// What KIND of gap this is, as a stable machine key.
+    ///
+    /// One value per constructor in this module, and the only field a tool
+    /// may key on. The title cannot serve: it is prose, it is reworded
+    /// routinely, and the `<NNN>-<slug>` filename is derived from it — so
+    /// anything keyed on either silently re-partitions when someone improves
+    /// the wording. Constructors, by contrast, have only ever been ADDED.
+    ///
+    /// Renaming one is therefore a deliberate schema change, not an edit.
+    pub kind: &'static str,
+    /// What the gap is ABOUT — the target, header, or file — so two items of
+    /// the same kind in one conversion are distinguishable.
+    ///
+    /// Best-effort by design: an item covering several things (every inert
+    /// convenience target, say) names the set rather than inventing an
+    /// identifier for it.
+    pub subject: String,
     pub title: String,
     pub gap: String,
     pub context: String,
@@ -34,13 +51,26 @@ pub struct NeedsAttention {
 /// docs/architecture/needs-attention-interface.md.
 pub fn render(item: &NeedsAttention) -> String {
     let NeedsAttention {
+        kind,
+        subject,
         title,
         gap,
         context,
         expected_output,
     } = item;
+    // The subject is flattened onto one line. It carries values from the
+    // project — a file path, a CMake type, a joined list — and a newline in it
+    // would end the header early, silently turning the rest into body text
+    // that a parser then reads as prose. Quoted for the same reason a leading
+    // `[` or a `: ` would otherwise change how it parses.
+    let subject = subject.replace(['\n', '\r'], " ");
+    let subject = subject.replace('"', "'");
     format!(
-        "# {title}\n\n\
+        "---\n\
+         kind: {kind}\n\
+         subject: \"{subject}\"\n\
+         ---\n\n\
+         # {title}\n\n\
          ## Gap\n\n{gap}\n\n\
          ## Context\n\n{context}\n\n\
          ## Expected output\n\n{expected_output}\n"
@@ -74,6 +104,8 @@ pub fn sources_outside_deliverable_needs_attention(
 ) -> NeedsAttention {
     let title = format!("Target '{target_name}' has sources the module cannot reach");
     NeedsAttention {
+        kind: "sources_outside_deliverable",
+        subject: target_name.to_string(),
         gap: format!(
             "Target '{target_name}' compiles {} source file(s) that the translator could not \
              place inside the generated module:\n\n{}\n\nThey were left out of the generated \
@@ -151,6 +183,8 @@ pub fn unmapped_config_macros_needs_attention(
 ) -> NeedsAttention {
     let title = format!("Config header '{output}' references names not in the shared catalog");
     NeedsAttention {
+        kind: "unmapped_config_macros",
+        subject: output.to_string(),
         gap: format!(
             "The config header '{output}' is generated from the template `{template}` and the \
              translator reproduced it with a `config_header` rule wired to `@cc_config` probes \
@@ -222,6 +256,8 @@ pub fn generated_config_header_needs_attention(
 ) -> NeedsAttention {
     let title = format!("Target '{target_name}' compiles against build-generated headers");
     NeedsAttention {
+        kind: "generated_config_header",
+        subject: target_name.to_string(),
         gap: format!(
             "Target '{target_name}' compiles against {} header(s) that exist only in the CMake \
              build directory, not in the project's source tree:\n\n{}\n\nThese are the output of \
@@ -279,6 +315,8 @@ pub fn generated_sources_needs_attention(
 ) -> NeedsAttention {
     let title = format!("Target '{target_name}' consumes generated sources");
     NeedsAttention {
+        kind: "generated_sources",
+        subject: target_name.to_string(),
         gap: format!(
             "CMake reports {} source(s) for target '{target_name}' that it generates during \
              the build rather than reading from the project tree:\n\n{}\n\nThey were left out \
@@ -385,6 +423,8 @@ pub fn unsupported_target_needs_attention(
     };
 
     NeedsAttention {
+        kind: "unsupported_target",
+        subject: target_name.to_string(),
         gap: format!(
             "Target '{target_name}' has CMake type '{cmake_type}', which the translator has \
              no Bazel rule for — only `EXECUTABLE`, `STATIC_LIBRARY`, and `SHARED_LIBRARY` \
@@ -428,6 +468,8 @@ pub fn inert_convenience_targets_needs_attention(target_names: &[String]) -> Nee
         target_names.len()
     );
     NeedsAttention {
+        kind: "inert_convenience_targets",
+        subject: target_names.join(", "),
         gap: format!(
             "These targets are defined by the project but produce no build artifact and have \
              no other target depending on them: {}. Each is a CMake `add_custom_target()` \
@@ -488,6 +530,8 @@ pub fn ctest_command_not_a_target_needs_attention(
         .collect::<Vec<_>>()
         .join("\n");
     NeedsAttention {
+        kind: "ctest_command_not_a_target",
+        subject: test_names.join(", "),
         gap: format!(
             "CMake registered these tests with `add_test()`, but each one's command is not \
              an executable this module builds:\n\n{listing}\n\nThe translator emits an \
@@ -552,6 +596,8 @@ pub fn ctest_command_not_a_target_needs_attention(
 pub fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
     let title = format!("Library '{target_name}' has headers with no public declaration");
     NeedsAttention {
+        kind: "header_visibility",
+        subject: target_name.to_string(),
         gap: format!(
             "Target '{target_name}' is a library with at least one other target depending \
              on it, and has header-like files among its sources, but none of them are \
@@ -880,13 +926,21 @@ mod tests {
     #[test]
     fn renders_expected_sections() {
         let item = NeedsAttention {
+            kind: "header_visibility",
+            subject: "greet".to_string(),
             title: "Library 'greet' has no public headers".to_string(),
             gap: "gap text".to_string(),
             context: "context text".to_string(),
             expected_output: "expected text".to_string(),
         };
         let rendered = render(&item);
-        assert!(rendered.starts_with("# Library 'greet' has no public headers\n"));
+        // The title now follows the machine-readable header rather than
+        // opening the file; `renders_a_machine_readable_header_before_the_prose`
+        // pins that ordering.
+        assert!(
+            rendered.contains("\n# Library 'greet' has no public headers\n"),
+            "{rendered}"
+        );
         // The section headings are the schema an agent reads, so each is
         // asserted with its body attached — a heading present but empty is
         // the failure worth catching.
@@ -896,6 +950,118 @@ mod tests {
             rendered.contains("## Expected output\n\nexpected text\n"),
             "{rendered}"
         );
+    }
+
+    // The header is what a tool keys on, so its exact shape is the contract —
+    // and it comes FIRST, before the title, so a parser can read kind and
+    // subject without scanning prose.
+    #[test]
+    fn renders_a_machine_readable_header_before_the_prose() {
+        let rendered = render(&NeedsAttention {
+            kind: "header_visibility",
+            subject: "greet".to_string(),
+            title: "Library 'greet' has no public headers".to_string(),
+            gap: "gap text".to_string(),
+            context: "context text".to_string(),
+            expected_output: "expected text".to_string(),
+        });
+        assert!(
+            rendered.starts_with(
+                "---\nkind: header_visibility\nsubject: \"greet\"\n---\n\n# Library"
+            ),
+            "the header opens the file and the title follows it:\n{rendered}"
+        );
+    }
+
+    // A subject carries values from the PROJECT — a path, a CMake type, a
+    // joined list — so it cannot be trusted to be one clean line. A newline
+    // would close the header early and silently turn the rest of the item into
+    // body text a parser reads as prose.
+    #[test]
+    fn a_subject_cannot_break_out_of_the_header() {
+        let rendered = render(&NeedsAttention {
+            kind: "unsupported_target",
+            subject: "weird\nname: with\r\"quotes\"".to_string(),
+            title: "t".to_string(),
+            gap: "g".to_string(),
+            context: "c".to_string(),
+            expected_output: "e".to_string(),
+        });
+        let header: Vec<&str> = rendered
+            .lines()
+            .skip(1)
+            .take_while(|l| *l != "---")
+            .collect();
+        assert_eq!(
+            header,
+            vec!["kind: unsupported_target", "subject: \"weird name: with 'quotes'\""],
+            "the header stays two lines whatever the subject contains:\n{rendered}"
+        );
+    }
+
+    // The header is ADDITIVE. Everything below it ships to an agent working in
+    // an unpacked workspace with no access to this repo, and CLAUDE.md forbids
+    // churning that text — so adding a machine key must not reflow, reorder or
+    // reword a single byte of it.
+    #[test]
+    fn the_header_does_not_disturb_the_prose_below_it() {
+        let item = header_visibility_needs_attention("greet");
+        let rendered = render(&item);
+        let (header, prose) = rendered.split_once("---\n\n").expect("header delimiter");
+        assert_eq!(
+            header.lines().count(),
+            3,
+            "header is `---`, kind, subject; the closing `---` is the split \
+             point:\n{header}"
+        );
+        assert_eq!(
+            prose,
+            format!(
+                "# {}\n\n## Gap\n\n{}\n\n## Context\n\n{}\n\n## Expected output\n\n{}\n",
+                item.title, item.gap, item.context, item.expected_output
+            ),
+            "the prose must be exactly what it was before the header existed"
+        );
+    }
+
+    // Every constructor must carry a kind, and no two may share one: the kind
+    // is the ONLY stable key a metric can group by (a title is prose and gets
+    // reworded, and the NNN-slug filename is derived from the title). A
+    // duplicate would silently merge two gap types into one bucket.
+    #[test]
+    fn every_escalation_kind_is_distinct_and_non_empty() {
+        let items = vec![
+            sources_outside_deliverable_needs_attention("t", &["a.c".to_string()]),
+            unmapped_config_macros_needs_attention("config.h", "config.h.in", &["X".to_string()]),
+            generated_config_header_needs_attention("t", &["gen.h".to_string()]),
+            generated_sources_needs_attention("t", &["gen.c".to_string()]),
+            unsupported_target_needs_attention("t", "OBJECT_LIBRARY", &["dep".to_string()]),
+            inert_convenience_targets_needs_attention(&["t".to_string()]),
+            ctest_command_not_a_target_needs_attention(&["x".to_string()], &["cmd".to_string()]),
+            header_visibility_needs_attention("t"),
+        ];
+        let mut kinds: Vec<&str> = items.iter().map(|i| i.kind).collect();
+        let total = kinds.len();
+        kinds.sort_unstable();
+        kinds.dedup();
+        assert_eq!(
+            kinds.len(),
+            total,
+            "two escalations share a kind, so a metric would merge them: {kinds:?}"
+        );
+        for item in &items {
+            assert!(
+                !item.kind.is_empty() && !item.subject.is_empty(),
+                "every item needs a kind and a subject: {item:#?}"
+            );
+            assert!(
+                item.kind
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || c == '_'),
+                "a kind is a machine key, so it stays snake_case: {:?}",
+                item.kind
+            );
+        }
     }
 
     #[test]

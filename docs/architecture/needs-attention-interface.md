@@ -22,9 +22,15 @@ independently of every other gap in the project.
 ## Format
 
 The renderer is `translator/src/needs_attention.rs`, which also holds the
-text of every escalation the translator can emit. Four sections, fixed:
+text of every escalation the translator can emit. A machine-readable header,
+then four fixed sections:
 
 ```markdown
+---
+kind: <stable machine key>
+subject: "<what the gap is about>"
+---
+
 # <title>
 
 ## Gap
@@ -42,15 +48,41 @@ normally maps to in Bazel.
 What a resolution actually looks like, concretely enough to act on.
 ```
 
+### The header
+
+`kind` is the **only** field a tool may key on, and it is stable by
+construction: one value per constructor in `needs_attention.rs`, snake_case,
+and renaming one is a deliberate schema change rather than an edit.
+
+Nothing else in the file is a usable key. The title is prose and gets reworded
+routinely — 7 of 18 recent commits touching this module changed one — and the
+`<NNN>-<slug>` filename is *derived* from the title, so anything keyed on
+either silently re-partitions when someone improves the wording. Constructors,
+by contrast, have only ever been added.
+
+`subject` names what the gap is about (a target, a header, a file) so two
+items of the same kind in one conversion are distinguishable. It is
+best-effort: an item covering several things names the set. It carries values
+from the project, so it is flattened to one line and quoted — a newline in it
+would close the header early and turn the rest of the item into body text a
+parser reads as prose.
+
+The header is **additive**. Everything below it ships to an agent working in
+an unpacked workspace with no access to this repo, so adding a machine key
+must not reflow, reorder or reword a byte of it — pinned by
+`the_header_does_not_disturb_the_prose_below_it`.
+
+
 Files are numbered per conversion (`001-`, `002-`, ...) purely to keep
 ordering stable; the slug is derived from the title.
 
 ## Design intent
 
-- **Markdown first, structured underneath.** Items should read naturally to
-  a human or agent, but the sections are fixed so this can grow into a
-  machine-readable (YAML/JSON) task spec later without a redesign. Don't
-  add prose-only sections that couldn't become structured fields.
+- **Markdown first, structured underneath.** Items read naturally to a human
+  or agent, and the machine-readable part rides in the header rather than
+  replacing the prose. The sections stay fixed so more structure can be added
+  the same way — additively, above the title — without a redesign. Don't add
+  prose-only sections that couldn't become structured fields.
 - **Provider-agnostic.** Escalations are markdown on disk, not calls into a
   specific LLM provider's API. Any agent that can read a file and edit a
   repo can participate — no SDK lock-in while the format is stabilizing.
