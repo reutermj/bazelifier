@@ -288,10 +288,12 @@ pub(crate) fn inject_unenumerated_installed_headers(
 /// Include dirs outside the source tree are skipped: those are the build
 /// directory (whose headers the config_header machinery reproduces) and
 /// toolchain paths, neither of which the module may carry. Within one, the
-/// walk is recursive — see `headers_under`.
+/// walk is recursive — see `headers_in`.
 ///
-/// Paths are in the File API's frame (pre-rebase): `sources` are
-/// project-relative, include dirs absolute.
+/// Include dirs arrive in EITHER frame and are resolved against `source_dir`,
+/// which handles both: the CMake frontend calls this before rebasing, so its
+/// dirs are absolute, while the Autotools frontend rebases as it builds the
+/// graph, so its are module-relative. See the resolution site below.
 pub(crate) fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir: &Path) {
     for target in targets.iter_mut() {
         // Per-target, NOT global: a header can be enumerated on one target and
@@ -476,6 +478,38 @@ mod tests {
 
     // bzl-htv: -Iinclude with #include "sub/foo.h" is ordinary C, and a flat
     // listing of include/ misses include/sub/foo.h entirely.
+    // The two frontends hand this function include dirs in different frames,
+    // and every other test here passes absolute ones. Reverting the resolution
+    // to "assume absolute" left the whole suite green while silently finding
+    // nothing for the Autotools caller — which surfaced as xz's lzma.h never
+    // being staged, several steps from the cause.
+    #[test]
+    fn a_module_relative_include_dir_resolves_against_the_source_root() {
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_relinc_{}_{}", std::process::id(), line!()));
+        let inc = dir.join("api");
+        fs::create_dir_all(&inc).unwrap();
+        fs::write(dir.join("lib.c"), b"int f(void){return 0;}\n").unwrap();
+        fs::write(inc.join("lzma.h"), b"#pragma once\n").unwrap();
+        let src = dir.to_string_lossy().into_owned();
+
+        // "api", not "<tmp>/api" — the frame the Autotools frontend produces.
+        let mut targets = vec![{
+            let mut t = library_target("lzma", vec!["api".to_string()]);
+            t.sources.push("lib.c".to_string());
+            t
+        }];
+        inject_headers_on_include_dirs(&mut targets, Path::new(&src));
+
+        assert_eq!(
+            targets[0].sources,
+            vec!["lib.c".to_string(), "api/lzma.h".to_string()],
+            "a module-relative include dir must resolve against the source \
+             root; assuming it absolute finds nothing and reports nothing"
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
     #[test]
     fn a_header_in_a_subdirectory_of_an_include_dir_is_found() {
         let dir =

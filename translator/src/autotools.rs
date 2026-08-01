@@ -14,17 +14,22 @@
 //! - The generated `Makefile` IS resolved but is thousands of lines of make
 //!   syntax with recursive expansion; consuming it means implementing enough
 //!   of make to be correct.
-//! - `make -n` prints exactly what the build would run, fully expanded, and is
-//!   byte-identical between runs (verified — more stable than the File API,
-//!   which reports dependency order unstably, see bzl-sjp).
+//! - `make -n` prints exactly what the build would run, fully expanded, and in
+//!   a stable command ORDER — more stable than the File API, which reports
+//!   dependency order unstably (bzl-sjp). Not byte-identical: `-B` forces a
+//!   `config.status --recheck` preamble, which is one reason `parse_commands`
+//!   recognises only the programs that build something and ignores the rest.
 //!
 //! What the command stream does NOT carry is target NAMES. automake knows a
 //! program is called `greeter` because `bin_PROGRAMS` says so; the stream only
-//! shows `-o greeter`. Identity is therefore inferred from the artifact, which
-//! is this frontend's one genuine weakness versus `cmake_api` and is why
-//! [`target_name_from_artifact`] exists as a named, testable decision rather
-//! than an inline `file_stem`.
+//! shows `-o greeter`. So identity comes from a SECOND source, `make -p`'s
+//! variable database, via [`declared_targets`] — a declaration, not an
+//! inference. Deriving names from artifact paths was tried and abandoned:
+//! stripping the `lib` prefix and the suffix collapsed GNU hello's
+//! `bin_PROGRAMS = hello` and `noinst_LIBRARIES = lib/libhello.a` onto one
+//! name, producing a module that could not load.
 
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -32,7 +37,9 @@ use std::process::Command;
 use crate::configure_file::catalog_label;
 use crate::error::Error;
 use crate::headers::inject_headers_on_include_dirs;
-use crate::needs_attention::unmapped_config_macros_needs_attention;
+use crate::needs_attention::{
+    sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
+};
 use crate::model::{BuildGraph, ConfigHeader, Discovery, ModuleInfo, Target, TargetKind};
 use crate::paths::{absolutize, normalize_lexically};
 
@@ -67,18 +74,9 @@ pub(crate) struct BuildCommand {
 /// interrogated.
 ///
 /// The interrogation comes AFTER the build, and the dry run uses `-B`. Both
-/// halves of that are load-bearing, and the obvious alternatives each fail on
-/// a real project:
-///
-/// - `make -n` BEFORE the build fails outright on a recursive project. xz's
-///   `src/xzdec` needs `../../src/liblzma/liblzma.la`, which no subdirectory
-///   has built yet, so make reports "No rule to make target" and exits 2.
-/// - `make -n` AFTER the build succeeds and prints NOTHING: every target is
-///   up to date, and the command stream is the entire input.
-///
-/// `-B` asks what a full rebuild would run, which is the question this
-/// frontend actually needs, and a built tree is the only state in which every
-/// subdirectory can answer it.
+/// halves are load-bearing: a dry run before the build exits 2 on a recursive
+/// project, and a plain one after it prints nothing. See
+/// docs/lore/make-n-answers-differently-before-and-after-a-build.md.
 pub fn discover(
     source_dir: &Path,
     build_dir: &Path,
@@ -118,7 +116,7 @@ pub fn discover(
         .or_else(|| vars.get("PACKAGE_NAME"))
         .cloned()
         .unwrap_or_else(|| "project".to_string());
-    let mut graph = to_graph(
+    let (mut graph, graph_needs_attention) = to_graph(
         &parse_commands(&stream, build_dir),
         &declared,
         &vars,
@@ -127,6 +125,7 @@ pub fn discover(
         &absolutize(build_dir)?,
     );
     graph.config_headers = config_headers;
+    needs_attention.extend(graph_needs_attention);
 
     // The same header-staging passes the CMake frontend runs, and for the
     // same reasons: a header reachable on the include path is an input Bazel
@@ -138,10 +137,11 @@ pub fn discover(
 
     Ok(Discovery {
         graph,
-        // Only unmapped config macros so far. The frontend does not yet
-        // detect the other gaps worth escalating — an external library it
-        // links but cannot build, most obviously — which is honest now and
-        // wrong once it meets a project it cannot fully convert. See bzl-yjn.
+        // Unmapped config macros, and sources that escaped the module. Two
+        // gaps remain undetected — an external library the project links but
+        // does not build, and a declared target `make` never produced — which
+        // is honest now and wrong once it meets a project it cannot fully
+        // convert. See bzl-yjn.5.
         needs_attention,
         module_root: source_dir.to_path_buf(),
     })
@@ -166,7 +166,7 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
             // A source tree with configure.ac but no configure has not been
             // bootstrapped; saying so beats "no such file or directory".
             if e.kind() == std::io::ErrorKind::NotFound {
-                Error::CmakeConfigureFailed {
+                Error::ConfigureFailed {
                     stderr: format!(
                         "{} not found — the project ships configure.ac but has not been \
                          bootstrapped. Run autoreconf -i in the source tree first.",
@@ -178,7 +178,7 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
             }
         })?;
     if !output.status.success() {
-        return Err(Error::CmakeConfigureFailed {
+        return Err(Error::ConfigureFailed {
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         });
     }
@@ -199,7 +199,7 @@ fn build(build_dir: &Path) -> Result<(), Error> {
         .current_dir(build_dir)
         .output()?;
     if !output.status.success() {
-        return Err(Error::CmakeBuildFailed {
+        return Err(Error::BuildFailed {
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         });
     }
@@ -220,7 +220,7 @@ pub(crate) fn dry_run(build_dir: &Path) -> Result<String, Error> {
         .current_dir(build_dir)
         .output()?;
     if !output.status.success() {
-        return Err(Error::CmakeBuildFailed {
+        return Err(Error::BuildFailed {
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         });
     }
@@ -276,10 +276,48 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
         if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
             continue;
         }
-        // Later definitions win, matching make's own last-assignment-wins.
-        vars.insert(name.to_string(), value.trim().to_string());
+        let value = value.trim();
+        // A primary ACCUMULATES; everything else takes the last definition.
+        //
+        // `make -p` on a recursive project concatenates the database of every
+        // subdirectory, so one name can be defined several times meaning
+        // different things. For a per-target variable that is harmless —
+        // `xz_SOURCES` belongs to whichever directory declares `xz` and no
+        // other — but a primary is declared once PER DIRECTORY, so xz emits
+        // four `bin_PROGRAMS` lines (`xz`, `lzmainfo`, and the top level's
+        // unexpanded `$(am__EXEEXT_1)`). Overwriting kept whichever came last
+        // and silently dropped the rest: the conversion emitted `lzmainfo`,
+        // omitted the project's namesake `xz` binary, and reported success.
+        //
+        // Not make's own semantics — make never sees these definitions
+        // together, because each belongs to a different makefile.
+        if is_primary(name) {
+            match vars.entry(name.to_string()) {
+                Entry::Occupied(mut slot) => {
+                    let merged: &mut String = slot.get_mut();
+                    if !merged.is_empty() && !value.is_empty() {
+                        merged.push(' ');
+                    }
+                    merged.push_str(value);
+                }
+                Entry::Vacant(slot) => {
+                    slot.insert(value.to_string());
+                }
+            }
+            continue;
+        }
+        vars.insert(name.to_string(), value.to_string());
     }
     vars
+}
+
+/// Whether `name` is an automake primary — `bin_PROGRAMS`, `lib_LTLIBRARIES`.
+///
+/// Matched on the suffix alone, the same way [`declared_targets`] reads them,
+/// so the two cannot disagree about what counts as a primary.
+fn is_primary(name: &str) -> bool {
+    name.rsplit_once('_')
+        .is_some_and(|(_, primary)| matches!(primary, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"))
 }
 
 /// Builds the `config_header` plan for an autoconf template, and the macros
@@ -426,6 +464,15 @@ pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTa
             let exeext = vars.get("EXEEXT").map(String::as_str).unwrap_or("");
             let name = name.replace("$(EXEEXT)", exeext);
             if name.is_empty() {
+                continue;
+            }
+            // An unexpanded reference, not a target. A recursive project's
+            // top-level `bin_PROGRAMS` is often a list of `$(am__EXEEXT_N)`
+            // internals; the real names come from the subdirectory
+            // definitions, which parse_variables merges in alongside these.
+            // Taking one as a name produces a target automake never declared,
+            // matched against no build command, escalated as unbuilt.
+            if name.contains("$(") {
                 continue;
             }
             targets.push(DeclaredTarget {
@@ -598,37 +645,6 @@ fn tokenize(line: &str) -> Vec<String> {
     tokens
 }
 
-/// The target name for a build artifact.
-///
-/// The command stream gives a path, not automake's target name, so this is an
-/// inference — the one place this frontend is weaker than `cmake_api`, which
-/// gets `name` directly from the reply. It strips a `lib` prefix and every
-/// known suffix so `libgreet.a`, `libshout.la` and `.libs/libshout.so.1.0.0`
-/// all resolve to the same target, which is what makes a dependency edge
-/// findable at all.
-pub(crate) fn target_name_from_artifact(artifact: &str) -> String {
-    let base = Path::new(artifact)
-        .file_name()
-        .map(|n| n.to_string_lossy().into_owned())
-        .unwrap_or_else(|| artifact.to_string());
-
-    // Strip versioned shared-object suffixes (`libfoo.so.1.0.0`) before the
-    // extension, since `Path::file_stem` would only remove `.0`.
-    let base = match base.find(".so.") {
-        Some(i) => base[..i + 3].to_string(),
-        None => base,
-    };
-    let stem = base
-        .strip_suffix(".la")
-        .or_else(|| base.strip_suffix(".so"))
-        .or_else(|| base.strip_suffix(".a"))
-        .or_else(|| base.strip_suffix(".lo"))
-        .or_else(|| base.strip_suffix(".o"))
-        .unwrap_or(&base);
-
-    stem.strip_prefix("lib").unwrap_or(stem).to_string()
-}
-
 /// Builds the graph, joining automake's DECLARATIONS to the build's own
 /// COMMAND STREAM.
 ///
@@ -652,7 +668,7 @@ pub(crate) fn to_graph(
     project_name: &str,
     module_root: &Path,
     build_root: &Path,
-) -> BuildGraph {
+) -> (BuildGraph, Vec<crate::needs_attention::NeedsAttention>) {
     // Resolve a path reported by a command against the directory that command
     // ran in, then express it relative to the module root. Returns None when
     // it escapes the module, which a Bazel label cannot express.
@@ -709,10 +725,11 @@ pub(crate) fn to_graph(
     // External libraries any target links but the project does not build.
     // Gathered across all targets so the caller can escalate them once.
     let mut external_links: Vec<String> = Vec::new();
-    // Sources a target compiles that lie outside the module. Collected for
-    // the escalation they deserve rather than dropped — a target missing
-    // them will not link, and saying so beats a mysterious undefined symbol.
-    let mut outside_module: Vec<String> = Vec::new();
+    // Sources a target compiles that lie outside the module, paired with the
+    // target that lost them: a dropped source is a link failure, and the
+    // escalation has to say which rule is now incomplete. Flattening these
+    // into one module-wide list would throw away exactly that.
+    let mut outside_module: Vec<(String, Vec<String>)> = Vec::new();
     for decl in declared {
         let canon = canonical_name(&decl.name);
         if built.get(&basename(&decl.name)).is_none() {
@@ -869,31 +886,46 @@ pub(crate) fn to_graph(
         });
         escaped.sort_unstable();
         escaped.dedup();
-        outside_module.extend(escaped);
+        if !escaped.is_empty() {
+            outside_module.push((decl.name.clone(), escaped));
+        }
     }
 
     targets.sort_by(|a, b| a.name.cmp(&b.name));
     external_links.sort_unstable();
     external_links.dedup();
-    outside_module.sort_unstable();
-    outside_module.dedup();
+    outside_module.sort_by(|a, b| a.0.cmp(&b.0));
     unbuilt.sort_unstable();
     unbuilt.dedup();
-    let _ = (&outside_module, &unbuilt);
+
+    // A source that escaped the module is the one drop that fails silently.
+    // The target still renders, still links, and reports an undefined symbol
+    // several steps from the cause; the other two announce themselves (a
+    // missing check_PROGRAMS is absent, a system library fails to resolve).
+    // Escalated per target because the resolution is per target: which rule is
+    // incomplete is the first thing the agent needs.
+    let needs_attention = outside_module
+        .iter()
+        .map(|(target, sources)| sources_outside_deliverable_needs_attention(target, sources))
+        .collect();
+
     // Not yet escalated — see bzl-yjn.5. Recorded here so the information is
     // recovered rather than discarded, and so the escalation, when it lands,
     // has something to report.
-    let _ = &external_links;
+    let _ = (&external_links, &unbuilt);
 
-    BuildGraph {
-        module: ModuleInfo {
-            name: project_name.to_string(),
-            version: vars.get("VERSION").cloned(),
+    (
+        BuildGraph {
+            module: ModuleInfo {
+                name: project_name.to_string(),
+                version: vars.get("VERSION").cloned(),
+            },
+            targets,
+            tests: Vec::new(),
+            config_headers: Vec::new(),
         },
-        targets,
-        tests: Vec::new(),
-        config_headers: Vec::new(),
-    }
+        needs_attention,
+    )
 }
 
 /// Every header the project installs, from any `*_HEADERS` primary.
@@ -989,17 +1021,13 @@ fn defines_of(args: &[String]) -> Vec<String> {
 ///   `test -f 'lzmainfo.c' || echo '<srcdir>/src/lzmainfo/'`lzmainfo.c
 ///
 /// so the compiler finds the file whether the build is in-tree or out-of-tree.
-/// Tokenised, that becomes SEVERAL arguments, of which two look like sources:
-/// the bare `lzmainfo.c` inside the test, and the real
-/// `<srcdir>/src/lzmainfo/`lzmainfo.c` at the end. Taking the last
-/// source-looking token picks the wrong one whenever a guard is present, and
-/// the flags of that compile are then attributed to no target at all — which
-/// surfaces as a rule with empty `includes` and a header that cannot be found,
-/// several steps from the cause.
-///
-/// The LAST argument is the real source: everything before it is the guard.
-/// The stray backtick is stripped rather than the expression evaluated, since
-/// the echoed directory is exactly the path wanted.
+/// Tokenised, that is SEVERAL arguments, two of which look like sources — the
+/// bare `lzmainfo.c` inside the test is a decoy. The LAST argument is the real
+/// one; the guard is never evaluated, because the echoed directory is already
+/// the path wanted and running `test -f` would make the answer depend on the
+/// filesystem the frontend happens to run against. Full account, including how
+/// it surfaces, in
+/// docs/lore/automake-wraps-sources-in-a-vpath-guard.md.
 fn compiled_source(args: &[String]) -> Option<String> {
     // The LAST argument, always: everything before it is either flags or the
     // guard's own words. Tokenising the guard leaves the echoed directory
@@ -1022,17 +1050,6 @@ fn is_source_file(path: &str) -> bool {
     )
 }
 
-fn is_object_or_library(path: &str) -> bool {
-    is_object(path) || is_library(path)
-}
-
-fn is_object(path: &str) -> bool {
-    matches!(
-        Path::new(path).extension().and_then(|e| e.to_str()),
-        Some("o" | "lo")
-    )
-}
-
 fn is_library(path: &str) -> bool {
     path.ends_with(".a") || path.ends_with(".la") || path.contains(".so")
 }
@@ -1045,19 +1062,34 @@ mod tests {
     /// A real `make -n` capture from fixture 001, trimmed of the autoconf
     /// -DPACKAGE_* block for readability. Frozen evidence: this is what
     /// automake actually emits, so the parser can be wrong against it.
+    /// A real `make -n -B` capture from fixture 001, verbatim.
+    ///
+    /// Frozen evidence, so it is the build system's output and not ours:
+    /// the `-DPACKAGE_*` block, the single `-I.`, the `depbase=` shell
+    /// bookkeeping and libtool's `--tag=CC` are all what automake really
+    /// emits. An earlier hand-written version carried an `-Isrc` automake
+    /// never produces, and an assertion about per-target include
+    /// attribution was passing against that invented flag.
+    ///
+    /// This is the IN-TREE shape. An out-of-tree build reports the
+    /// compiled source as an absolute path — not covered here, and the
+    /// reason fixture conversion stays the tier that can contradict us.
     const STREAM: &str = r#"
 depbase=`echo src/main.o | sed 's|[^/]*$|.deps/&|;s|\.o$||'`;\
-gcc -DHAVE_CONFIG_H -I.  -g -O2 -MT src/main.o -MD -MP -MF $depbase.Tpo -c -o src/main.o src/main.c &&\
+gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"greeter\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I.     -g -O2 -MT src/main.o -MD -MP -MF $depbase.Tpo -c -o src/main.o src/main.c &&\
 mv -f $depbase.Tpo $depbase.Po
 depbase=`echo src/greet.o | sed 's|[^/]*$|.deps/&|;s|\.o$||'`;\
-gcc -DHAVE_CONFIG_H -I. -Isrc -g -O2 -MT src/greet.o -MD -MP -MF $depbase.Tpo -c -o src/greet.o src/greet.c &&\
+gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"greeter\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I.     -g -O2 -MT src/greet.o -MD -MP -MF $depbase.Tpo -c -o src/greet.o src/greet.c &&\
 mv -f $depbase.Tpo $depbase.Po
 rm -f libgreet.a
-ar cru libgreet.a src/greet.o
+ar cru libgreet.a src/greet.o 
 ranlib libgreet.a
-/bin/bash ./libtool  --tag=CC   --mode=compile gcc -DHAVE_CONFIG_H -I.  -g -O2 -MT src/shout.lo -MD -MP -c -o src/shout.lo src/shout.c
-/bin/bash ./libtool  --tag=CC   --mode=link gcc  -g -O2   -o libshout.la -rpath /usr/local/lib src/shout.lo
-/bin/bash ./libtool  --tag=CC   --mode=link gcc  -g -O2   -o greeter src/main.o libgreet.a libshout.la
+depbase=`echo src/shout.lo | sed 's|[^/]*$|.deps/&|;s|\.lo$||'`;\
+/bin/bash ./libtool  --tag=CC   --mode=compile gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"greeter\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I.     -g -O2 -MT src/shout.lo -MD -MP -MF $depbase.Tpo -c -o src/shout.lo src/shout.c &&\
+mv -f $depbase.Tpo $depbase.Plo
+/bin/bash ./libtool  --tag=CC   --mode=link gcc  -g -O2   -o libshout.la -rpath /usr/local/lib src/shout.lo  
+rm -f greeter
+/bin/bash ./libtool  --tag=CC   --mode=link gcc  -g -O2   -o greeter src/main.o libgreet.a libshout.la 
 "#;
 
     /// A real `make -p -n` capture from fixture 001, trimmed to the lines
@@ -1084,14 +1116,22 @@ libshout_la_SOURCES = src/shout.c\n\
     fn graph_from_captures() -> BuildGraph {
         let vars = parse_variables(DATABASE);
         let declared = declared_targets(&vars);
-        to_graph(
+        graph_only(to_graph(
             &parse_commands(STREAM, Path::new(ROOT)),
             &declared,
             &vars,
             "greeter",
             Path::new(ROOT),
             Path::new(ROOT),
-        )
+        ))
+    }
+
+    /// Drops the escalations `to_graph` returns alongside the graph.
+    ///
+    /// Only for tests asserting on graph shape. A test about what the frontend
+    /// ESCALATES must read the second element instead of reaching for this.
+    fn graph_only(result: (BuildGraph, Vec<crate::needs_attention::NeedsAttention>)) -> BuildGraph {
+        result.0
     }
 
     // bzl-yjn.7: recursive make runs each subdirectory's commands from that
@@ -1117,14 +1157,14 @@ make[1]: Leaving directory '/src/app'\n\
 
         let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n");
         let declared = declared_targets(&vars);
-        let graph = to_graph(
+        let graph = graph_only(to_graph(
             &commands,
             &declared,
             &vars,
             "sibling",
             Path::new("/src"),
             Path::new("/src"),
-        );
+        ));
         let tool = &graph.targets[0];
         assert_eq!(
             tool.sources,
@@ -1150,6 +1190,76 @@ make[1]: Leaving directory '/src/app'\n\
             "and the artifact is where the build actually put it — `-o tool` \
              from inside app/ is app/tool, not a bare tool that no copy can \
              find"
+        );
+    }
+
+    // Both directions for the outside-module escalation, because a gate only
+    // ever seen firing is indistinguishable from one wired to nothing. The
+    // negative is the sibling case above: `../common/util.c` looks like it
+    // escapes and does not, so a check that merely spots `..` would fire on it.
+    #[test]
+    fn a_source_that_escapes_the_module_is_escalated_not_dropped() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/app'\n\
+gcc -c -o main.o main.c\n\
+gcc -c -o evil.o ../../outside/evil.c\n\
+gcc -o tool main.o evil.o\n\
+make[1]: Leaving directory '/src/app'\n\
+";
+        let vars =
+            parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../outside/evil.c\n");
+        let (graph, escalations) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "escaper",
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        let tool = &graph.targets[0];
+        assert_eq!(
+            tool.sources,
+            vec!["app/main.c"],
+            "the escaping source cannot be a label and is left out:\n{tool:#?}"
+        );
+        assert_eq!(
+            escalations.len(),
+            1,
+            "leaving it out silently makes the target fail to link with an \
+             undefined symbol several steps from the cause; got: {escalations:#?}"
+        );
+        assert!(
+            escalations[0].gap.contains("outside/evil.c") && escalations[0].title.contains("tool"),
+            "the escalation must name the file AND the target now missing it, \
+             because the resolution is per target; got:\n{:#?}",
+            escalations[0]
+        );
+    }
+
+    #[test]
+    fn a_sibling_source_inside_the_module_is_not_escalated() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/app'\n\
+gcc -c -o main.o main.c\n\
+gcc -c -o util.o ../common/util.c\n\
+gcc -o tool main.o util.o\n\
+make[1]: Leaving directory '/src/app'\n\
+";
+        let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n");
+        let (_, escalations) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "sibling",
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+        assert!(
+            escalations.is_empty(),
+            "`../common/util.c` leaves app/ but stays inside the module, so it \
+             resolves to common/util.c and nothing is missing; got: \
+             {escalations:#?}"
         );
     }
 
@@ -1272,14 +1382,14 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
 ";
         let vars = parse_variables(DB);
         let declared = declared_targets(&vars);
-        let graph = to_graph(
+        let graph = graph_only(to_graph(
             &parse_commands(STREAM_WITH_RESOLVED_LINK, Path::new(ROOT)),
             &declared,
             &vars,
             "hello",
             Path::new(ROOT),
             Path::new(ROOT),
-        );
+        ));
 
         let hello = graph
             .targets
@@ -1358,6 +1468,52 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         );
     }
 
+    // Verbatim from a real `make -p -n` on xz 5.4.7: recursive make emits one
+    // primary per subdirectory, so the SAME name is defined four times. Taking
+    // the last dropped the project's namesake binary while reporting success.
+    const RECURSIVE_PRIMARIES: &str = "\
+bin_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2)
+bin_PROGRAMS = xz$(EXEEXT)
+bin_PROGRAMS = lzmainfo$(EXEEXT)
+lib_LTLIBRARIES = liblzma.la
+EXEEXT =
+xz_SOURCES = src/xz/main.c
+lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
+";
+
+    #[test]
+    fn a_primary_defined_in_several_subdirectories_keeps_every_target() {
+        let names: Vec<String> = declared_targets(&parse_variables(RECURSIVE_PRIMARIES))
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
+        assert_eq!(
+            names,
+            vec![
+                "liblzma.la".to_string(),
+                "lzmainfo".to_string(),
+                "xz".to_string()
+            ],
+            "recursive make defines bin_PROGRAMS once per subdirectory; overwriting \
+             silently drops every target but the last. Also: `$(am__EXEEXT_N)` is an \
+             unexpanded reference, not a target name."
+        );
+    }
+
+    // The other direction: accumulating is confined to primaries. A per-target
+    // variable belongs to exactly one directory, so merging its definitions
+    // would concatenate unrelated source lists.
+    #[test]
+    fn a_non_primary_variable_still_takes_the_last_definition() {
+        let vars = parse_variables("xz_SOURCES = first.c\nxz_SOURCES = second.c\n");
+        assert_eq!(
+            vars.get("xz_SOURCES").map(String::as_str),
+            Some("second.c"),
+            "only primaries accumulate; a per-target variable keeps make's \
+             last-assignment-wins"
+        );
+    }
+
     #[test]
     fn parses_the_real_command_stream_into_a_graph() {
         let graph = graph_from_captures();
@@ -1408,13 +1564,22 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
             "both libraries are link inputs"
         );
 
-        // Compile flags are attributed to the target that owns the object,
-        // not smeared across every target.
         // `-I.` resolves TO the module root, which Bazel cannot express as an
         // includes entry — it is recorded as needs_root_include instead, and
         // codegen stages the public headers into _include/. Same decision the
         // CMake frontend makes, for the same reason.
-        assert_eq!(greet.includes, vec!["src"], "{greet:#?}");
+        //
+        // `-I.` is the ONLY include this fixture's compiles carry, so both
+        // lists are empty. An earlier version of this capture invented an
+        // `-Isrc` and asserted `greet.includes == ["src"]`; the assertion held
+        // only because the input had been written to satisfy it. Per-target
+        // include attribution is genuinely exercised by
+        // `a_commands_paths_resolve_against_the_directory_it_ran_in`, whose
+        // stream carries two different `-I` values.
+        assert!(
+            greet.includes.is_empty(),
+            "-I. is the module root, not an includes entry: {greet:#?}"
+        );
         assert!(greet.needs_root_include, "-I. must set it: {greet:#?}");
         assert!(greeter.includes.is_empty(), "{greeter:#?}");
         assert!(greeter.needs_root_include, "{greeter:#?}");
@@ -1425,6 +1590,21 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         // it is public; nothing else is.
         assert_eq!(greet.public_headers, vec!["src/greet.h"], "{greet:#?}");
         assert!(greeter.public_headers.is_empty(), "{greeter:#?}");
+
+        // configure puts its own substitutions on every compile line, and they
+        // carry QUOTES. This is where the value that motivated
+        // `codegen::escape_starlark` actually comes from, so the capture is
+        // the honest place to pin its shape: emitted raw into a Starlark
+        // string, `PACKAGE_NAME="greeter"` closes that string early and the
+        // generated module stops parsing.
+        assert!(
+            greet
+                .local_defines
+                .contains(&"PACKAGE_NAME=\"greeter\"".to_string()),
+            "the define reaches the model with its quotes intact, unescaped — \
+             escaping is codegen's job and happens at render time: {:#?}",
+            greet.local_defines
+        );
     }
 
     // The point of this frontend: codegen has only ever seen CMake. If the

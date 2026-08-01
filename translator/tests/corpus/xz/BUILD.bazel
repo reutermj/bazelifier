@@ -11,12 +11,17 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # source_dir is left empty so the rule derives it from where configure.ac
 # landed.
 #
-# CURRENTLY FAILS, deliberately left wired up rather than commented out: the
-# conversion reaches codegen and stops at codegen's own module-relative
-# assertion on `../common/tuklib_physmem.c`. xz uses RECURSIVE make, so every
-# path in the command stream is relative to the subdirectory the command ran
-# in, and the frontend does not yet track that. See bzl-yjn.7 — this target
-# going green is that bead's acceptance test.
+# The conversion itself succeeds; the module does not yet BUILD, and the
+# reason is an open needs_attention item rather than a translator defect.
+# config.h.in names ~150 macros with no probe in the shared catalog, so the
+# generated config.h leaves HAVE_STDBOOL_H and HAVE__BOOL undefined and xz
+# falls into a fallback that redeclares `_Bool`. That is the agent stage's
+# work — see docs/architecture/needs-attention-interface.md.
+#
+# Not enrolled in //translator/tests:validation_workspace for a separate
+# reason: xz's programs link liblzma.la, so `make` leaves a libtool WRAPPER
+# SCRIPT where each binary should be and ground-truth capture copies the
+# script (bzl-yjn.4).
 #
 # See bzl-yjn.
 convert_autotools_project(

@@ -206,7 +206,15 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
     if !header.values.is_empty() {
         out.push_str("    values = {\n");
         for (name, value) in &header.values {
-            out.push_str(&format!("        \"{name}\": \"{value}\",\n"));
+            // Escaped for the same reason every other emitted string is: a
+            // value comes from the project, not from us. The Autotools
+            // frontend takes these verbatim out of make's variable database,
+            // where a quote is ordinary content.
+            out.push_str(&format!(
+                "        \"{}\": \"{}\",\n",
+                escape_starlark(name),
+                escape_starlark(value)
+            ));
         }
         out.push_str("    },\n");
     }
@@ -348,15 +356,6 @@ fn render_sh_test(out: &mut String, test: &model::Test) {
     ));
 }
 
-/// Renders one list-valued attribute, one item per line.
-///
-/// An empty list emits nothing at all rather than `attr = []`. Every
-/// attribute the translator writes is optional in `rules_cc` and defaults
-/// to empty, so the two mean the same thing to Bazel — and the generated
-/// output is meant to be read and maintained by people, for whom a wall of
-/// empty attributes on every rule is noise. This is what lets
-/// `render_cc_rule` offer every attribute unconditionally and let the
-/// target's own data decide which appear.
 /// Escapes a value for a double-quoted Starlark string.
 ///
 /// Needed because a value can legitimately contain quotes: autoconf compiles
@@ -369,6 +368,15 @@ fn escape_starlark(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
+/// Renders one list-valued attribute, one item per line.
+///
+/// An empty list emits nothing at all rather than `attr = []`. Every
+/// attribute the translator writes is optional in `rules_cc` and defaults
+/// to empty, so the two mean the same thing to Bazel — and the generated
+/// output is meant to be read and maintained by people, for whom a wall of
+/// empty attributes on every rule is noise. This is what lets
+/// `render_cc_rule` offer every attribute unconditionally and let the
+/// target's own data decide which appear.
 fn render_string_list(out: &mut String, attr: &str, items: &[String]) {
     if items.is_empty() {
         return;
@@ -476,13 +484,21 @@ fn render_cc_rule(
             .iter()
             .map(|h| format!(":{}", config_header_name(h))),
     );
+    // `includes` adds a search path; it does not make the staged files inputs
+    // to the compile. Targets with public headers get that for free via `hdrs`
+    // below, but a target with none — xz's liblzma — was handed `-I_include`
+    // pointing into a directory it had never been given, so `<config.h>` stayed
+    // unresolvable while the staged copy sat there unreferenced.
+    if staged_for(target, config_headers) && target.public_headers.is_empty() {
+        srcs.push(format!(":{STAGED_HEADERS_TARGET}"));
+    }
     render_string_list(out, "srcs", &srcs);
 
     // `hdrs` is a `cc_library`-only attribute; `cc_binary` has none, and
     // Bazel rejects it as an unknown attribute rather than ignoring it.
     if target.kind == TargetKind::Library {
         let mut hdrs = target.public_headers.clone();
-        if target.needs_root_include && !target.public_headers.is_empty() {
+        if staged_for(target, config_headers) && !target.public_headers.is_empty() {
             // The staged copies replace the originals: listing both would give
             // every header two labels for the same file.
             hdrs.clear();
@@ -491,14 +507,7 @@ fn render_cc_rule(
         render_path_list(out, "hdrs", &hdrs);
     }
     let mut includes = target.includes.clone();
-    // Matches what render_staged_headers actually stages, which is the
-    // target's public headers AND every generated config header. Requiring
-    // public headers alone left a target whose only staged file was a config
-    // header with no way to reach it: xz declares no public headers on
-    // liblzma, so `#include <config.h>` stayed unresolvable even though
-    // _include/config.h existed.
-    if target.needs_root_include && !(target.public_headers.is_empty() && config_headers.is_empty())
-    {
+    if staged_for(target, config_headers) {
         includes.push(STAGED_INCLUDE_DIR.to_string());
     }
     render_path_list(out, "includes", &includes);
@@ -539,6 +548,19 @@ fn render_cc_rule(
 /// it cannot collide with a directory the project authored (`include/` is
 /// common), and so it reads as generated rather than as project layout.
 const STAGED_INCLUDE_DIR: &str = "_include";
+
+/// Whether `target` reaches its headers through [`STAGED_INCLUDE_DIR`].
+///
+/// One predicate rather than a condition repeated at each use, because the
+/// three uses — making the genrule an input, replacing `hdrs`, and adding the
+/// `includes` entry — have to agree with what [`render_staged_headers`]
+/// actually stages: public headers AND every generated config header. They did
+/// not agree. Gating on public headers alone gave xz's liblzma, which declares
+/// none, an `-I_include` for a directory holding only a config header it could
+/// not reach.
+fn staged_for(target: &Target, config_headers: &[model::ConfigHeader]) -> bool {
+    target.needs_root_include && !(target.public_headers.is_empty() && config_headers.is_empty())
+}
 
 /// The single module-wide genrule staging public headers.
 ///
@@ -880,6 +902,53 @@ pub fn render_run_cmake_test_sh() -> String {
 mod tests {
     use super::*;
     use crate::model::ModuleInfo;
+
+    // Real values, not invented ones: autoconf compiles xz with
+    // -DPACKAGE_NAME="xz", and Windows-style paths reach the same attributes.
+    // Emitted raw, either one closes the Starlark string early and the whole
+    // module stops parsing — a failure that depends on the project's own
+    // values, so no fixture without such a value can catch it.
+    #[test]
+    fn escape_starlark_escapes_quotes_and_backslashes() {
+        assert_eq!(
+            escape_starlark(r#"PACKAGE_NAME="xz""#),
+            r#"PACKAGE_NAME=\"xz\""#,
+            "an unescaped quote closes the string the value sits in"
+        );
+        assert_eq!(
+            escape_starlark(r"C:\path"),
+            r"C:\\path",
+            "a backslash must be escaped before the quote pass, or the escape \
+             it produces is itself re-escaped"
+        );
+        assert_eq!(
+            escape_starlark("plain"),
+            "plain",
+            "a value needing no escaping must pass through unchanged"
+        );
+    }
+
+    // The values dict was the one string-emitting path that skipped escaping.
+    // The Autotools frontend fills it verbatim from make's variable database,
+    // where a quote is ordinary content.
+    #[test]
+    fn a_config_header_value_containing_a_quote_is_escaped() {
+        let mut out = String::new();
+        render_config_header(
+            &mut out,
+            &model::ConfigHeader {
+                output: "config.h".to_string(),
+                template: "config.h.in".to_string(),
+                template_source: None,
+                catalog_probes: vec![],
+                values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
+            },
+        );
+        assert!(
+            out.contains(r#""PACKAGE_NAME": "\"xz\"""#),
+            "the values dict must escape like every other emitted string; got:\n{out}"
+        );
+    }
 
     fn graph(version: Option<&str>) -> BuildGraph {
         BuildGraph {
