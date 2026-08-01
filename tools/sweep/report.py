@@ -246,8 +246,16 @@ def render(rows: list[dict]) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("history", type=pathlib.Path)
-    ap.add_argument("-o", "--out", type=pathlib.Path, default=pathlib.Path("report.html"))
+    ap.add_argument(
+        "-o",
+        "--out",
+        type=pathlib.Path,
+        default=pathlib.Path("docs/metrics/index.html"),
+        help="where to write the report. Defaults to the GitHub Pages "
+        "directory, which is the committed copy",
+    )
     args = ap.parse_args()
+    args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render(load(args.history)))
     print(f"wrote {args.out}")
     return 0
