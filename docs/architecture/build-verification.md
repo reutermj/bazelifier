@@ -331,6 +331,15 @@ Numbers are not shared across the two sets, so pick names that stay distinct.
   that pins recursive make: `app/` compiles `../common/util.c`, so every path
   in the command stream is relative to the subdirectory the command ran in
   rather than to the build root.
+- `autotools/003-sibling-outside-project-root` — enrolled, and the Autotools
+  mirror of `006-sibling-sources`: the project is `proj/` but compiles
+  `../shared/helper.c`, so the module root widens to the fixture directory and
+  ships both. Deliberately the same shape as its CMake counterpart, because
+  the two frontends have to agree — the Autotools frontend used to ignore
+  `deliverable_root` entirely and silently drop the sibling. Its capped
+  direction (a narrow `deliverable_root`, so the same source escalates
+  instead) is covered by unit tests rather than a second fixture, since only
+  the rule's attribute differs.
 
 ## Header visibility is not enforced by default
 

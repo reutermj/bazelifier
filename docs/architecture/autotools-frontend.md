@@ -210,6 +210,40 @@ The top-level definition is usually a list of automake internals
 skipped rather than taken as target names — the real names arrive from the
 subdirectory definitions merged in alongside them.
 
+## The module root is derived, not the project directory
+
+A Bazel label cannot reach above its own module, so a project that compiles a
+source from outside its own directory needs a module root wide enough to
+contain both. The root therefore **widens** from the project directory to the
+deepest directory containing everything the build references — and
+`deliverable_root` caps that widening.
+
+The three outcomes, which have to be read together:
+
+| the build references | module root | result |
+|---|---|---|
+| nothing outside the project | the project directory | unchanged |
+| a sibling **inside** the deliverable | widened to contain both | shipped, no escalation |
+| a file **outside** the deliverable | not widened | dropped and escalated |
+
+What decides the second row from the third is the **declared deliverable**,
+not where the file sits on disk. The same project converts either way
+depending on `--deliverable-root`, which is why "re-run with a wider root" is
+the escalation's own first suggested resolution.
+
+This is the same rule the CMake frontend applies in
+`rebase_to_module_root`, and it has to be: two equivalent projects, one CMake
+and one Autotools, must produce the same module. Before this the Autotools
+frontend accepted `deliverable_root` and ignored it, so its sibling source was
+silently dropped where CMake's was shipped (bzl-kga).
+
+One structural difference in how it is reached. The CMake frontend rebases
+*after* building the graph, so it can survey every path and then pick a root.
+The Autotools frontend rebases *inline*, because each path has to be resolved
+against the directory its own command ran in — so the survey is a separate
+pass over the declared sources, run before anything else, and the root is
+already decided by the time the graph is built.
+
 ## Known gaps
 
 - **Libtool wrapper scripts.** A program linking a `.la` gets a shell wrapper

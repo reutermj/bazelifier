@@ -41,7 +41,7 @@ use crate::needs_attention::{
     sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
 };
 use crate::model::{BuildGraph, ConfigHeader, Discovery, ModuleInfo, Target, TargetKind};
-use crate::paths::{absolutize, normalize_lexically};
+use crate::paths::{absolutize, common_ancestor, normalize_lexically};
 
 /// One resolved command from the build stream, split into a program and its
 /// arguments with shell noise already removed.
@@ -80,7 +80,7 @@ pub(crate) struct BuildCommand {
 pub fn discover(
     source_dir: &Path,
     build_dir: &Path,
-    _deliverable_root: &Path,
+    deliverable_root: &Path,
 ) -> Result<Discovery, Error> {
     configure(source_dir, build_dir)?;
     build(build_dir)?;
@@ -116,12 +116,24 @@ pub fn discover(
         .or_else(|| vars.get("PACKAGE_NAME"))
         .cloned()
         .unwrap_or_else(|| "project".to_string());
-    let (mut graph, graph_needs_attention) = to_graph(
+    let source_dir_abs = absolutize(source_dir)?;
+    let deliverable_root = absolutize(deliverable_root)?;
+    // Same precondition the CMake frontend enforces: a deliverable root that
+    // does not contain the project cannot cap anything, and every path would
+    // escape it.
+    if !source_dir_abs.starts_with(&deliverable_root) {
+        return Err(Error::SourceDirOutsideDeliverableRoot {
+            source_dir: source_dir_abs.to_string_lossy().into_owned(),
+            deliverable_root: deliverable_root.to_string_lossy().into_owned(),
+        });
+    }
+    let (mut graph, graph_needs_attention, module_root) = to_graph(
         &parse_commands(&stream, build_dir),
         &declared,
         &vars,
         &project_name,
-        &absolutize(source_dir)?,
+        &source_dir_abs,
+        &deliverable_root,
         &absolutize(build_dir)?,
     );
     graph.config_headers = config_headers;
@@ -133,7 +145,7 @@ pub fn discover(
     // quoted-include rule that no build system reports. Neither is
     // CMake-specific — `headers` takes a `[Target]` and a source root and
     // knows nothing about where the graph came from.
-    inject_headers_on_include_dirs(&mut graph.targets, &absolutize(source_dir)?);
+    inject_headers_on_include_dirs(&mut graph.targets, &module_root);
 
     Ok(Discovery {
         graph,
@@ -143,7 +155,7 @@ pub fn discover(
         // is honest now and wrong once it meets a project it cannot fully
         // convert. See bzl-yjn.5.
         needs_attention,
-        module_root: source_dir.to_path_buf(),
+        module_root,
     })
 }
 
@@ -661,14 +673,74 @@ fn tokenize(line: &str) -> Vec<String> {
 /// The two are joined on the artifact each target produces, which both name.
 /// This mirrors `cmake_api`, where the File API is primary and the configure
 /// trace is a deliberate, documented second source.
+///
+/// Returns the module root it chose alongside the graph, because that root is
+/// DERIVED: it widens from `source_dir` to cover anything the build references
+/// from inside `deliverable_root`, and callers have to rebase against the same
+/// answer. Same rule as `cmake_api::rebase_to_module_root` — see
+/// docs/architecture/build-verification.md on why a wider root is the
+/// resolution rather than a workaround.
 pub(crate) fn to_graph(
     commands: &[BuildCommand],
     declared: &[DeclaredTarget],
     vars: &HashMap<String, String>,
     project_name: &str,
-    module_root: &Path,
+    source_dir: &Path,
+    deliverable_root: &Path,
     build_root: &Path,
-) -> (BuildGraph, Vec<crate::needs_attention::NeedsAttention>) {
+) -> (BuildGraph, Vec<crate::needs_attention::NeedsAttention>, PathBuf) {
+    // artifact basename -> the link/archive command that produced it, so a
+    // declared target can find the step that built it. Needed before the
+    // module root can be chosen, because the root depends on where each
+    // target's sources resolve to and that is per-command.
+    let mut built: HashMap<String, &BuildCommand> = HashMap::new();
+    for cmd in commands {
+        if let Some(artifact) = produced_artifact(cmd) {
+            built.insert(basename(&artifact), cmd);
+        }
+    }
+
+    // The directory a target's `_SOURCES` are declared relative to: the
+    // Makefile.am that declared them, expressed in the SOURCE tree.
+    let declaring_dir = |name: &str| -> PathBuf {
+        built
+            .get(&basename(name))
+            .and_then(|cmd| cmd.dir.strip_prefix(build_root).ok())
+            .map(|rel| source_dir.join(rel))
+            .unwrap_or_else(|| source_dir.to_path_buf())
+    };
+
+    // The module root, widened to cover anything the build references from
+    // inside the deliverable. Same rule as `cmake_api::rebase_to_module_root`
+    // and the same reason: a Bazel label cannot reach above its own module, so
+    // a project compiling a sibling directory's sources needs a root that
+    // contains both. `deliverable_root` caps the widening — a file outside it
+    // cannot be reproduced from what the project ships, so the module is not
+    // grown to swallow it and it is escalated instead.
+    //
+    // Surveyed before anything is rebased, unlike the rest of this function,
+    // because the root is a fact about ALL the targets and rebasing needs it
+    // already decided.
+    let module_root = {
+        let mut shipped = Vec::new();
+        for decl in declared {
+            let dir = declaring_dir(&decl.name);
+            let canon = canonical_name(&decl.name);
+            let declared_sources = vars
+                .get(&format!("{canon}_SOURCES"))
+                .map(|v| v.split_whitespace().collect::<Vec<_>>())
+                .unwrap_or_default();
+            for src in declared_sources {
+                let absolute = normalize_lexically(&dir.join(src));
+                if absolute.starts_with(deliverable_root) {
+                    shipped.push(absolute);
+                }
+            }
+        }
+        common_ancestor(source_dir, &shipped)
+    };
+    let module_root = &module_root;
+
     // Resolve a path reported by a command against the directory that command
     // ran in, then express it relative to the module root. Returns None when
     // it escapes the module, which a Bazel label cannot express.
@@ -701,15 +773,6 @@ pub(crate) fn to_graph(
         if let Some(source) = compiled_source(&cmd.args) {
             source_of.insert(output.clone(), (source, cmd.dir.clone()));
             flags_of.insert(output, (includes_of(&cmd.args), defines_of(&cmd.args)));
-        }
-    }
-
-    // artifact basename -> the link/archive command that produced it, so a
-    // declared target can find the step that built it.
-    let mut built: HashMap<String, &BuildCommand> = HashMap::new();
-    for cmd in commands {
-        if let Some(artifact) = produced_artifact(cmd) {
-            built.insert(basename(&artifact), cmd);
         }
     }
 
@@ -757,11 +820,7 @@ pub(crate) fn to_graph(
         // tree; for an out-of-tree build the sources live under the SOURCE
         // tree, so the build-relative part of that directory is what carries
         // over.
-        let decl_dir = built
-            .get(&basename(&decl.name))
-            .and_then(|cmd| cmd.dir.strip_prefix(build_root).ok())
-            .map(|rel| module_root.join(rel))
-            .unwrap_or_else(|| module_root.to_path_buf());
+        let decl_dir = declaring_dir(&decl.name);
         let mut sources: Vec<String> = declared_sources
             .iter()
             .filter_map(|src| rebase(src, &decl_dir))
@@ -925,6 +984,7 @@ pub(crate) fn to_graph(
             config_headers: Vec::new(),
         },
         needs_attention,
+        module_root.clone(),
     )
 }
 
@@ -1123,6 +1183,7 @@ libshout_la_SOURCES = src/shout.c\n\
             "greeter",
             Path::new(ROOT),
             Path::new(ROOT),
+            Path::new(ROOT),
         ))
     }
 
@@ -1130,7 +1191,9 @@ libshout_la_SOURCES = src/shout.c\n\
     ///
     /// Only for tests asserting on graph shape. A test about what the frontend
     /// ESCALATES must read the second element instead of reaching for this.
-    fn graph_only(result: (BuildGraph, Vec<crate::needs_attention::NeedsAttention>)) -> BuildGraph {
+    fn graph_only(
+        result: (BuildGraph, Vec<crate::needs_attention::NeedsAttention>, PathBuf),
+    ) -> BuildGraph {
         result.0
     }
 
@@ -1162,6 +1225,7 @@ make[1]: Leaving directory '/src/app'\n\
             &declared,
             &vars,
             "sibling",
+            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         ));
@@ -1208,11 +1272,12 @@ make[1]: Leaving directory '/src/app'\n\
 ";
         let vars =
             parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../outside/evil.c\n");
-        let (graph, escalations) = to_graph(
+        let (graph, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
             &vars,
             "escaper",
+            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -1237,6 +1302,122 @@ make[1]: Leaving directory '/src/app'\n\
         );
     }
 
+    // Three cases for the module root, and they have to be read together:
+    // widening is only correct because the deliverable root caps it, and the
+    // cap is only observable because widening otherwise happens.
+    //
+    // The escaping case here is the SAME stream as
+    // `a_source_that_escapes_the_module_is_escalated_not_dropped`; what
+    // differs is a deliverable root wide enough to contain the file. That the
+    // two disagree is the whole point — the file's location on disk does not
+    // decide this, the declared deliverable does.
+    const ESCAPING_STREAM: &str = "\
+make[1]: Entering directory '/deliv/proj/app'\n\
+gcc -c -o main.o main.c\n\
+gcc -c -o helper.o ../../shared/helper.c\n\
+gcc -o tool main.o helper.o\n\
+make[1]: Leaving directory '/deliv/proj/app'\n\
+";
+
+    fn escaping_graph(
+        deliverable_root: &str,
+    ) -> (
+        BuildGraph,
+        Vec<crate::needs_attention::NeedsAttention>,
+        PathBuf,
+    ) {
+        let vars =
+            parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../shared/helper.c\n");
+        to_graph(
+            &parse_commands(ESCAPING_STREAM, Path::new("/deliv/proj")),
+            &declared_targets(&vars),
+            &vars,
+            "widening",
+            Path::new("/deliv/proj"),
+            Path::new(deliverable_root),
+            Path::new("/deliv/proj"),
+        )
+    }
+
+    #[test]
+    fn the_module_root_widens_to_cover_a_shipped_sibling_source() {
+        let (graph, escalations, module_root) = escaping_graph("/deliv");
+
+        assert_eq!(
+            module_root,
+            PathBuf::from("/deliv"),
+            "a Bazel label cannot reach above its own module, so a root at \
+             /deliv/proj could never name ../../shared/helper.c"
+        );
+        assert_eq!(
+            graph.targets[0].sources,
+            vec!["proj/app/main.c".to_string(), "shared/helper.c".to_string()],
+            "every path is rewritten against the WIDENED root, including the \
+             ones that already fitted the narrow one"
+        );
+        assert!(
+            escalations.is_empty(),
+            "a file that ships with the project is not a gap — nothing is \
+             missing once the module covers it: {:#?}",
+            escalations.iter().map(|e| &e.title).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn the_module_root_does_not_widen_past_the_deliverable_root() {
+        let (graph, escalations, module_root) = escaping_graph("/deliv/proj");
+
+        assert_eq!(
+            module_root,
+            PathBuf::from("/deliv/proj"),
+            "the cap's whole job: a file outside the deliverable must not drag \
+             the module root out to meet it"
+        );
+        assert_eq!(
+            graph.targets[0].sources,
+            vec!["app/main.c".to_string()],
+            "the escaping source is left out rather than reached for"
+        );
+        assert_eq!(
+            escalations.len(),
+            1,
+            "and it is escalated, because a file outside the deliverable \
+             cannot be reproduced from what the project ships: {escalations:#?}"
+        );
+    }
+
+    #[test]
+    fn the_module_root_stays_at_the_project_when_nothing_reaches_outside() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/deliv/proj'\n\
+gcc -c -o main.o src/main.c\n\
+gcc -o tool main.o\n\
+make[1]: Leaving directory '/deliv/proj'\n\
+";
+        let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = src/main.c\n");
+        let (graph, _, module_root) = to_graph(
+            &parse_commands(STREAM, Path::new("/deliv/proj")),
+            &declared_targets(&vars),
+            &vars,
+            "narrow",
+            Path::new("/deliv/proj"),
+            // Deliberately WIDE: widening is driven by what the build
+            // references, not by how much room it was given. A root that
+            // widens to the cap regardless would ship the sibling directory
+            // into every module that merely could have used it.
+            Path::new("/deliv"),
+            Path::new("/deliv/proj"),
+        );
+
+        assert_eq!(
+            module_root,
+            PathBuf::from("/deliv/proj"),
+            "nothing reaches outside the project, so the root stays there even \
+             though the deliverable root would have allowed /deliv"
+        );
+        assert_eq!(graph.targets[0].sources, vec!["src/main.c".to_string()]);
+    }
+
     #[test]
     fn a_sibling_source_inside_the_module_is_not_escalated() {
         const STREAM: &str = "\
@@ -1247,11 +1428,12 @@ gcc -o tool main.o util.o\n\
 make[1]: Leaving directory '/src/app'\n\
 ";
         let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n");
-        let (_, escalations) = to_graph(
+        let (_, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
             &vars,
             "sibling",
+            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -1387,6 +1569,7 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
             &declared,
             &vars,
             "hello",
+            Path::new(ROOT),
             Path::new(ROOT),
             Path::new(ROOT),
         ));

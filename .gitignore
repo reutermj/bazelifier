@@ -15,3 +15,7 @@
 *.db
 .beads-credential-key
 .beads/proxieddb/
+
+# autoconf regenerates this from configure.ac; committing it makes a
+# sandboxed build try to re-run aclocal against a read-only tree.
+autom4te.cache/

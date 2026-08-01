@@ -1,0 +1,26 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Exercises a module root wider than the autotools project directory: the
+# project is `proj/`, but it compiles a source from the sibling `shared/`, so
+# `deliverable_root` is the whole fixture directory and the module roots there
+# rather than at `proj/`. Nothing is escalated — the files ship with the
+# project.
+#
+# The Autotools mirror of CMake fixture 006-sibling-sources, and deliberately
+# the same shape, because the two frontends must agree: before this, an
+# Autotools conversion ignored deliverable_root entirely and silently dropped
+# the sibling source while its CMake equivalent shipped it (bzl-kga).
+#
+# The fixture is still one self-contained directory, keeping the
+# one-directory-per-fixture convention while still placing a source outside
+# the project's own root.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob([
+        "proj/**",
+        "shared/**",
+    ]),
+    deliverable_root = package_name(),
+    source_dir = package_name() + "/proj",
+    visibility = ["//translator/tests:__pkg__"],
+)
