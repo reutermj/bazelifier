@@ -783,9 +783,12 @@ mod tests {
     // docs/lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md.
     #[test]
     fn a_libtool_wrapper_resolves_to_the_real_binary_beside_it() {
-        let dir = std::env::temp_dir().join(format!("bzlf_ltw_{}_{}", std::process::id(), line!()));
-        // Cleared first: pid+line repeats across runs inside the test
-        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        let dir = std::env::temp_dir().join(format!("a_libtool_wrapper_resolves_to_the_real_binary_beside_it_{}", std::process::id()));
+        // Named for the test and cleared first. `line!()` was tried and is
+        // not an identity: any edit above shifts it, so a run can inherit a
+        // DIFFERENT test's leftover tree — and create_dir_all reuses it
+        // happily, which surfaced as this test failing on a file it had just
+        // written.
         fs::remove_dir_all(&dir).ok();
         let bin_dir = dir.join("src/xz");
         fs::create_dir_all(bin_dir.join(".libs")).unwrap();
@@ -811,9 +814,12 @@ mod tests {
     // target, including ones whose output path already holds the real binary.
     #[test]
     fn a_real_binary_is_captured_even_when_a_libs_dir_exists() {
-        let dir = std::env::temp_dir().join(format!("bzlf_ltr_{}_{}", std::process::id(), line!()));
-        // Cleared first: pid+line repeats across runs inside the test
-        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        let dir = std::env::temp_dir().join(format!("a_real_binary_is_captured_even_when_a_libs_dir_exists_{}", std::process::id()));
+        // Named for the test and cleared first. `line!()` was tried and is
+        // not an identity: any edit above shifts it, so a run can inherit a
+        // DIFFERENT test's leftover tree — and create_dir_all reuses it
+        // happily, which surfaced as this test failing on a file it had just
+        // written.
         fs::remove_dir_all(&dir).ok();
         let bin_dir = dir.join("src/tool");
         fs::create_dir_all(bin_dir.join(".libs")).unwrap();
@@ -833,9 +839,12 @@ mod tests {
     // static-only library and the layout is libtool's to change.
     #[test]
     fn a_la_file_names_its_shared_library_and_stages_it_at_the_root() {
-        let dir = std::env::temp_dir().join(format!("bzlf_lla_{}_{}", std::process::id(), line!()));
-        // Cleared first: pid+line repeats across runs inside the test
-        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        let dir = std::env::temp_dir().join(format!("a_la_file_names_its_shared_library_and_stages_it_at_the_root_{}", std::process::id()));
+        // Named for the test and cleared first. `line!()` was tried and is
+        // not an identity: any edit above shifts it, so a run can inherit a
+        // DIFFERENT test's leftover tree — and create_dir_all reuses it
+        // happily, which surfaced as this test failing on a file it had just
+        // written.
         fs::remove_dir_all(&dir).ok();
         let lib_dir = dir.join("src/liblzma");
         fs::create_dir_all(&lib_dir).unwrap();
@@ -861,9 +870,12 @@ mod tests {
 
     #[test]
     fn a_static_only_la_names_no_shared_library() {
-        let dir = std::env::temp_dir().join(format!("bzlf_lst_{}_{}", std::process::id(), line!()));
-        // Cleared first: pid+line repeats across runs inside the test
-        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        let dir = std::env::temp_dir().join(format!("a_static_only_la_names_no_shared_library_{}", std::process::id()));
+        // Named for the test and cleared first. `line!()` was tried and is
+        // not an identity: any edit above shifts it, so a run can inherit a
+        // DIFFERENT test's leftover tree — and create_dir_all reuses it
+        // happily, which surfaced as this test failing on a file it had just
+        // written.
         fs::remove_dir_all(&dir).ok();
         fs::create_dir_all(&dir).unwrap();
         fs::write(dir.join("libfoo.la"), b"dlname=\'\'\nold_library=\'libfoo.a\'\n").unwrap();

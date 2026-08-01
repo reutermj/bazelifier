@@ -62,7 +62,8 @@ Those quotes are why generated Starlark strings have to be escaped.)
 It is also stable between runs in the ordering that matters — the command
 sequence — where the CMake File API reports dependency order unstably
 (bzl-sjp). It is not byte-identical: `-B` forces a `config.status --recheck`
-preamble whose content varies, which is why the frontend recognises only the
+preamble whose content varies — 15,402 lines on xz, of which 26 are actual
+compile or link commands — which is why the frontend recognises only the
 handful of programs that build something and ignores every other line.
 
 ## Second source: `make -p`, for identity
@@ -176,8 +177,17 @@ on a real project:
 `-B` asks what a full rebuild *would* run, which is the question this frontend
 actually needs, and a built tree is the only state in which every subdirectory
 can answer it. The build has to happen anyway — ground-truth artifacts come
-from it (see [build-verification.md](build-verification.md)) — so the ordering
-costs nothing beyond the forced re-listing.
+from it (see [build-verification.md](build-verification.md)).
+
+The re-listing is **not** free, though, and that is the current cost of this
+design: `-B` marks the maintainer rules out of date too, so xz spends 258 of
+its 264 conversion seconds re-running `config.status` 1,404 times to
+regenerate files the frontend never reads. Deleting only the object files and
+dropping `-B` produces a byte-identical set of build commands in 0s; `make
+clean` does not work, because it also removes the cross-directory `.la` the
+recursive case depends on. Not yet adopted — see bzl-ccv.6 and
+[../lore/make-n-answers-differently-before-and-after-a-build.md](../lore/make-n-answers-differently-before-and-after-a-build.md)
+for the four states and what has to be verified per project first.
 
 ## Recursive make changes two things, both silently
 

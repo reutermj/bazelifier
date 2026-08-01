@@ -228,6 +228,12 @@ pub(crate) fn dry_run(build_dir: &Path) -> Result<String, Error> {
         .arg("-n")
         // Force-rebuild: without it a built tree reports nothing to do. See
         // `discover` on why the tree must be built first anyway.
+        //
+        // Also 98% of the conversion's runtime, because it re-runs the
+        // MAINTAINER rules too — 1,404 `config.status` invocations on xz for
+        // files this frontend never reads. Deleting just the object files
+        // (not `make clean`, which takes the cross-directory `.la` with it)
+        // gets a byte-identical command set without `-B`. See bzl-ccv.6.
         .arg("-B")
         .current_dir(build_dir)
         .output()?;

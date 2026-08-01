@@ -59,17 +59,66 @@ exist.
 The build is not overhead added for this: ground-truth artifacts for the
 equivalence check come from it either way.
 
-## The cost, and the one wrinkle
+## The cost, which is most of the conversion
 
-`-B` forces the maintainer rules to re-run too, so the stream is prefixed by
-~90 lines of `config.status --recheck` output before any compile appears. That
-is why `parse_commands` recognises only the handful of programs that build
-something and ignores every other line — the preamble is noise that must not be
-mistaken for build commands.
+`-B` forces the **maintainer** rules out of date along with the build rules,
+and that is where nearly all the time goes. Measured on xz 5.4.7:
+
+| | |
+|---|---|
+| total conversion | 264s |
+| `make -n -B` | **258s** |
+| `config.status` invocations | **1,404** |
+| lines emitted | 15,402, of which 735 unique |
+| lines that are actual compile/link commands | **26** |
+
+Each of 135 recursive `make` calls re-runs `config.status --recheck` to
+regenerate `configure` and every `Makefile`, none of which the frontend reads.
+That preamble is also why `parse_commands` recognises only the handful of
+programs that build something and ignores every other line.
 
 It also means the stream is **not byte-identical between runs**, only stable in
 the command ordering that matters. A claim that it is byte-identical was
 written down before `-B` was needed and is wrong.
+
+## A fourth state, which is the cheap one
+
+`-B` is not the only way to make a built tree answer. Deleting just the
+**object files** — leaving the libraries in place — makes exactly the build
+rules out of date and nothing else:
+
+```sh
+make                                          # build (ground truth too)
+find . \( -name '*.o' -o -name '*.lo' \) -delete
+make -n                                       # no -B needed
+```
+
+On xz that is **0s instead of 258s**, and it is equivalent rather than merely
+faster: all 26 compile/link commands are byte-identical to the `-B` stream,
+the object sets match (106 vs 106 — `-B`'s extra `-o file.o` is a `configure`
+probe artifact, not a build output), `make -p -n`'s database is unaffected,
+and `config.status` runs 0 times instead of 1,404.
+
+It works because the cross-directory artifacts survive. `make clean` does
+**not** work, for exactly the reason the fresh tree does not: it removes
+`src/liblzma/liblzma.la`, and `src/xzdec` stops with `No rule to make target`.
+
+So there are four states, not two:
+
+| tree | `-B`? | objects reported | |
+|---|---|---|---|
+| built | no | 0 | nothing to do |
+| fresh | no | 83 of 106 | rc=2, cross-dir dep missing |
+| built | yes | 106 | correct, 258s |
+| built minus `*.o` | no | 106 | correct, **0s** |
+
+**Not yet adopted** — the frontend still passes `-B` (bzl-ccv.6). Verified
+only on xz, and a project that emits artifacts which are neither `.o`/`.lo`
+nor the final target (generated sources, a code generator built and run
+mid-build) could still report "nothing to do" for those steps. The check
+before adopting it is the object-set and command comparison above, per
+project — never wall time, which is how `-j16` briefly looked like a 13x win
+while actually exiting 2 having emitted no build commands at all.
 
 ## How to notice it quickly
 
