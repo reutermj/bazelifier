@@ -1,13 +1,8 @@
 load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
 
-# CURRENTLY FAILS, deliberately wired up rather than commented out — this
-# target going green is bzl-yjn.7's acceptance test.
-#
-# The conversion reaches codegen and stops at its module-relative assertion on
-# `../common/util.c`, exactly as xz does on `../common/tuklib_physmem.c`. That
-# is the point: this fixture reproduces the corpus failure in ~20 seconds
-# rather than a full corpus build, so the fix can be developed at the tier
-# that can afford to run it.
+# Drives recursive-make path resolution (bzl-yjn.7): `tool` is built from
+# app/main.c AND ../common/util.c across a subdirectory boundary, so every path
+# in the command stream is relative to app/ rather than to the build root.
 #
 # See the fixture's configure.ac for why the sibling compile is the case under
 # test and must not be "simplified" away.
