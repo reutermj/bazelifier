@@ -140,6 +140,13 @@ assert_config_header_test(
         # and the unset form drops whatever preceded it rather than nesting
         # comment openers. Both verified against CMake 3.28's own output.
         "/* #define HAVE_STDLIB_H cc_config_test*/",
+        # autoconf's `#undef FOO` resolves the same way `#cmakedefine FOO`
+        # does, so the same probe result produces the same header whichever
+        # build system the project used.
+        "#define HAVE_STDLIB_H 1",
+        # A mid-line #undef is ordinary C undefining a macro, not a directive
+        # to rewrite; rewriting it would corrupt the header.
+        "int not_a_directive; /* #undef LEAVE_ME_ALONE */",
     ],
     must_not_contain = [
         "#define HAVE_NO_SUCH_SYMBOL",

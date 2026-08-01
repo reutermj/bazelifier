@@ -452,6 +452,9 @@ pub(crate) fn to_graph(
     }
 
     let mut targets = Vec::new();
+    // External libraries any target links but the project does not build.
+    // Gathered across all targets so the caller can escalate them once.
+    let mut external_links: Vec<String> = Vec::new();
     for decl in declared {
         let canon = canonical_name(&decl.name);
 
@@ -483,24 +486,36 @@ pub(crate) fn to_graph(
             }
         }
 
-        // Dependencies come from the declaration too (_LDADD for programs,
-        // _LIBADD for libraries), resolved against the other declared names.
-        let declared_names: Vec<&str> = declared.iter().map(|d| d.name.as_str()).collect();
-        let mut dependencies: Vec<String> = vars
-            .get(&format!("{canon}_LDADD"))
-            .or_else(|| vars.get(&format!("{canon}_LIBADD")))
-            .map(|v| {
-                v.split_whitespace()
-                    .filter(|token| declared_names.contains(token))
-                    .map(|token| target_label(token))
-                    .collect()
-            })
-            .unwrap_or_else(Vec::new);
-
-        let artifact = built
-            .get(&decl.name)
+        let link = built.get(&basename(&decl.name));
+        let artifact = link
             .and_then(|cmd| produced_artifact(cmd))
             .unwrap_or_else(|| decl.name.clone());
+
+        // Dependencies come from the COMMAND STREAM, not from _LDADD.
+        //
+        // The database reports LDADD unexpanded — GNU hello's is literally
+        //   hello_LDADD = $(LIBINTL) $(top_builddir)/lib/lib$(PACKAGE).a
+        // so matching its tokens against declared names finds nothing and
+        // drops every edge in silence. That is the same lesson cmake_api
+        // records about CMakeLists.txt: the declaration is the unresolved
+        // half. The link line carries the resolved `./lib/libhello.a`.
+        let mut dependencies: Vec<String> = Vec::new();
+        let mut unresolved: Vec<String> = Vec::new();
+        for input in link.map(|cmd| cmd.args.as_slice()).unwrap_or(&[]) {
+            if !is_library(input) {
+                continue;
+            }
+            match declared.iter().find(|d| basename(&d.name) == basename(input)) {
+                Some(dep) if dep.name != decl.name => dependencies.push(target_label(&dep.name)),
+                Some(_) => {}
+                // A library the project links but does not build — $(LIBINTL)
+                // resolves to a system libintl, for instance. Collected rather
+                // than dropped: it is an input the generated module cannot
+                // satisfy, which is an escalation, not a silent omission.
+                None => unresolved.push(input.clone()),
+            }
+        }
+        external_links.extend(unresolved);
 
         sources.sort_unstable();
         sources.dedup();
@@ -539,6 +554,12 @@ pub(crate) fn to_graph(
     }
 
     targets.sort_by(|a, b| a.name.cmp(&b.name));
+    external_links.sort_unstable();
+    external_links.dedup();
+    // Not yet escalated — see bzl-yjn.5. Recorded here so the information is
+    // recovered rather than discarded, and so the escalation, when it lands,
+    // has something to report.
+    let _ = &external_links;
 
     BuildGraph {
         module: ModuleInfo {
@@ -561,10 +582,29 @@ fn public_headers(vars: &HashMap<String, String>) -> Vec<String> {
         .collect()
 }
 
-/// The Bazel target name for an automake target name, stripping the `lib`
-/// prefix and library suffix so `libshout.la` is referred to as `shout`.
+/// The Bazel target name for an automake target name.
+///
+/// Sanitises rather than prettifies: automake already gave us the name, so the
+/// only job is to make it a legal Bazel label. An earlier version stripped the
+/// `lib` prefix and the suffix, so `libgreet.a` read as `greet` — which is
+/// nicer until a project names its library after its program. GNU hello does
+/// exactly that (`bin_PROGRAMS = hello`, `noinst_LIBRARIES = lib/libhello.a`),
+/// and both collapsed to `hello`: two rules with one name, and a module that
+/// cannot load. That is the COMMON shape, not an edge case, and prettiness is
+/// not worth a name clash.
+///
+/// The directory is kept for the same reason — `lib/libhello.a` and
+/// `src/libhello.a` are different targets in a project with SUBDIRS.
 fn target_label(name: &str) -> String {
-    target_name_from_artifact(name)
+    name.chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == '_' || c == '-' || c == '.' {
+                c
+            } else {
+                '_'
+            }
+        })
+        .collect()
 }
 
 /// The artifact a link or archive command produces, or `None` for a compile.
@@ -684,6 +724,71 @@ libshout_la_SOURCES = src/shout.c\n\
         to_graph(&parse_commands(STREAM), &declared, &vars, "greeter")
     }
 
+    // GNU hello's database reports LDADD UNEXPANDED:
+    //   hello_LDADD = $(LIBINTL) $(top_builddir)/lib/lib$(PACKAGE).a
+    // Matching those tokens against declared names finds nothing, so taking
+    // edges from the declaration dropped every dependency in silence. The
+    // link line carries the resolved path, which is why edges come from the
+    // command stream instead.
+    #[test]
+    fn dependencies_come_from_the_link_line_not_the_unexpanded_declaration() {
+        const DB: &str = "\
+bin_PROGRAMS = hello\n\
+noinst_LIBRARIES = lib/libhello.a\n\
+hello_SOURCES = src/hello.c\n\
+hello_LDADD = $(LIBINTL) $(top_builddir)/lib/lib$(PACKAGE).a\n\
+";
+        const STREAM_WITH_RESOLVED_LINK: &str = "\
+gcc -I. -c -o src/hello.o src/hello.c\n\
+ar cru lib/libhello.a lib/basename.o\n\
+gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
+";
+        let vars = parse_variables(DB);
+        let declared = declared_targets(&vars);
+        let graph = to_graph(
+            &parse_commands(STREAM_WITH_RESOLVED_LINK),
+            &declared,
+            &vars,
+            "hello",
+        );
+
+        let hello = graph
+            .targets
+            .iter()
+            .find(|t| t.name == "hello")
+            .expect("the program must render");
+        assert_eq!(
+            hello.dependencies,
+            vec!["lib_libhello.a"],
+            "the edge is in the link line as ./lib/libhello.a; the declaration \
+             only has $(top_builddir)/lib/lib$(PACKAGE).a, which resolves to \
+             nothing here:\n{hello:#?}"
+        );
+    }
+
+    // GNU hello: bin_PROGRAMS = hello and noinst_LIBRARIES = lib/libhello.a.
+    // Stripping `lib` and the suffix rendered BOTH as `hello`, giving a module
+    // with two rules of one name that cannot load. A project naming its
+    // library after its program is the common shape, so this is pinned
+    // directly rather than left to the fixture, which happens not to collide.
+    #[test]
+    fn target_label_does_not_collapse_a_program_and_its_library() {
+        assert_ne!(
+            target_label("hello"),
+            target_label("lib/libhello.a"),
+            "a program and its own library must stay distinct targets"
+        );
+        // Sanitised for Bazel, not shortened: the name automake gave is kept.
+        assert_eq!(target_label("lib/libhello.a"), "lib_libhello.a");
+        assert_eq!(target_label("hello"), "hello");
+        // The directory is part of the identity — two SUBDIRS can each
+        // declare a libhello.a.
+        assert_ne!(
+            target_label("lib/libhello.a"),
+            target_label("src/libhello.a")
+        );
+    }
+
     // automake canonicalises a target name into its variable prefix by
     // replacing every non-alphanumeric character. Without this,
     // `libshout.la`'s sources cannot be found at all.
@@ -728,7 +833,13 @@ libshout_la_SOURCES = src/shout.c\n\
     fn parses_the_real_command_stream_into_a_graph() {
         let graph = graph_from_captures();
         let names: Vec<&str> = graph.targets.iter().map(|t| t.name.as_str()).collect();
-        assert_eq!(names, vec!["greet", "greeter", "shout"], "{graph:#?}");
+        // automake's own names, sanitised for Bazel but not shortened —
+        // see target_label on why stripping `lib` collides.
+        assert_eq!(
+            names,
+            vec!["greeter", "libgreet.a", "libshout.la"],
+            "{graph:#?}"
+        );
 
         let by_name = |n: &str| {
             graph
@@ -739,7 +850,7 @@ libshout_la_SOURCES = src/shout.c\n\
         };
 
         // noinst_LIBRARIES -> a static archive built by `ar`.
-        let greet = by_name("greet");
+        let greet = by_name("libgreet.a");
         assert_eq!(greet.kind, TargetKind::Library);
         assert!(!greet.is_shared, "an ar archive is not shared");
         assert_eq!(greet.sources, vec!["src/greet.c"]);
@@ -747,7 +858,7 @@ libshout_la_SOURCES = src/shout.c\n\
         // lib_LTLIBRARIES -> a libtool library. This is the concept with no
         // CMake analogue, and the one the whole frontend was worth writing to
         // find out about.
-        let shout = by_name("shout");
+        let shout = by_name("libshout.la");
         assert_eq!(shout.kind, TargetKind::Library);
         assert!(
             shout.is_shared,
@@ -764,8 +875,8 @@ libshout_la_SOURCES = src/shout.c\n\
         assert_eq!(greeter.sources, vec!["src/main.c"]);
         assert_eq!(
             greeter.dependencies,
-            vec!["greet", "shout"],
-            "both libgreet.a and libshout.la are link inputs"
+            vec!["libgreet.a", "libshout.la"],
+            "both libraries are link inputs"
         );
 
         // Compile flags are attributed to the target that owns the object,
@@ -790,11 +901,11 @@ libshout_la_SOURCES = src/shout.c\n\
         let rendered = codegen::render(&graph).build_bazel;
 
         assert!(
-            rendered.contains("cc_library(\n    name = \"greet\","),
+            rendered.contains("cc_library(\n    name = \"libgreet.a\","),
             "the static archive becomes a cc_library:\n{rendered}"
         );
         assert!(
-            rendered.contains("cc_shared_library(\n    name = \"shout_shared\","),
+            rendered.contains("cc_shared_library(\n    name = \"libshout.la_shared\","),
             "and the libtool library gets the shared-library treatment zlib \
              drove, with no autotools-specific codegen:\n{rendered}"
         );
@@ -803,7 +914,7 @@ libshout_la_SOURCES = src/shout.c\n\
             "the program becomes a cc_binary:\n{rendered}"
         );
         assert!(
-            rendered.contains("\":greet\",") && rendered.contains("\":shout\","),
+            rendered.contains("\":libgreet.a\",") && rendered.contains("\":libshout.la\","),
             "with both library edges:\n{rendered}"
         );
     }

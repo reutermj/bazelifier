@@ -10,3 +10,10 @@
    must expand, and the unset one drops the prefix the way CMake does. */
 /* #cmakedefine HAVE_STDLIB_H @PACKAGE_NAME@*/
 /* #cmakedefine HAVE_NO_SUCH_SYMBOL @PACKAGE_NAME@ */
+
+/* autoconf's dialect: a bare #undef is the same statement CMake spells
+   with its own directive, written as the false case. A project converted from autotools
+   ships templates in this form (GNU hello's config.in has 227). */
+#undef HAVE_STDLIB_H
+#undef HAVE_NO_SUCH_SYMBOL
+int not_a_directive; /* #undef LEAVE_ME_ALONE */

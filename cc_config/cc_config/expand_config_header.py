@@ -34,6 +34,19 @@ import sys
 #
 # Verified against CMake 3.28: a prefix of `/* `, of two spaces, and of `xx`
 # all expand, so the rule is "wherever it appears", not "in comments".
+# autoconf's dialect. Where CMake writes `#cmakedefine FOO`, autoconf's
+# config.h.in writes a bare `#undef FOO` — the SAME statement ("define this if
+# the probe succeeded"), spelled as the false case. autoconf's own config.status
+# rewrites the line to `#define FOO 1` when set and leaves it as a comment when
+# not, which is exactly what this expander already does for #cmakedefine.
+#
+# Anchored at line start, unlike _CMAKEDEFINE: a `#undef` in the middle of a
+# line is ordinary C preprocessor code undefining a macro, and rewriting that
+# would corrupt a header rather than configure it. autoconf only ever emits its
+# own directives at column 0. Verified against GNU hello's config.in, which has
+# 227 of them.
+_AC_UNDEF = re.compile(r"^#\s*undef\s+(\S+)\s*$")
+
 _CMAKEDEFINE01 = re.compile(r"^(.*?)#cmakedefine01\s+(\S+)\s*$")
 _CMAKEDEFINE = re.compile(r"^(.*?)#cmakedefine\s+(\S+)(.*)$")
 _VAR = re.compile(r"@([A-Za-z0-9_]+)@|\$\{([A-Za-z0-9_]+)\}")
@@ -77,6 +90,19 @@ def expand(template, is_set, values):
         if m01:
             prefix, name = m01.group(1), m01.group(2)
             out.append("%s#define %s %d%s" % (prefix, name, 1 if is_set(name) else 0, eol))
+            continue
+
+        mundef = _AC_UNDEF.match(body)
+        if mundef:
+            name = mundef.group(1)
+            # Same resolution as #cmakedefine, deliberately: both ask whether a
+            # probe succeeded, so a project's autoconf template and its CMake
+            # equivalent produce identical output from identical probe results.
+            if is_set(name):
+                value = values.get(name, "1")
+                out.append("#define %s %s%s" % (name, value, eol))
+            else:
+                out.append("/* #undef %s */%s" % (name, eol))
             continue
 
         mdef = _CMAKEDEFINE.match(body)
