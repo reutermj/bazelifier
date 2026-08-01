@@ -27,4 +27,11 @@ rather than discovering: it is design prose, not secrets. `.nojekyll` stops
 Pages running the markdown through Jekyll, which would otherwise try to
 process the `{{` and `{%` sequences that appear in code samples.
 
-The report lands at `<user>.github.io/bazelifier/metrics/`.
+The report is live at <https://markreuter.dev/bazelifier/metrics/>.
+
+Not a `github.io` URL, and that is not this repo's doing: the user site
+`reutermj.github.io` has `markreuter.dev` as its custom domain, and GitHub
+applies an account-level domain to every project site automatically. This
+repo's own `cname` is null. `reutermj.github.io/bazelifier/metrics/` returns a
+301 to the address above rather than serving anything, and there is no
+per-repo way to decline the account default.
