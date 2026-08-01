@@ -16,11 +16,11 @@ use std::process::Command;
 
 use serde::Deserialize;
 
-use crate::configure_file::{build_config_headers, is_config_header_output, parse_configure_files};
+use crate::configure_file::{build_config_headers, parse_configure_files};
 use crate::ctest;
 use crate::error::Error;
 use crate::headers::{
-    inject_headers_on_include_dirs, inject_opened_files, inject_unenumerated_installed_headers, is_include_destination,
+    inject_headers_on_include_dirs, is_buildable_source, is_config_header_output, inject_opened_files, inject_unenumerated_installed_headers, is_include_destination,
     looks_like_header,
 };
 use crate::model::{BuildGraph, ModuleInfo, Target, TargetKind};
@@ -820,34 +820,6 @@ fn find_reply_file(reply_dir: &Path, prefix: &str) -> Result<PathBuf, Error> {
     )))
 }
 
-/// Whether a path is something a C/C++ rule can take in `srcs`/`hdrs` — a
-/// compilable translation unit or a header.
-///
-/// Deliberately an allowlist, not a denylist of "docs and metadata": a new
-/// extension the translator has not seen should be dropped and noticed, not
-/// passed through to fail deep in `rules_cc` analysis with an error naming
-/// the generated file rather than the CMake input. Assembly and ObjC are
-/// included though the current corpus has none — they are genuinely
-/// buildable, and leaving them out would silently drop real inputs.
-fn is_buildable_source(path: &str) -> bool {
-    // Lowercased: extensions are case-insensitive in practice (a .S assembly
-    // file is the same input as .s, and Windows-origin projects ship .CPP).
-    let ext = Path::new(path)
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(str::to_ascii_lowercase);
-    matches!(
-        ext.as_deref(),
-        Some(
-            // Compiled translation units.
-            "c" | "cc" | "cpp" | "cxx" | "c++" | "m" | "mm" | "s" | "asm"
-            // Headers: not compiled, but rules_cc accepts them and they must
-            // ship so the sandbox has them.
-            | "h" | "hpp" | "hh" | "hxx" | "inc" | "ipp" | "tcc" | "def"
-        )
-    )
-}
-
 /// The set of header paths the project installs to an include destination,
 /// gathered across every directory reply — the project's own authoritative
 /// declaration of which headers are public, via `install(FILES ... TYPE
@@ -948,11 +920,23 @@ fn to_target(
     // An id missing from the map belongs to a target that was never
     // translated, so the edge is dropped here rather than emitted as a
     // dangling label — see `translated_names` in `read_codemodel_reply`.
-    let dependencies: Vec<String> = reply
+    let mut dependencies: Vec<String> = reply
         .dependencies
         .iter()
         .filter_map(|d| translated_names.get(d.id.as_str()).map(|n| n.to_string()))
         .collect();
+    // Sorted because CMake's own reply order is NOT stable: converting fmt
+    // three times reported `args-test`'s dependencies as
+    // [gtest, test-main, fmt] once and [fmt, gtest, test-main] the next, so
+    // the generated BUILD.bazel differed between runs of the same conversion.
+    // That is spurious churn in a module someone checks in, and it defeats
+    // byte-identical output as a way to prove a refactor changed nothing.
+    //
+    // Safe: Bazel's `deps` is a set, so order carries no meaning. Every other
+    // list the translator emits is already sorted for this reason (see
+    // `headers::inject_headers_on_include_dirs` and `ninja_deps::parse_deps`);
+    // this one was missed.
+    dependencies.sort_unstable();
 
     let (includes, _inherited) = own_include_dirs(reply);
     let local_defines = target_defines(reply);
@@ -1480,34 +1464,46 @@ mod tests {
         }
     }
 
-    // bzl-2wi.2: fmt lists README.md and ChangeLog.md on its library. CMake
-    // accepts non-buildable files in a source list and ignores them; rules_cc
-    // fails analysis with "source file '...' is misplaced here".
+    // bzl-sjp: CMake's File API does not report dependencies in a stable
+    // order — converting fmt three times gave three different BUILD.bazel
+    // files, differing only in `deps` order. That is churn in a module
+    // someone checks in, and it defeats byte-identical output as a way to
+    // prove a refactor changed nothing.
     #[test]
-    fn is_buildable_source_accepts_only_what_a_cc_rule_can_take() {
-        for src in [
-            "src/format.cc",
-            "a.c",
-            "a.cpp",
-            "a.cxx",
-            "a.m",
-            "a.mm",
-            "a.s",
-            "a.S",
-            "a.asm",
-        ] {
-            assert!(is_buildable_source(src), "{src} is a translation unit");
-        }
-        for hdr in ["a.h", "a.hpp", "a.hxx", "a.inc", "a.tcc", "a.def"] {
-            assert!(is_buildable_source(hdr), "{hdr} is a header rules_cc takes");
-        }
-        for other in ["README.md", "ChangeLog.md", "LICENSE", "a.natvis", "a.txt"] {
-            assert!(
-                !is_buildable_source(other),
-                "{other} is not buildable — CMake ignores it too, so dropping it \
-                 loses nothing, while passing it through fails rules_cc analysis"
+    fn to_target_sorts_dependencies_so_reply_order_cannot_leak_through() {
+        let names: HashMap<&str, &str> =
+            [("a::@1", "alpha"), ("g::@1", "gamma"), ("m::@1", "mu")]
+                .into_iter()
+                .collect();
+
+        let deps_in = |ids: [&str; 3]| {
+            let reply = TargetReply {
+                dependencies: ids
+                    .iter()
+                    .map(|id| TargetDependency { id: id.to_string() })
+                    .collect(),
+                ..library_reply(vec![], vec![])
+            };
+            let (target, _) = to_target(
+                &reply,
+                TargetKind::Library,
+                &names,
+                false,
+                &HashSet::new(),
             );
-        }
+            target.dependencies
+        };
+
+        let sorted = vec![
+            "alpha".to_string(),
+            "gamma".to_string(),
+            "mu".to_string(),
+        ];
+        // The same three edges in three different reply orders — exactly what
+        // CMake was observed doing across runs — must render identically.
+        assert_eq!(deps_in(["a::@1", "g::@1", "m::@1"]), sorted);
+        assert_eq!(deps_in(["m::@1", "a::@1", "g::@1"]), sorted);
+        assert_eq!(deps_in(["g::@1", "m::@1", "a::@1"]), sorted);
     }
 
     // bzl-41q: dropping `is_shared` from the Target construction left the

@@ -53,11 +53,34 @@ use crate::paths::normalize_lexically;
 /// means a gap goes unreported, never that a file is misplaced in the
 /// generated output.
 pub(crate) fn looks_like_header(path: &str) -> bool {
-    matches!(
-        Path::new(path).extension().and_then(|e| e.to_str()),
-        Some("h") | Some("hpp") | Some("hh") | Some("hxx")
-    )
+    matches!(extension_of(Path::new(path)).as_deref(), Some(e) if INTERFACE_HEADER_EXTENSIONS.contains(&e))
 }
+
+/// A path's extension, lowercased, or `None` when it has none.
+///
+/// Lowercased because extensions are case-insensitive in practice — a `.S`
+/// assembly file is the same input as `.s`, and Windows-origin projects ship
+/// `.H` and `.CPP`. Every extension predicate below goes through this, so a
+/// file cannot be a header to one of them and not to another purely because
+/// of case. They had already diverged on exactly that.
+fn extension_of(path: &Path) -> Option<String> {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(str::to_ascii_lowercase)
+}
+
+/// Extensions a project uses for headers meant to be INCLUDED BY CONSUMERS.
+///
+/// Deliberately excludes `.inc`/`.ipp`: those are usually `#include`d bodies
+/// rather than interface headers, and this list drives the header-visibility
+/// escalation, where a wrong `true` costs a spurious `needs_attention` item.
+/// See the module doc's table on why the two predicates disagree (bzl-6jn).
+const INTERFACE_HEADER_EXTENSIONS: &[&str] = &["h", "hpp", "hh", "hxx"];
+
+/// Extensions that name a header for STAGING purposes — the interface ones
+/// plus the include-a-body idioms. Broader on purpose: a wrong `true` here
+/// costs a file copied that nothing reads.
+const HEADER_EXTENSIONS: &[&str] = &["h", "hpp", "hh", "hxx", "inc", "ipp", "tcc"];
 
 /// Adds files the compiler actually opened for a target but that nothing
 /// declared — the enrichment `ninja_deps` exists to supply.
@@ -386,9 +409,39 @@ fn headers_in(dir: &Path, recursive: bool) -> Vec<PathBuf> {
 /// files (json-c's `tests/`), which are sources of some other target and must
 /// not be swept in as headers.
 pub(crate) fn is_header_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|e| e.to_str())
-        .is_some_and(|e| matches!(e, "h" | "hpp" | "hh" | "hxx" | "inc" | "ipp"))
+    matches!(extension_of(path).as_deref(), Some(e) if HEADER_EXTENSIONS.contains(&e))
+}
+
+/// Whether a path is something a C/C++ rule can take in `srcs`/`hdrs` — a
+/// compilable translation unit or a header.
+///
+/// Deliberately an allowlist, not a denylist of "docs and metadata": a new
+/// extension the translator has not seen should be dropped and noticed, not
+/// passed through to fail deep in `rules_cc` analysis with an error naming
+/// the generated file rather than the CMake input. Assembly and ObjC are
+/// included though the current corpus has none — they are genuinely
+/// buildable, and leaving them out would silently drop real inputs.
+pub(crate) fn is_buildable_source(path: &str) -> bool {
+    const TRANSLATION_UNIT_EXTENSIONS: &[&str] =
+        &["c", "cc", "cpp", "cxx", "c++", "m", "mm", "s", "asm"];
+    // `.def` is a Windows module-definition file: not a header, but rules_cc
+    // accepts it and a project that ships one expects it staged.
+    const OTHER_ACCEPTED_EXTENSIONS: &[&str] = &["def"];
+
+    matches!(extension_of(Path::new(path)).as_deref(), Some(e)
+        if TRANSLATION_UNIT_EXTENSIONS.contains(&e)
+            || HEADER_EXTENSIONS.contains(&e)
+            || OTHER_ACCEPTED_EXTENSIONS.contains(&e))
+}
+
+/// Whether a `configure_file` output is a C/C++ header, and so something a
+/// `config_header` rule should reproduce.
+///
+/// Uses the INTERFACE list rather than the staging one: `configure_file` also
+/// generates pkg-config files, CMake package files and CTest configs, which
+/// are install/packaging artifacts a converted module omits.
+pub(crate) fn is_config_header_output(output: &Path) -> bool {
+    matches!(extension_of(output).as_deref(), Some(e) if INTERFACE_HEADER_EXTENSIONS.contains(&e))
 }
 
 
@@ -450,6 +503,68 @@ mod tests {
             ],
             "every header at or below the include dir must be staged, at any \
              depth, and nothing that isn't a header"
+        );
+    }
+
+    // bzl-2wi.2: fmt lists README.md and ChangeLog.md on its library. CMake
+    // accepts non-buildable files in a source list and ignores them; rules_cc
+    // fails analysis with "source file '...' is misplaced here".
+    #[test]
+    fn is_buildable_source_accepts_only_what_a_cc_rule_can_take() {
+        for src in [
+            "src/format.cc",
+            "a.c",
+            "a.cpp",
+            "a.cxx",
+            "a.m",
+            "a.mm",
+            "a.s",
+            "a.S",
+            "a.asm",
+        ] {
+            assert!(is_buildable_source(src), "{src} is a translation unit");
+        }
+        for hdr in ["a.h", "a.hpp", "a.hxx", "a.inc", "a.tcc", "a.def"] {
+            assert!(is_buildable_source(hdr), "{hdr} is a header rules_cc takes");
+        }
+        for other in ["README.md", "ChangeLog.md", "LICENSE", "a.natvis", "a.txt"] {
+            assert!(
+                !is_buildable_source(other),
+                "{other} is not buildable — CMake ignores it too, so dropping it \
+                 loses nothing, while passing it through fails rules_cc analysis"
+            );
+        }
+    }
+
+    // The predicates share one lowercasing helper, so a file cannot be a
+    // header to one and not another purely because of case. They had already
+    // diverged on exactly this: is_buildable_source lowercased and the rest
+    // did not, so a Windows-origin `Foo.H` was staged as a buildable input
+    // and then never considered for hdrs or for the header-visibility
+    // escalation.
+    #[test]
+    fn extension_matching_is_case_insensitive_across_every_predicate() {
+        for upper in ["Foo.H", "Bar.HPP", "Baz.Hxx"] {
+            assert!(
+                looks_like_header(upper),
+                "{upper} must be a header to the escalation predicate"
+            );
+            assert!(
+                is_header_file(Path::new(upper)),
+                "{upper} must be a header to the staging predicate"
+            );
+            assert!(
+                is_buildable_source(upper),
+                "{upper} must be buildable"
+            );
+            assert!(
+                is_config_header_output(Path::new(upper)),
+                "{upper} must count as a config-header output"
+            );
+        }
+        assert!(
+            is_buildable_source("main.CPP"),
+            "an uppercase translation-unit extension is still buildable"
         );
     }
 
