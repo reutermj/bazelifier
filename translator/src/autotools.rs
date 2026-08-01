@@ -58,6 +58,113 @@ pub(crate) fn dry_run(build_dir: &Path) -> Result<String, Error> {
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
 }
 
+/// Runs `make -p` and returns make's resolved variable database.
+///
+/// `-n` alongside `-p` so nothing is actually built; the database is a side
+/// effect of make reading the tree, not of running it.
+pub(crate) fn variable_database(build_dir: &Path) -> Result<String, Error> {
+    let output = Command::new("make")
+        .arg("-p")
+        .arg("-n")
+        .current_dir(build_dir)
+        .output()?;
+    // Not checking status: `make -p` exits nonzero on a tree with nothing to
+    // do, having already printed the database, which is all this needs.
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// One target automake declared, recovered from a primary.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct DeclaredTarget {
+    /// The name automake knows it by (`greeter`, `libshout.la`).
+    pub(crate) name: String,
+    /// The install-destination prefix of the primary that declared it
+    /// (`bin`, `lib`, `noinst`, `check`). This is where the public/private
+    /// signal lives — `noinst_` means built but never installed.
+    pub(crate) destination: String,
+    /// Which primary declared it, so linkage does not have to be guessed
+    /// from a filename: `LTLIBRARIES` builds a shared library, `LIBRARIES`
+    /// an archive.
+    pub(crate) primary: String,
+}
+
+/// Parses `make -p` output into a variable map.
+///
+/// Split from [`variable_database`] so a frozen real capture can drive it
+/// without a configured tree. Only `NAME = value` lines are kept; make's
+/// database also contains rules, comments and `NAME := value` forms, none of
+/// which carry automake's declarations.
+pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
+    let mut vars = HashMap::new();
+    for line in database.lines() {
+        // Rules and comments both reach here; a leading tab means a recipe.
+        if line.starts_with('\t') || line.starts_with('#') {
+            continue;
+        }
+        let Some((name, value)) = line.split_once(" = ") else {
+            continue;
+        };
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            continue;
+        }
+        // Later definitions win, matching make's own last-assignment-wins.
+        vars.insert(name.to_string(), value.trim().to_string());
+    }
+    vars
+}
+
+/// Recovers every target automake DECLARED, from the primaries.
+///
+/// This is the identity source. The command stream shows `-o greeter` — a
+/// filename — while `bin_PROGRAMS = greeter` is the name automake actually
+/// uses, and the `bin_` prefix additionally states where it installs.
+/// Inferring identity from artifact paths instead breaks on a binary whose
+/// name differs from its target's, on libtool's `.libs/libfoo.so.1.0.0`
+/// versus `libfoo.la`, and on a non-empty `EXEEXT`.
+pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTarget> {
+    let mut targets = Vec::new();
+    for (var, value) in vars {
+        let Some((destination, primary)) = var.rsplit_once('_') else {
+            continue;
+        };
+        if !matches!(primary, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES") {
+            continue;
+        }
+        // `dist_`, `nodist_` and `nobase_` are modifiers automake allows in
+        // front of the destination; the destination is the last segment.
+        let destination = destination.rsplit('_').next().unwrap_or(destination);
+        for name in value.split_whitespace() {
+            // $(EXEEXT) is empty on Linux and `.exe` elsewhere; the database
+            // provides it, so it is expanded rather than assumed.
+            let exeext = vars.get("EXEEXT").map(String::as_str).unwrap_or("");
+            let name = name.replace("$(EXEEXT)", exeext);
+            if name.is_empty() {
+                continue;
+            }
+            targets.push(DeclaredTarget {
+                name,
+                destination: destination.to_string(),
+                primary: primary.to_string(),
+            });
+        }
+    }
+    targets.sort_by(|a, b| a.name.cmp(&b.name));
+    targets.dedup();
+    targets
+}
+
+/// The variable prefix automake derives from a target name.
+///
+/// automake canonicalises by replacing every character that is not
+/// alphanumeric or `_` with `_`, so `libshout.la` owns `libshout_la_SOURCES`.
+/// Without this the per-target variables cannot be found at all.
+pub(crate) fn canonical_name(target_name: &str) -> String {
+    target_name
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect()
+}
+
 /// Splits `make -n` output into the commands that actually build something.
 ///
 /// Deliberately conservative about what it keeps. The stream is interleaved
@@ -205,24 +312,35 @@ pub(crate) fn target_name_from_artifact(artifact: &str) -> String {
     stem.strip_prefix("lib").unwrap_or(stem).to_string()
 }
 
-/// Builds the graph from the parsed command stream.
+/// Builds the graph, joining automake's DECLARATIONS to the build's own
+/// COMMAND STREAM.
 ///
-/// Every target comes from a LINK or ARCHIVE step, never from a compile: a
-/// compile says a source exists, but only the step that produces an artifact
-/// says which target owns it. Sources are then attributed by matching each
-/// link's object files back to the compile that produced them, which is the
-/// same "trust the build's own answer" reasoning the whole frontend rests on.
-pub(crate) fn to_graph(commands: &[BuildCommand], project_name: &str) -> BuildGraph {
-    // object path -> the source it was compiled from.
+/// Each source answers what the other cannot, which is why both are read:
+///
+/// - the variable database gives target IDENTITY — the name automake uses,
+///   the install destination, and which primary declared it. None of that is
+///   in the command stream, which shows only `-o greeter`.
+/// - the command stream gives what was actually BUILT — the resolved `-I` and
+///   `-D` per compile, and which objects really went into which artifact.
+///   None of that is in the database, which shows declarations before
+///   automake's own conditionals and rules have had their say.
+///
+/// The two are joined on the artifact each target produces, which both name.
+/// This mirrors `cmake_api`, where the File API is primary and the configure
+/// trace is a deliberate, documented second source.
+pub(crate) fn to_graph(
+    commands: &[BuildCommand],
+    declared: &[DeclaredTarget],
+    vars: &HashMap<String, String>,
+    project_name: &str,
+) -> BuildGraph {
+    // object path -> the source it was compiled from, and the flags it carried.
     let mut source_of: HashMap<String, String> = HashMap::new();
-    // object path -> the flags its compile carried.
     let mut flags_of: HashMap<String, (Vec<String>, Vec<String>)> = HashMap::new();
-
     for cmd in commands.iter().filter(|c| c.program != "ar") {
         let Some(output) = flag_value(&cmd.args, "-o") else {
             continue;
         };
-        // A compile has `-c`; anything else with `-o` is a link.
         if !cmd.args.iter().any(|a| a == "-c") {
             continue;
         }
@@ -232,50 +350,66 @@ pub(crate) fn to_graph(commands: &[BuildCommand], project_name: &str) -> BuildGr
         }
     }
 
-    let mut targets = Vec::new();
+    // artifact basename -> the link/archive command that produced it, so a
+    // declared target can find the step that built it.
+    let mut built: HashMap<String, &BuildCommand> = HashMap::new();
     for cmd in commands {
-        let (artifact, inputs) = match cmd.program.as_str() {
-            // `ar cru libfoo.a a.o b.o` — the first non-flag argument is the
-            // archive, the rest are its members.
-            "ar" => {
-                let mut rest = cmd.args.iter().filter(|a| !a.starts_with('-'));
-                // Skip the mode string (`cru`), which is not flag-prefixed.
-                let _mode = rest.next();
-                let Some(archive) = rest.next() else { continue };
-                (archive.clone(), rest.cloned().collect::<Vec<_>>())
-            }
-            _ => {
-                let Some(output) = flag_value(&cmd.args, "-o") else {
-                    continue;
-                };
-                if cmd.args.iter().any(|a| a == "-c") {
-                    continue;
-                }
-                let inputs = cmd
-                    .args
-                    .iter()
-                    .filter(|a| is_object_or_library(a))
-                    .cloned()
-                    .collect::<Vec<_>>();
-                (output, inputs)
-            }
-        };
+        if let Some(artifact) = produced_artifact(cmd) {
+            built.insert(basename(&artifact), cmd);
+        }
+    }
 
-        let mut sources = Vec::new();
-        let mut dependencies = Vec::new();
+    let mut targets = Vec::new();
+    for decl in declared {
+        let canon = canonical_name(&decl.name);
+
+        // Sources come from the DECLARATION, not from the link inputs: a
+        // target's _SOURCES is what automake was told, while the link line
+        // shows objects, which have to be mapped back. Headers appear in
+        // _SOURCES too (automake accepts them so they reach the tarball), so
+        // they are split out rather than compiled.
+        let declared_sources = vars
+            .get(&format!("{canon}_SOURCES"))
+            .map(|v| v.split_whitespace().map(str::to_string).collect())
+            .unwrap_or_else(Vec::new);
+        let (headers, mut sources): (Vec<String>, Vec<String>) = declared_sources
+            .into_iter()
+            .partition(|s| !is_source_file(s));
+
+        // Flags come from the COMMAND STREAM, via the objects this target's
+        // sources compiled to — the database's *_CPPFLAGS are pre-expansion
+        // and miss what configure and AM_CPPFLAGS contributed.
         let mut includes = Vec::new();
         let mut local_defines = Vec::new();
-        for input in &inputs {
-            if let Some(source) = source_of.get(input) {
-                sources.push(source.clone());
-                if let Some((inc, def)) = flags_of.get(input) {
-                    includes.extend(inc.iter().cloned());
-                    local_defines.extend(def.iter().cloned());
-                }
-            } else if is_library(input) {
-                dependencies.push(target_name_from_artifact(input));
+        for (object, source) in &source_of {
+            if !sources.contains(source) {
+                continue;
+            }
+            if let Some((inc, def)) = flags_of.get(object) {
+                includes.extend(inc.iter().cloned());
+                local_defines.extend(def.iter().cloned());
             }
         }
+
+        // Dependencies come from the declaration too (_LDADD for programs,
+        // _LIBADD for libraries), resolved against the other declared names.
+        let declared_names: Vec<&str> = declared.iter().map(|d| d.name.as_str()).collect();
+        let mut dependencies: Vec<String> = vars
+            .get(&format!("{canon}_LDADD"))
+            .or_else(|| vars.get(&format!("{canon}_LIBADD")))
+            .map(|v| {
+                v.split_whitespace()
+                    .filter(|token| declared_names.contains(token))
+                    .map(|token| target_label(token))
+                    .collect()
+            })
+            .unwrap_or_else(Vec::new);
+
+        let artifact = built
+            .get(&decl.name)
+            .and_then(|cmd| produced_artifact(cmd))
+            .unwrap_or_else(|| decl.name.clone());
+
         sources.sort_unstable();
         sources.dedup();
         dependencies.sort_unstable();
@@ -286,14 +420,24 @@ pub(crate) fn to_graph(commands: &[BuildCommand], project_name: &str) -> BuildGr
         local_defines.dedup();
 
         targets.push(Target {
-            name: target_name_from_artifact(&artifact),
-            kind: if is_library(&artifact) {
-                TargetKind::Library
-            } else {
-                TargetKind::Executable
+            name: target_label(&decl.name),
+            kind: match decl.primary.as_str() {
+                "PROGRAMS" => TargetKind::Executable,
+                _ => TargetKind::Library,
             },
-            is_shared: artifact.ends_with(".la") || artifact.contains(".so"),
+            // From the PRIMARY, not from a filename: LTLIBRARIES is libtool's
+            // form and builds a shared library, LIBRARIES is a plain archive.
+            is_shared: decl.primary == "LTLIBRARIES",
             sources,
+            // `include_HEADERS` names the project's public headers, the same
+            // statement CMake makes with install(FILES ... DESTINATION
+            // include). A header in _SOURCES that is not installed stays
+            // private.
+            public_headers: headers
+                .iter()
+                .filter(|h| public_headers(vars).contains(*h))
+                .cloned()
+                .collect(),
             dependencies,
             includes,
             local_defines,
@@ -303,17 +447,52 @@ pub(crate) fn to_graph(commands: &[BuildCommand], project_name: &str) -> BuildGr
     }
 
     targets.sort_by(|a, b| a.name.cmp(&b.name));
-    targets.dedup_by(|a, b| a.name == b.name);
 
     BuildGraph {
         module: ModuleInfo {
             name: project_name.to_string(),
-            version: None,
+            version: vars.get("VERSION").cloned(),
         },
         targets,
         tests: Vec::new(),
         config_headers: Vec::new(),
     }
+}
+
+/// Every header the project installs, from any `*_HEADERS` primary.
+fn public_headers(vars: &HashMap<String, String>) -> Vec<String> {
+    vars.iter()
+        .filter(|(k, _)| {
+            k.ends_with("_HEADERS") && !k.starts_with("noinst") && !k.starts_with("EXTRA")
+        })
+        .flat_map(|(_, v)| v.split_whitespace().map(str::to_string))
+        .collect()
+}
+
+/// The Bazel target name for an automake target name, stripping the `lib`
+/// prefix and library suffix so `libshout.la` is referred to as `shout`.
+fn target_label(name: &str) -> String {
+    target_name_from_artifact(name)
+}
+
+/// The artifact a link or archive command produces, or `None` for a compile.
+fn produced_artifact(cmd: &BuildCommand) -> Option<String> {
+    if cmd.program == "ar" {
+        let mut rest = cmd.args.iter().filter(|a| !a.starts_with('-'));
+        let _mode = rest.next();
+        return rest.next().cloned();
+    }
+    if cmd.args.iter().any(|a| a == "-c") {
+        return None;
+    }
+    flag_value(&cmd.args, "-o")
+}
+
+fn basename(path: &str) -> String {
+    Path::new(path)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| path.to_string())
 }
 
 /// The value following `flag`, e.g. `-o foo` -> `foo`.
@@ -391,10 +570,71 @@ ranlib libgreet.a
 /bin/bash ./libtool  --tag=CC   --mode=link gcc  -g -O2   -o greeter src/main.o libgreet.a libshout.la
 "#;
 
+    /// A real `make -p -n` capture from fixture 001, trimmed to the lines
+    /// that carry declarations. Frozen evidence: this is what automake
+    /// actually puts in make's database.
+    const DATABASE: &str = "\
+EXEEXT = \n\
+VERSION = 1.0\n\
+bin_PROGRAMS = greeter$(EXEEXT)\n\
+noinst_LIBRARIES = libgreet.a\n\
+lib_LTLIBRARIES = libshout.la\n\
+include_HEADERS = src/greet.h\n\
+greeter_SOURCES = src/main.c\n\
+greeter_LDADD = libgreet.a libshout.la\n\
+libgreet_a_SOURCES = src/greet.c src/greet.h\n\
+libshout_la_SOURCES = src/shout.c\n\
+";
+
+    fn graph_from_captures() -> BuildGraph {
+        let vars = parse_variables(DATABASE);
+        let declared = declared_targets(&vars);
+        to_graph(&parse_commands(STREAM), &declared, &vars, "greeter")
+    }
+
+    // automake canonicalises a target name into its variable prefix by
+    // replacing every non-alphanumeric character. Without this,
+    // `libshout.la`'s sources cannot be found at all.
+    #[test]
+    fn canonical_name_matches_automakes_variable_naming() {
+        assert_eq!(canonical_name("greeter"), "greeter");
+        assert_eq!(canonical_name("libshout.la"), "libshout_la");
+        assert_eq!(canonical_name("libgreet.a"), "libgreet_a");
+        assert_eq!(canonical_name("my-tool"), "my_tool");
+    }
+
+    // Identity comes from the primaries, not from artifact paths. The
+    // destination prefix is carried because it is where the public/private
+    // signal lives — noinst_ means built but never installed.
+    #[test]
+    fn declared_targets_recovers_names_destinations_and_primaries() {
+        let declared = declared_targets(&parse_variables(DATABASE));
+        assert_eq!(
+            declared,
+            vec![
+                DeclaredTarget {
+                    name: "greeter".to_string(),
+                    destination: "bin".to_string(),
+                    primary: "PROGRAMS".to_string(),
+                },
+                DeclaredTarget {
+                    name: "libgreet.a".to_string(),
+                    destination: "noinst".to_string(),
+                    primary: "LIBRARIES".to_string(),
+                },
+                DeclaredTarget {
+                    name: "libshout.la".to_string(),
+                    destination: "lib".to_string(),
+                    primary: "LTLIBRARIES".to_string(),
+                },
+            ],
+            "$(EXEEXT) must be expanded from the database, not assumed empty"
+        );
+    }
+
     #[test]
     fn parses_the_real_command_stream_into_a_graph() {
-        let commands = parse_commands(STREAM);
-        let graph = to_graph(&commands, "greeter");
+        let graph = graph_from_captures();
         let names: Vec<&str> = graph.targets.iter().map(|t| t.name.as_str()).collect();
         assert_eq!(names, vec!["greet", "greeter", "shout"], "{graph:#?}");
 
@@ -417,7 +657,11 @@ ranlib libgreet.a
         // find out about.
         let shout = by_name("shout");
         assert_eq!(shout.kind, TargetKind::Library);
-        assert!(shout.is_shared, "a .la builds a shared library");
+        assert!(
+            shout.is_shared,
+            "LTLIBRARIES is libtool's form and builds a shared library — read \
+             from the PRIMARY, not guessed from the .la suffix"
+        );
         assert_eq!(shout.sources, vec!["src/shout.c"]);
 
         // bin_PROGRAMS -> an executable, with BOTH libraries as dependencies.
@@ -436,6 +680,13 @@ ranlib libgreet.a
         // not smeared across every target.
         assert_eq!(greet.includes, vec![".", "src"], "{greet:#?}");
         assert_eq!(greeter.includes, vec!["."], "{greeter:#?}");
+
+        // include_HEADERS is automake's statement that a header is public —
+        // the same claim CMake makes with install(FILES ... DESTINATION
+        // include). greet.h is listed in libgreet_a_SOURCES AND installed, so
+        // it is public; nothing else is.
+        assert_eq!(greet.public_headers, vec!["src/greet.h"], "{greet:#?}");
+        assert!(greeter.public_headers.is_empty(), "{greeter:#?}");
     }
 
     // The point of this frontend: codegen has only ever seen CMake. If the
@@ -443,7 +694,7 @@ ranlib libgreet.a
     // change to codegen at all.
     #[test]
     fn an_autotools_graph_renders_through_unmodified_codegen() {
-        let graph = to_graph(&parse_commands(STREAM), "greeter");
+        let graph = graph_from_captures();
         let rendered = codegen::render(&graph).build_bazel;
 
         assert!(
