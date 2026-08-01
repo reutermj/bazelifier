@@ -164,6 +164,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     write_needs_attention(&args.out_module, &discovery.needs_attention)?;
     write_resolutions(&args.out_module)?;
     write_targets_manifest(&args.out_module, graph)?;
+    write_conversion_summary(&args.out_module, graph, &discovery.needs_attention)?;
 
     Ok(())
 }
@@ -228,6 +229,83 @@ fn write_needs_attention(
 /// One `<kind> <name>` per line, sorted within each kind so the file does not
 /// churn on target order. Deliberately not JSON: the reader is a shell script
 /// in a genrule, and `while read kind name` needs no parser.
+/// Writes `CONVERSION.json`: what this conversion produced and what it could
+/// not, in one machine-readable record.
+///
+/// For the pipeline sweep (bzl-ccv), which needs to compare a project against
+/// its previous run and answer "did this change make some other project
+/// escalate more". Reading that off the generated `BUILD.bazel` means
+/// regexing Starlark, and reading it off the markdown means parsing prose.
+///
+/// Deliberately does NOT supersede `TARGETS` or `needs_attention/MANIFEST`,
+/// which look like partial versions of this and are not. Both have consumers
+/// with semantics this file must not quietly take over: `TARGETS` is the
+/// contract `validation_workspace.bzl` reads to generate comparison tests,
+/// and `MANIFEST`'s presence is how `compare_runtime_output.sh` tells "zero
+/// escalations" from "the runfiles path does not resolve" — a distinction a
+/// JSON file with a count in it cannot make.
+///
+/// Escalations are keyed by `kind`, never by title or filename: see
+/// docs/architecture/needs-attention-interface.md on why those two are not
+/// stable keys.
+fn write_conversion_summary(
+    out_module: &Path,
+    graph: &model::BuildGraph,
+    needs_attention: &[needs_attention::NeedsAttention],
+) -> std::io::Result<()> {
+    let mut escalations: Vec<serde_json::Value> = needs_attention
+        .iter()
+        .map(|item| {
+            serde_json::json!({ "kind": item.kind, "subject": item.subject })
+        })
+        .collect();
+    // Sorted so two runs of the same input produce the same bytes; the sweep
+    // diffs these, and an ordering difference would read as a change.
+    escalations.sort_by_key(|e| {
+        (
+            e["kind"].as_str().unwrap_or("").to_string(),
+            e["subject"].as_str().unwrap_or("").to_string(),
+        )
+    });
+
+    let mut by_kind: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    for item in needs_attention {
+        *by_kind.entry(item.kind).or_default() += 1;
+    }
+
+    let mut targets: Vec<serde_json::Value> = graph
+        .targets
+        .iter()
+        .map(|t| {
+            serde_json::json!({
+                "name": t.name,
+                "kind": match t.kind {
+                    model::TargetKind::Executable => "executable",
+                    model::TargetKind::Library if t.is_shared => "shared_library",
+                    model::TargetKind::Library => "static_library",
+                },
+                "sources": t.sources.len(),
+            })
+        })
+        .collect();
+    targets.sort_by_key(|t| t["name"].as_str().unwrap_or("").to_string());
+
+    let summary = serde_json::json!({
+        "module": graph.module.name,
+        "version": graph.module.version,
+        "targets": targets,
+        "tests": graph.tests.len(),
+        "config_headers": graph.config_headers.len(),
+        "escalations": escalations,
+        "escalations_by_kind": by_kind,
+    });
+
+    fs::write(
+        out_module.join("CONVERSION.json"),
+        format!("{}\n", serde_json::to_string_pretty(&summary)?),
+    )
+}
+
 fn write_targets_manifest(out_module: &Path, graph: &model::BuildGraph) -> std::io::Result<()> {
     let mut lines = Vec::new();
 
@@ -665,6 +743,121 @@ fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn summary_of(
+        graph: &model::BuildGraph,
+        items: &[needs_attention::NeedsAttention],
+        tag: &str,
+    ) -> serde_json::Value {
+        let dir = unique_temp_dir(tag);
+        fs::create_dir_all(&dir).unwrap();
+        write_conversion_summary(&dir, graph, items).unwrap();
+        let text = fs::read_to_string(dir.join("CONVERSION.json")).unwrap();
+        fs::remove_dir_all(&dir).ok();
+        serde_json::from_str(&text).unwrap()
+    }
+
+    fn two_target_graph() -> model::BuildGraph {
+        model::BuildGraph {
+            module: model::ModuleInfo {
+                name: "proj".to_string(),
+                version: Some("1.0".to_string()),
+            },
+            targets: vec![
+                model::Target {
+                    name: "zzz_app".to_string(),
+                    kind: model::TargetKind::Executable,
+                    sources: vec!["main.c".to_string()],
+                    ..Default::default()
+                },
+                model::Target {
+                    name: "aaa_lib".to_string(),
+                    kind: model::TargetKind::Library,
+                    is_shared: true,
+                    sources: vec!["a.c".to_string(), "b.c".to_string()],
+                    ..Default::default()
+                },
+            ],
+            tests: vec![],
+            config_headers: vec![],
+        }
+    }
+
+    // The sweep DIFFS these records, so anything order-dependent reads as a
+    // change that never happened. Both lists are sorted; the graph deliberately
+    // lists its targets in the wrong order to prove the sort is real.
+    #[test]
+    fn the_conversion_summary_is_ordered_independently_of_the_graph() {
+        let items = vec![
+            needs_attention::header_visibility_needs_attention("zzz"),
+            needs_attention::header_visibility_needs_attention("aaa"),
+        ];
+        let summary = summary_of(&two_target_graph(), &items, "summary_order");
+
+        let names: Vec<&str> = summary["targets"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|t| t["name"].as_str().unwrap())
+            .collect();
+        assert_eq!(names, vec!["aaa_lib", "zzz_app"], "{summary:#}");
+
+        let subjects: Vec<&str> = summary["escalations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e["subject"].as_str().unwrap())
+            .collect();
+        assert_eq!(subjects, vec!["aaa", "zzz"], "{summary:#}");
+    }
+
+    // Escalations are keyed by KIND, never by title or filename: both are
+    // derived from prose that gets reworded, so a metric keyed on either
+    // silently re-partitions. Two items of the same kind must count as two of
+    // that kind rather than collapsing.
+    #[test]
+    fn the_conversion_summary_counts_escalations_by_kind() {
+        let items = vec![
+            needs_attention::header_visibility_needs_attention("a"),
+            needs_attention::header_visibility_needs_attention("b"),
+            needs_attention::unsupported_target_needs_attention("c", "OBJECT_LIBRARY", &[]),
+        ];
+        let summary = summary_of(&two_target_graph(), &items, "summary_kinds");
+        assert_eq!(
+            summary["escalations_by_kind"],
+            serde_json::json!({ "header_visibility": 2, "unsupported_target": 1 }),
+            "{summary:#}"
+        );
+    }
+
+    // A library's LINKAGE is part of what the conversion produced — a project
+    // that stops emitting a shared library has changed, and `kind: Library`
+    // alone cannot say so.
+    #[test]
+    fn the_conversion_summary_distinguishes_shared_from_static_libraries() {
+        let mut graph = two_target_graph();
+        let summary = summary_of(&graph, &[], "summary_shared");
+        assert_eq!(summary["targets"][0]["kind"], "shared_library", "{summary:#}");
+
+        graph.targets[1].is_shared = false;
+        let summary = summary_of(&graph, &[], "summary_static");
+        assert_eq!(summary["targets"][0]["kind"], "static_library", "{summary:#}");
+    }
+
+    // A clean conversion must still write the file, with an EMPTY escalation
+    // list rather than an absent key. A sweep reading `.escalations` on a
+    // green project would otherwise have to treat "missing" and "none" alike,
+    // which is the same conflation `needs_attention/MANIFEST` exists to avoid.
+    #[test]
+    fn a_clean_conversion_still_writes_a_summary() {
+        let summary = summary_of(&two_target_graph(), &[], "summary_clean");
+        assert_eq!(summary["escalations"], serde_json::json!([]), "{summary:#}");
+        assert_eq!(
+            summary["escalations_by_kind"],
+            serde_json::json!({}),
+            "{summary:#}"
+        );
+    }
 
     /// A directory no other test or run will pick, created fresh.
     ///
