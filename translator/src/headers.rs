@@ -69,6 +69,12 @@ fn extension_of(path: &Path) -> Option<String> {
         .map(str::to_ascii_lowercase)
 }
 
+/// Extensions a compiler is invoked on. Assembly and ObjC are included
+/// though the current corpus has none — they are genuinely buildable, and
+/// leaving them out would silently drop real inputs.
+const TRANSLATION_UNIT_EXTENSIONS: &[&str] =
+    &["c", "cc", "cpp", "cxx", "c++", "m", "mm", "s", "asm"];
+
 /// Extensions a project uses for headers meant to be INCLUDED BY CONSUMERS.
 ///
 /// Deliberately excludes `.inc`/`.ipp`: those are usually `#include`d bodies
@@ -431,8 +437,6 @@ pub(crate) fn is_header_file(path: &Path) -> bool {
 /// included though the current corpus has none — they are genuinely
 /// buildable, and leaving them out would silently drop real inputs.
 pub(crate) fn is_buildable_source(path: &str) -> bool {
-    const TRANSLATION_UNIT_EXTENSIONS: &[&str] =
-        &["c", "cc", "cpp", "cxx", "c++", "m", "mm", "s", "asm"];
     // `.def` is a Windows module-definition file: not a header, but rules_cc
     // accepts it and a project that ships one expects it staged.
     const OTHER_ACCEPTED_EXTENSIONS: &[&str] = &["def"];
@@ -441,6 +445,23 @@ pub(crate) fn is_buildable_source(path: &str) -> bool {
         if TRANSLATION_UNIT_EXTENSIONS.contains(&e)
             || HEADER_EXTENSIONS.contains(&e)
             || OTHER_ACCEPTED_EXTENSIONS.contains(&e))
+}
+
+/// Whether a path is a file a COMPILER would be invoked on.
+///
+/// Narrower than [`is_buildable_source`], which also accepts headers and
+/// `.def` because it decides what to STAGE. This decides what to compile, so
+/// a header is not one.
+///
+/// Shared rather than reimplemented per frontend, and that is the whole
+/// point: the Autotools frontend carried its own list, which drifted. It
+/// omitted `c++` and `asm`, and — because it matched extensions exactly
+/// rather than lowercasing — accepted `.S` only by listing it literally
+/// while rejecting `.C`, `.CC` and `.CPP`. The two copies encoded the same
+/// intent by opposite mechanisms and only one of them generalised.
+pub(crate) fn is_translation_unit(path: &str) -> bool {
+    matches!(extension_of(Path::new(path)).as_deref(), Some(e)
+        if TRANSLATION_UNIT_EXTENSIONS.contains(&e))
 }
 
 /// Whether a `configure_file` output is a C/C++ header, and so something a

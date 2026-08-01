@@ -38,7 +38,7 @@ use std::process::Command;
 
 use crate::configure_file::catalog_label;
 use crate::error::Error;
-use crate::headers::inject_headers_on_include_dirs;
+use crate::headers::{inject_headers_on_include_dirs, is_header_file, is_translation_unit};
 use crate::needs_attention::{
     sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
 };
@@ -883,9 +883,20 @@ pub(crate) fn to_graph(
         } else {
             declared_raw.split_whitespace().map(str::to_string).collect()
         };
-        let (headers, declared_sources): (Vec<String>, Vec<String>) = declared_sources
+        // Partitioned POSITIVELY, on what a compiler is invoked on. The
+        // negated form (`!is_source_file`) made every unrecognised extension
+        // a header, so a `.c++` the predicate did not know about was filtered
+        // against public_headers, found not installed, and dropped from the
+        // graph — no srcs entry, no hdrs entry, no escalation, surfacing as an
+        // undefined symbol at link time. automake also permits a README in
+        // _SOURCES, which is neither.
+        let (declared_sources, not_compiled): (Vec<String>, Vec<String>) = declared_sources
             .into_iter()
-            .partition(|s| !is_source_file(s));
+            .partition(|s| is_translation_unit(s));
+        let headers: Vec<String> = not_compiled
+            .into_iter()
+            .filter(|s| is_header_file(Path::new(s)))
+            .collect();
 
         // A target's _SOURCES are relative to the Makefile.am that DECLARED
         // them — fixture 002 declares `tool_SOURCES = main.c ../common/util.c`
@@ -1173,14 +1184,7 @@ fn compiled_source(args: &[String]) -> Option<String> {
         Some((dir, name)) => format!("{dir}{name}"),
         None => last.clone(),
     };
-    is_source_file(&full).then_some(full)
-}
-
-fn is_source_file(path: &str) -> bool {
-    matches!(
-        Path::new(path).extension().and_then(|e| e.to_str()),
-        Some("c" | "cc" | "cpp" | "cxx" | "m" | "mm" | "s" | "S")
-    )
+    is_translation_unit(&full).then_some(full)
 }
 
 /// The object files a link or archive command consumes.
@@ -1713,6 +1717,53 @@ make[1]: Leaving directory '/src/lib'\n\
             vec!["lib/base.c".to_string()],
             "no `$(` in the declaration means no fallback; the header is split \
              out as before rather than being invisible to the object list"
+        );
+    }
+
+    // The frontend carried its own extension list, which drifted from the
+    // shared one: no lowercasing, and missing `c++`. Both gaps failed in the
+    // SAME silent direction, because the partition was negated — anything not
+    // recognised as a source became a header, was filtered against
+    // public_headers, and if not installed was dropped from the graph with no
+    // escalation. The symptom is an undefined symbol at link time.
+    //
+    // No fixture ships a C++ project, so this is the only tier that can catch
+    // it (bzl-dc9).
+    #[test]
+    fn an_uppercase_or_cxx_source_is_compiled_not_silently_dropped() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src'\n\
+gcc -c -o a.o a.C\n\
+gcc -c -o b.o b.c++\n\
+gcc -c -o c.o c.CPP\n\
+ar cru libmix.a a.o b.o c.o\n\
+make[1]: Leaving directory '/src'\n\
+";
+        let vars = parse_variables(
+            "noinst_LIBRARIES = libmix.a\nlibmix_a_SOURCES = a.C b.c++ c.CPP README\n",
+        );
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "mixed",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        assert_eq!(
+            graph.targets[0].sources,
+            vec!["a.C".to_string(), "b.c++".to_string(), "c.CPP".to_string()],
+            "an extension the predicate does not know is dropped ENTIRELY — \
+             not escalated — so it must know all of them:\n{:#?}",
+            graph.targets[0]
+        );
+        assert!(
+            !graph.targets[0].sources.contains(&"README".to_string())
+                && !graph.targets[0].public_headers.contains(&"README".to_string()),
+            "automake permits a non-source in _SOURCES; it is neither compiled \
+             nor a header, and the negated partition used to make it one"
         );
     }
 
