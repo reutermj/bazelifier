@@ -15,6 +15,38 @@ changes *what a tier proves*: deleting a fixture, relaxing the
 by narrowing its input. Those are not test fixes, and three of them are
 explicitly forbidden by conventions elsewhere in `CLAUDE.md`.
 
+## Dispatching this as a subagent
+
+`/review` runs this pass in a subagent: **report-only**, since every edit
+listed above needs a question first and a subagent cannot ask one.
+
+**Lane.** What the suite proves and fails to prove. Not comment accuracy,
+not duplication.
+
+**The baseline is mandatory, not context.** Give the dispatch the red-fixture
+list below verbatim. A cold agent that does not have it reports five
+correctly-failing fixtures as regressions, and the report is then worse than
+useless because the real findings are buried in noise.
+
+**Ask for mutation evidence, not reasoning.** This pass is uniquely able to
+check itself: for a test that claims to pin something, break the thing and
+watch it go red. A finding backed by "I made this edit and the suite stayed
+green" is worth more than any amount of argument, and it is the only way to
+catch a gate wired to nothing. Require it for every P1.
+
+**Severity, for this review type:**
+
+- **P1** — a test that cannot fail, or a gate looking at nothing. Also a
+  claim in a comment or bead that the suite is asserted to cover and does
+  not.
+- **P2** — a real gap at the wrong tier: something unit-tested that only a
+  fixture can contradict, or fixture-only where a unit test would be cheap.
+- **P3** — a missing negative case, duplicated scaffolding.
+
+**Require coverage and non-verification.** "What I read and found sound", and
+"what I could not run" — a pass that skipped the unpacked workspace because
+it is slow must say so rather than implying a clean bill.
+
 ## Know the baseline before calling anything a regression
 
 Five fixtures are red in the unpacked validation workspace today, and that

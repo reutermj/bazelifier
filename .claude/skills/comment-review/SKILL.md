@@ -19,6 +19,42 @@ ask when a comment might document *intent* rather than current behavior —
 because it is still true, and deleting it loses the fact that it was
 deliberate.
 
+## Dispatching this as a subagent
+
+`/review` runs this pass in a subagent, which changes two things: the agent
+cannot ask a follow-up question, and its report is the only artifact. So the
+dispatch is **report-only** — it does not fix as you go — and the prompt has
+to carry what an in-session agent would otherwise absorb from context.
+
+**Lane.** Staleness and accuracy: does a comment still match the code. NOT
+duplicated rationale — that is `duplication-review`'s lane, and running both
+against the same files without the split is how the first pass here missed
+duplication entirely.
+
+**Seed it with what changed.** A cold agent reviewing 12k lines finds
+whatever it happens to open. Name the recent capability changes and say
+which older claims they could have invalidated — that is what turns a
+sampling pass into a targeted one.
+
+**Severity, for this review type:**
+
+- **P1** — a reader following the comment makes a wrong change. A stated
+  frame of reference that is now false, or a doc comment attached to the
+  wrong item (Rust silently welds a doc block to whatever follows it, so
+  this compiles).
+- **P2** — stale or contradicted, but a reader would notice before acting.
+- **P3** — a dangling `see X` pointer, a miscounted list.
+
+**Require coverage, not just findings.** "List what you read and found
+correct" — without it a short report is unreadable, because clean and
+unchecked look identical. And require an explicit "what I could not verify",
+which every pass needs and none volunteers.
+
+**Seed hypotheses as things to test, not accept.** An open bead's stated
+diagnosis can be overtaken; `bzl-dc9` described a divergence that had
+already been half-fixed, and only a reviewer told to *verify* the bead
+would have found the other half.
+
 ## Run the reference checker
 
 ```sh
