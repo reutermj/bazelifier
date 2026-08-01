@@ -156,7 +156,17 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
 
 /// Really builds the project, producing the ground-truth artifacts.
 fn build(build_dir: &Path) -> Result<(), Error> {
-    let output = Command::new("make").current_dir(build_dir).output()?;
+    // Parallel: the build is the ground-truth capture, and nothing about it
+    // needs to be serial. Measured 14s -> 2s on xz. `-j` with no argument
+    // would be unbounded, which on a large project starves the machine, so
+    // the core count is passed explicitly.
+    let jobs = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+    let output = Command::new("make")
+        .arg(format!("-j{jobs}"))
+        .current_dir(build_dir)
+        .output()?;
     if !output.status.success() {
         return Err(Error::CmakeBuildFailed {
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
