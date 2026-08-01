@@ -4,6 +4,10 @@ Covers how we confirm a conversion actually produces a genuinely
 independent, functionally equivalent Bazel module — and the plan for
 making that verification hermetic over time.
 
+This document is about proving ONE conversion correct. Noticing that a
+change moved some *other* project is a different question, answered by
+[pipeline-metrics.md](pipeline-metrics.md).
+
 ## Success bar
 
 A conversion is verified when:
@@ -321,12 +325,17 @@ the tarball and an `autotools/003-foo` would collide with a CMake `003-foo`.
 Numbers are not shared across the two sets, so pick names that stay distinct.
 
 - `autotools/001-programs-and-libraries` — all three target shapes at once:
-  `bin_PROGRAMS`, `noinst_LIBRARIES` and a libtool `lib_LTLIBRARIES`.
-  **Deliberately not enrolled** in `validation_workspace`: a program linking
-  a `.la` gets a libtool WRAPPER SCRIPT where the binary should be, so
-  ground-truth capture copies a shell script that cannot run once moved
-  (bzl-yjn.4). Its frozen `make -n -B` and `make -p -n` captures are the
-  evidence the `autotools.rs` unit tests deserialize.
+  `bin_PROGRAMS`, `noinst_LIBRARIES` and a libtool `lib_LTLIBRARIES`. Its
+  frozen build-output and `make -p -n` captures are the evidence the
+  `autotools.rs` unit tests deserialize.
+
+  **Not enrolled** in `validation_workspace`, and no longer for the reason it
+  once was: the libtool wrapper problem is fixed (bzl-yjn.4), and its ground
+  truth is now a real ELF binary. What blocks it now is that the generated
+  module does not compile — `greet.c` includes `"greet.h"` with a QUOTED
+  path, and header staging moves the header into `_include/` and drops it
+  from `hdrs`, so the include resolves to nothing (bzl-daj). Enrolling it is
+  that bead's acceptance test.
 - `autotools/002-sibling-sources-recursive-make` — enrolled, and the fixture
   that pins recursive make: `app/` compiles `../common/util.c`, so every path
   in the command stream is relative to the subdirectory the command ran in

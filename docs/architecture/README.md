@@ -17,9 +17,12 @@ growing a single monolithic design doc.
 - [needs-attention-interface.md](needs-attention-interface.md) — the
   translator → agent handoff contract: what the translator emits when it
   can't convert something, and what a resolution has to look like
-- [build-verification.md](build-verification.md) — how conversions get
+- [build-verification.md](build-verification.md) — how ONE conversion gets
   verified (build + test), and the path toward hermetic, remote-execution-
   friendly verification
+- [pipeline-metrics.md](pipeline-metrics.md) — how the whole corpus is
+  measured over time, so a change to the translator that moves some OTHER
+  project is visible. The question no per-conversion check asks
 - [configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md)
   — `configure_file`-generated config headers via a shared Bazel-native
   probing module. Used by both frontends: the catalog resolves CMake's

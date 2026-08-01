@@ -46,8 +46,22 @@ contract, not reproducibility of the process.
 ## Status
 
 Early stage / prototype. Validation uses small, synthetic ("unit") projects
-built specifically to exercise the translator (TDD-style), plus a growing
-corpus of real open-source projects.
+built specifically to exercise the translator (TDD-style), plus a corpus of
+real open-source projects — currently tinyxml2, zlib, fmt, json-c (CMake) and
+xz (Autotools).
+
+**[Pipeline metrics →](https://markreuter.dev/bazelifier/metrics/)** Open
+escalations, targets and tests across the whole corpus, tracked over time.
+
+Those numbers are *pre-agent*: what the deterministic translator produced on
+its own. An open escalation is unfinished work awaiting the agent stage, not a
+defect — see [how it works](#how-it-works) above. Generate the report locally
+with:
+
+```sh
+python3 tools/sweep/sweep.py --append metrics/history.jsonl
+python3 tools/sweep/report.py metrics/history.jsonl
+```
 
 ## Documentation
 
@@ -59,6 +73,7 @@ corpus of real open-source projects.
 - [docs/runbooks/](docs/runbooks/) — maintenance procedures for this repo
 - [docs/lore/](docs/lore/) — non-obvious discoveries and hard-won context
   that isn't captured elsewhere
+- [metrics/](metrics/) — the sweep's history and how to read it
 
 ## Scope
 

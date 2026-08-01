@@ -139,6 +139,15 @@ source in every fixture build.
   cost real effort to figure out (a CMake quirk, a Bazel toolchain gotcha, a
   reason an approach was abandoned). This is tribal knowledge that isn't
   derivable by re-reading the code.
+- `tools/sweep/` — measures the pipeline across ALL projects, which no
+  per-conversion check does: `sweep.py` reports escalations by kind, targets
+  and tests per project (`--post-agent <project>` for the after-the-agent
+  half), and `report.py` renders the history as one self-contained HTML page.
+  See `docs/architecture/pipeline-metrics.md`, especially the measured list
+  of what it catches and what it misses.
+- `metrics/history.jsonl` — one row per commit; `docs/metrics/index.html` is
+  the committed copy GitHub Pages serves, published at
+  <https://markreuter.dev/bazelifier/metrics/>.
 
 ## Working conventions
 
@@ -229,6 +238,13 @@ source in every fixture build.
   not the end state. The Bazel side must already be hermetic (via
   `llvm`/`rules_cc`) for anything the translator generates; don't regress
   that to "whatever the host compiler is."
+- **After a change that moves the corpus, re-run the sweep.** `python3
+  tools/sweep/sweep.py` takes under a second and says whether a fix moved
+  some *other* project — the failure mode that is otherwise invisible until
+  someone converts that project by hand. Appending to `metrics/history.jsonl`
+  and regenerating `docs/metrics/index.html` belongs in the SAME commit as
+  the change, because the page is served to the public and a stale one is
+  worse than none: it looks current.
 - **Formatting:** generated and hand-written Bazel files go through
   `buildifier` (`bazel run //:buildifier` to fix, `bazel test
   //:buildifier_check` to verify) — see
