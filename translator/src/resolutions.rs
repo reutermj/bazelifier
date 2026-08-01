@@ -96,9 +96,10 @@ gap is usually closed in Bazel.
 These hold regardless of which recipe you are following:
 
 - **Resolve in the GENERATED output.** Edit this module's `BUILD.bazel` and
-  its own copies of files. Never edit the project's `CMakeLists.txt` — it is
-  the input being translated, and "fixing" it leaves the next project with
-  the same shape just as broken.
+  its own copies of files. Never edit the project's own build files —
+  `CMakeLists.txt`, `Makefile.am`, `configure.ac`, whichever this project
+  uses. They are the input being translated, and "fixing" one leaves the next
+  project with the same shape just as broken.
 - **Do not vendor build-machine results.** Anything the conversion host
   computed (feature-detection values, a generated config header, an absolute
   path) is a fact about that host, not about this project. Baking it in makes
@@ -395,10 +396,15 @@ mod tests {
             .expect("resolutions/ must ship a README")
             .body;
 
-        assert!(
-            readme.contains("CMakeLists.txt"),
-            "must say not to edit the input build files:\n{readme}"
-        );
+        // Every build system this converts, not just the first one: the
+        // README ships byte-identical into all 35 modules, and an Autotools
+        // project has no CMakeLists.txt to be told not to edit.
+        for input in ["CMakeLists.txt", "Makefile.am", "configure.ac"] {
+            assert!(
+                readme.contains(input),
+                "must name {input} among the input build files not to edit:\n{readme}"
+            );
+        }
         assert!(
             readme.contains("vendor"),
             "must say not to vendor build-machine results:\n{readme}"

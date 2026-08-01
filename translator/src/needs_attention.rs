@@ -212,7 +212,13 @@ pub fn unmapped_config_macros_needs_attention(
              `check_symbol_exists` / `check_type_size`) and keep the translator's \
              `CATALOG_DEFINES` in sync (the `catalog_sync_check` test fails if you \
              update one and not the other); then it maps \
-             automatically here and for every later project;\n\
+             automatically here and for every later project. NOTE this is the one \
+             resolution you cannot carry out from inside this module: `cc_config` \
+             is not shipped in it, and is supplied at build time by \
+             `--override_module=cc_config=<bazelifier checkout>/cc_config` (see \
+             the root `MODULE.bazel`). Take this branch only if you have that \
+             checkout; otherwise use one of the two below, which need nothing \
+             outside this module;\n\
              - an alias of a fact the catalog already has (the `{output}` name differs only by \
              a project prefix from a catalog `HAVE_*`/`SIZEOF_*`): wire the aliased define to \
              that existing `@cc_config//catalog:` probe in the generated `config_header`;\n\
