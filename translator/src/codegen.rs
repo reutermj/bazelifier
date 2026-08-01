@@ -491,7 +491,14 @@ fn render_cc_rule(
         render_path_list(out, "hdrs", &hdrs);
     }
     let mut includes = target.includes.clone();
-    if target.needs_root_include && !target.public_headers.is_empty() {
+    // Matches what render_staged_headers actually stages, which is the
+    // target's public headers AND every generated config header. Requiring
+    // public headers alone left a target whose only staged file was a config
+    // header with no way to reach it: xz declares no public headers on
+    // liblzma, so `#include <config.h>` stayed unresolvable even though
+    // _include/config.h existed.
+    if target.needs_root_include && !(target.public_headers.is_empty() && config_headers.is_empty())
+    {
         includes.push(STAGED_INCLUDE_DIR.to_string());
     }
     render_path_list(out, "includes", &includes);

@@ -332,7 +332,14 @@ pub(crate) fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir:
         let declared = target.includes.iter().map(|d| (d, true));
         let implicit_dirs = implicit.iter().map(|d| (d, false));
         for (dir, recursive) in declared.chain(implicit_dirs) {
-            let absolute = normalize_lexically(Path::new(dir));
+            // Resolved against the source root rather than assumed absolute.
+            // The CMake frontend calls this BEFORE rebasing, so its include
+            // dirs arrive absolute; the Autotools frontend rebases as it
+            // builds the graph, so its arrive module-relative. `join` handles
+            // both — an absolute path replaces the base. Assuming absolute
+            // silently found nothing for the second caller, which surfaced as
+            // xz's lzma.h never being staged.
+            let absolute = normalize_lexically(&source_dir.join(dir));
             // The `strip_prefix` below would also reject an outside directory,
             // so this looks redundant and is not: it skips the `read_dir` of a
             // toolchain include path entirely (/usr/include and friends are
