@@ -83,11 +83,9 @@ average hides a project that regressed while another improved.
 - `docs/metrics/index.html` — the committed copy GitHub Pages serves
 
 Each conversion writes its own `CONVERSION.json`, which is what the sweep
-reads. That file deliberately does **not** supersede `TARGETS` or
-`needs_attention/MANIFEST`: both have consumers with semantics it must not
-take over, in particular `MANIFEST`'s *presence* being how
-`compare_runtime_output.sh` distinguishes "zero escalations" from "the
-runfiles path does not resolve".
+reads. It sits alongside `TARGETS` and `needs_attention/MANIFEST` rather than
+superseding them, for reasons that belong with the code that writes it — see
+`write_conversion_summary` in `translator/src/main.rs`.
 
 ## History starts where the record does
 
