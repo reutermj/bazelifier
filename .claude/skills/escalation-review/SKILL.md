@@ -53,6 +53,51 @@ against the project that produced it. Seven kinds ship today.
 5. **Would the resolution pass the equivalence check?** An escalation that
    suggests something the comparison would reject is worse than silence.
 
+## The sixth question, which runs both ways
+
+The five above ask whether an item is *right*. This one asks whether it
+should *exist* — and its inverse, which is the harder half.
+
+**A: should this escalate at all?** Escalations are for judgement about
+project semantics. Anything the translator could work out mechanically and
+punts instead looks like the pipeline working while costing an agent round
+trip on every conversion, forever. For each item, ask what the translator
+would need to know, and whether it already has it — `main.rs` reads a
+libtool `.la`'s `dlname=` and discards it, so codegen cannot emit the right
+SONAME.
+
+Volume is a signal here. An item naming 137 macros and one naming 2 are the
+same *kind* and a different problem; where a list is long and uniform, ask
+whether a stated, testable rule would collapse most of it.
+
+Be conservative. A rule that guesses wrong silently is worse than an
+escalation — the whole design says so — so "correctly escalated, leave it"
+is a real conclusion and usually the right one. Say *why*.
+
+**B: what should escalate and does not?** Something the translator cannot
+handle and passes over in silence. Worse than A, and harder to see, because
+the evidence is an absence: you cannot find it by reading the items, only by
+asking what a conversion dropped without saying so. This is the repo's named
+recurring failure, and it has bitten at least three times — a source that
+escaped the module, an unrecognised extension classified as a header,
+`unbuilt` targets collected and discarded behind a `let _ =`.
+
+Where to hunt: any `let _ =`, any `filter`/`filter_map`/`partition` that
+discards, any `unwrap_or_default`, any `continue` in a loop over declared
+things, any `if let Some(..)` whose else-branch does nothing. For each: if
+this drops something real, does the user learn?
+
+**Compare the frontends against each other.** One escalating a case the other
+silently drops is strong evidence, and they have already diverged that way
+twice.
+
+**A clean conversion is a claim.** Zero escalations asserts everything was
+understood. Spot-check a non-trivial one against what the project declares.
+
+A findings say "stop escalating this, here is the rule". B findings say
+"start escalating this, here is what is being lost" — name the input that
+would trigger it and what the user sees today instead.
+
 ## What this pass must NOT do
 
 - **Do not dedup, shorten, or merge.** Items are deliberately
@@ -88,12 +133,20 @@ comment accuracy, not duplication — and explicitly not the prose quality of
 that reads only the Rust source will report source-level observations and
 miss both live failure modes.
 
+**Question 6B needs the SOURCE too**, and that is not a contradiction: the
+shipped items answer "is this right", but "what is missing" can only be found
+by reading the frontends for what they discard. Give it both, and say which
+question each is for — an agent handed only the workspace will conclude the
+absences do not exist.
+
 **Severity:**
 
-- **P1** — the item states something FALSE for the project it shipped to, or
-  its resolution cannot be carried out from inside the module.
-- **P2** — accurate but names something the agent cannot reach, or describes
-  a limitation the translator no longer has.
+- **P1** — the item states something FALSE for the project it shipped to; its
+  resolution cannot be carried out from inside the module; or (question 6B) a
+  real gap is passed over silently, so the user learns nothing.
+- **P2** — accurate but names something the agent cannot reach, describes a
+  limitation the translator no longer has, or (question 6A) escalates
+  something the translator has the evidence to resolve itself.
 - **P3** — ambiguous, or missing a detail the agent would have to guess.
 
 **Require** the list of kinds read and which projects they came from — with
