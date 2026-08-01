@@ -48,15 +48,19 @@ pub enum TargetKind {
 ///
 /// Every path-valued field except `artifacts` is relative to the converted
 /// module's root — see [`is_module_relative`], which is the contract they
-/// all have to meet. That root is derived rather than assumed to be the
-/// CMake project directory, so these are not simply the paths the File API
-/// reported; `cmake_api::rebase_to_module_root` rewrites them.
+/// all have to meet. That root is DERIVED rather than assumed to be the
+/// project directory, so these are not the paths either frontend's source
+/// reported: `cmake_api::rebase_to_module_root` rewrites them after the fact,
+/// while the Autotools frontend rebases as it builds the graph, because
+/// recursive make reports each path against the directory its command ran
+/// in.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Target {
     pub name: String,
     pub kind: TargetKind,
-    /// Whether CMake declared this library SHARED. Only meaningful when
-    /// `kind` is [`TargetKind::Library`].
+    /// Whether the project declared this library shared — CMake's
+    /// `add_library(... SHARED)`, automake's `lib_LTLIBRARIES`. Only
+    /// meaningful when `kind` is [`TargetKind::Library`].
     ///
     /// A separate field rather than a `TargetKind::Library(Linkage)` payload
     /// because linkage does not change which Bazel rule the target becomes —
@@ -79,12 +83,14 @@ pub struct Target {
     /// it. These become `textual_hdrs` — "header files that cannot be
     /// compiled on their own", which is what a textually-included source is.
     pub textual_sources: Vec<String>,
-    /// Public header file paths — only ones CMake can confidently identify
-    /// as public, from either of two authoritative declarations: a
+    /// Public header file paths — only ones the PROJECT declared public, and
+    /// only from an authoritative declaration. In CMake that is a
     /// `target_sources(... FILE_SET ... TYPE HEADERS)` with
     /// `PUBLIC`/`INTERFACE` visibility, or an `install(FILES ... DESTINATION
     /// <include dir>)` (the latter also covers headers no target enumerated
-    /// at all — see `inject_unenumerated_installed_headers`).
+    /// at all — see `inject_unenumerated_installed_headers`). In automake it
+    /// is an `include_HEADERS` primary — the install destination is the same
+    /// claim, spelled differently.
     ///
     /// A header with neither signal is NOT here, however obviously public it
     /// looks: being reachable on an include path makes a header an input, not
@@ -93,8 +99,9 @@ pub struct Target {
     /// guessed at.
     pub public_headers: Vec<String>,
     /// Names of other targets in this project that this target links
-    /// against (from `target_link_libraries`), resolved from the CMake
-    /// File API's opaque dependency ids back to target names.
+    /// against, resolved back to target NAMES — from the File API's opaque
+    /// dependency ids for CMake, and from the artifacts a link command names
+    /// for Autotools.
     pub dependencies: Vec<String>,
     /// Whether this target declared its own module root as an include
     /// directory, which Bazel cannot express.
@@ -105,14 +112,19 @@ pub struct Target {
     /// `-iquote .` for a root package — never `-I`. So a header at the module
     /// root is unreachable by `#include <angled>`, which zlib's `zlib.h` does
     /// for `zconf.h`. Codegen works around it by staging the target's PUBLIC
-    /// headers into a private subdirectory it can name; see
-    /// `codegen::render_staged_headers`.
+    /// headers AND every generated config header into a private subdirectory
+    /// it can name; see `codegen::render_staged_headers`. Both halves matter:
+    /// treating public headers as the whole set left xz's liblzma, which
+    /// declares none, with an include path into a directory it was never
+    /// given.
     ///
     /// Recorded rather than acted on here because it is a fact about the
     /// project (it asked for its root on the include path), while the
     /// workaround is a fact about Bazel.
     pub needs_root_include: bool,
-    /// Include directories (from `target_include_directories`). Emitted as
+    /// Include directories the target compiles with — CMake's
+    /// `target_include_directories`, or the `-I` flags on an Autotools
+    /// compile line. Emitted as
     /// the `includes` attribute, which Bazel propagates transitively to
     /// consumers — so this only needs to be captured on the target that
     /// declared it, not duplicated onto every dependent. See

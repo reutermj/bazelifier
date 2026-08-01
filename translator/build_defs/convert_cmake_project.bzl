@@ -34,10 +34,11 @@ def _derived_source_dir(srcs, marker):
              "top-level %s at the same depth: %s" % (marker, shallowest))
     return shallowest[0]
 
-# What each frontend's projects are recognised and described by. The rule is
-# otherwise identical for both — the translator detects the frontend from the
-# source directory itself (see main.rs::detect_frontend), so nothing here
-# needs to tell it which to use.
+# What each frontend's projects are recognised and described by. The marker
+# both locates the project root and is the file whose presence the BUILD author
+# is asserting; the chosen key is also passed to the translator as
+# `--frontend`, overriding its own detection — see where that is added below
+# for why detection is not enough.
 _FRONTENDS = {
     "cmake": struct(marker = "CMakeLists.txt", label = "CMake"),
     "autotools": struct(marker = "configure.ac", label = "Autotools"),
@@ -133,10 +134,9 @@ convert_cmake_project = rule(
 def convert_autotools_project(name, **kwargs):
     """Converts an Autotools project into a standalone Bazel module.
 
-    A thin wrapper rather than a separate rule: the pipeline is identical, and
-    the translator detects the frontend from the source directory itself. What
-    differs is only which file marks the project root, which the `frontend`
-    attribute selects.
+    A thin wrapper rather than a separate rule: the pipeline is identical. The
+    `frontend` attribute is what differs, and it selects both the root marker
+    (`configure.ac`) and the frontend the translator is told to use.
 
     The project must be BOOTSTRAPPED — `configure` present, not just
     `configure.ac`. A released tarball already is; a git checkout needs

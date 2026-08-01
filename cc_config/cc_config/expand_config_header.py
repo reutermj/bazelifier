@@ -40,11 +40,14 @@ import sys
 # rewrites the line to `#define FOO 1` when set and leaves it as a comment when
 # not, which is exactly what this expander already does for #cmakedefine.
 #
-# Anchored at line start, unlike _CMAKEDEFINE: a `#undef` in the middle of a
-# line is ordinary C preprocessor code undefining a macro, and rewriting that
-# would corrupt a header rather than configure it. autoconf only ever emits its
-# own directives at column 0. Verified against GNU hello's config.in, which has
-# 227 of them.
+# Matched only as a WHOLE line, unlike _CMAKEDEFINE: a `#undef` with anything
+# around it is ordinary C undefining a macro, and rewriting that would corrupt
+# a header rather than configure it. autoconf emits its own directives alone on
+# the line.
+#
+# The trailing `\s*$` is what enforces that, not the leading `^` — these are
+# applied with `re.match`, which already anchors at the start. The `^` is
+# therefore redundant and kept only for symmetry with the patterns below.
 _AC_UNDEF = re.compile(r"^#\s*undef\s+(\S+)\s*$")
 
 _CMAKEDEFINE01 = re.compile(r"^(.*?)#cmakedefine01\s+(\S+)\s*$")

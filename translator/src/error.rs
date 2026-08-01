@@ -9,7 +9,7 @@
 //! though it never was one.
 //!
 //! Variants are named for what the user has to fix, not for the Rust
-//! operation that failed: `CmakeConfigureFailed` carries CMake's own stderr
+//! operation that failed: `ConfigureFailed` carries CMake's own stderr
 //! because that text, not ours, is what tells someone what went wrong in
 //! their project. See `main.rs::report` for how it reaches the terminal.
 
@@ -17,13 +17,22 @@
 pub enum Error {
     Io(std::io::Error),
     Json(serde_json::Error),
-    CmakeConfigureFailed {
+    ConfigureFailed {
         stderr: String,
     },
-    CmakeBuildFailed {
+    BuildFailed {
         stderr: String,
     },
     NoProject,
+    /// No frontend recognised the source directory.
+    ///
+    /// Distinct from `NoProject`, which means a CMake reply arrived and was
+    /// empty. Here nothing has run yet and the tool may not be CMake at all,
+    /// so a message naming a codemodel would send the reader somewhere the
+    /// problem is not.
+    NoFrontendDetected {
+        source_dir: String,
+    },
     SourceDirOutsideDeliverableRoot {
         source_dir: String,
         deliverable_root: String,
@@ -35,19 +44,25 @@ impl std::fmt::Display for Error {
         match self {
             Error::Io(e) => write!(f, "I/O error: {e}"),
             Error::Json(e) => write!(f, "failed to parse CMake File API JSON: {e}"),
-            Error::CmakeConfigureFailed { stderr } => {
-                write!(f, "cmake configure failed:\n{stderr}")
+            Error::ConfigureFailed { stderr } => {
+                write!(f, "configure step failed:\n{stderr}")
             }
-            Error::CmakeBuildFailed { stderr } => {
-                write!(f, "cmake build failed:\n{stderr}")
+            Error::BuildFailed { stderr } => {
+                write!(f, "build step failed:\n{stderr}")
             }
             Error::NoProject => write!(f, "codemodel reply contains no project()"),
+            Error::NoFrontendDetected { source_dir } => write!(
+                f,
+                "no supported build system found in {source_dir}: expected a \
+                 CMakeLists.txt (CMake) or configure.ac (Autotools) at its \
+                 root. Pass --frontend to choose explicitly."
+            ),
             Error::SourceDirOutsideDeliverableRoot {
                 source_dir,
                 deliverable_root,
             } => write!(
                 f,
-                "the CMake project directory ({source_dir}) is not inside the declared \
+                "the project directory ({source_dir}) is not inside the declared \
                  deliverable root ({deliverable_root}); the deliverable root must contain \
                  the project being converted"
             ),

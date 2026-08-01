@@ -114,6 +114,7 @@ config_header(
     probes = [
         ":have_stdlib_h",
         ":have_no_such_symbol",
+        ":have_definitely_no_such_header",
         ":sizeof_long",
     ],
     template = "testdata/config.h.in",
@@ -142,8 +143,12 @@ assert_config_header_test(
         "/* #define HAVE_STDLIB_H cc_config_test*/",
         # autoconf's `#undef FOO` resolves the same way `#cmakedefine FOO`
         # does, so the same probe result produces the same header whichever
-        # build system the project used.
+        # build system the project used. Both directions, and the false one
+        # uses a macro NO #cmakedefine in this template mentions — otherwise
+        # the other dialect satisfies the needle and disabling this branch
+        # entirely leaves the test green.
         "#define HAVE_STDLIB_H 1",
+        "/* #undef HAVE_DEFINITELY_NO_SUCH_HEADER_H */",
         # A mid-line #undef is ordinary C undefining a macro, not a directive
         # to rewrite; rewriting it would corrupt the header.
         "int not_a_directive; /* #undef LEAVE_ME_ALONE */",

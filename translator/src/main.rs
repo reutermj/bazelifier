@@ -118,13 +118,28 @@ fn report(error: &dyn std::error::Error) -> String {
     format!("error: {error}")
 }
 
+/// The frontend to convert with: an explicit `--frontend` if given, else
+/// whatever the project's own files say.
+///
+/// Its own function so the PRECEDENCE is testable. The override is not a
+/// convenience — xz ships both `CMakeLists.txt` and `configure.ac`, detection
+/// picks CMake, and converting xz as CMake fails deep inside that frontend on
+/// a File API reply that was never written.
+fn choose_frontend(explicit: Option<Frontend>, source_dir: &Path) -> Option<Frontend> {
+    explicit.or_else(|| detect_frontend(source_dir))
+}
+
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let deliverable_root = args.deliverable_root.as_ref().unwrap_or(&args.source_dir);
-    let frontend = match args.frontend.or_else(|| detect_frontend(&args.source_dir)) {
+    let frontend = match choose_frontend(args.frontend, &args.source_dir) {
         Some(frontend) => frontend,
-        None => return Err(Box::new(error::Error::NoProject)),
+        None => {
+            return Err(Box::new(error::Error::NoFrontendDetected {
+                source_dir: args.source_dir.display().to_string(),
+            }))
+        }
     };
     let discovery = match frontend {
         Frontend::Cmake => cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?,
@@ -553,7 +568,7 @@ mod tests {
     // nothing else in the suite would notice.
     #[test]
     fn report_formats_with_display_not_debug() {
-        let error = error::Error::CmakeConfigureFailed {
+        let error = error::Error::ConfigureFailed {
             stderr: "CMake Error at CMakeLists.txt:3 (add_executable):\n  Cannot find source \
                      file:\n\n    does_not_exist.cpp\n"
                 .to_string(),
@@ -561,11 +576,15 @@ mod tests {
 
         let reported = report(&error);
 
-        assert!(reported.contains("cmake configure failed:\n"));
+        assert!(
+            reported.contains("configure step failed:\n"),
+            "named for the step, not the build system — both frontends reach \
+             this variant:\n{reported}"
+        );
         assert!(reported.contains("Cannot find source file"));
         // Debug would name the variant and escape the newlines into one line.
         assert!(
-            !reported.contains("CmakeConfigureFailed"),
+            !reported.contains("ConfigureFailed"),
             "Debug formatting leaked into the message:\n{reported}"
         );
         assert!(
@@ -613,13 +632,28 @@ mod tests {
         // rather than defaulting means the failure names the real problem
         // instead of surfacing deep inside a frontend.
         assert_eq!(detect_frontend(&make("empty", &[])), None);
+
+        // The override, whose whole reason for existing is the "both" case
+        // above: detection says CMake, and xz has to convert as Autotools.
+        let both = make("both", &["CMakeLists.txt", "configure.ac"]);
+        assert_eq!(
+            choose_frontend(Some(Frontend::Autotools), &both),
+            Some(Frontend::Autotools),
+            "--frontend must beat detection, or a dual-build-system project \
+             cannot be converted as anything but CMake"
+        );
+        assert_eq!(
+            choose_frontend(None, &both),
+            Some(Frontend::Cmake),
+            "and without it, detection still decides"
+        );
     }
 
     #[test]
     fn report_covers_every_error_variant_readably() {
         let variants: Vec<Box<dyn std::error::Error>> = vec![
             Box::new(error::Error::NoProject),
-            Box::new(error::Error::CmakeBuildFailed {
+            Box::new(error::Error::BuildFailed {
                 stderr: "ninja: build stopped\n".to_string(),
             }),
             Box::new(error::Error::SourceDirOutsideDeliverableRoot {

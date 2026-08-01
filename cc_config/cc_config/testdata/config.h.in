@@ -15,5 +15,8 @@
    with its own directive, written as the false case. A project converted from autotools
    ships templates in this form (GNU hello's config.in has 227). */
 #undef HAVE_STDLIB_H
-#undef HAVE_NO_SUCH_SYMBOL
+/* A macro reached ONLY through autoconf's dialect. HAVE_NO_SUCH_SYMBOL used
+   to serve here too, but it is also a #cmakedefine above, so its expansion
+   satisfied the assertion whether or not this branch ran at all. */
+#undef HAVE_DEFINITELY_NO_SUCH_HEADER_H
 int not_a_directive; /* #undef LEAVE_ME_ALONE */

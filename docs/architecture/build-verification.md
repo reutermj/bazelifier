@@ -16,11 +16,11 @@ A conversion is verified when:
    `BUILD.bazel` that only happens to build because it inherited
    bazelifier's `MODULE.bazel` does not count.
 2. The generated module is **functionally equivalent** to the original
-   CMake project — not necessarily binary-identical, but behaviorally the
-   same. See "Equivalence checks" below for what that means concretely.
+   project — not necessarily binary-identical, but behaviorally the same.
+   See "Equivalence checks" below for what that means concretely.
 
-We are not targeting binary compatibility with the CMake/Ninja build.
-Toolchain differences (hermetic LLVM vs. whatever the host CMake used),
+We are not targeting binary compatibility with the original build.
+Toolchain differences (hermetic LLVM vs. whatever the host build used),
 flag normalization, etc. mean the built artifacts will differ at the byte
 level. What must match is behavior.
 
@@ -28,12 +28,20 @@ level. What must match is behavior.
 
 1. **`convert_cmake_project`** (a Bazel rule,
    `translator/build_defs/convert_cmake_project.bzl`) runs the `bazelifier`
-   binary as an action against a fixture's CMake sources. The translator:
-   - Configures the project and runs the CMake File API (`codemodel-v2`,
-     `cache-v2`) to discover targets — see
-     [cmake-frontend.md](cmake-frontend.md).
-   - Actually builds the project (`cmake --build`) to produce **ground-truth
-     artifacts** (the real cmake+ninja-built binaries).
+   binary as an action against a fixture's sources. Its `frontend` attribute
+   selects which build system to read, and picks both the file that marks the
+   project root and the `--frontend` the translator is told to use;
+   `convert_autotools_project` is a thin wrapper that passes
+   `frontend = "autotools"`. Passing it explicitly rather than relying on the
+   translator's own detection matters for a project shipping BOTH — xz has
+   `CMakeLists.txt` and `configure.ac`, and which to convert is the BUILD
+   author's choice. The translator:
+   - Configures the project and interrogates its build system to discover
+     targets — the CMake File API (`codemodel-v2`, `cache-v2`), see
+     [cmake-frontend.md](cmake-frontend.md); or `make -n`/`make -p`, see
+     [autotools-frontend.md](autotools-frontend.md).
+   - Actually builds the project to produce **ground-truth artifacts** (the
+     real binaries the project's own build system produced).
    - Emits a standalone Bazel module: `MODULE.bazel`, `BUILD.bazel` (the
      user-facing converted output — see
      [bazel-codegen.md](bazel-codegen.md)), copied sources, and a
@@ -102,8 +110,8 @@ level. What must match is behavior.
    the build and tests are re-run. This repeats until the suite is green.
    The agent stage is part of the pipeline under test, not a manual
    escape hatch: what these fixtures validate is that **the translator
-   plus an agent** can convert a CMake project, not that the translator
-   can do it alone.
+   plus an agent** can convert a project, not that the translator can do
+   it alone.
 
 The unit under test is the whole pipeline. **Green is the only passing
 state** — a red fixture means an open `needs_attention` item the agent stage
@@ -113,15 +121,16 @@ loop cycle is tested); what is never acceptable is treating a red fixture as
 a *finished* outcome — leaving the item open and calling it done, or making
 it green by editing the immutable input instead of the generated output.
 
-### The input CMake is immutable
+### The input build files are immutable
 
-Fixture `CMakeLists.txt` files are test inputs and are **never edited to
-make a conversion succeed**. A pattern the translator can't handle (like
+A fixture's own build files — `CMakeLists.txt`, `Makefile.am`,
+`configure.ac` — are test inputs and are **never edited to make a
+conversion succeed**. A pattern the translator can't handle (like
 `003-library-no-file-set`'s plain, non-`FILE_SET` headers) is a real
 shape found in real projects — the goal is a translator and escalations
 robust enough to handle it, not a corpus curated down to the subset that
-happens to convert cleanly. "Fix the CMake" is never the resolution to a
-`needs_attention` item.
+happens to convert cleanly. "Fix the project's build files" is never the
+resolution to a `needs_attention` item.
 
 ## Equivalence checks
 
@@ -302,6 +311,26 @@ building against a fixture with nothing to differentiate):
   `sources_outside_deliverable_needs_attention`, which `006`'s
   non-escalating case doesn't reach. Same non-load-bearing-symbol
   discipline as `007`, for the same reason.
+
+### Autotools fixtures
+
+These live under `fixtures/autotools/` rather than in the numbered sequence,
+which is the one thing to know about the layout: `validation_workspace`
+stages every fixture by its package BASENAME, so the nesting is erased in
+the tarball and an `autotools/003-foo` would collide with a CMake `003-foo`.
+Numbers are not shared across the two sets, so pick names that stay distinct.
+
+- `autotools/001-programs-and-libraries` — all three target shapes at once:
+  `bin_PROGRAMS`, `noinst_LIBRARIES` and a libtool `lib_LTLIBRARIES`.
+  **Deliberately not enrolled** in `validation_workspace`: a program linking
+  a `.la` gets a libtool WRAPPER SCRIPT where the binary should be, so
+  ground-truth capture copies a shell script that cannot run once moved
+  (bzl-yjn.4). Its frozen `make -n -B` and `make -p -n` captures are the
+  evidence the `autotools.rs` unit tests deserialize.
+- `autotools/002-sibling-sources-recursive-make` — enrolled, and the fixture
+  that pins recursive make: `app/` compiles `../common/util.c`, so every path
+  in the command stream is relative to the subdirectory the command ran in
+  rather than to the build root.
 
 ## Header visibility is not enforced by default
 

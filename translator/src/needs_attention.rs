@@ -78,7 +78,7 @@ pub fn sources_outside_deliverable_needs_attention(
             "Target '{target_name}' compiles {} source file(s) that the translator could not \
              place inside the generated module:\n\n{}\n\nThey were left out of the generated \
              rule's `srcs`. The module's root is derived, not assumed: it is the deepest \
-             directory containing both the CMake project and everything the build references \
+             directory containing both the project and everything the build references \
              from inside the declared DELIVERABLE ROOT. These files sit outside that \
              deliverable root, so the module was not widened to cover them — and a Bazel \
              label cannot refer to anything above its own module root.",
@@ -98,8 +98,9 @@ pub fn sources_outside_deliverable_needs_attention(
              `../shared/` that ships alongside the project — then nothing is wrong with the \
              project, and nothing is wrong with the translator either: the deliverable root \
              was simply declared too narrowly. It is set by `--deliverable-root` (or the \
-             `deliverable_root` attribute on `convert_cmake_project`) and defaults to the \
-             CMake project directory, which is why a sibling directory falls outside it \
+             `deliverable_root` attribute on the conversion rule) and defaults to the \
+             project's own source directory, which is why a sibling directory falls outside \
+             it \
              unless you say otherwise. Re-running the conversion with a root that contains \
              both the project and these files widens the module to cover them, rewrites every \
              path relative to the new root, and emits no escalation at all. That is the \
@@ -123,8 +124,9 @@ pub fn sources_outside_deliverable_needs_attention(
              to paper over a root that was declared too narrowly. For the second, make each \
              file reachable from '{target_name}' by a relative Bazel label — vendored into \
              this module, or supplied by a `deps` edge on another module — and wire it into \
-             the generated `BUILD.bazel`. Either way, do NOT edit the project's CMakeLists.txt \
-             to move or inline the files."
+             the generated `BUILD.bazel`. Either way, do NOT edit the project's own build \
+             files (`CMakeLists.txt`, `Makefile.am`, `configure.ac`) to move or inline the \
+             files."
         ),
         title,
     }

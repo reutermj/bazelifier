@@ -50,13 +50,20 @@ correct — the same trap as re-implementing CMake-the-language.
 `make -n` prints exactly what the build would run, fully expanded:
 
 ```
-gcc -DHAVE_CONFIG_H -I. -Isrc -g -O2 -c -o src/greet.o src/greet.c
+gcc -DPACKAGE_NAME=\"greeter\" ... -I. -g -O2 -c -o src/greet.o src/greet.c
 ar cru libgreet.a src/greet.o
-libtool --mode=link gcc -o greeter src/main.o libgreet.a libshout.la
+/bin/bash ./libtool --tag=CC --mode=link gcc -o greeter src/main.o libgreet.a libshout.la
 ```
 
-It is also **byte-identical between runs** — verified, and more deterministic
-than the CMake File API, which reports dependency order unstably (bzl-sjp).
+(Elided in the middle: `configure` puts its whole substitution block —
+`PACKAGE_NAME`, `VERSION`, every `HAVE_*` it probed — on every compile line.
+Those quotes are why generated Starlark strings have to be escaped.)
+
+It is also stable between runs in the ordering that matters — the command
+sequence — where the CMake File API reports dependency order unstably
+(bzl-sjp). It is not byte-identical: `-B` forces a `config.status --recheck`
+preamble whose content varies, which is why the frontend recognises only the
+handful of programs that build something and ignores every other line.
 
 ## Second source: `make -p`, for identity
 
@@ -96,9 +103,17 @@ and unreliable for the rest:
 
 | automake | model |
 |---|---|
-| `bin_PROGRAMS`, `check_PROGRAMS` | `TargetKind::Executable` |
+| `bin_PROGRAMS` | `TargetKind::Executable` |
 | `noinst_LIBRARIES`, `lib_LIBRARIES` | `TargetKind::Library`, `is_shared = false` |
 | `lib_LTLIBRARIES` | `TargetKind::Library`, `is_shared = true` |
+| `check_PROGRAMS` | *skipped* — see below |
+
+`check_PROGRAMS` are declared but **not built by `make`** (that is `make
+check`), so no link command exists and nothing says which directory their
+sources are relative to. Skipping is the honest option: a target whose sources
+were resolved against a guessed directory is worse than an absent one, and the
+guess fails loudly on copy, which is how this was found. They are recorded for
+the escalation they deserve (bzl-yjn.5).
 
 The prefix before the underscore is the **install destination** and carries
 real meaning — `noinst_` means built but never installed. That is closer to
@@ -128,8 +143,7 @@ installed — the same claim CMake makes with
 frontend already models. A header listed in `_SOURCES` but not installed stays
 private.
 
-This needs no `Makefile.am` parsing: `make -p` reports the primary, and
-`make -n install` shows the install rule if confirmation is wanted.
+This needs no `Makefile.am` parsing: `make -p` reports the primary directly.
 
 ### Config headers, in autoconf's dialect
 
@@ -149,12 +163,52 @@ corrupt a header rather than configure it.
 
 ## Ordering, and why it is load-bearing
 
-`discover` configures, then interrogates, then builds — and the interrogation
-must come **before** the build, unlike the CMake frontend where the order does
-not matter.
+`discover` configures, then **builds**, then interrogates — and the dry run
+passes `-B`. Both halves are load-bearing, and each obvious alternative fails
+on a real project:
 
-`make -n` on a fully built tree prints "nothing to do". The command stream is
-the entire input, so taking the dry run after the build yields nothing at all.
+- **Interrogating before the build** fails outright on a recursive project.
+  xz's `src/xzdec` needs `../../src/liblzma/liblzma.la`, which no subdirectory
+  has built yet, so `make` reports "No rule to make target" and exits 2.
+- **A plain `make -n` after the build** succeeds and prints *nothing*: every
+  target is up to date, and the command stream is the entire input.
+
+`-B` asks what a full rebuild *would* run, which is the question this frontend
+actually needs, and a built tree is the only state in which every subdirectory
+can answer it. The build has to happen anyway — ground-truth artifacts come
+from it (see [build-verification.md](build-verification.md)) — so the ordering
+costs nothing beyond the forced re-listing.
+
+## Recursive make changes two things, both silently
+
+`SUBDIRS` recursion is not a corner case — xz uses it, and it breaks two
+assumptions that hold for CMake+Ninja. Both were found the same way: a
+conversion that succeeded while producing the wrong thing.
+
+**Commands run from the subdirectory, so paths are relative to it.** `make`
+descends into each `SUBDIRS` entry and runs that directory's commands from
+there. xz's `src/xz` compiles `../common/tuklib_mbstr_width.c`; taken at face
+value against the build root, that path reaches above the module, which no
+Bazel label can express. `BuildCommand::dir` tracks make's `Entering`/`Leaving`
+announcements as a **stack** (they nest — `make[2]` inside `make[1]`), and
+every path is resolved against the directory its own command ran in.
+
+CMake+Ninja needs no equivalent: it runs every command from the build root, so
+its paths are already root-relative. This is a structural difference between
+the build systems, not an oversight in the CMake frontend.
+
+**`make -p` concatenates every subdirectory's database, so one name is defined
+several times.** For a per-target variable that is harmless — `xz_SOURCES`
+belongs to whichever directory declares `xz` and no other. For a **primary** it
+is not: `bin_PROGRAMS` is declared once per directory, so xz emits four
+definitions of it. Keeping the last one dropped the project's namesake `xz`
+binary and reported success. Primaries therefore accumulate across definitions;
+everything else keeps make's last-assignment-wins.
+
+The top-level definition is usually a list of automake internals
+(`$(am__EXEEXT_1)`), unexpanded because make never had to expand it. Those are
+skipped rather than taken as target names — the real names arrive from the
+subdirectory definitions merged in alongside them.
 
 ## Known gaps
 
@@ -165,17 +219,17 @@ the entire input, so taking the dry run after the build yields nothing at all.
   uninstalled-binary mechanism and has no CMake analogue — see
   [../lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md](../lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md)
   (bzl-yjn.4).
-- **No escalations.** The frontend models what it can see and does not yet
-  detect the gaps worth escalating. Honest now, wrong as soon as it meets a
-  project it cannot fully convert.
-- **External libraries are recognised but not reported.** A library the project
-  links and does not build (a system `libintl`) is collected and currently
-  discarded; it is an input the generated module cannot satisfy, so it deserves
-  an escalation.
+- **Two gaps are recovered but not yet escalated.** The frontend escalates
+  unmapped config macros and sources that escape the module; it collects two
+  more and discards them (bzl-yjn.5):
+  - **External libraries.** A library the project links and does not build (a
+    system `libintl`) is an input the generated module cannot satisfy.
+  - **Declared targets `make` never produced.** `check_PROGRAMS` are the live
+    case — see the target table above.
+
+  Both fail *loudly* (an unresolved library, an absent target), which is why
+  the silent one — a dropped source, surfacing as an undefined symbol several
+  steps from its cause — was escalated first.
 - **An already-configured source tree fails**, because `configure` refuses to
   run twice. Converting a tree someone has built in place is a normal thing to
   attempt.
-- **Recursion is untested.** `SUBDIRS` appears in the database, so a recursive
-  project is *detectable*; GNU hello is non-recursive for target purposes
-  (its one subdirectory builds no C), so nothing has exercised the recursive
-  path.

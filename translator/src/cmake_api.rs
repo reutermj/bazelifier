@@ -236,9 +236,6 @@ struct CacheEntry {
     value: String,
 }
 
-/// A completed discovery pass: the build graph, the gaps that kept parts of
-/// the project out of it, and the directory on this machine that the
-
 /// What one codemodel reply yields. Named rather than returned as a tuple:
 /// its two `Vec` members and two path-ish members are easy to transpose at
 /// a call site, and the compiler would not notice.
@@ -361,7 +358,7 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<String, Error> {
 
     let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
     if !output.status.success() {
-        return Err(Error::CmakeConfigureFailed { stderr });
+        return Err(Error::ConfigureFailed { stderr });
     }
     Ok(stderr)
 }
@@ -373,7 +370,7 @@ fn build(build_dir: &Path) -> Result<(), Error> {
         .output()?;
 
     if !output.status.success() {
-        return Err(Error::CmakeBuildFailed {
+        return Err(Error::BuildFailed {
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
         });
     }

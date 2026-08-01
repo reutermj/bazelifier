@@ -6,17 +6,20 @@ project's own repo with no dependency on bazelifier itself. It pairs a
 deterministic translator with AI-agent assistance for the cases the
 translator can't handle mechanically.
 
-The project starts with **CMake** as its first supported build system, but
-the architecture is meant to generalize to other build systems (Make,
-Autotools, Meson, ...) over time.
+Two build systems are supported: **CMake** (via the CMake File API) and
+**Autotools** (autoconf + automake + libtool, via `make`'s own resolved
+command stream). Both read into one build-system-neutral model that a single
+code generator renders, so adding a third (Make, Meson, ...) means adding a
+frontend, not a second pipeline.
 
 ## How it works
 
-1. **Deterministic translator** — discovers a CMake project's targets via
-   the CMake File API and mechanically emits a **standalone Bazel module**
-   for it (its own `MODULE.bazel` + `BUILD.bazel`, copied sources) for the
-   patterns it recognizes. It also runs the project's real build to
-   capture ground-truth artifacts for verification.
+1. **Deterministic translator** — discovers a project's targets by asking
+   its build system (the CMake File API; `make -n`/`make -p` for Autotools)
+   and mechanically emits a **standalone Bazel module** for it (its own
+   `MODULE.bazel` + `BUILD.bazel`, copied sources) for the patterns it
+   recognizes. It also runs the project's real build to capture ground-truth
+   artifacts for verification.
 2. **Agent stage** — when the translator hits something it doesn't know how
    to handle (an unsupported generator expression, a custom command, an
    unusual dependency shape), it writes a **`needs_attention/` item**: a
@@ -30,7 +33,7 @@ Autotools, Meson, ...) over time.
    considered successful once the generated module builds with **no
    reference back to bazelifier's own workspace** (verified by packaging it
    into a tarball, unpacking it completely outside this repo, and building
-   from there) *and* behaves equivalently to the original CMake build (not
+   from there) *and* behaves equivalently to the original build (not
    necessarily binary-identical — currently a runtime output comparison
    against the captured ground truth). See
    [docs/architecture/build-verification.md](docs/architecture/build-verification.md).
@@ -42,10 +45,9 @@ contract, not reproducibility of the process.
 
 ## Status
 
-Early stage / prototype. Validation currently uses small, synthetic
-("unit") CMake projects built specifically to exercise the translator
-(TDD-style), with a longer-term goal of expanding to real-world open-source
-CMake projects as corpus.
+Early stage / prototype. Validation uses small, synthetic ("unit") projects
+built specifically to exercise the translator (TDD-style), plus a growing
+corpus of real open-source projects.
 
 ## Documentation
 
@@ -60,10 +62,10 @@ CMake projects as corpus.
 
 ## Scope
 
-- **In scope (now):** CMake → Bazel conversion, starting with C/C++ projects
-  built with CMake + Ninja.
-- **In scope (future):** other build systems (Make, Autotools, Meson, etc.),
-  broader language support, hermetic/remote-execution-friendly builds.
+- **In scope (now):** CMake → Bazel and Autotools → Bazel conversion, for
+  C/C++ projects.
+- **In scope (future):** further build systems (Make, Meson, etc.), broader
+  language support, hermetic/remote-execution-friendly builds.
 - **Out of scope (for now):** anything not related to translating a build
   system's build graph into Bazel.
 

@@ -7,7 +7,12 @@ growing a single monolithic design doc.
 ## Index
 
 - [overview.md](overview.md) — system overview and pipeline
-- [cmake-frontend.md](cmake-frontend.md) — parsing/understanding CMake input
+- [cmake-frontend.md](cmake-frontend.md) — reading CMake input, via the
+  CMake File API
+- [autotools-frontend.md](autotools-frontend.md) — reading Autotools input,
+  via `make`'s resolved command stream and variable database. Written to be
+  read alongside `cmake-frontend.md`: the two frontends make the same
+  decisions for the same reasons and differ mainly in available evidence
 - [bazel-codegen.md](bazel-codegen.md) — emitting Bazel `BUILD` files
 - [needs-attention-interface.md](needs-attention-interface.md) — the
   translator → agent handoff contract: what the translator emits when it
@@ -16,8 +21,9 @@ growing a single monolithic design doc.
   verified (build + test), and the path toward hermetic, remote-execution-
   friendly verification
 - [configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md)
-  — planned design for `configure_file`-generated config headers via a
-  shared Bazel-native probing module (not yet implemented)
+  — `configure_file`-generated config headers via a shared Bazel-native
+  probing module. Used by both frontends: the catalog resolves CMake's
+  `#cmakedefine` and autoconf's `#undef` identically
 
 ## Conventions
 
