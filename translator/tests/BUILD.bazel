@@ -39,6 +39,7 @@ validation_workspace(
         "//translator/tests/corpus/json-c:converted",
         "//translator/tests/corpus/fmt:converted",
         "//translator/tests/corpus/zlib:converted",
+        "//translator/tests/corpus/xz:converted",
         "//translator/tests/fixtures/autotools/002-sibling-sources-recursive-make:converted",
         "//translator/tests/fixtures/autotools/003-sibling-outside-project-root:converted",
     ],

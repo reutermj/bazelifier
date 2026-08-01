@@ -50,6 +50,10 @@ pub fn all() -> Vec<Recipe> {
             body: GENERATED_CONFIG_HEADER,
         },
         Recipe {
+            filename: "unmapped-config-macros.md",
+            body: UNMAPPED_CONFIG_MACROS,
+        },
+        Recipe {
             filename: "header-visibility.md",
             body: HEADER_VISIBILITY,
         },
@@ -74,7 +78,12 @@ gap is usually closed in Bazel.
 2. Find the recipe whose name matches the shape of the gap:
 
    - `generated-config-header.md` — a header the build generates from a
-     template (`configure_file`), or macros with no probe.
+     template (`configure_file`) that the translator could not reproduce at
+     all.
+   - `unmapped-config-macros.md` — the header IS reproduced, but names macros
+     the shared catalog has no probe for. Start here when the item hands you a
+     long list of names; they sort into four groups and are decided per group,
+     not per name.
    - `header-visibility.md` — a library whose headers nothing declares public.
    - `ctest-command-not-a-target.md` — a registered test whose command is not
      a binary this module builds.
@@ -462,3 +471,103 @@ mod tests {
         );
     }
 }
+
+/// Recipe for the biggest escalation class by volume: a config header the
+/// translator DID reproduce, except for macros with no catalog probe.
+///
+/// Written from resolving xz, whose `config.h.in` names 153 of them. The
+/// value is not the specific answers — those are xz's — but the
+/// classification, because triaging 150 names one at a time is what makes
+/// this escalation look impossible when it is actually four groups.
+const UNMAPPED_CONFIG_MACROS: &str = r##"# Recipe: a config header naming macros the catalog does not have
+
+## When this applies
+
+A `needs_attention` item titled "Config header ... references names not in the
+shared catalog". The `config_header` rule is already wired and most of the
+template resolved; what remains is a list of macro names — possibly a very
+long one. xz's `config.h` had 153.
+
+The list length is misleading. Do NOT work down it one name at a time. Sort it
+into the four groups below first; almost every name falls into one of them,
+and each group is decided once rather than per-name.
+
+## Group 1: portable toolchain facts -> extend the catalog
+
+A plain header check or libc symbol check that any project might ask:
+`HAVE_BYTESWAP_H`, `HAVE_STDBOOL_H`, `HAVE_GETOPT_LONG`, `HAVE_CLOCK_GETTIME`.
+
+Add one line to `cc_config/catalog/BUILD.bazel` (`headers`, `symbols` or
+`types`), and the SAME define to the translator's `CATALOG_DEFINES`. The
+`catalog_sync_check` test fails if you do one and not the other — that is
+working as intended, not an obstacle.
+
+Then re-run the conversion. These disappear from the escalation permanently,
+for this project and every later one.
+
+**Be strict about what qualifies.** A compiler builtin
+(`HAVE___BUILTIN_BSWAPXX`), a glibc-only extension
+(`HAVE_PROGRAM_INVOCATION_NAME`), or anything whose honest answer is
+"depends on the libc" does NOT belong in the catalog, however `HAVE_`-shaped
+it looks. Putting it there hands the next project a non-portable answer it
+never asked for and cannot see. Those go in group 3.
+
+## Group 2: project feature switches -> `values`
+
+Macros that say what to BUILD rather than what the toolchain supports:
+`HAVE_DECODER_LZMA2`, `HAVE_ENCODER_X86`, `HAVE_CHECK_CRC64`, `HAVE_SMALL`,
+`ENABLE_NLS`. These come from `--enable-foo` / `--with-foo` options, so the
+answer is identical on every toolchain.
+
+Put them in the `config_header`'s `values`, matching what the original build
+was configured with — the ground-truth artifacts came from that
+configuration, so anything else fails the equivalence comparison for a reason
+that looks like a miscompile.
+
+## Group 3: target-specific facts -> `values`
+
+True or false for the toolchain the CONVERTED module builds against, but not
+portable enough for the catalog: compiler builtins, glibc extensions,
+`WORDS_BIGENDIAN`, `_FILE_OFFSET_BITS`, `TUKLIB_FAST_UNALIGNED_ACCESS`.
+
+Also every macro naming a platform the module does not target — BSD, Apple,
+Windows, AIX. Set those to `0`.
+
+`0` means "leave undefined", the same as omitting the name; the expander
+treats a CMake-false value as unset. Prefer the explicit `0` anyway: it
+records that the name was considered.
+
+## Group 4: fallback typedefs -> `0`, always
+
+`int32_t`, `uint64_t`, `_UINT8_T`, `uintptr_t` and friends. autoconf defines
+these only when the real type is MISSING. On any toolchain with `stdint.h`
+they must stay undefined — defining them typedefs over the real type, and the
+error surfaces far away.
+
+## Then build it, because the header is not the finish line
+
+Building the module after resolving is not optional verification, it is part
+of the recipe. Two failures show up only here, and neither points back at the
+config header:
+
+- **Undefined symbols at link.** Usually not the config header at all — check
+  whether the target's `srcs` count matches the number of objects the original
+  build produced.
+- **`undefined version` from the linker.** The project uses symbol versioning
+  and its `.map` file was not carried over. Turning the feature off
+  (`HAVE_SYMBOL_VERSIONS_LINUX` -> `0`) produces a correct library that
+  exports unversioned symbols. Note that in the resolution: it is a workaround,
+  and it changes what the library is for a distro package even though the
+  comparison passes.
+
+## What not to do
+
+- Do NOT copy the config header this conversion's host generated. It bakes in
+  the conversion machine's toolchain, which is not the one that builds the
+  module.
+- Do NOT edit the project's `configure.ac` or `Makefile.am`.
+- Do NOT map a project-prefixed macro onto a lookalike catalog probe by
+  guessing. If `FOO_HAVE_STDINT_H` really is an alias of `HAVE_STDINT_H`, wire
+  it to that probe deliberately; the translator refused to guess for you on
+  purpose.
+"##;

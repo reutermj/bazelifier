@@ -314,7 +314,10 @@ fn copy_ground_truth_artifacts(
             executables.push((target.name.clone(), artifact.clone()));
         }
         for artifact in &target.artifacts {
-            copy_into(&build_dir.join(artifact), &ground_truth_dir.join(artifact))?;
+            copy_into(
+                &ground_truth_source(build_dir, artifact),
+                &ground_truth_dir.join(artifact),
+            )?;
             artifact_paths.push(artifact.clone());
 
             // A shared library the build produced (libfoo.so): a dynamically
@@ -329,8 +332,16 @@ fn copy_ground_truth_artifacts(
             // the ground_truth/ root (bzl-0x7). A static lib (.a) is linked
             // into the binary, so nothing to stage. See bzl-fxa.11 and
             // docs/architecture/build-verification.md.
-            if is_shared_library(artifact) {
-                for name in stage_shared_library_chain(build_dir, artifact, &ground_truth_dir)? {
+            // A libtool `.la` names its real shared library in its own
+            // `dlname=`; stage that chain under the .la's directory, so a
+            // ground-truth binary's DT_NEEDED (`liblzma.so.5`) resolves the
+            // same way it would for a non-libtool build.
+            let (real, staged) = libtool_shared_library(build_dir, artifact)
+                .unwrap_or_else(|| (artifact.to_string(), artifact.to_string()));
+            if is_shared_library(&real) {
+                for name in
+                    stage_shared_library_chain(build_dir, &real, &staged, &ground_truth_dir)?
+                {
                     if !artifact_paths.contains(&name) {
                         artifact_paths.push(name.clone());
                     }
@@ -381,12 +392,16 @@ fn is_shared_library(artifact: &str) -> bool {
 fn stage_shared_library_chain(
     build_dir: &Path,
     artifact: &str,
+    staged_as: &str,
     ground_truth_dir: &Path,
 ) -> std::io::Result<Vec<String>> {
     let artifact_path = build_dir.join(artifact);
     let real = fs::canonicalize(&artifact_path)?;
     let artifact_dir = artifact_path.parent().unwrap_or(build_dir);
-    let subdir = Path::new(artifact).parent();
+    // Where the chain is WRITTEN, which is not always where it was found —
+    // libtool keeps the real library in a private `.libs/` that no binary's
+    // search path reaches. Equal to `artifact`'s own directory otherwise.
+    let subdir = Path::new(staged_as).parent();
 
     let mut names = Vec::new();
     for entry in fs::read_dir(artifact_dir)? {
@@ -542,6 +557,94 @@ fn copy_runtime_tree(src: &Path, dst: &Path) -> std::io::Result<()> {
 /// Copies `src` to `dst`, creating `dst`'s parent directories. Every file
 /// the translator places in the output tree keeps its layout relative to
 /// some root, so the destination's directories generally don't exist yet.
+/// The file to capture as ground truth for `artifact`, resolving libtool's
+/// wrapper indirection.
+///
+/// When a program links a libtool library, `make` leaves a **shell wrapper**
+/// at the program's output path and the real ELF binary in a sibling
+/// `.libs/`. The wrapper's only job is to set `LD_LIBRARY_PATH` and re-exec
+/// the real one, so copying it produces a script that looks for a directory
+/// nobody copied — reported as a missing path under `.libs/`, several steps
+/// from the cause. See
+/// docs/lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md.
+///
+/// Detected by reading the file rather than by testing whether `.libs/`
+/// exists: `.libs/` is present for every libtool target including ones whose
+/// output path already holds the real binary, so its existence answers a
+/// different question. libtool announces itself on line 2 of the wrapper.
+fn ground_truth_source(build_dir: &Path, artifact: &str) -> PathBuf {
+    let direct = build_dir.join(artifact);
+    if !is_libtool_wrapper(&direct) {
+        return direct;
+    }
+    let Some(name) = Path::new(artifact).file_name() else {
+        return direct;
+    };
+    let real = direct.with_file_name(".libs").join(name);
+    // Falls back to the wrapper when the real binary is missing. A wrapper
+    // that cannot run fails the comparison loudly; guessing at a path that
+    // does not exist would fail the CONVERSION, which is worse for a
+    // difference this function only detects heuristically.
+    if real.is_file() {
+        real
+    } else {
+        direct
+    }
+}
+
+/// The real shared library a libtool `.la` control file stands for, as a
+/// build-dir-relative path, or `None` when it names no shared library.
+///
+/// A `.la` is not a library: it is a text control file, and the real
+/// `libfoo.so.N.N.N` lives in a sibling `.libs/`. Rather than assume that
+/// layout, this reads the `.la`'s own `dlname=` field, which libtool writes
+/// for exactly this purpose and which is empty for a static-only library.
+///
+/// Returns (where the library IS, the name to STAGE it under). The second is
+/// a bare filename, so the chain lands at the `ground_truth/` ROOT — which is
+/// where CMake projects' libraries already land, and the only directory on
+/// every binary's search path. The comparison script finds a ground-truth
+/// library by walking UP from the binary, so both libtool's private `.libs/`
+/// and the `.la`'s own `src/liblzma/` are invisible to a binary in a SIBLING
+/// directory like `src/xz/`: the loader then silently falls back to the
+/// host's copy, and the comparison runs a different liblzma against the Bazel
+/// build without saying so. See
+/// docs/lore/ground-truth-so-lives-at-the-root-not-beside-the-binary.md.
+fn libtool_shared_library(build_dir: &Path, artifact: &str) -> Option<(String, String)> {
+    if !artifact.ends_with(".la") {
+        return None;
+    }
+    let text = fs::read_to_string(build_dir.join(artifact)).ok()?;
+    let dlname = text
+        .lines()
+        .find_map(|l| l.strip_prefix("dlname="))?
+        .trim_matches('\'');
+    if dlname.is_empty() {
+        return None;
+    }
+    let dir = Path::new(artifact).parent().unwrap_or(Path::new(""));
+    Some((
+        dir.join(".libs")
+            .join(dlname)
+            .to_string_lossy()
+            .into_owned(),
+        dlname.to_string(),
+    ))
+}
+
+/// Whether `path` is a libtool wrapper script rather than the built artifact.
+fn is_libtool_wrapper(path: &Path) -> bool {
+    let Ok(text) = fs::read_to_string(path) else {
+        // Unreadable as UTF-8 means a real binary, which is the common case.
+        return false;
+    };
+    text.starts_with("#!")
+        && text
+            .lines()
+            .take(3)
+            .any(|l| l.contains("wrapper script for") || l.contains("Generated by libtool"))
+}
+
 fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
     if let Some(parent) = dst.parent() {
         fs::create_dir_all(parent)?;
@@ -670,6 +773,108 @@ mod tests {
                 "looks like Debug struct syntax, not a sentence:\n{reported}"
             );
         }
+    }
+
+    #[test]
+    // libtool leaves a SHELL WRAPPER where the binary goes and the real ELF in
+    // a sibling `.libs/`. Copying the wrapper produced a ground-truth artifact
+    // whose only job was to find a directory nobody copied, reported as a
+    // missing path under `.libs/` — several steps from the cause. See
+    // docs/lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md.
+    #[test]
+    fn a_libtool_wrapper_resolves_to_the_real_binary_beside_it() {
+        let dir = std::env::temp_dir().join(format!("bzlf_ltw_{}_{}", std::process::id(), line!()));
+        // Cleared first: pid+line repeats across runs inside the test
+        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        fs::remove_dir_all(&dir).ok();
+        let bin_dir = dir.join("src/xz");
+        fs::create_dir_all(bin_dir.join(".libs")).unwrap();
+        // Line 2 is how libtool announces itself; the shebang alone is not
+        // enough, since a project can legitimately install a script.
+        fs::write(
+            bin_dir.join("xz"),
+            b"#! /bin/bash\n# xz - temporary wrapper script for .libs/xz\nexec .libs/xz\n",
+        )
+        .unwrap();
+        fs::write(bin_dir.join(".libs").join("xz"), b"\x7fELF-not-really\n").unwrap();
+
+        assert_eq!(
+            ground_truth_source(&dir, "src/xz/xz"),
+            bin_dir.join(".libs").join("xz"),
+            "the wrapper is not the artifact; the real binary is"
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    // The other direction, and the reason detection reads the FILE rather than
+    // testing whether `.libs/` exists: `.libs/` is present for every libtool
+    // target, including ones whose output path already holds the real binary.
+    #[test]
+    fn a_real_binary_is_captured_even_when_a_libs_dir_exists() {
+        let dir = std::env::temp_dir().join(format!("bzlf_ltr_{}_{}", std::process::id(), line!()));
+        // Cleared first: pid+line repeats across runs inside the test
+        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        fs::remove_dir_all(&dir).ok();
+        let bin_dir = dir.join("src/tool");
+        fs::create_dir_all(bin_dir.join(".libs")).unwrap();
+        fs::write(bin_dir.join("tool"), b"\x7fELF-the-real-one\n").unwrap();
+        fs::write(bin_dir.join(".libs").join("tool"), b"\x7fELF-a-decoy\n").unwrap();
+
+        assert_eq!(
+            ground_truth_source(&dir, "src/tool/tool"),
+            bin_dir.join("tool"),
+            "no wrapper means no indirection, whatever .libs/ happens to hold"
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    // A `.la` is a text control file, not a library. Its `dlname=` names the
+    // real shared object — read rather than guessed, because it is empty for a
+    // static-only library and the layout is libtool's to change.
+    #[test]
+    fn a_la_file_names_its_shared_library_and_stages_it_at_the_root() {
+        let dir = std::env::temp_dir().join(format!("bzlf_lla_{}_{}", std::process::id(), line!()));
+        // Cleared first: pid+line repeats across runs inside the test
+        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        fs::remove_dir_all(&dir).ok();
+        let lib_dir = dir.join("src/liblzma");
+        fs::create_dir_all(&lib_dir).unwrap();
+        fs::write(
+            lib_dir.join("liblzma.la"),
+            b"dlname='liblzma.so.5'\nlibrary_names='liblzma.so.5.4.7 liblzma.so.5 liblzma.so'\n",
+        )
+        .unwrap();
+
+        assert_eq!(
+            libtool_shared_library(&dir, "src/liblzma/liblzma.la"),
+            Some((
+                "src/liblzma/.libs/liblzma.so.5".to_string(),
+                "liblzma.so.5".to_string()
+            )),
+            "found in libtool's private .libs/, but staged at the ground_truth \
+             ROOT — the comparison script walks UP from the binary, so a chain \
+             under src/liblzma/ is invisible to a binary in the SIBLING \
+             src/xz/ and the loader silently uses the host's copy instead"
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn a_static_only_la_names_no_shared_library() {
+        let dir = std::env::temp_dir().join(format!("bzlf_lst_{}_{}", std::process::id(), line!()));
+        // Cleared first: pid+line repeats across runs inside the test
+        // sandbox, and create_dir_all is happy to reuse a stale tree.
+        fs::remove_dir_all(&dir).ok();
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(dir.join("libfoo.la"), b"dlname=\'\'\nold_library=\'libfoo.a\'\n").unwrap();
+
+        assert_eq!(
+            libtool_shared_library(&dir, "libfoo.la"),
+            None,
+            "an empty dlname means the library is static-only, so there is no \
+             .so chain to stage"
+        );
+        fs::remove_dir_all(&dir).ok();
     }
 
     #[test]

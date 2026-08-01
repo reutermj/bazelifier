@@ -107,11 +107,40 @@ done
 # whose two runs are identical has nothing excluded, so the comparison stays
 # byte-exact. This is self-calibrating per binary: no per-fixture config, no
 # global relaxation. See bzl-fxa.12 and docs/architecture/build-verification.md.
+#
+# Each binary's OWN PATH is rewritten to a sentinel on the way out. A program
+# that reports errors as `<argv[0]>: message` (xz's lzmainfo, json-c's
+# test_util_file) necessarily prints a different string from each build, since
+# the two binaries are at different paths by construction — that is a fact
+# about where Bazel put them, not a behavioural difference, and it is the one
+# difference this comparison must not report. Deliberately NOT a general path
+# filter: only the invoked binary's own path is masked, so a genuine path in
+# the output still has to match. See bzl-fxa.19.
+mask_self() {
+  # Both the full path and the basename, because a program may print either
+  # (xz uses argv[0] verbatim; some use basename(argv[0])).
+  sed -e "s|$1|<SELF>|g" -e "s|\b$(basename "$1")\b|<SELF>|g"
+}
 run_gt() {
-  LD_LIBRARY_PATH="${ground_truth_lib_path}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" "${ground_truth_bin}" 2>"$2" >"$1"
+  local rc
+  LD_LIBRARY_PATH="${ground_truth_lib_path}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
+    "${ground_truth_bin}" 2>"$2.raw" >"$1.raw"
+  # Captured immediately: the caller reads $? from this function, and the
+  # masking below would otherwise overwrite it with sed's exit code — turning
+  # every nonzero program exit into 0 and silently disabling the exit-code
+  # comparison, the one check here that needs no diffing to be right.
+  rc=$?
+  mask_self "${ground_truth_bin}" <"$1.raw" >"$1"
+  mask_self "${ground_truth_bin}" <"$2.raw" >"$2"
+  return "${rc}"
 }
 run_bazel() {
-  "${bazel_bin}" 2>"$2" >"$1"
+  local rc
+  "${bazel_bin}" 2>"$2.raw" >"$1.raw"
+  rc=$?
+  mask_self "${bazel_bin}" <"$1.raw" >"$1"
+  mask_self "${bazel_bin}" <"$2.raw" >"$2"
+  return "${rc}"
 }
 
 run_gt "${tmpdir}/gt_out_a" "${tmpdir}/gt_err_a"; ground_truth_exit=$?
