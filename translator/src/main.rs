@@ -1,3 +1,4 @@
+mod autotools;
 mod cmake_api;
 mod configure_file;
 mod error;
