@@ -18,9 +18,15 @@ state each agent's lane in its prompt explicitly.
 | `test` | `test-review` | what the suite proves and fails to prove |
 | `architecture` | `architecture-review` | layering and boundaries |
 | `duplication` | `duplication-review` | **two agents**: rationale, and code |
+| `escalation` | `escalation-review` | are the shipped needs_attention items true and actionable |
+| `beads` | `beads-review` | do the open issues still describe reality |
 
 `duplication` is two agents because the skill says so — the lanes find
 different things and one agent given both does one of them properly.
+
+`escalation` and `beads` both need the pipeline's real OUTPUT, not its
+source: build and unpack the validation workspace once and give every agent
+the same path, rather than having each build its own.
 
 ## Building each prompt
 
