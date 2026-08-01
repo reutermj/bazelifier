@@ -1,19 +1,24 @@
 # `make -n` answers differently before and after a build
 
+**Resolved: the frontend no longer dry-runs at all.** It captures the real
+build's stdout, because make echoes every command as it runs it. This entry is
+kept because the dead end below is the obvious first design, and the states it
+documents are why.
+
 ## The symptom
 
-The Autotools frontend reads `make -n` — the resolved command stream is its
-whole input. Two orderings suggest themselves, and both fail:
+The Autotools frontend needs the resolved command stream. Reaching for
+`make -n` gives two orderings, and both fail:
 
-- Run `make -n` right after `configure`, before building. On a recursive
-  project this **exits 2**:
+- Right after `configure`, before building. On a recursive project this
+  **exits 2**:
 
   ```
   make[2]: *** No rule to make target '../../src/liblzma/liblzma.la',
     needed by 'xzdec'.  Stop.
   ```
 
-- Run `make -n` after the build instead. It **succeeds and prints nothing**:
+- After the build instead. It **succeeds and prints nothing**:
 
   ```
   make[1]: Nothing to be done for 'all'.
@@ -25,44 +30,27 @@ other.
 ## The cause
 
 `make -n` is not "print the build plan." It is "run the build, but echo
-commands instead of executing them" — and *everything else* about make's
-behaviour is unchanged. In particular make still consults timestamps, and it
-still recurses.
+commands instead of executing them" — and everything else about make's
+behaviour is unchanged. It still consults timestamps, and it still recurses.
 
-Before the build, recursion is what bites. `make` descends into `src/xzdec`
-and asks how to build `xzdec`, which needs `../../src/liblzma/liblzma.la`.
-That file does not exist yet, and the rule that would make it lives in a
-*different* makefile that this sub-make has not read. Ordinarily that is fine,
-because `SUBDIRS` builds `src/liblzma` first and the file is simply there by
-the time anything asks. With `-n`, nothing is ever created, so the dependency
-that the ordering was supposed to satisfy is still missing when it is needed.
+Before the build, recursion bites. `make` descends into `src/xzdec` and asks
+how to build `xzdec`, which needs `../../src/liblzma/liblzma.la`. That file
+does not exist yet, and the rule that would make it lives in a *different*
+makefile this sub-make has not read. Ordinarily fine, because `SUBDIRS` builds
+`src/liblzma` first and the file is simply there by the time anything asks.
+With `-n` nothing is ever created, so the dependency the ordering was meant to
+satisfy is still missing.
 
-After the build, timestamps are what bite. Every target is now up to date, so
-the honest answer to "what would you run" really is "nothing."
+After the build, timestamps bite. Every target is up to date, so the honest
+answer to "what would you run" is "nothing."
 
-## The fix
+## The dead end: `-B`
 
-Build first, then dry-run with `-B`:
+`-B` (`--always-make`) ignores timestamps and considers everything out of
+date, which answers the right question — *what commands build this project*
+— and a built tree is the only state where every subdirectory can answer it.
 
-```sh
-make            # real build: also produces the ground-truth artifacts
-make -n -B      # what a full rebuild WOULD run
-```
-
-`-B` (`--always-make`) tells make to ignore timestamps and consider everything
-out of date. That answers the question the frontend is actually asking — *what
-commands build this project* — rather than *what is left to do right now*. And
-a fully built tree is the only state in which every subdirectory can answer it,
-because the inter-directory artifacts the recursive case tripped over now
-exist.
-
-The build is not overhead added for this: ground-truth artifacts for the
-equivalence check come from it either way.
-
-## The cost, which is most of the conversion
-
-`-B` forces the **maintainer** rules out of date along with the build rules,
-and that is where nearly all the time goes. Measured on xz 5.4.7:
+It works, and it is **98% of the conversion's runtime**. Measured on xz 5.4.7:
 
 | | |
 |---|---|
@@ -72,62 +60,59 @@ and that is where nearly all the time goes. Measured on xz 5.4.7:
 | lines emitted | 15,402, of which 735 unique |
 | lines that are actual compile/link commands | **26** |
 
-Each of 135 recursive `make` calls re-runs `config.status --recheck` to
-regenerate `configure` and every `Makefile`, none of which the frontend reads.
-That preamble is also why `parse_commands` recognises only the handful of
-programs that build something and ignores every other line.
+`-B` marks the **maintainer** rules out of date along with the build rules, so
+each of 135 recursive `make` calls re-runs `config.status --recheck` to
+regenerate `configure` and every `Makefile` — none of which the frontend reads.
 
-It also means the stream is **not byte-identical between runs**, only stable in
-the command ordering that matters. A claim that it is byte-identical was
-written down before `-B` was needed and is wrong.
+Two narrower escapes also fail, and one is a trap:
 
-## A fourth state, which is the cheap one
+- **`make clean` first, then `make -n`.** Identical to the fresh-tree failure:
+  `clean` removes `src/liblzma/liblzma.la`, so `src/xzdec` stops with *No rule
+  to make target*. Deleting only `*.o`/`*.lo` and keeping the libraries does
+  work — 106 objects, 0s — but see below for why it is moot.
+- **`make -n -B -j16`.** Finishes in 19s and looks like a 13x win. It is how
+  long xz takes to **fail**: rc=2, zero compile or link commands emitted, all
+  926 lines `config.status` chatter. `-B` marks `configure` itself out of date
+  and parallel jobs race regenerating it, clobbering a shared scratch file
+  (`cat: confdefs.h: No such file or directory`). Judge any change here by the
+  object set and the command diff, **never by wall time**.
 
-`-B` is not the only way to make a built tree answer. Deleting just the
-**object files** — leaving the libraries in place — makes exactly the build
-rules out of date and nothing else:
+## The fix: don't dry-run
+
+The build already runs — ground-truth artifacts come from it — and make
+**echoes every command as it executes it**. That output *is* the stream:
 
 ```sh
-make                                          # build (ground truth too)
-find . \( -name '*.o' -o -name '*.lo' \) -delete
-make -n                                       # no -B needed
+configure
+make -j16 --output-sync=recurse      # capture stdout; this IS the stream
 ```
 
-On xz that is **0s instead of 258s**, and it is equivalent rather than merely
-faster: all 26 compile/link commands are byte-identical to the `-B` stream,
-the object sets match (106 vs 106 — `-B`'s extra `-o file.o` is a `configure`
-probe artifact, not a build output), `make -p -n`'s database is unaffected,
-and `config.status` runs 0 times instead of 1,404.
+Verified on xz: **byte-identical** compile/link commands to the `-B` stream,
+the same 9 directories announced, and identical directory attribution for all
+26 outputs. Conversion went **264s → 6s**, with byte-identical generated
+`BUILD.bazel`, `MODULE.bazel`, `TARGETS` and escalations.
 
-It works because the cross-directory artifacts survive. `make clean` does
-**not** work, for exactly the reason the fresh tree does not: it removes
-`src/liblzma/liblzma.la`, and `src/xzdec` stops with `No rule to make target`.
+`--output-sync=recurse` keeps each sub-make's `Entering directory` attached to
+the commands it encloses. `parse_commands` reads those as a stack, so
+interleaved output would silently attribute a compile to the wrong directory.
+It costs nothing measurable.
 
-So there are four states, not two:
+## What it costs, and what enforces it
 
-| tree | `-B`? | objects reported | |
-|---|---|---|---|
-| built | no | 0 | nothing to do |
-| fresh | no | 83 of 106 | rc=2, cross-dir dep missing |
-| built | yes | 106 | correct, 258s |
-| built minus `*.o` | no | 106 | correct, **0s** |
-
-**Not yet adopted** — the frontend still passes `-B` (bzl-ccv.6). Verified
-only on xz, and a project that emits artifacts which are neither `.o`/`.lo`
-nor the final target (generated sources, a code generator built and run
-mid-build) could still report "nothing to do" for those steps. The check
-before adopting it is the object-set and command comparison above, per
-project — never wall time, which is how `-j16` briefly looked like a 13x win
-while actually exiting 2 having emitted no build commands at all.
+The build directory must be **empty**. A second `make` over a built tree
+prints nothing — the same "nothing to do" that started all this — so a graph
+with no targets is now a reachable failure. `discover` therefore checks the
+parsed stream and fails loudly rather than emitting an empty conversion.
 
 ## How to notice it quickly
 
-If the frontend produces targets with no sources, or a graph with no targets at
-all, check whether the dry run returned anything:
+If a conversion produces targets with no sources, check whether the stream
+had anything:
 
 ```sh
-make -n -B 2>/dev/null | grep -cE '^(gcc|ar|ranlib|/bin/bash \./libtool)'
+make -j16 --output-sync=recurse 2>/dev/null \
+  | grep -cE '^(gcc|ar|ranlib|/bin/bash \./libtool)'
 ```
 
-Zero means the stream is empty or is all preamble, not that the project has
-nothing to build.
+Zero means the build directory was not clean, not that the project has nothing
+to build.

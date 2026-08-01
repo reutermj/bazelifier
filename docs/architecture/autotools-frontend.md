@@ -19,7 +19,7 @@ automake's primaries map onto what `TargetKind` and `is_shared` already
 described, and `is_shared` — added weeks earlier for zlib's shared/static
 split — turned out to be exactly what libtool needed.
 
-## Source of truth: `make -n`, not `Makefile.am`
+## Source of truth: the command stream, not `Makefile.am`
 
 **Decision:** the frontend reads the build system's own resolved output, the
 same principle [cmake-frontend.md](cmake-frontend.md) states for the File API.
@@ -29,7 +29,7 @@ Three candidates were compared against GNU hello and a purpose-built project:
 |---|---|---|
 | `Makefile.am` | **no** | closest in intent, 137 lines |
 | generated `Makefile` | yes | 4666 lines of make syntax |
-| `make -n` | yes | the command stream |
+| the build's own stdout | yes | the command stream |
 
 `Makefile.am` is closest in *intent* — it names targets, sources and
 dependencies directly — and is the wrong choice for the same reason
@@ -47,7 +47,8 @@ The generated `Makefile` *is* resolved but is thousands of lines of make syntax
 with recursive expansion; consuming it means implementing enough of make to be
 correct — the same trap as re-implementing CMake-the-language.
 
-`make -n` prints exactly what the build would run, fully expanded:
+make echoes every command as it runs it, fully expanded, so the build's own
+stdout is the resolved stream:
 
 ```
 gcc -DPACKAGE_NAME=\"greeter\" ... -I. -g -O2 -c -o src/greet.o src/greet.c
@@ -61,9 +62,8 @@ Those quotes are why generated Starlark strings have to be escaped.)
 
 It is also stable between runs in the ordering that matters — the command
 sequence — where the CMake File API reports dependency order unstably
-(bzl-sjp). It is not byte-identical: `-B` forces a `config.status --recheck`
-preamble whose content varies — 15,402 lines on xz, of which 26 are actual
-compile or link commands — which is why the frontend recognises only the
+(bzl-sjp). It is not byte-identical — a build interleaves make's own progress
+chatter with the commands — which is why the frontend recognises only the
 handful of programs that build something and ignores every other line.
 
 ## Second source: `make -p`, for identity
@@ -164,30 +164,33 @@ corrupt a header rather than configure it.
 
 ## Ordering, and why it is load-bearing
 
-`discover` configures, then **builds**, then interrogates — and the dry run
-passes `-B`. Both halves are load-bearing, and each obvious alternative fails
-on a real project:
+`discover` configures, then **builds** — and the build's own stdout is the
+command stream. make echoes every command as it runs it, so there is no
+separate interrogation pass:
 
-- **Interrogating before the build** fails outright on a recursive project.
-  xz's `src/xzdec` needs `../../src/liblzma/liblzma.la`, which no subdirectory
-  has built yet, so `make` reports "No rule to make target" and exits 2.
-- **A plain `make -n` after the build** succeeds and prints *nothing*: every
-  target is up to date, and the command stream is the entire input.
+```sh
+configure
+make -j16 --output-sync=recurse      # capture stdout; this IS the stream
+```
 
-`-B` asks what a full rebuild *would* run, which is the question this frontend
-actually needs, and a built tree is the only state in which every subdirectory
-can answer it. The build has to happen anyway — ground-truth artifacts come
-from it (see [build-verification.md](build-verification.md)).
+The build has to happen anyway, since ground-truth artifacts come from it (see
+[build-verification.md](build-verification.md)), so the stream is free.
 
-The re-listing is **not** free, though, and that is the current cost of this
-design: `-B` marks the maintainer rules out of date too, so xz spends 258 of
-its 264 conversion seconds re-running `config.status` 1,404 times to
-regenerate files the frontend never reads. Deleting only the object files and
-dropping `-B` produces a byte-identical set of build commands in 0s; `make
-clean` does not work, because it also removes the cross-directory `.la` the
-recursive case depends on. Not yet adopted — see bzl-ccv.6 and
-[../lore/make-n-answers-differently-before-and-after-a-build.md](../lore/make-n-answers-differently-before-and-after-a-build.md)
-for the four states and what has to be verified per project first.
+`--output-sync=recurse` is load-bearing rather than tidiness: it keeps each
+sub-make's `Entering directory` attached to the commands it encloses, and
+`parse_commands` reads those as a stack. Interleaved output would silently
+attribute a compile to the wrong directory — a wrong graph, not an error.
+
+A `make -n` dry run was used for this and is a dead end in both orderings
+(before the build it exits 2 on a recursive project; after it, it prints
+nothing). `make -n -B` resolves that and costs 258 of xz's 264 conversion
+seconds, because `-B` marks the *maintainer* rules out of date too. See
+[../lore/make-n-answers-differently-before-and-after-a-build.md](../lore/make-n-answers-differently-before-and-after-a-build.md).
+
+**The build directory must be empty.** make reports only work it actually
+does, so a second run over a built tree yields no commands at all. That is now
+a reachable failure rather than a hypothetical, so `discover` checks the
+parsed stream and fails loudly rather than emitting a graph with no targets.
 
 ## Recursive make changes two things, both silently
 

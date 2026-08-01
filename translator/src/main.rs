@@ -666,6 +666,27 @@ fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
 mod tests {
     use super::*;
 
+    /// A directory no other test or run will pick, created fresh.
+    ///
+    /// Two simpler schemes were tried and both failed intermittently.
+    /// `line!()` is not an identity — editing a comment above it shifts the
+    /// number, so a run inherits a DIFFERENT test's leftover tree, and
+    /// `create_dir_all` reuses it happily. Adding `process::id()` is not
+    /// enough either: the suite runs its tests as THREADS of one process, so
+    /// a sibling's `create_dir_all` races this one's cleanup. The counter is
+    /// what makes it per-invocation.
+    fn unique_temp_dir(name: &str) -> PathBuf {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        static NEXT: AtomicUsize = AtomicUsize::new(0);
+        let dir = std::env::temp_dir().join(format!(
+            "bzlf_{name}_{}_{}",
+            std::process::id(),
+            NEXT.fetch_add(1, Ordering::Relaxed)
+        ));
+        fs::remove_dir_all(&dir).ok();
+        dir
+    }
+
     // The regression this guards: `{error:?}` here instead of `{error}`
     // silently reverts every Display impl in the crate to dead code, and
     // nothing else in the suite would notice.
@@ -783,13 +804,13 @@ mod tests {
     // docs/lore/libtool-puts-a-wrapper-script-where-the-binary-goes.md.
     #[test]
     fn a_libtool_wrapper_resolves_to_the_real_binary_beside_it() {
-        let dir = std::env::temp_dir().join(format!("a_libtool_wrapper_resolves_to_the_real_binary_beside_it_{}", std::process::id()));
-        // Named for the test and cleared first. `line!()` was tried and is
-        // not an identity: any edit above shifts it, so a run can inherit a
-        // DIFFERENT test's leftover tree — and create_dir_all reuses it
-        // happily, which surfaced as this test failing on a file it had just
-        // written.
-        fs::remove_dir_all(&dir).ok();
+        let dir = unique_temp_dir("a_libtool_wrapper_resolves_to_the_real_binary_beside_it");
+        // A fresh directory per invocation. Two earlier attempts were not
+        // unique enough and both failed intermittently: `line!()` shifts
+        // whenever a comment above it is edited, so a run inherits a DIFFERENT
+        // test's leftover tree; and pid+test-name still collides because the
+        // suite runs its tests as THREADS of one process, so a sibling's
+        // create_dir_all races this one's remove_dir_all.
         let bin_dir = dir.join("src/xz");
         fs::create_dir_all(bin_dir.join(".libs")).unwrap();
         // Line 2 is how libtool announces itself; the shebang alone is not
@@ -806,7 +827,6 @@ mod tests {
             bin_dir.join(".libs").join("xz"),
             "the wrapper is not the artifact; the real binary is"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     // The other direction, and the reason detection reads the FILE rather than
@@ -814,13 +834,12 @@ mod tests {
     // target, including ones whose output path already holds the real binary.
     #[test]
     fn a_real_binary_is_captured_even_when_a_libs_dir_exists() {
-        let dir = std::env::temp_dir().join(format!("a_real_binary_is_captured_even_when_a_libs_dir_exists_{}", std::process::id()));
+        let dir = unique_temp_dir("a_real_binary_is_captured_even_when_a_libs_dir_exists");
         // Named for the test and cleared first. `line!()` was tried and is
         // not an identity: any edit above shifts it, so a run can inherit a
         // DIFFERENT test's leftover tree — and create_dir_all reuses it
         // happily, which surfaced as this test failing on a file it had just
         // written.
-        fs::remove_dir_all(&dir).ok();
         let bin_dir = dir.join("src/tool");
         fs::create_dir_all(bin_dir.join(".libs")).unwrap();
         fs::write(bin_dir.join("tool"), b"\x7fELF-the-real-one\n").unwrap();
@@ -831,7 +850,6 @@ mod tests {
             bin_dir.join("tool"),
             "no wrapper means no indirection, whatever .libs/ happens to hold"
         );
-        fs::remove_dir_all(&dir).ok();
     }
 
     // A `.la` is a text control file, not a library. Its `dlname=` names the
@@ -839,7 +857,7 @@ mod tests {
     // static-only library and the layout is libtool's to change.
     #[test]
     fn a_la_file_names_its_shared_library_and_stages_it_at_the_root() {
-        let dir = std::env::temp_dir().join(format!("a_la_file_names_its_shared_library_and_stages_it_at_the_root_{}", std::process::id()));
+        let dir = unique_temp_dir("a_la_file_names_its_shared_library_and_stages_it_at_the_root");
         // Named for the test and cleared first. `line!()` was tried and is
         // not an identity: any edit above shifts it, so a run can inherit a
         // DIFFERENT test's leftover tree — and create_dir_all reuses it
@@ -870,7 +888,7 @@ mod tests {
 
     #[test]
     fn a_static_only_la_names_no_shared_library() {
-        let dir = std::env::temp_dir().join(format!("a_static_only_la_names_no_shared_library_{}", std::process::id()));
+        let dir = unique_temp_dir("a_static_only_la_names_no_shared_library");
         // Named for the test and cleared first. `line!()` was tried and is
         // not an identity: any edit above shifts it, so a run can inherit a
         // DIFFERENT test's leftover tree — and create_dir_all reuses it

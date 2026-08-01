@@ -1,4 +1,4 @@
-//! The Autotools frontend: recovers a build graph from `make -n`.
+//! The Autotools frontend: recovers a build graph from the build's own output.
 //!
 //! Where `cmake_api` reads a structured reply, this reads the build system's
 //! **resolved command stream**. That is the closest autotools analogue to the
@@ -14,11 +14,13 @@
 //! - The generated `Makefile` IS resolved but is thousands of lines of make
 //!   syntax with recursive expansion; consuming it means implementing enough
 //!   of make to be correct.
-//! - `make -n` prints exactly what the build would run, fully expanded, and in
-//!   a stable command ORDER — more stable than the File API, which reports
-//!   dependency order unstably (bzl-sjp). Not byte-identical: `-B` forces a
-//!   `config.status --recheck` preamble, which is one reason `parse_commands`
-//!   recognises only the programs that build something and ignores the rest.
+//! - make ECHOES every command as it runs it, fully expanded, and in a stable
+//!   command ORDER — more stable than the File API, which reports dependency
+//!   order unstably (bzl-sjp). So the build's own stdout is the stream, and
+//!   there is no separate interrogation pass. Not byte-identical, since make
+//!   interleaves its own progress chatter, which is one reason
+//!   `parse_commands` recognises only the programs that build something and
+//!   ignores the rest.
 //!
 //! What the command stream does NOT carry is target NAMES. automake knows a
 //! program is called `greeter` because `bin_PROGRAMS` says so; the stream only
@@ -68,25 +70,57 @@ pub(crate) struct BuildCommand {
 
 /// Converts an Autotools project, mirroring `cmake_api::discover`.
 ///
-/// Three steps: the tree is CONFIGURED (so `make` has resolved variables to
-/// report), then really BUILT (so ground-truth artifacts exist for the
-/// equivalence check — see docs/architecture/build-verification.md), then
-/// interrogated.
+/// Two steps, not three: the tree is CONFIGURED (so `make` has resolved
+/// variables to report), then really BUILT — and the build's own stdout IS
+/// the command stream, because make echoes every command as it runs it.
 ///
-/// The interrogation comes AFTER the build, and the dry run uses `-B`. Both
-/// halves are load-bearing: a dry run before the build exits 2 on a recursive
-/// project, and a plain one after it prints nothing. See
+/// There is no dry-run pass. `make -n -B` was used for this and produced a
+/// byte-identical set of build commands 18x slower, because `-B` marks the
+/// MAINTAINER rules out of date too: 1,404 `config.status` invocations on xz
+/// for files this frontend never reads. See
 /// docs/lore/make-n-answers-differently-before-and-after-a-build.md.
+///
+/// The build has to happen regardless — ground-truth artifacts come from it
+/// (docs/architecture/build-verification.md) — so the stream is free.
+///
+/// What this costs is that `build_dir` must be EMPTY: make reports only work
+/// it actually does, so a second run over a built tree yields nothing.
+/// Enforced below rather than trusted.
 pub fn discover(
     source_dir: &Path,
     build_dir: &Path,
     deliverable_root: &Path,
 ) -> Result<Discovery, Error> {
     configure(source_dir, build_dir)?;
-    build(build_dir)?;
-
-    let stream = dry_run(build_dir)?;
+    // The build IS the interrogation: make echoes every command as it runs
+    // them, so its stdout is the resolved command stream. There is no second
+    // pass.
+    let stream = build(build_dir)?;
     let database = variable_database(build_dir)?;
+
+    // An empty stream is a FAILED conversion, not a project with no targets.
+    // make prints nothing when everything is already up to date, so a
+    // build_dir that was populated by an earlier run yields a graph with no
+    // sources and no error — the exact shape of a check that passes because
+    // it is looking at nothing. Asserted rather than assumed: `discover`
+    // creating its own build_dir is a caller's convention, not something this
+    // function can see.
+    // Checked through parse_commands rather than a second recogniser: what
+    // matters is whether the GRAPH will have anything, and a guard with its
+    // own idea of a build command could pass while parse_commands finds
+    // nothing.
+    if parse_commands(&stream, build_dir).is_empty() {
+        return Err(Error::BuildFailed {
+            stderr: format!(
+                "`make` in {} produced no build commands. The build directory \
+                 must be EMPTY: make echoes commands only for work it actually \
+                 does, so an already-built tree reports nothing and the \
+                 command stream — this frontend's entire input — comes back \
+                 empty.",
+                build_dir.display()
+            ),
+        });
+    }
 
     let vars = parse_variables(&database);
     let declared = declared_targets(&vars);
@@ -198,7 +232,7 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
 }
 
 /// Really builds the project, producing the ground-truth artifacts.
-fn build(build_dir: &Path) -> Result<(), Error> {
+fn build(build_dir: &Path) -> Result<String, Error> {
     // Parallel: the build is the ground-truth capture, and nothing about it
     // needs to be serial. Measured 14s -> 2s on xz. `-j` with no argument
     // would be unbounded, which on a large project starves the machine, so
@@ -208,33 +242,13 @@ fn build(build_dir: &Path) -> Result<(), Error> {
         .unwrap_or(1);
     let output = Command::new("make")
         .arg(format!("-j{jobs}"))
-        .current_dir(build_dir)
-        .output()?;
-    if !output.status.success() {
-        return Err(Error::BuildFailed {
-            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
-        });
-    }
-    Ok(())
-}
-
-/// Runs `make -n` in a configured tree and returns its output.
-///
-/// The tree must already be configured, exactly as `cmake_api` requires an
-/// already-configured build directory — `make -n` on an unconfigured tree
-/// reports the rules that would regenerate `Makefile`, not the build.
-pub(crate) fn dry_run(build_dir: &Path) -> Result<String, Error> {
-    let output = Command::new("make")
-        .arg("-n")
-        // Force-rebuild: without it a built tree reports nothing to do. See
-        // `discover` on why the tree must be built first anyway.
-        //
-        // Also 98% of the conversion's runtime, because it re-runs the
-        // MAINTAINER rules too — 1,404 `config.status` invocations on xz for
-        // files this frontend never reads. Deleting just the object files
-        // (not `make clean`, which takes the cross-directory `.la` with it)
-        // gets a byte-identical command set without `-B`. See bzl-ccv.6.
-        .arg("-B")
+        // Keeps make's `Entering directory` announcements attached to the
+        // commands they enclose. Under `-j` a sub-make's output can otherwise
+        // interleave with its siblings', and `parse_commands` reads those
+        // announcements as a STACK — an interleaved one silently attributes a
+        // compile to the wrong directory, which surfaces as a source path that
+        // does not resolve. Measured no slower (still 2s on xz).
+        .arg("--output-sync=recurse")
         .current_dir(build_dir)
         .output()?;
     if !output.status.success() {
@@ -544,7 +558,7 @@ pub(crate) fn canonical_name(target_name: &str) -> String {
         .collect()
 }
 
-/// Splits `make -n` output into the commands that actually build something.
+/// Splits make's output into the commands that actually build something.
 ///
 /// Deliberately conservative about what it keeps. The stream is interleaved
 /// with shell bookkeeping automake emits around every compile — `depbase=...`
@@ -657,7 +671,7 @@ fn is_build_program(program: &str) -> bool {
 
 /// Splits a command into tokens, honouring quotes but not expanding anything.
 ///
-/// Not a shell parser: `make -n` output is already expanded, so the only job
+/// Not a shell parser: make's output is already expanded, so the only job
 /// is to keep a quoted `-DPACKAGE_STRING="greeter 1.0"` in one piece rather
 /// than splitting it on the space.
 fn tokenize(line: &str) -> Vec<String> {
@@ -1215,27 +1229,33 @@ mod tests {
     use super::*;
     use crate::codegen;
 
-    /// A real `make -n` capture from fixture 001, trimmed of the autoconf
+    /// A real capture from fixture 001, trimmed of the autoconf
     /// -DPACKAGE_* block for readability. Frozen evidence: this is what
     /// automake actually emits, so the parser can be wrong against it.
-    /// A real `make -n -B` capture from fixture 001, verbatim.
+    /// A real capture from fixture 001: the stdout of `make -j16
+    /// --output-sync=recurse`, verbatim.
     ///
-    /// Frozen evidence, so it is the build system's output and not ours:
-    /// the `-DPACKAGE_*` block, the single `-I.`, the `depbase=` shell
-    /// bookkeeping and libtool's `--tag=CC` are all what automake really
-    /// emits. An earlier hand-written version carried an `-Isrc` automake
-    /// never produces, and an assertion about per-target include
-    /// attribution was passing against that invented flag.
+    /// The BUILD's own output, which is what the frontend now reads —
+    /// not a `make -n` dry run. Frozen evidence, so the shape is the build
+    /// system's and not ours: the `-DPACKAGE_*` block, the single `-I.`,
+    /// the `depbase=` shell bookkeeping and libtool's `--tag=CC` are all
+    /// what automake really emits. An earlier hand-written version carried
+    /// an `-Isrc` automake never produces, and an assertion about
+    /// per-target include attribution was passing against that invented
+    /// flag.
     ///
-    /// This is the IN-TREE shape. An out-of-tree build reports the
-    /// compiled source as an absolute path — not covered here, and the
-    /// reason fixture conversion stays the tier that can contradict us.
+    /// This is the IN-TREE shape, and that is a deliberate choice rather than
+    /// convenience. Captured out-of-tree, the same fixture emits `-I.` AND an
+    /// absolute `-I<srcdir>`, with the compiled source absolute too — which
+    /// changes what `needs_root_include` and `includes` come out as. Both
+    /// shapes are real; pinning one here and leaving the other to fixture
+    /// conversion is what keeps this capture comparable across re-captures.
     const STREAM: &str = r#"
-depbase=`echo src/main.o | sed 's|[^/]*$|.deps/&|;s|\.o$||'`;\
-gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"greeter\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I.     -g -O2 -MT src/main.o -MD -MP -MF $depbase.Tpo -c -o src/main.o src/main.c &&\
-mv -f $depbase.Tpo $depbase.Po
 depbase=`echo src/greet.o | sed 's|[^/]*$|.deps/&|;s|\.o$||'`;\
 gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"greeter\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I.     -g -O2 -MT src/greet.o -MD -MP -MF $depbase.Tpo -c -o src/greet.o src/greet.c &&\
+mv -f $depbase.Tpo $depbase.Po
+depbase=`echo src/main.o | sed 's|[^/]*$|.deps/&|;s|\.o$||'`;\
+gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"greeter\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I.     -g -O2 -MT src/main.o -MD -MP -MF $depbase.Tpo -c -o src/main.o src/main.c &&\
 mv -f $depbase.Tpo $depbase.Po
 rm -f libgreet.a
 ar cru libgreet.a src/greet.o 
@@ -1243,9 +1263,17 @@ ranlib libgreet.a
 depbase=`echo src/shout.lo | sed 's|[^/]*$|.deps/&|;s|\.lo$||'`;\
 /bin/bash ./libtool  --tag=CC   --mode=compile gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" -DPACKAGE_STRING=\"greeter\ 1.0\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I.     -g -O2 -MT src/shout.lo -MD -MP -MF $depbase.Tpo -c -o src/shout.lo src/shout.c &&\
 mv -f $depbase.Tpo $depbase.Plo
+libtool: compile:  gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" "-DPACKAGE_STRING=\"greeter 1.0\"" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I. -g -O2 -MT src/shout.lo -MD -MP -MF src/.deps/shout.Tpo -c src/shout.c  -fPIC -DPIC -o src/.libs/shout.o
+libtool: compile:  gcc -DPACKAGE_NAME=\"greeter\" -DPACKAGE_TARNAME=\"greeter\" -DPACKAGE_VERSION=\"1.0\" "-DPACKAGE_STRING=\"greeter 1.0\"" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE_URL=\"\" -DPACKAGE=\"greeter\" -DVERSION=\"1.0\" -DHAVE_STDIO_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_STRINGS_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_UNISTD_H=1 -DSTDC_HEADERS=1 -DHAVE_DLFCN_H=1 -DLT_OBJDIR=\".libs/\" -I. -g -O2 -MT src/shout.lo -MD -MP -MF src/.deps/shout.Tpo -c src/shout.c -o src/shout.o >/dev/null 2>&1
 /bin/bash ./libtool  --tag=CC   --mode=link gcc  -g -O2   -o libshout.la -rpath /usr/local/lib src/shout.lo  
-rm -f greeter
+libtool: link: gcc -shared  -fPIC -DPIC  src/.libs/shout.o    -g -O2   -Wl,-soname -Wl,libshout.so.0 -o .libs/libshout.so.0.0.0
+libtool: link: (cd ".libs" && rm -f "libshout.so.0" && ln -s "libshout.so.0.0.0" "libshout.so.0")
+libtool: link: (cd ".libs" && rm -f "libshout.so" && ln -s "libshout.so.0.0.0" "libshout.so")
+libtool: link: ar cr .libs/libshout.a  src/shout.o
+libtool: link: ranlib .libs/libshout.a
+libtool: link: ( cd ".libs" && rm -f "libshout.la" && ln -s "../libshout.la" "libshout.la" )
 /bin/bash ./libtool  --tag=CC   --mode=link gcc  -g -O2   -o greeter src/main.o libgreet.a libshout.la 
+libtool: link: gcc -g -O2 -o .libs/greeter src/main.o  libgreet.a ./.libs/libshout.so
 "#;
 
     /// A real `make -p -n` capture from fixture 001, trimmed to the lines

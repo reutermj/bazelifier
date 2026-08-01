@@ -15,8 +15,8 @@ no new model field.
 ## Architecture (short version)
 
 1. A **deterministic translator**, written in Rust, discovers a project's
-   targets through its own build system (the CMake File API, or `make -n` and
-   `make -p` for Autotools) and mechanically emits a
+   targets through its own build system (the CMake File API, or the build's
+   own command output and `make -p` for Autotools) and mechanically emits a
    **standalone Bazel module** for it: its own `MODULE.bazel` +
    `BUILD.bazel`, not a package inside bazelifier's own workspace. That
    distinction is the whole point — see
@@ -46,7 +46,7 @@ validation pipeline.
 
 Every frontend's source of truth is the build system's own RESOLVED output,
 never its input files: the CMake File API (`codemodel-v2` + `cache-v2`) rather
-than `CMakeLists.txt`, and `make -n`/`make -p` rather than `Makefile.am`. Both
+than `CMakeLists.txt`, and the build's own output and `make -p` rather than `Makefile.am`. Both
 input forms carry unexpanded variables and conditionals, so the declared graph
 is not the built one — see
 [docs/architecture/cmake-frontend.md](docs/architecture/cmake-frontend.md) and
@@ -60,9 +60,9 @@ source in every fixture build.
 ## Where things live
 
 - `translator/` — the Rust translator crate:
-  - `src/autotools.rs` — Autotools frontend: recovers the graph from `make -n`
-    (the resolved command stream, this frontend's File API analogue) joined
-    with `make -p` (make's variable database, which carries the target NAMES
+  - `src/autotools.rs` — Autotools frontend: recovers the graph from the
+    build's own stdout (the resolved command stream, this frontend's File API
+    analogue) joined with `make -p` (make's variable database, which carries the target NAMES
     the command stream lacks). See
     [docs/architecture/autotools-frontend.md](docs/architecture/autotools-frontend.md).
   - `src/cmake_api.rs` — CMake frontend: reads the File API
