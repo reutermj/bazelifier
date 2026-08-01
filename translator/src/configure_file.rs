@@ -227,7 +227,7 @@ const CATALOG_DEFINES: &[&str] = &[
 /// The `@cc_config//catalog:<target>` label for a catalog define, or `None`
 /// if the define isn't in the catalog. The target name is the define
 /// lowercased — the convention `cc_config_catalog` uses (see catalog.bzl).
-fn catalog_label(define: &str) -> Option<String> {
+pub(crate) fn catalog_label(define: &str) -> Option<String> {
     CATALOG_DEFINES
         .contains(&define)
         .then(|| format!("@cc_config//catalog:{}", define.to_lowercase()))
