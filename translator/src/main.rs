@@ -531,7 +531,16 @@ fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
     if let Some(parent) = dst.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::copy(src, dst)?;
+    // The path is added to the error deliberately. A bare io::Error here says
+    // only "No such file or directory", with nothing to say WHICH file — and
+    // every caller is copying something the frontend claimed exists, so the
+    // interesting information is exactly the path that turned out not to.
+    fs::copy(src, dst).map_err(|e| {
+        std::io::Error::new(
+            e.kind(),
+            format!("copying {} to {}: {e}", src.display(), dst.display()),
+        )
+    })?;
     Ok(())
 }
 

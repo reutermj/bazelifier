@@ -26,14 +26,15 @@
 //! than an inline `file_stem`.
 
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::configure_file::catalog_label;
 use crate::error::Error;
+use crate::headers::inject_headers_on_include_dirs;
 use crate::needs_attention::unmapped_config_macros_needs_attention;
 use crate::model::{BuildGraph, ConfigHeader, Discovery, ModuleInfo, Target, TargetKind};
-use crate::paths::absolutize;
+use crate::paths::{absolutize, normalize_lexically};
 
 /// One resolved command from the build stream, split into a program and its
 /// arguments with shell noise already removed.
@@ -41,6 +42,21 @@ use crate::paths::absolutize;
 pub(crate) struct BuildCommand {
     pub(crate) program: String,
     pub(crate) args: Vec<String>,
+    /// The directory this command runs in, absolute.
+    ///
+    /// Recursive make descends into each subdirectory and runs its commands
+    /// from there, so a path in `args` is relative to THIS, not to the build
+    /// root: xz's `src/xz` compiles `../common/tuklib_mbstr_width.c`, and
+    /// fixture 002 compiles `../common/util.c`. Recording the directory is
+    /// what makes those resolvable at all — `../common/util.c` is neither
+    /// absolute nor module-relative, so emitting it verbatim produces a label
+    /// that reaches above its own module, which codegen refuses.
+    ///
+    /// CMake+Ninja needs no equivalent: it runs every command from the build
+    /// root, so its paths are already root-relative. This is a structural
+    /// difference between the two build systems rather than an oversight in
+    /// the CMake frontend.
+    pub(crate) dir: PathBuf,
 }
 
 /// Converts an Autotools project, mirroring `cmake_api::discover`.
@@ -102,8 +118,23 @@ pub fn discover(
         .or_else(|| vars.get("PACKAGE_NAME"))
         .cloned()
         .unwrap_or_else(|| "project".to_string());
-    let mut graph = to_graph(&parse_commands(&stream), &declared, &vars, &project_name);
+    let mut graph = to_graph(
+        &parse_commands(&stream, build_dir),
+        &declared,
+        &vars,
+        &project_name,
+        &absolutize(source_dir)?,
+        &absolutize(build_dir)?,
+    );
     graph.config_headers = config_headers;
+
+    // The same header-staging passes the CMake frontend runs, and for the
+    // same reasons: a header reachable on the include path is an input Bazel
+    // must be told about, and a header beside its source is found by the
+    // quoted-include rule that no build system reports. Neither is
+    // CMake-specific — `headers` takes a `[Target]` and a source root and
+    // knows nothing about where the graph came from.
+    inject_headers_on_include_dirs(&mut graph.targets, &absolutize(source_dir)?);
 
     Ok(Discovery {
         graph,
@@ -431,9 +462,27 @@ pub(crate) fn canonical_name(target_name: &str) -> String {
 /// misinterpreted, which is the safe direction: a missed command shows up as a
 /// target with no sources, while a misparsed one would silently produce a
 /// wrong rule.
-pub(crate) fn parse_commands(stdout: &str) -> Vec<BuildCommand> {
+pub(crate) fn parse_commands(stdout: &str, build_dir: &Path) -> Vec<BuildCommand> {
     let mut commands = Vec::new();
+    // make announces each descent, and the announcements nest — `make[2]`
+    // inside `make[1]`. Tracked as a stack rather than a single "current"
+    // value so a Leaving line restores the enclosing directory rather than
+    // guessing at the root.
+    let mut dirs: Vec<PathBuf> = vec![build_dir.to_path_buf()];
     for line in stdout.lines() {
+        if let Some(dir) = entering_directory(line) {
+            dirs.push(dir);
+            continue;
+        }
+        if leaving_directory(line) {
+            // Never pop the base: an unbalanced Leaving (a sub-make whose
+            // Entering was filtered out, say) must not leave the stack empty.
+            if dirs.len() > 1 {
+                dirs.pop();
+            }
+            continue;
+        }
+        let current = dirs.last().expect("the base directory is never popped");
         // A `&&`/`;`-joined line can carry several commands; automake writes
         // `depbase=...; gcc ...` as one line.
         for piece in line.split("&&").flat_map(|p| p.split(';')) {
@@ -468,6 +517,7 @@ pub(crate) fn parse_commands(stdout: &str) -> Vec<BuildCommand> {
             commands.push(BuildCommand {
                 program,
                 args: tokens,
+                dir: current.clone(),
             });
         }
     }
@@ -481,6 +531,17 @@ fn is_libtool_flag(token: &str) -> bool {
     token.starts_with("--tag=")
         || token.starts_with("--mode=")
         || matches!(token, "--silent" | "--quiet" | "--verbose")
+}
+
+/// The directory a `make[N]: Entering directory '...'` line announces.
+fn entering_directory(line: &str) -> Option<PathBuf> {
+    let rest = line.split_once("Entering directory ")?.1;
+    Some(PathBuf::from(rest.trim().trim_matches(&['\'', '`'][..])))
+}
+
+/// Whether a line announces make leaving a directory.
+fn leaving_directory(line: &str) -> bool {
+    line.contains("Leaving directory ")
 }
 
 /// Whether a token is a shell the real command is being run through.
@@ -589,9 +650,30 @@ pub(crate) fn to_graph(
     declared: &[DeclaredTarget],
     vars: &HashMap<String, String>,
     project_name: &str,
+    module_root: &Path,
+    build_root: &Path,
 ) -> BuildGraph {
+    // Resolve a path reported by a command against the directory that command
+    // ran in, then express it relative to the module root. Returns None when
+    // it escapes the module, which a Bazel label cannot express.
+    // Two roots, because an out-of-tree build reports paths against both. A
+    // compile in <build>/src/lzmainfo carries `-I../..` (the build root) AND
+    // `-I<source>/src/common` (the source tree) on the same line, and both
+    // name real directories. Resolving against the command's directory then
+    // trying each root is what makes them comparable; the build-root form
+    // maps onto the source tree because the two trees mirror each other.
+    let rebase = |path: &str, dir: &Path| -> Option<String> {
+        let absolute = normalize_lexically(&dir.join(path));
+        if let Ok(rel) = absolute.strip_prefix(module_root) {
+            return Some(rel.to_string_lossy().into_owned());
+        }
+        absolute
+            .strip_prefix(build_root)
+            .ok()
+            .map(|rel| rel.to_string_lossy().into_owned())
+    };
     // object path -> the source it was compiled from, and the flags it carried.
-    let mut source_of: HashMap<String, String> = HashMap::new();
+    let mut source_of: HashMap<String, (String, PathBuf)> = HashMap::new();
     let mut flags_of: HashMap<String, (Vec<String>, Vec<String>)> = HashMap::new();
     for cmd in commands.iter().filter(|c| c.program != "ar") {
         let Some(output) = flag_value(&cmd.args, "-o") else {
@@ -600,8 +682,8 @@ pub(crate) fn to_graph(
         if !cmd.args.iter().any(|a| a == "-c") {
             continue;
         }
-        if let Some(source) = cmd.args.iter().rev().find(|a| is_source_file(a)) {
-            source_of.insert(output.clone(), source.clone());
+        if let Some(source) = compiled_source(&cmd.args) {
+            source_of.insert(output.clone(), (source, cmd.dir.clone()));
             flags_of.insert(output, (includes_of(&cmd.args), defines_of(&cmd.args)));
         }
     }
@@ -615,12 +697,28 @@ pub(crate) fn to_graph(
         }
     }
 
+    // Targets automake declared but the build never produced. `check_PROGRAMS`
+    // are the live case: `make` does not build them (that is `make check`), so
+    // no link command exists and nothing says which directory their sources
+    // are relative to. Skipping them is honest — a target with sources
+    // resolved against a guessed directory is worse than an absent one, and
+    // the guess fails loudly on copy, which is how this was found. Recorded
+    // for the escalation they deserve.
+    let mut unbuilt: Vec<String> = Vec::new();
     let mut targets = Vec::new();
     // External libraries any target links but the project does not build.
     // Gathered across all targets so the caller can escalate them once.
     let mut external_links: Vec<String> = Vec::new();
+    // Sources a target compiles that lie outside the module. Collected for
+    // the escalation they deserve rather than dropped — a target missing
+    // them will not link, and saying so beats a mysterious undefined symbol.
+    let mut outside_module: Vec<String> = Vec::new();
     for decl in declared {
         let canon = canonical_name(&decl.name);
+        if built.get(&basename(&decl.name)).is_none() {
+            unbuilt.push(decl.name.clone());
+            continue;
+        }
 
         // Sources come from the DECLARATION, not from the link inputs: a
         // target's _SOURCES is what automake was told, while the link line
@@ -631,28 +729,81 @@ pub(crate) fn to_graph(
             .get(&format!("{canon}_SOURCES"))
             .map(|v| v.split_whitespace().map(str::to_string).collect())
             .unwrap_or_else(Vec::new);
-        let (headers, mut sources): (Vec<String>, Vec<String>) = declared_sources
+        let (headers, declared_sources): (Vec<String>, Vec<String>) = declared_sources
             .into_iter()
             .partition(|s| !is_source_file(s));
+
+        // A target's _SOURCES are relative to the Makefile.am that DECLARED
+        // them — fixture 002 declares `tool_SOURCES = main.c ../common/util.c`
+        // in app/, so `../common/util.c` means nothing until resolved against
+        // app/. The link command runs in that same directory, but in the BUILD
+        // tree; for an out-of-tree build the sources live under the SOURCE
+        // tree, so the build-relative part of that directory is what carries
+        // over.
+        let decl_dir = built
+            .get(&basename(&decl.name))
+            .and_then(|cmd| cmd.dir.strip_prefix(build_root).ok())
+            .map(|rel| module_root.join(rel))
+            .unwrap_or_else(|| module_root.to_path_buf());
+        let mut sources: Vec<String> = declared_sources
+            .iter()
+            .filter_map(|src| rebase(src, &decl_dir))
+            .collect();
+        let mut escaped: Vec<String> = declared_sources
+            .iter()
+            .filter(|src| rebase(src, &decl_dir).is_none())
+            .map(|src| normalize_lexically(&decl_dir.join(src)).to_string_lossy().into_owned())
+            .collect();
 
         // Flags come from the COMMAND STREAM, via the objects this target's
         // sources compiled to — the database's *_CPPFLAGS are pre-expansion
         // and miss what configure and AM_CPPFLAGS contributed.
         let mut includes = Vec::new();
         let mut local_defines = Vec::new();
-        for (object, source) in &source_of {
-            if !sources.contains(source) {
+        let mut needs_root_include = false;
+        for (object, (source, dir)) in &source_of {
+            // Compare in module-relative terms: the object map keys sources as
+            // the command reported them, which is per-directory.
+            if !rebase(source, dir).is_some_and(|s| sources.contains(&s)) {
                 continue;
             }
             if let Some((inc, def)) = flags_of.get(object) {
-                includes.extend(inc.iter().cloned());
+                // An include dir is likewise relative to the compiling
+                // directory. One that resolves TO the module root cannot be
+                // an `includes` entry (Bazel rejects "."), so it is recorded
+                // the way the CMake frontend records it and codegen stages
+                // headers into _include/.
+                for i in inc {
+                    match rebase(i, dir) {
+                        Some(rel) if rel.is_empty() => needs_root_include = true,
+                        Some(rel) => includes.push(rel),
+                        // An include path outside the module — a system or
+                        // toolchain directory. Dropped rather than emitted:
+                        // an absolute build-machine path in `includes` is
+                        // accepted by Bazel silently and makes the module
+                        // build only where it was converted.
+                        None => {}
+                    }
+                }
                 local_defines.extend(def.iter().cloned());
             }
         }
 
         let link = built.get(&basename(&decl.name));
+        // Relative to the BUILD dir, not the module: this is where the real
+        // built binary sits, and copy_ground_truth_artifacts reads it from
+        // there. The link command reports `-o tool` from inside app/, so
+        // without rebasing the artifact records as bare `tool` and the copy
+        // fails on a path that does not exist.
         let artifact = link
-            .and_then(|cmd| produced_artifact(cmd))
+            .and_then(|cmd| {
+                let out = produced_artifact(cmd)?;
+                let absolute = normalize_lexically(&cmd.dir.join(&out));
+                absolute
+                    .strip_prefix(build_root)
+                    .ok()
+                    .map(|rel| rel.to_string_lossy().into_owned())
+            })
             .unwrap_or_else(|| decl.name.clone());
 
         // Dependencies come from the COMMAND STREAM, not from _LDADD.
@@ -712,14 +863,23 @@ pub(crate) fn to_graph(
             dependencies,
             includes,
             local_defines,
+            needs_root_include,
             artifacts: vec![artifact],
             ..Default::default()
         });
+        escaped.sort_unstable();
+        escaped.dedup();
+        outside_module.extend(escaped);
     }
 
     targets.sort_by(|a, b| a.name.cmp(&b.name));
     external_links.sort_unstable();
     external_links.dedup();
+    outside_module.sort_unstable();
+    outside_module.dedup();
+    unbuilt.sort_unstable();
+    unbuilt.dedup();
+    let _ = (&outside_module, &unbuilt);
     // Not yet escalated — see bzl-yjn.5. Recorded here so the information is
     // recovered rather than discarded, and so the escalation, when it lands,
     // has something to report.
@@ -821,6 +981,40 @@ fn defines_of(args: &[String]) -> Vec<String> {
         .collect()
 }
 
+/// The source file a compile command names, seeing through automake's VPATH
+/// guard.
+///
+/// A subdir-objects compile does not name the source plainly. It emits
+///
+///   `test -f 'lzmainfo.c' || echo '<srcdir>/src/lzmainfo/'`lzmainfo.c
+///
+/// so the compiler finds the file whether the build is in-tree or out-of-tree.
+/// Tokenised, that becomes SEVERAL arguments, of which two look like sources:
+/// the bare `lzmainfo.c` inside the test, and the real
+/// `<srcdir>/src/lzmainfo/`lzmainfo.c` at the end. Taking the last
+/// source-looking token picks the wrong one whenever a guard is present, and
+/// the flags of that compile are then attributed to no target at all — which
+/// surfaces as a rule with empty `includes` and a header that cannot be found,
+/// several steps from the cause.
+///
+/// The LAST argument is the real source: everything before it is the guard.
+/// The stray backtick is stripped rather than the expression evaluated, since
+/// the echoed directory is exactly the path wanted.
+fn compiled_source(args: &[String]) -> Option<String> {
+    // The LAST argument, always: everything before it is either flags or the
+    // guard's own words. Tokenising the guard leaves the echoed directory
+    // glued to the filename by the closing backtick —
+    // `/src/src/lzmainfo/`lzmainfo.c` — so splitting on that backtick and
+    // rejoining recovers the real path, while a plain source has no backtick
+    // and passes through untouched.
+    let last = args.last()?;
+    let full = match last.split_once('`') {
+        Some((dir, name)) => format!("{dir}{name}"),
+        None => last.clone(),
+    };
+    is_source_file(&full).then_some(full)
+}
+
 fn is_source_file(path: &str) -> bool {
     matches!(
         Path::new(path).extension().and_then(|e| e.to_str()),
@@ -882,10 +1076,121 @@ libgreet_a_SOURCES = src/greet.c src/greet.h\n\
 libshout_la_SOURCES = src/shout.c\n\
 ";
 
+    /// Both frozen captures are from a build rooted here, so paths in them
+    /// resolve against it. An in-tree build, where the source and build roots
+    /// coincide, is the simplest case that still exercises the rebasing.
+    const ROOT: &str = "/src";
+
     fn graph_from_captures() -> BuildGraph {
         let vars = parse_variables(DATABASE);
         let declared = declared_targets(&vars);
-        to_graph(&parse_commands(STREAM), &declared, &vars, "greeter")
+        to_graph(
+            &parse_commands(STREAM, Path::new(ROOT)),
+            &declared,
+            &vars,
+            "greeter",
+            Path::new(ROOT),
+            Path::new(ROOT),
+        )
+    }
+
+    // bzl-yjn.7: recursive make runs each subdirectory's commands from that
+    // subdirectory, so a path in the stream is relative to IT, not to the
+    // build root. xz compiles ../common/tuklib_*.c from src/xz; fixture 002
+    // reproduces it with ../common/util.c from app/. Emitted verbatim, that
+    // is a label reaching above its own module, which codegen refuses.
+    #[test]
+    fn a_commands_paths_resolve_against_the_directory_it_ran_in() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/app'\n\
+gcc -I. -I../common -c -o main.o main.c\n\
+gcc -c -o util.o ../common/util.c\n\
+gcc -o tool main.o util.o\n\
+make[1]: Leaving directory '/src/app'\n\
+";
+        let commands = parse_commands(STREAM, Path::new("/src"));
+        assert!(
+            commands.iter().all(|c| c.dir == Path::new("/src/app")),
+            "every command between Entering and Leaving runs in that \
+             directory: {commands:#?}"
+        );
+
+        let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n");
+        let declared = declared_targets(&vars);
+        let graph = to_graph(
+            &commands,
+            &declared,
+            &vars,
+            "sibling",
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+        let tool = &graph.targets[0];
+        assert_eq!(
+            tool.sources,
+            vec!["app/main.c", "common/util.c"],
+            "the sibling source resolves to its module-relative path, not to \
+             the literal ../common/util.c the command reported:\n{tool:#?}"
+        );
+        assert_eq!(
+            tool.includes,
+            vec!["app", "common"],
+            "-I. and -I../common both resolve against app/, giving app and \
+             common — neither is the module root here, so nothing is \
+             dropped:\n{tool:#?}"
+        );
+        assert!(
+            !tool.needs_root_include,
+            "no include dir resolves TO the module root in this stream: \
+             {tool:#?}"
+        );
+        assert_eq!(
+            tool.artifacts,
+            vec!["app/tool"],
+            "and the artifact is where the build actually put it — `-o tool` \
+             from inside app/ is app/tool, not a bare tool that no copy can \
+             find"
+        );
+    }
+
+    // automake's subdir-objects compiles do not name the source plainly; they
+    // wrap it in a VPATH guard that tokenises into several arguments, two of
+    // which look like sources. Taking the last source-LOOKING token picks the
+    // bare filename inside the `test -f`, so the compile's flags attach to no
+    // target and the rule renders with empty `includes` — several steps from
+    // the cause. xz is full of these.
+    #[test]
+    fn compiled_source_sees_through_automakes_vpath_guard() {
+        // As tokenize() actually yields it: the quotes are consumed, so the
+        // echoed directory and the filename arrive as ONE token joined by the
+        // closing backtick.
+        let args: Vec<String> = [
+            "-c",
+            "-o",
+            "lzmainfo-lzmainfo.o",
+            "`test",
+            "-f",
+            "lzmainfo.c",
+            "||",
+            "echo",
+            "/src/src/lzmainfo/`lzmainfo.c",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        assert_eq!(
+            compiled_source(&args).as_deref(),
+            Some("/src/src/lzmainfo/lzmainfo.c"),
+            "the echoed directory names where the file really is; the bare \
+             lzmainfo.c inside the test is a decoy"
+        );
+
+        // An unguarded compile still works.
+        let plain: Vec<String> = "-c -o main.o main.c"
+            .split_whitespace()
+            .map(str::to_string)
+            .collect();
+        assert_eq!(compiled_source(&plain).as_deref(), Some("main.c"));
     }
 
     // AC_CONFIG_HEADERS names BOTH sides, and the template is not always
@@ -968,10 +1273,12 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         let vars = parse_variables(DB);
         let declared = declared_targets(&vars);
         let graph = to_graph(
-            &parse_commands(STREAM_WITH_RESOLVED_LINK),
+            &parse_commands(STREAM_WITH_RESOLVED_LINK, Path::new(ROOT)),
             &declared,
             &vars,
             "hello",
+            Path::new(ROOT),
+            Path::new(ROOT),
         );
 
         let hello = graph
@@ -1103,8 +1410,14 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
 
         // Compile flags are attributed to the target that owns the object,
         // not smeared across every target.
-        assert_eq!(greet.includes, vec![".", "src"], "{greet:#?}");
-        assert_eq!(greeter.includes, vec!["."], "{greeter:#?}");
+        // `-I.` resolves TO the module root, which Bazel cannot express as an
+        // includes entry — it is recorded as needs_root_include instead, and
+        // codegen stages the public headers into _include/. Same decision the
+        // CMake frontend makes, for the same reason.
+        assert_eq!(greet.includes, vec!["src"], "{greet:#?}");
+        assert!(greet.needs_root_include, "-I. must set it: {greet:#?}");
+        assert!(greeter.includes.is_empty(), "{greeter:#?}");
+        assert!(greeter.needs_root_include, "{greeter:#?}");
 
         // include_HEADERS is automake's statement that a header is public —
         // the same claim CMake makes with install(FILES ... DESTINATION

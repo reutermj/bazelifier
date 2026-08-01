@@ -357,13 +357,25 @@ fn render_sh_test(out: &mut String, test: &model::Test) {
 /// empty attributes on every rule is noise. This is what lets
 /// `render_cc_rule` offer every attribute unconditionally and let the
 /// target's own data decide which appear.
+/// Escapes a value for a double-quoted Starlark string.
+///
+/// Needed because a value can legitimately contain quotes: autoconf compiles
+/// with `-DPACKAGE_NAME="xz"`, so the define reaching `local_defines` is
+/// literally `PACKAGE_NAME="xz"`. Emitted raw that closes the Starlark string
+/// early and the generated BUILD file does not parse — which is a silent
+/// class of bug, since it depends on a project's own values rather than on
+/// anything the translator does.
+fn escape_starlark(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
 fn render_string_list(out: &mut String, attr: &str, items: &[String]) {
     if items.is_empty() {
         return;
     }
     out.push_str(&format!("    {attr} = [\n"));
     for item in items {
-        out.push_str(&format!("        \"{item}\",\n"));
+        out.push_str(&format!("        \"{}\",\n", escape_starlark(item)));
     }
     out.push_str("    ],\n");
 }
