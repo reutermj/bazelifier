@@ -31,6 +31,7 @@ use std::process::Command;
 
 use crate::error::Error;
 use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind};
+use crate::paths::absolutize;
 
 /// One resolved command from the build stream, split into a program and its
 /// arguments with shell noise already removed.
@@ -88,7 +89,12 @@ pub fn discover(
 /// keeps the source tree clean the way CMake's `-B` does.
 fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
     std::fs::create_dir_all(build_dir)?;
-    let configure = source_dir.join("configure");
+    // Absolutized because the command runs with `current_dir(build_dir)`: a
+    // caller-supplied source_dir is usually relative (Bazel passes an
+    // execroot-relative path), and a relative path stops resolving the moment
+    // the working directory changes. Same reason cmake_api absolutizes before
+    // comparing paths.
+    let configure = absolutize(source_dir)?.join("configure");
     let output = Command::new(&configure)
         .current_dir(build_dir)
         .output()

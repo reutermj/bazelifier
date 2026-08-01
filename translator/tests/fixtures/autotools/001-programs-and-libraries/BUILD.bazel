@@ -1,0 +1,20 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# First Autotools fixture, and the one that proves the frontend/codegen
+# boundary: it exercises all three automake target primaries at once and
+# renders through the same codegen every CMake fixture uses.
+#
+# `configure` is checked in alongside `configure.ac`. That is deliberate and
+# is what a released autotools tarball ships — the translator needs a
+# bootstrapped tree, and requiring `autoreconf -i` inside the build action
+# would make the conversion depend on the host's autotools version rather
+# than on the project.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(
+        ["**"],
+        exclude = ["BUILD.bazel"],
+    ),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)
