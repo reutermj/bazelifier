@@ -17,13 +17,17 @@ means. Do not paraphrase it here.
 2. Resolve each item in the **generated** output, deleting its `.md` as you
    genuinely close it.
 3. Re-run the same command. It exits 0 only when no items remain, at least
-   one comparison ran, and none failed.
+   one comparison ran and none failed, and none of the module's own tests
+   failed. It reports the comparisons and the module tests separately.
 
 ## Report
 
 Say what you changed and **why that is the right answer for this project**,
 not just that the tests pass — a resolution that works for the wrong reason
-passes the same comparison.
+passes the same comparison. That is not hypothetical for config headers: a
+wrong value usually still compiles and still produces identical runtime
+output, so the comparison cannot see it and only the module's own
+`assert_config_header_test` can.
 
 Call out separately:
 

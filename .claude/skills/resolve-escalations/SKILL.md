@@ -81,18 +81,28 @@ left behind blocks validation even when the underlying gap is fixed.
 Deleting it is a claim that the gap is genuinely closed. Do not delete one
 you worked around.
 
-## Done means the comparison passes
+## Done means everything passes, not just the build
 
-Not "the module builds" — that is necessary and not sufficient. A conversion
-is finished when:
+"The module builds" is necessary and nowhere near sufficient. A conversion is
+finished when all four hold:
 
 1. `needs_attention/` holds no `.md` files,
-2. the module builds, and
-3. every ground-truth comparison passes: stdout, stderr and exit code match
-   what the project's own build system produced.
+2. the module builds,
+3. every **ground-truth comparison** passes — stdout, stderr and exit code
+   match what the project's own build system produced, and
+4. every test the **module itself** ships passes: the config-header
+   assertions, and any test the project registered.
 
-Re-running `sweep.py --post-agent` checks all three. A resolution that makes
-the build succeed and the comparison fail is not a resolution.
+Re-running `sweep.py --post-agent` checks all four and exits 0 only when they
+hold. It reports the last two separately, because they fail for different
+reasons and a resolution can easily satisfy one and break the other.
+
+**Point 4 is the one that gets skipped, and for a config-header resolution it
+is the only check that bites at all.** A wrong `values` entry or a probe wired
+to the wrong fact usually still compiles and still produces byte-identical
+runtime output — the comparison cannot see it. The generated
+`assert_config_header_test` can. Do not treat a passing comparison as
+evidence that a config header is right.
 
 ## When you cannot resolve it
 

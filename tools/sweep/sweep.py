@@ -143,6 +143,13 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
         )
 
     items = open_items(project_dir)
+    # The module's Bazel repo name, taken from the root MODULE.bazel's
+    # local_path_override rather than assumed equal to the directory name.
+    m = re.search(
+        rf'module_name\s*=\s*"([^"]+)",\s*\n\s*path\s*=\s*"fixtures/{re.escape(project)}"',
+        (work / "MODULE.bazel").read_text(),
+    )
+    module = m.group(1) if m else project
 
     # The comparison targets are named "<project>_<binary>_matches_ground_truth"
     # and read out of the generated root BUILD.bazel. NOT --test_filter, which
@@ -171,7 +178,30 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
     passed = sum(1 for n in names if re.search(rf"//:{re.escape(n)}\s+.*PASSED", combined))
     failed = len(names) - passed
 
+    # The module's OWN tests, which the comparisons do not cover and which
+    # nothing else runs. A converted module ships config-header assertions and
+    # any test the project registered; a resolution that satisfies the runtime
+    # comparison can still leave one of those red — and for a config-header
+    # resolution the assertion is the ONLY thing checking the work, since a
+    # wrong value often still compiles.
+    own = bazel(
+        "test",
+        f"@{module}//:all",
+        "--override_module=cc_config=" + str(REPO / "cc_config"),
+        "--keep_going",
+        cwd=work,
+    )
+    own_out = own.stdout + own.stderr
+    own_passed = len(re.findall(r"^@\S+\s+.*\bPASSED\b", own_out, re.M))
+    own_failed = len(re.findall(r"^@\S+\s+.*\b(?:FAILED|TIMEOUT)\b", own_out, re.M))
+    # rc 4 is "no tests found", which is a legitimate answer for a module that
+    # registered none — distinct from a failure, and not counted as one.
+    if own.returncode not in (0, 4) and own_failed == 0:
+        own_failed = 1
+
     return {
+        "module_tests_passed": own_passed,
+        "module_tests_failed": own_failed,
         "project": project,
         "workspace": str(work),
         "open_items": [
@@ -313,8 +343,12 @@ def report_post_agent(r: dict) -> str:
         out.append("no open escalations")
     out.append("")
     out.append(
-        f"comparisons: {r['comparisons_passed']} passed, "
+        f"comparisons:  {r['comparisons_passed']} passed, "
         f"{r['comparisons_failed']} failed"
+    )
+    out.append(
+        f"module tests: {r['module_tests_passed']} passed, "
+        f"{r['module_tests_failed']} failed"
     )
     return "\n".join(out)
 
@@ -364,10 +398,16 @@ def main() -> int:
             result["resolved"]
             and result["comparisons_failed"] == 0
             and result["comparisons_passed"] > 0
+            and result["module_tests_failed"] == 0
         )
         # comparisons_passed > 0 matters: a project whose comparisons all
         # failed to BUILD reports 0 passed and 0 failed, which would otherwise
         # read as success — a gate looking at nothing.
+        #
+        # module_tests are NOT held to the same > 0 rule: a module that
+        # registered no tests legitimately has none, and requiring one would
+        # fail every fixture without a config header. Their FAILURES still
+        # count, which is the half that matters.
         return 0 if green else 1
 
     sweep = run_pre_agent()
