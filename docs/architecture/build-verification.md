@@ -330,13 +330,11 @@ Numbers are not shared across the two sets, so pick names that stay distinct.
   frozen build-output and `make -p -n` captures are the evidence the
   `autotools.rs` unit tests deserialize.
 
-  **Not enrolled** in `validation_workspace`, and no longer for the reason it
-  once was: the libtool wrapper problem is fixed (bzl-yjn.4), and its ground
-  truth is now a real ELF binary. What blocks it now is that the generated
-  module does not compile — `greet.c` includes `"greet.h"` with a QUOTED
-  path, and header staging moves the header into `_include/` and drops it
-  from `hdrs`, so the include resolves to nothing (bzl-daj). Enrolling it is
-  that bead's acceptance test.
+  Enrolled, and it took two fixes to get there: libtool wrapper scripts
+  broke its ground-truth capture (bzl-yjn.4), and header staging then
+  *replaced* `greet.h` in `hdrs` with the staged copy, so `greet.c`'s quoted
+  `#include "greet.h"` resolved to nothing (bzl-daj). Staging is additive
+  now — a project can use both include styles for one header.
 - `autotools/002-sibling-sources-recursive-make` — enrolled, and the fixture
   that pins recursive make: `app/` compiles `../common/util.c`, so every path
   in the command stream is relative to the subdirectory the command ran in

@@ -523,9 +523,21 @@ fn render_cc_rule(
     if target.kind == TargetKind::Library {
         let mut hdrs = target.public_headers.clone();
         if staged_for(target, config_headers) && !target.public_headers.is_empty() {
-            // The staged copies replace the originals: listing both would give
-            // every header two labels for the same file.
-            hdrs.clear();
+            // The staged copies are ADDED, not substituted. They exist so an
+            // angled `#include <foo.h>` can reach a module-root header, which
+            // is the rules_cc limitation `render_staged_headers` documents —
+            // but a project that includes its own header the ordinary way,
+            // `#include "greet.h"` from the file beside it, still needs the
+            // original where it actually sits.
+            //
+            // Substituting broke exactly that: automake fixture 001 declares
+            // greet.h public AND includes it with quotes from src/greet.c, so
+            // the module compiled with the header reachable only as
+            // _include/greet.h and the quoted include resolved to nothing.
+            //
+            // Two labels for one file is fine — Bazel de-duplicates the
+            // inputs, and the alternative is picking one include style and
+            // being wrong for projects that use the other.
             hdrs.push(format!(":{STAGED_HEADERS_TARGET}"));
         }
         render_path_list(out, "hdrs", &hdrs);
@@ -1723,6 +1735,34 @@ mod tests {
     // `libliblzma.la_shared.so`, embedding a control-file extension and
     // matching no consumer's DT_NEEDED. The frontend reads the real name off
     // the .la's own dlname=.
+    // Staging exists so an angled include can reach a module-root header. It
+    // must not cost the ordinary case: a project that includes its own header
+    // with quotes, from the file beside it, still needs the original where it
+    // sits. Substituting broke automake fixture 001, which does both.
+    #[test]
+    fn staging_adds_headers_rather_than_replacing_the_originals() {
+        let mut out = String::new();
+        render_cc_rule(
+            &mut out,
+            &Target {
+                name: "greet".to_string(),
+                kind: TargetKind::Library,
+                sources: vec!["src/greet.c".to_string()],
+                public_headers: vec!["src/greet.h".to_string()],
+                needs_root_include: true,
+                ..Default::default()
+            },
+            &[],
+            &HashSet::new(),
+        );
+        assert!(
+            out.contains("\"src/greet.h\"") && out.contains(":_staged_hdrs"),
+            "both labels are needed — the staged copy for `#include <greet.h>` \
+             and the original for `#include \"greet.h\"` beside the source. \
+             Two labels for one file is fine; Bazel de-duplicates:\n{out}"
+        );
+    }
+
     #[test]
     fn a_shared_library_is_named_by_its_soname_when_the_frontend_knows_it() {
         let mut out = String::new();
