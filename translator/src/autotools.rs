@@ -38,7 +38,9 @@ use std::process::Command;
 
 use crate::configure_file::catalog_label;
 use crate::error::Error;
-use crate::headers::{inject_headers_on_include_dirs, is_header_file, is_translation_unit};
+use crate::headers::{
+    inject_headers_on_include_dirs, is_buildable_source, is_header_file, is_translation_unit,
+};
 use crate::needs_attention::{
     sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
 };
@@ -883,20 +885,46 @@ pub(crate) fn to_graph(
         } else {
             declared_raw.split_whitespace().map(str::to_string).collect()
         };
-        // Partitioned POSITIVELY, on what a compiler is invoked on. The
-        // negated form (`!is_source_file`) made every unrecognised extension
-        // a header, so a `.c++` the predicate did not know about was filtered
-        // against public_headers, found not installed, and dropped from the
-        // graph — no srcs entry, no hdrs entry, no escalation, surfacing as an
-        // undefined symbol at link time. automake also permits a README in
-        // _SOURCES, which is neither.
+        // Three categories, not two. Partitioning on `!is_translation_unit`
+        // made every unrecognised extension a header, so a `.c++` the
+        // predicate did not know about was filtered against public_headers,
+        // found not installed, and dropped with no escalation — surfacing as
+        // an undefined symbol at link time.
+        //
+        // The third category is real: automake permits a README or a
+        // ChangeLog in `_SOURCES`, the same IDE convenience CMake allows.
+        // Dropped rather than escalated, and that decision is DELIBERATELY
+        // the CMake frontend's — `is_buildable_source` is the shared
+        // predicate and `cmake_api`'s use of it carries the argument (make
+        // does not build the file either, so nothing is missing, and an
+        // escalation per README would be noise on most projects).
+        //
+        // Routed through the shared predicate rather than reproduced, because
+        // the two frontends silently disagreeing about what a source IS is
+        // how the `.c++` bug happened.
         let (declared_sources, not_compiled): (Vec<String>, Vec<String>) = declared_sources
             .into_iter()
             .partition(|s| is_translation_unit(s));
         let headers: Vec<String> = not_compiled
-            .into_iter()
+            .iter()
             .filter(|s| is_header_file(Path::new(s)))
+            .cloned()
             .collect();
+        // A file in neither bucket that `is_buildable_source` WOULD accept
+        // means the two predicates have drifted: the shared one knows an
+        // extension the translation-unit list does not, and this frontend is
+        // about to drop a file rules_cc could have built. Asserted rather
+        // than collected, because there is no correct runtime behaviour here
+        // — either the lists agree or the translator has a bug, and a fourth
+        // silently-collected list is what this bead was filed about.
+        debug_assert!(
+            !not_compiled
+                .iter()
+                .any(|p| !is_header_file(Path::new(p)) && is_buildable_source(p)),
+            "a _SOURCES entry is buildable but neither a translation unit nor \
+             a header, so it would be dropped silently — headers.rs's two \
+             predicates have drifted: {not_compiled:?}"
+        );
 
         // A target's _SOURCES are relative to the Makefile.am that DECLARED
         // them — fixture 002 declares `tool_SOURCES = main.c ../common/util.c`
@@ -1793,6 +1821,7 @@ make[1]: Leaving directory '/src/lib'\n\
         }
     }
 
+    #[test]
     #[test]
     fn an_uppercase_or_cxx_source_is_compiled_not_silently_dropped() {
         const STREAM: &str = "\
