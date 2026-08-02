@@ -563,11 +563,17 @@ fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
         return Vec::new();
     };
     let mut entries = Vec::new();
-    let mut expanded: HashSet<String> = HashSet::new();
-    let mut queue: Vec<String> = raw.split_whitespace().map(str::to_string).collect();
+    // (token, remaining expansion budget). automake's own nesting is two or
+    // three deep (TESTS -> check_PROGRAMS -> am__EXEEXT_N); this is generous
+    // and finite, which is all the bound has to be.
+    const MAX_EXPANSION_DEPTH: u32 = 16;
+    let mut queue: Vec<(String, u32)> = raw
+        .split_whitespace()
+        .map(|t| (t.to_string(), MAX_EXPANSION_DEPTH))
+        .collect();
     queue.reverse();
 
-    while let Some(token) = queue.pop() {
+    while let Some((token, depth)) = queue.pop() {
         // `$(check_PROGRAMS)` / `${VAR}`: resolve against the database and
         // push the expansion back on, so a reference inside it resolves too.
         if let Some(name) = token
@@ -576,17 +582,26 @@ fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
             .or_else(|| token.strip_prefix("${").and_then(|t| t.strip_suffix('}')))
         {
             match vars.get(name) {
-                // `expanded` is the cycle bound, not a dedup: following one
-                // name twice can only repeat work, and a self-reference would
-                // otherwise never terminate.
-                Some(expansion) if expanded.insert(name.to_string()) => {
-                    let mut parts: Vec<String> =
-                        expansion.split_whitespace().map(str::to_string).collect();
+                // The bound is on DEPTH, not on having seen the name before.
+                // A repeat is not a cycle: `make -p` reports a directory's
+                // database once per sub-make, so accumulation legitimately
+                // yields `$(am__EXEEXT_2) ... $(am__EXEEXT_2)`, and refusing
+                // the second occurrence shipped the literal text in an
+                // escalation beside the tests it expands to.
+                //
+                // A self-referential variable still terminates: it re-enters
+                // with one less budget each time and falls through to
+                // Unresolved at zero.
+                Some(expansion) if depth > 0 => {
+                    let mut parts: Vec<(String, u32)> = expansion
+                        .split_whitespace()
+                        .map(|t| (t.to_string(), depth - 1))
+                        .collect();
                     parts.reverse();
                     queue.extend(parts);
                 }
-                // Either the database has no such name, or we have already
-                // followed it. Both mean this token cannot be resolved here.
+                // The database has no such name, or the budget ran out on a
+                // self-reference. Either way this token cannot be resolved.
                 _ => entries.push(TestEntry::Unresolved(token.to_string())),
             }
             continue;
@@ -2839,6 +2854,29 @@ make[1]: Leaving directory '/src/lib'\n\
             ],
             "an empty definition must not erase the real ones, and every \
              directory's contribution has to survive the flattening"
+        );
+    }
+
+    // A REPEAT is not a cycle. `make -p` reports a directory's database once
+    // per sub-make that reads it, so accumulation gives libidn2
+    // `TESTS = $(am__EXEEXT_2) $(dist_check_SCRIPTS) $(am__EXEEXT_2)
+    // $(dist_check_SCRIPTS)` — the same reference twice. Marking a name
+    // followed on first use made the second occurrence report Unresolved,
+    // and the literal text `$(am__EXEEXT_2)` shipped in the escalation
+    // alongside the very tests it expands to.
+    #[test]
+    fn a_reference_repeated_by_accumulation_still_expands() {
+        let vars = parse_variables(
+            "am__EXEEXT_2 = test_a$(EXEEXT)\n\
+             check_PROGRAMS = $(am__EXEEXT_2)\n\
+             TESTS = $(am__EXEEXT_2) $(am__EXEEXT_2)\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![TestEntry::Binary("test_a".to_string())],
+            "the second occurrence is the same declaration seen twice, not a \
+             cycle — it must expand and then dedup, never escalate as literal \
+             make syntax"
         );
     }
 
