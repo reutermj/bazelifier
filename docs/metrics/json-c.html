@@ -1,0 +1,64 @@
+<title>json-c — bazelifier metrics</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 2rem 1.25rem;
+         max-width: 60rem; color: {INK}; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1rem; margin: 0 0 .5rem; font-weight: 600; }
+  .sub { color: {MUTED}; margin: 0 0 2rem; }
+  section { margin: 0 0 2.25rem; }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .legend { margin: 0 0 .5rem; font-size: .8rem; color: {MUTED}; }
+  .key { margin-right: 1rem; white-space: nowrap; }
+  .key i { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%;
+            margin-right: .35rem; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .35rem .6rem; border-bottom: 1px solid {GRID}; }
+  th { color: {MUTED}; font-weight: 600; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .up { color: #a03e52; } .down { color: #4a7c59; }
+  .flat, .new { color: {MUTED}; }
+  .cards { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 0 0 2rem; }
+  .card b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  .card span { color: {MUTED}; font-size: .8rem; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e4e7eb; background: #17202a; }
+    th, td { border-color: #2c3946; }
+  }
+  :root[data-theme="dark"] body { color: #e4e7eb; background: #17202a; }
+  :root[data-theme="light"] body { color: {INK}; background: #fff; }
+</style>
+<p class="sub"><a href="index.html">← all projects</a></p>
+<h1>json-c</h1>
+<p class="sub">module <code>json-c</code> ·
+  3 sweeps ·
+  latest 2026-08-02</p>
+
+<div class="cards">
+  <div class="card"><b>6</b><span>open escalations</span></div>
+  <div class="card"><b>32</b><span>targets</span></div>
+  <div class="card"><b>30</b><span>executables</span></div>
+  <div class="card"><b>0</b><span>tests</span></div>
+  <div class="card"><b>4</b><span>config headers</span></div>
+</div>
+
+<section><h2>Open escalations</h2><div class="legend"><span class="key"><i style="background:#2f6f9f"></i>escalations</span></div><svg viewBox="0 0 720 220" role="img" aria-label="Open escalations"><line x1="44" y1="16.0" x2="708" y2="16.0" stroke="#e4e7eb"/><text x="36" y="20.0" text-anchor="end" font-size="11" fill="#7b8794">6</text><line x1="44" y1="101.0" x2="708" y2="101.0" stroke="#e4e7eb"/><text x="36" y="105.0" text-anchor="end" font-size="11" fill="#7b8794">3</text><line x1="44" y1="186.0" x2="708" y2="186.0" stroke="#e4e7eb"/><text x="36" y="190.0" text-anchor="end" font-size="11" fill="#7b8794">0</text><polyline points="44.0,16.0 376.0,16.0 708.0,16.0" fill="none" stroke="#2f6f9f" stroke-width="2" stroke-linejoin="round"/><circle cx="44.0" cy="16.0" r="3.5" fill="#2f6f9f"><title>escalations — 2026-08-01 6aed0fd: 6</title></circle><circle cx="376.0" cy="16.0" r="3.5" fill="#2f6f9f"><title>escalations — 2026-08-01 c20be86: 6</title></circle><circle cx="708.0" cy="16.0" r="3.5" fill="#2f6f9f"><title>escalations — 2026-08-02 71e91fc: 6</title></circle><text x="44" y="210" font-size="11" fill="#7b8794">2026-08-01 6aed0fd</text><text x="708" y="210" text-anchor="end" font-size="11" fill="#7b8794">2026-08-02 71e91fc</text></svg></section><section><h2>What the translator produced</h2><div class="legend"><span class="key"><i style="background:#2f6f9f"></i>targets</span> <span class="key"><i style="background:#b0562a"></i>executables</span> <span class="key"><i style="background:#4a7c59"></i>tests</span></div><svg viewBox="0 0 720 220" role="img" aria-label="What the translator produced"><line x1="44" y1="16.0" x2="708" y2="16.0" stroke="#e4e7eb"/><text x="36" y="20.0" text-anchor="end" font-size="11" fill="#7b8794">32</text><line x1="44" y1="101.0" x2="708" y2="101.0" stroke="#e4e7eb"/><text x="36" y="105.0" text-anchor="end" font-size="11" fill="#7b8794">16</text><line x1="44" y1="186.0" x2="708" y2="186.0" stroke="#e4e7eb"/><text x="36" y="190.0" text-anchor="end" font-size="11" fill="#7b8794">0</text><polyline points="44.0,16.0 376.0,16.0 708.0,16.0" fill="none" stroke="#2f6f9f" stroke-width="2" stroke-linejoin="round"/><circle cx="44.0" cy="16.0" r="3.5" fill="#2f6f9f"><title>targets — 2026-08-01 6aed0fd: 32</title></circle><circle cx="376.0" cy="16.0" r="3.5" fill="#2f6f9f"><title>targets — 2026-08-01 c20be86: 32</title></circle><circle cx="708.0" cy="16.0" r="3.5" fill="#2f6f9f"><title>targets — 2026-08-02 71e91fc: 32</title></circle><polyline points="44.0,26.6 376.0,26.6 708.0,26.6" fill="none" stroke="#b0562a" stroke-width="2" stroke-linejoin="round"/><circle cx="44.0" cy="26.6" r="3.5" fill="#b0562a"><title>executables — 2026-08-01 6aed0fd: 30</title></circle><circle cx="376.0" cy="26.6" r="3.5" fill="#b0562a"><title>executables — 2026-08-01 c20be86: 30</title></circle><circle cx="708.0" cy="26.6" r="3.5" fill="#b0562a"><title>executables — 2026-08-02 71e91fc: 30</title></circle><polyline points="44.0,186.0 376.0,186.0 708.0,186.0" fill="none" stroke="#4a7c59" stroke-width="2" stroke-linejoin="round"/><circle cx="44.0" cy="186.0" r="3.5" fill="#4a7c59"><title>tests — 2026-08-01 6aed0fd: 0</title></circle><circle cx="376.0" cy="186.0" r="3.5" fill="#4a7c59"><title>tests — 2026-08-01 c20be86: 0</title></circle><circle cx="708.0" cy="186.0" r="3.5" fill="#4a7c59"><title>tests — 2026-08-02 71e91fc: 0</title></circle><text x="44" y="210" font-size="11" fill="#7b8794">2026-08-01 6aed0fd</text><text x="708" y="210" text-anchor="end" font-size="11" fill="#7b8794">2026-08-02 71e91fc</text></svg></section><section><h2>By escalation kind</h2><div class="legend"><span class="key"><i style="background:#2f6f9f"></i>ctest_command_not_a_target</span> <span class="key"><i style="background:#b0562a"></i>inert_convenience_targets</span> <span class="key"><i style="background:#4a7c59"></i>unmapped_config_macros</span></div><svg viewBox="0 0 720 220" role="img" aria-label="By escalation kind"><line x1="44" y1="16.0" x2="708" y2="16.0" stroke="#e4e7eb"/><text x="36" y="20.0" text-anchor="end" font-size="11" fill="#7b8794">4</text><line x1="44" y1="101.0" x2="708" y2="101.0" stroke="#e4e7eb"/><text x="36" y="105.0" text-anchor="end" font-size="11" fill="#7b8794">2</text><line x1="44" y1="186.0" x2="708" y2="186.0" stroke="#e4e7eb"/><text x="36" y="190.0" text-anchor="end" font-size="11" fill="#7b8794">0</text><polyline points="44.0,143.5 376.0,143.5 708.0,143.5" fill="none" stroke="#2f6f9f" stroke-width="2" stroke-linejoin="round"/><circle cx="44.0" cy="143.5" r="3.5" fill="#2f6f9f"><title>ctest_command_not_a_target — 2026-08-01 6aed0fd: 1</title></circle><circle cx="376.0" cy="143.5" r="3.5" fill="#2f6f9f"><title>ctest_command_not_a_target — 2026-08-01 c20be86: 1</title></circle><circle cx="708.0" cy="143.5" r="3.5" fill="#2f6f9f"><title>ctest_command_not_a_target — 2026-08-02 71e91fc: 1</title></circle><polyline points="44.0,143.5 376.0,143.5 708.0,143.5" fill="none" stroke="#b0562a" stroke-width="2" stroke-linejoin="round"/><circle cx="44.0" cy="143.5" r="3.5" fill="#b0562a"><title>inert_convenience_targets — 2026-08-01 6aed0fd: 1</title></circle><circle cx="376.0" cy="143.5" r="3.5" fill="#b0562a"><title>inert_convenience_targets — 2026-08-01 c20be86: 1</title></circle><circle cx="708.0" cy="143.5" r="3.5" fill="#b0562a"><title>inert_convenience_targets — 2026-08-02 71e91fc: 1</title></circle><polyline points="44.0,16.0 376.0,16.0 708.0,16.0" fill="none" stroke="#4a7c59" stroke-width="2" stroke-linejoin="round"/><circle cx="44.0" cy="16.0" r="3.5" fill="#4a7c59"><title>unmapped_config_macros — 2026-08-01 6aed0fd: 4</title></circle><circle cx="376.0" cy="16.0" r="3.5" fill="#4a7c59"><title>unmapped_config_macros — 2026-08-01 c20be86: 4</title></circle><circle cx="708.0" cy="16.0" r="3.5" fill="#4a7c59"><title>unmapped_config_macros — 2026-08-02 71e91fc: 4</title></circle><text x="44" y="210" font-size="11" fill="#7b8794">2026-08-01 6aed0fd</text><text x="708" y="210" text-anchor="end" font-size="11" fill="#7b8794">2026-08-02 71e91fc</text></svg></section>
+
+<section><h2>Open escalations, by kind</h2>
+<div class="wrap"><table>
+<tr><th>kind</th><th class=n>count</th></tr>
+<tr><td><code>unmapped_config_macros</code></td><td class=n>4</td></tr><tr><td><code>ctest_command_not_a_target</code></td><td class=n>1</td></tr><tr><td><code>inert_convenience_targets</code></td><td class=n>1</td></tr>
+</table></div>
+<p class="sub">These are <strong>pre-agent</strong> numbers — what the
+translator produced on its own. An open escalation is unfinished work
+awaiting the agent stage, not a defect, and resolutions are deliberately
+ephemeral: a translation carries project-specific semantics, and the point
+is that the process adapts to them rather than memorises them. So this page
+shows what the translator alone achieves, which is the half that should be
+reproducible.</p>
+<p class="sub">It does <strong>not</strong> show whether the project is
+currently green — that needs the agent stage, and nothing records its result
+yet (bzl-ccv.10). Run it with
+<code>python3 tools/sweep/sweep.py --post-agent json-c</code>.</p>
+</section>

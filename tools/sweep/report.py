@@ -16,6 +16,7 @@ import argparse
 import html
 import json
 import pathlib
+import re
 import sys
 
 # Deliberately few colours: the point is to read a trend, not to decorate.
@@ -124,6 +125,133 @@ def line_chart(title: str, series: list[tuple[str, list[float]]], labels: list[s
     )
 
 
+STYLE = """<style>
+  :root { color-scheme: light dark; }
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 2rem 1.25rem;
+         max-width: 60rem; color: {INK}; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  h2 { font-size: 1rem; margin: 0 0 .5rem; font-weight: 600; }
+  .sub { color: {MUTED}; margin: 0 0 2rem; }
+  section { margin: 0 0 2.25rem; }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .legend { margin: 0 0 .5rem; font-size: .8rem; color: {MUTED}; }
+  .key { margin-right: 1rem; white-space: nowrap; }
+  .key i { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%;
+            margin-right: .35rem; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  th, td { text-align: left; padding: .35rem .6rem; border-bottom: 1px solid {GRID}; }
+  th { color: {MUTED}; font-weight: 600; }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .up { color: #a03e52; } .down { color: #4a7c59; }
+  .flat, .new { color: {MUTED}; }
+  .cards { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 0 0 2rem; }
+  .card b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+  .card span { color: {MUTED}; font-size: .8rem; }
+  @media (prefers-color-scheme: dark) {
+    body { color: #e4e7eb; background: #17202a; }
+    th, td { border-color: #2c3946; }
+  }
+  :root[data-theme="dark"] body { color: #e4e7eb; background: #17202a; }
+  :root[data-theme="light"] body { color: {INK}; background: #fff; }
+</style>"""
+
+
+def slug(project: str) -> str:
+    """A filename for a project's page. Projects are already
+    filesystem-safe directory names, so this only guards the separator."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", project)
+
+
+def series_for(rows: list[dict], project: str) -> list[tuple[dict, dict]]:
+    """(sweep, that project's record) for every sweep the project appears in.
+
+    Skips sweeps predating the project rather than plotting a zero, which
+    would read as "it had no escalations" instead of "it did not exist".
+    """
+    out = []
+    for sweep in rows:
+        rec = next((p for p in sweep["projects"] if p["project"] == project), None)
+        if rec is not None:
+            out.append((sweep, rec))
+    return out
+
+
+def render_project(rows: list[dict], project: str) -> str:
+    pairs = series_for(rows, project)
+    labels = [s.get("date", "?") + " " + s["commit"][:7] for s, _ in pairs]
+    recs = [r for _, r in pairs]
+    latest = recs[-1]
+
+    kinds = sorted({k for r in recs for k in r["escalations_by_kind"]})
+    charts = [
+        line_chart(
+            "Open escalations",
+            [("escalations", [r["escalations"] for r in recs])],
+            labels,
+        ),
+        line_chart(
+            "What the translator produced",
+            [
+                ("targets", [r["targets"] for r in recs]),
+                ("executables", [r["executables"] for r in recs]),
+                ("tests", [r["tests"] for r in recs]),
+            ],
+            labels,
+        ),
+    ]
+    if kinds:
+        charts.append(
+            line_chart(
+                "By escalation kind",
+                [(k, [r["escalations_by_kind"].get(k, 0) for r in recs]) for k in kinds],
+                labels,
+            )
+        )
+
+    open_rows = "".join(
+        f"<tr><td><code>{html.escape(k)}</code></td><td class=n>{n}</td></tr>"
+        for k, n in sorted(latest["escalations_by_kind"].items(), key=lambda kv: -kv[1])
+    ) or '<tr><td colspan="2" class="flat">none open</td></tr>'
+
+    return f"""<title>{html.escape(project)} — bazelifier metrics</title>
+{STYLE}
+<p class="sub"><a href="index.html">← all projects</a></p>
+<h1>{html.escape(project)}</h1>
+<p class="sub">module <code>{html.escape(latest['module'])}</code> ·
+  {len(pairs)} sweep{"s" if len(pairs) != 1 else ""} ·
+  latest {html.escape(pairs[-1][0].get("date", "?"))}</p>
+
+<div class="cards">
+  <div class="card"><b>{latest['escalations']}</b><span>open escalations</span></div>
+  <div class="card"><b>{latest['targets']}</b><span>targets</span></div>
+  <div class="card"><b>{latest['executables']}</b><span>executables</span></div>
+  <div class="card"><b>{latest['tests']}</b><span>tests</span></div>
+  <div class="card"><b>{latest['config_headers']}</b><span>config headers</span></div>
+</div>
+
+{"".join(charts)}
+
+<section><h2>Open escalations, by kind</h2>
+<div class="wrap"><table>
+<tr><th>kind</th><th class=n>count</th></tr>
+{open_rows}
+</table></div>
+<p class="sub">These are <strong>pre-agent</strong> numbers — what the
+translator produced on its own. An open escalation is unfinished work
+awaiting the agent stage, not a defect, and resolutions are deliberately
+ephemeral: a translation carries project-specific semantics, and the point
+is that the process adapts to them rather than memorises them. So this page
+shows what the translator alone achieves, which is the half that should be
+reproducible.</p>
+<p class="sub">It does <strong>not</strong> show whether the project is
+currently green — that needs the agent stage, and nothing records its result
+yet (bzl-ccv.10). Run it with
+<code>python3 tools/sweep/sweep.py --post-agent {html.escape(project)}</code>.</p>
+</section>
+"""
+
+
 def render(rows: list[dict]) -> str:
     labels = [r.get("date", "?") + " " + r["commit"][:7] for r in rows]
     tots = [totals(r) for r in rows]
@@ -183,43 +311,15 @@ def render(rows: list[dict]) -> str:
             css = "up" if p["escalations"] > was else "down"
             delta = f'<span class="{css}">{arrow} {was} → {p["escalations"]}</span>'
         body_rows.append(
-            f"<tr><td>{html.escape(p['project'])}</td>"
+            f"<tr><td><a href=\"{slug(p['project'])}.html\">"
+            f"{html.escape(p['project'])}</a></td>"
             f"<td class=n>{p['targets']}</td><td class=n>{p['tests']}</td>"
             f"<td class=n>{p['escalations']}</td><td>{delta}</td></tr>"
         )
 
     t = totals(latest)
     return f"""<title>bazelifier pipeline metrics</title>
-<style>
-  :root {{ color-scheme: light dark; }}
-  body {{ font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 2rem 1.25rem;
-         max-width: 60rem; color: {INK}; }}
-  h1 {{ font-size: 1.4rem; margin: 0 0 .25rem; }}
-  h2 {{ font-size: 1rem; margin: 0 0 .5rem; font-weight: 600; }}
-  .sub {{ color: {MUTED}; margin: 0 0 2rem; }}
-  section {{ margin: 0 0 2.25rem; }}
-  svg {{ width: 100%; height: auto; overflow: visible; }}
-  .legend {{ margin: 0 0 .5rem; font-size: .8rem; color: {MUTED}; }}
-  .key {{ margin-right: 1rem; white-space: nowrap; }}
-  .key i {{ display: inline-block; width: .6rem; height: .6rem; border-radius: 50%;
-            margin-right: .35rem; }}
-  .wrap {{ overflow-x: auto; }}
-  table {{ border-collapse: collapse; width: 100%; font-size: .9rem; }}
-  th, td {{ text-align: left; padding: .35rem .6rem; border-bottom: 1px solid {GRID}; }}
-  th {{ color: {MUTED}; font-weight: 600; }}
-  td.n, th.n {{ text-align: right; font-variant-numeric: tabular-nums; }}
-  .up {{ color: #a03e52; }} .down {{ color: #4a7c59; }}
-  .flat, .new {{ color: {MUTED}; }}
-  .cards {{ display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 0 0 2rem; }}
-  .card b {{ display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }}
-  .card span {{ color: {MUTED}; font-size: .8rem; }}
-  @media (prefers-color-scheme: dark) {{
-    body {{ color: #e4e7eb; background: #17202a; }}
-    th, td {{ border-color: #2c3946; }}
-  }}
-  :root[data-theme="dark"] body {{ color: #e4e7eb; background: #17202a; }}
-  :root[data-theme="light"] body {{ color: {INK}; background: #fff; }}
-</style>
+{STYLE}
 <h1>bazelifier pipeline metrics</h1>
 <p class="sub">{len(rows)} sweep{"s" if len(rows) != 1 else ""} ·
   latest {html.escape(latest.get("date", "?"))} at
@@ -255,9 +355,19 @@ def main() -> int:
         "directory, which is the committed copy",
     )
     args = ap.parse_args()
+    rows = load(args.history)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(render(load(args.history)))
-    print(f"wrote {args.out}")
+    args.out.write_text(render(rows))
+
+    # One page per project, beside the index. Written every run rather than
+    # only for projects that changed: a stale page is worse than none, and a
+    # project that vanished from the corpus should stop having a page at all.
+    projects = sorted({p["project"] for r in rows for p in r["projects"]})
+    for project in projects:
+        (args.out.parent / f"{slug(project)}.html").write_text(
+            render_project(rows, project)
+        )
+    print(f"wrote {args.out} and {len(projects)} project pages")
     return 0
 
 
