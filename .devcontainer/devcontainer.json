@@ -31,7 +31,12 @@
     }
   },
   "remoteEnv": {
-    "PATH": "${containerWorkspaceFolder}:${containerEnv:PATH}:${containerEnv:HOME}/.local/bin"
+    // /home/vscode literal, not ${containerEnv:HOME}: VS Code does not
+    // substitute it here, and the unexpanded form lands in PATH as a literal
+    // "/.local/bin" — a directory that does not exist, so `bd` installed by
+    // postCreateCommand was unreachable by name. Verified by reading $PATH
+    // in-session, where both the broken and working entries were visible.
+    "PATH": "${containerWorkspaceFolder}:${containerEnv:PATH}:/home/vscode/.local/bin"
   },
   "postCreateCommand": "curl -fsSL https://raw.githubusercontent.com/gastownhall/beads/main/scripts/install.sh | bash",
   "remoteUser": "vscode"
