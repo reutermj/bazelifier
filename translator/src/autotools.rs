@@ -770,17 +770,66 @@ pub(crate) fn to_graph(
     // Surveyed before anything is rebased, unlike the rest of this function,
     // because the root is a fact about ALL the targets and rebasing needs it
     // already decided.
+    // object path -> the source it was compiled from, and the flags it
+    // carried. Built before the module root, because the root survey needs it
+    // to see through an unexpanded `_SOURCES`.
+    let mut source_of: HashMap<String, (String, PathBuf)> = HashMap::new();
+    let mut flags_of: HashMap<String, (Vec<String>, Vec<String>)> = HashMap::new();
+    for cmd in commands.iter().filter(|c| c.program != "ar") {
+        let Some(output) = flag_value(&cmd.args, "-o") else {
+            continue;
+        };
+        if !cmd.args.iter().any(|a| a == "-c") {
+            continue;
+        }
+        if let Some(source) = compiled_source(&cmd.args) {
+            source_of.insert(output.clone(), (source, cmd.dir.clone()));
+            flags_of.insert(output, (includes_of(&cmd.args), defines_of(&cmd.args)));
+        }
+    }
+
     let module_root = {
         let mut shipped = Vec::new();
         for decl in declared {
             let dir = declaring_dir(&decl.name);
             let canon = canonical_name(&decl.name);
-            let declared_sources = vars
+            let raw = vars
                 .get(&format!("{canon}_SOURCES"))
-                .map(|v| v.split_whitespace().collect::<Vec<_>>())
+                .map(String::as_str)
                 .unwrap_or_default();
-            for src in declared_sources {
-                let absolute = normalize_lexically(&dir.join(src));
+            // Same fallback the target loop uses, and for the same reason: an
+            // unexpanded `$(am__append_N)` cannot say what the sources are, so
+            // surveying the literal text picks the root from xz's 11-file base
+            // while the graph is built from all 80. A conditional source
+            // reaching a sibling directory would then be dropped by a root
+            // that never widened for it.
+            let sources: Vec<String> = if raw.contains("$(") {
+                link_inputs(built.get(&basename(&decl.name)).copied())
+                    .iter()
+                    .filter_map(|obj| source_of.get(obj.as_str()))
+                    .map(|(source, from)| {
+                        normalize_lexically(&from.join(source))
+                            .to_string_lossy()
+                            .into_owned()
+                    })
+                    .collect()
+            } else {
+                raw.split_whitespace().map(str::to_string).collect()
+            };
+            // Everything the build REFERENCES, not just what it compiles.
+            // CMake surveys sources, public headers and include dirs
+            // together; surveying only sources here meant an Autotools
+            // project whose one outside reference was an installed header or
+            // an `-I` did not widen where its CMake equivalent did — two
+            // structurally identical projects converting differently, which
+            // is what bzl-kga was filed about.
+            let headers = public_headers(vars);
+            let includes = built
+                .get(&basename(&decl.name))
+                .map(|cmd| includes_of(&cmd.args))
+                .unwrap_or_default();
+            for path in sources.iter().chain(&headers).chain(&includes) {
+                let absolute = normalize_lexically(&dir.join(path));
                 if absolute.starts_with(deliverable_root) {
                     shipped.push(absolute);
                 }
@@ -810,21 +859,6 @@ pub(crate) fn to_graph(
             .map(|rel| rel.to_string_lossy().into_owned())
     };
     // object path -> the source it was compiled from, and the flags it carried.
-    let mut source_of: HashMap<String, (String, PathBuf)> = HashMap::new();
-    let mut flags_of: HashMap<String, (Vec<String>, Vec<String>)> = HashMap::new();
-    for cmd in commands.iter().filter(|c| c.program != "ar") {
-        let Some(output) = flag_value(&cmd.args, "-o") else {
-            continue;
-        };
-        if !cmd.args.iter().any(|a| a == "-c") {
-            continue;
-        }
-        if let Some(source) = compiled_source(&cmd.args) {
-            source_of.insert(output.clone(), (source, cmd.dir.clone()));
-            flags_of.insert(output, (includes_of(&cmd.args), defines_of(&cmd.args)));
-        }
-    }
-
     // Targets automake declared but the build never produced. `check_PROGRAMS`
     // are the live case: `make` does not build them (that is `make check`), so
     // no link command exists and nothing says which directory their sources
@@ -1561,6 +1595,44 @@ make[1]: Leaving directory '/deliv/proj/app'\n\
             "a file that ships with the project is not a gap — nothing is \
              missing once the module covers it: {:#?}",
             escalations.iter().map(|e| &e.title).collect::<Vec<_>>()
+        );
+    }
+
+    // The survey has to look at everything the build REFERENCES, not just
+    // what it compiles: CMake surveys sources, public headers and include
+    // dirs together, and an Autotools project whose only outside reference
+    // was an installed header used to not widen where its CMake equivalent
+    // did. Two structurally identical projects, two different modules.
+    #[test]
+    fn an_installed_header_outside_the_project_widens_the_root() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/deliv/proj'\n\
+gcc -c -o main.o main.c\n\
+gcc -o tool main.o\n\
+make[1]: Leaving directory '/deliv/proj'\n\
+";
+        let vars = parse_variables(
+            "bin_PROGRAMS = tool\n\
+             tool_SOURCES = main.c\n\
+             include_HEADERS = ../shared/api.h\n",
+        );
+        let (_, _, module_root) = to_graph(
+            &parse_commands(STREAM, Path::new("/deliv/proj")),
+            &declared_targets(&vars),
+            &vars,
+            "hdr",
+            Path::new("/deliv/proj"),
+            Path::new("/deliv"),
+            Path::new("/deliv/proj"),
+        );
+
+        assert_eq!(
+            module_root,
+            PathBuf::from("/deliv"),
+            "an installed header above the project must widen the root, or \
+             the label naming it reaches outside the module. Deliberately \
+             NOT also in _SOURCES: that would widen via the sources survey \
+             and the header path would never be exercised"
         );
     }
 
