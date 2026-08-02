@@ -82,10 +82,19 @@ enough** (7).
    CMake shipped into an Autotools module. xz's escalation tells the agent
    about `#cmakedefine` and not to edit `CMakeLists.txt`; xz has neither.
 
-   Do not scope this to one item. The same defect was in
-   `resolutions/README.md` on **all 35 projects**. Ask it of every piece of
-   text the conversion ships, and check which constructors `autotools.rs`
-   actually calls — anything both frontends emit is suspect by default.
+   Do not scope this to one item. Text that ships is copied into *every*
+   converted module, so one wrong sentence is wrong N times — ask it of
+   every piece of text the conversion ships, and check which constructors
+   `autotools.rs` actually calls, since anything both frontends emit is
+   suspect by default.
+
+   `resolutions/README.md`'s build-file list was the instance here and is
+   FIXED — it now names `CMakeLists.txt`, `Makefile.am` and `configure.ac`.
+   Do not go hunting for it. What is still live is one layer down: the
+   *recipe bodies* are CMake-flavoured throughout (`header-visibility.md`
+   explains only CMake's two mechanisms; `generated-config-header.md` is
+   entirely `configure_file()` and `#cmakedefine`) and ship unchanged into
+   every Autotools module.
 2. **Can the agent actually DO this?** The resolution must be reachable from
    inside the unpacked module. "Re-run the conversion with a wider
    `--deliverable-root`" is actionable; anything requiring a file, script or

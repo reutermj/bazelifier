@@ -100,8 +100,20 @@ found something real:
   like this entry at first glance, because every behavioural gap presents as
   one side having code the other lacks. When in doubt, Q3 wins: this entry is
   about size, not behaviour.
-- **`ctest.rs` being CMake-only.** There is no Autotools test frontend yet;
-  `graph.tests` is empty for it. That is absence, not a boundary violation.
+- ~~**`ctest.rs` being CMake-only.**~~ **This exemption is REVOKED and is
+  now a live lead.** It said `graph.tests` is empty for Autotools so the
+  gap was absence rather than a boundary violation. That premise died with
+  `e1c5932`: the Autotools frontend populates `graph.tests` and
+  `unexpressed_tests`, and calls a CTest-named escalation constructor. The
+  CTest vocabulary has since leaked into `model::Test`, into
+  `render_sh_test`, and into a *shipped filename* — three of four Autotools
+  modules carry `run_cmake_test.sh`. An agent reading the old exemption at
+  face value drops that finding; one did, and only a per-run brief saved it.
+
+  Kept visible rather than deleted, because the lesson generalises: an
+  exemption is a claim about the world with a shelf life. **Before honouring
+  one, check its stated premise still holds** — this one outlived its truth
+  by four days and cost a P1's worth of near-miss.
 
 ## Dispatching this as a subagent
 

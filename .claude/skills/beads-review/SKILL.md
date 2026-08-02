@@ -41,6 +41,21 @@ Each is a distinct shape, and only the first is obvious:
    what makes a reader trust them and skip re-measuring. **Any bead
    containing a number, a count, or the word "measured" is a re-measurement
    candidate**, and the more careful it looks the more it needs one.
+8. **A close reason asserting a measurement that was never taken.** Shapes
+   1-7 are about *open* beads drifting. This one is about a **closed** bead
+   whose stated justification is checkable and false — and it is strictly
+   more dangerous, because a close reason is what stops anyone re-examining
+   it and nothing will ever re-surface it.
+
+   `bzl-oek` was closed with "the fixes resolved every `$(am__EXEEXT_N)` to
+   real names." Twenty literal entries ship. The closing agent had written
+   the fix minutes earlier and the least incentive of anyone to re-run the
+   check — and the check it did run globbed a filename containing a count
+   that the fix had changed, so it matched nothing and returned zero.
+
+   **Audit close reasons that assert an output state.** "X is now Y" is a
+   claim about the pipeline, not a summary of intent. `bzl-b6m` is the
+   control: same shape, and its numbers held when re-measured.
 
 ## The method
 

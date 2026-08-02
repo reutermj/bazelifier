@@ -66,15 +66,11 @@ for d in */; do n=$(ls "$d/needs_attention"/*.md 2>/dev/null | wc -l)
   [ "$n" -gt 0 ] && echo "$n  ${d%/}"; done | sort -rn
 ```
 
-As of 2026-08-02 that is ten projects, not the five a previous version of
-this file named: six synthetic fixtures — `003-library-no-file-set` (header
-not in a FILE_SET), `005-unsupported-target-type` (a custom target),
-`007-generated-source` (a generated source → genrule),
-`008-sources-outside-deliverable-root` (a sibling directory outside the
-root), `015-configure-file-unresolved-var` (an unresolved plain `@VAR@`) and
-`022-ctest-script-command` — plus four corpus projects: `json-c` (6),
-`zlib` (2), `fmt` (2), `xz` (1). The hand-list went stale twice: 022 and the
-whole corpus postdate it. Each emits
+No count is written here on purpose. Three previous versions of this file
+enumerated the red projects and all three went stale — most recently one
+dated the same day it was already wrong. Run the command; a number you
+computed cannot be out of date, and a number you read can only be checked by
+running it anyway. Each red project emits
 a `needs_attention/` item and the gate fails loud by design; these fixtures
 exist to test the *whole* pipeline including the agent stage, whose job is to
 resolve the item (in the generated output) and turn the fixture green.
@@ -109,6 +105,15 @@ Building in the unpacked workspace needs the catalog supplied by flag —
 you get "module cc_config not found in registries", which reads like blocked
 egress and is not; `cc_config` is deliberately never staged into the
 tarball.
+
+**There is a FOURTH gate, and it is the one with the highest stakes.**
+`tools/sweep/sweep.py --post-agent <project>` decides `green: true` and
+writes it to a page served publicly. It is a pass criterion like any other
+and belongs under review — the three tiers plus buildifier are not the whole
+set. Ask of it what you would ask of any gate: what edit would make it pass
+when it should fail? (Answer, as of 2026-08-02: deleting the failing tests.
+It runs a wildcard over what survives rather than the frozen
+`//:all_ground_truth_comparisons` suite that would catch it.)
 
 Run the Bazel tiers directly — `bazel test //translator:bazelifier_test`
 (the Rust-unit authority), the fixture conversions, the validation
@@ -221,6 +226,16 @@ judgement a careful reader already has.
   exported but never diffed. You cannot run a static library; symbol-table
   comparison is the deferred answer, already recorded under "Equivalence
   checks" in `docs/architecture/build-verification.md`.
+
+  **This exemption covers libraries and nothing else — do not let it absorb
+  the larger exclusion beside it.** `validation_workspace.bzl` also skips any
+  binary that has its own registered test, on the sound reasoning that the
+  test is the better check. But the two together mean a project can be far
+  less compared than its target count suggests: libmicrohttpd compares 16 of
+  110 executables, and the other 94 rest entirely on tests that the agent
+  stage is free to delete. Reading "16 of 110" as this bullet's library
+  carve-out and moving on is the wrong call — check which exclusion applies
+  and what is left holding the line.
 
 ## Verify and report
 

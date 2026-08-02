@@ -50,11 +50,15 @@ sampling pass into a targeted one.
   ```
 
   When a test is inserted above an existing one the `#[test]` gets duplicated
-  along with the comment, and clippy names every site. Five sat unread in
-  this tree, one of them stacking three unrelated rationales above a single
-  test. Read those warnings as findings, not lint noise — and note the
-  trigger is *any commit adding a test to an existing `mod tests`*, not only
-  a rename or file move: three of those five came from plain insertions.
+  along with the comment, and clippy names every site. Read those warnings as
+  findings, not lint noise. The trigger is *any commit adding a test to an
+  existing `mod tests`* — not only a rename or file move.
+
+  **Expect zero.** This class was cleaned out on 2026-08-02 (five instances,
+  three from plain insertions, one stacking three unrelated rationales above
+  a single test). A clean run is the normal result, not a broken invocation —
+  the check is cheap and stays because the class recurs, not because there is
+  a backlog waiting.
 - **P2** — stale or contradicted, but a reader would notice before acting.
 - **P3** — a dangling `see X` pointer, a miscounted list.
 
@@ -94,6 +98,31 @@ that changed while its vocabulary stayed real — `build-verification.md`
 explained the tarball via `mtree_mutate`'s `strip_prefix`/`package_dir`
 long after on-disk staging replaced that, and every word was still a word.
 When a comment narrates how something works, open the thing.
+
+### The highest-yield shape here: doc above, body below
+
+A behaviour-changing commit updates the comment **at the point of change** and
+leaves the doc comment **above the function** stating the old behaviour. The
+contradiction is then written down twice in one file, a few lines apart, and
+the reader hits the wrong one first. This has been the top finding of two
+consecutive reviews and accounted for most P1s in the second.
+
+It is mechanically greppable, which is why it belongs before any reading:
+
+```sh
+# For each behaviour-changing commit: did it touch lines above the `fn` too?
+git show <sha> -- translator/src/ | grep -c '^+.*///'
+```
+
+Zero added doc lines while the body changed is the signal — open that
+function's doc block and read it against the body comment the commit *did*
+add. You need no external evidence: in every instance so far the refutation
+was already in the same file, written by the same commit.
+
+Generalise past `///`: the same commit shape leaves a *module* doc, an
+architecture doc, or a `docs/` page asserting what the code stopped doing.
+Ask what prose would have to change if this commit were correct, then check
+whether it did.
 
 ### Re-validating the checker
 

@@ -56,7 +56,16 @@ was both right and incomplete.
 Produce one report:
 
 1. **Merge and dedupe.** Two passes describing one problem from different
-   angles is a stronger finding, not two findings — say so.
+   angles is a stronger finding, not two findings — say so. On the
+   2026-08-02 run four passes independently reached `is_primary`, which is
+   what established it as more than a naming nit.
+
+   The inverse also happens and is easier to miss: a finding that belongs to
+   *no* lane cleanly, so every agent leaves it for another. Two reported
+   this — a layering issue surfacing as shared code, and an escalation-text
+   problem with a duplication root cause. **Tell agents to report
+   cross-lane findings explicitly rather than dropping them**, and when
+   collating, look for the same root cause wearing two lanes' clothing.
 2. **Check each against open beads** (`bd list --status=open`). New, or
    already filed? If filed, has the review overtaken the bead's stated
    diagnosis? That is worth flagging on its own.
@@ -84,6 +93,29 @@ The three shapes that came back, all worth acting on:
 - **A stale motivating example.** A question cited a bug that had since been
   fixed, and the agent re-verified the fix before finding the live problem. A
   skill that cites a fixed bug teaches the next agent to look backwards.
+
+  This is by far the most reported of the three — six of seven agents raised
+  it on the 2026-08-02 run, two citing bugs the *previous* run had fixed. So
+  fixing instances is not enough; the shape recurs because skills are written
+  from a recent experience and the experience ages. **Separate the durable
+  claim from the perishable evidence**, and prefer these in order:
+
+  1. **Derive it.** Ship the command, not its answer. A number the agent
+     computes cannot be stale, and a number it reads has to be recomputed to
+     be trusted anyway — so the written one earns nothing. `test-review`'s
+     red-project list rotted three times before becoming a `for` loop.
+  2. **Date and freeze.** When the instance is what teaches the rule, keep
+     it and mark it: *"cleaned out on <date>; expect zero"*. The agent then
+     knows a clean run is success rather than a broken invocation.
+     `architecture-review`'s "three earlier instances are FIXED — do not go
+     hunting" is the model.
+  3. **State the shape, not the instance.** "A doc that argues against what
+     the code now does" outlives every example of it. Pair with a grep
+     recipe where one exists.
+
+  A rule with no evidence is unpersuasive and a rule with rotting evidence is
+  worse than none, so the aim is not to strip examples — it is to make the
+  perishable half obviously perishable.
 - **An exemption that was too broad.** "Asymmetry is not imbalance" reads as
   excusing any behavioural gap, since every gap first looks like one side
   having code the other lacks. It nearly suppressed two real findings.

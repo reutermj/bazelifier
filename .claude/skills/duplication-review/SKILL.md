@@ -71,10 +71,23 @@ Do not report these:
   literally it would wave through the emitted `genrule` comment, which is the
   same case for the same reason.
 
-  It does **not** cover the code that *builds* those strings. Two frontends
-  constructing one shared constructor's arguments differently is the highest-
-  value finding this lane produces, and it hides behind the exemption if you
-  read it as "escalations are off limits."
+  It does **not** cover the code that *builds, selects, or parameterises*
+  those strings. That code is the highest-value finding this lane produces,
+  and it hides behind the exemption if you read it as "escalations are off
+  limits." Two variants seen so far, and the phrasing has to be general
+  enough to catch the next one:
+
+  - two frontends constructing one shared constructor's arguments
+    differently, so the shared call looks deduplicated and the inputs have
+    drifted;
+  - one call site passing a **wrong value** for a shared dialect parameter —
+    `autotools.rs` passes `ConfigDialect::Autoconf` for an `AC_CONFIG_FILES`
+    header three lines below its own comment saying that template is the
+    other dialect. The enum was built to prevent exactly this and the second
+    caller defeated it.
+
+  The observable symptom in both is *text*, which is what makes the
+  exemption tempting. The defect is the code that chose it.
 - **A comment that points at a doc** (`see docs/architecture/X`) *instead of*
   making the argument. A pointer **alongside** a full restatement is a
   finding, not the pattern working — `autotools.rs` has both, thirty lines
