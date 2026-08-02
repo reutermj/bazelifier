@@ -99,8 +99,11 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
         None => String::new(),
     };
 
-    // rules_shell only when there are tests to wrap — see RULES_SHELL_VERSION.
-    let rules_shell = if graph.tests.is_empty() {
+    // rules_shell when there are tests to wrap, OR tests that ESCALATED: the
+    // resolution the escalation recommends is an `sh_test`, and a module
+    // without this dep cannot load one, so the agent would have to edit
+    // MODULE.bazel before it could start. See RULES_SHELL_VERSION.
+    let rules_shell = if graph.tests.is_empty() && graph.unexpressed_tests.is_empty() {
         String::new()
     } else {
         format!("bazel_dep(name = \"rules_shell\", version = \"{RULES_SHELL_VERSION}\")\n")
@@ -966,6 +969,7 @@ mod tests {
                 version: version.map(str::to_string),
             },
             tests: vec![],
+            unexpressed_tests: Vec::new(),
             config_headers: vec![],
             targets: vec![Target {
                 name: "hello".to_string(),
@@ -999,6 +1003,7 @@ mod tests {
                 version: None,
             },
             tests: vec![],
+            unexpressed_tests: Vec::new(),
             config_headers: vec![],
             targets: vec![
                 Target {
@@ -1064,6 +1069,7 @@ mod tests {
                 version: None,
             },
             tests: vec![],
+            unexpressed_tests: Vec::new(),
             config_headers: vec![],
             targets: vec![Target {
                 name: "app".to_string(),
@@ -1101,6 +1107,7 @@ mod tests {
                     version: None,
                 },
                 tests: vec![],
+                unexpressed_tests: Vec::new(),
                 config_headers: vec![],
                 targets: vec![Target {
                     name: "t".to_string(),
@@ -1199,6 +1206,7 @@ mod tests {
                 ..Default::default()
             }],
             tests: vec![test],
+            unexpressed_tests: Vec::new(),
             config_headers: vec![],
         }
     }
@@ -1360,6 +1368,7 @@ mod tests {
                 version: None,
             },
             tests: vec![],
+            unexpressed_tests: Vec::new(),
             config_headers: vec![],
             targets: vec![target],
         }
@@ -1413,6 +1422,7 @@ mod tests {
                 version: Some("1.0.0".to_string()),
             },
             tests: vec![],
+            unexpressed_tests: Vec::new(),
             config_headers: vec![],
             targets: vec![
                 Target {

@@ -307,7 +307,7 @@ pub fn discover(
     // targets' paths were.
     let mut tests = ctest::read_tests(build_dir)?;
     ctest::rebase_tests_to_module_root(&mut tests, &codemodel.module_root);
-    let (tests, test_escalation) =
+    let (tests, unexpressed_tests, test_escalation) =
         ctest::partition_tests_by_buildable_command(tests, &codemodel.targets);
 
     let cache = read_cache_values(&reply_dir)?;
@@ -325,6 +325,7 @@ pub fn discover(
             },
             targets: codemodel.targets,
             tests,
+            unexpressed_tests,
             config_headers,
         },
         needs_attention,

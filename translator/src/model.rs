@@ -245,6 +245,22 @@ pub struct BuildGraph {
     /// `configure_file`-generated config headers to reproduce; see
     /// [`ConfigHeader`]. Empty for a project with no `configure_file`.
     pub config_headers: Vec<ConfigHeader>,
+    /// Tests the project registered that the translator could NOT express,
+    /// and escalated instead — a CTest test whose command is a shell script
+    /// rather than a binary this module builds.
+    ///
+    /// Carried on the graph rather than only named in the escalation because
+    /// two things downstream need to know they exist. The generated module
+    /// must depend on `rules_shell`, since the resolution the escalation
+    /// recommends IS an `sh_test` and a module without that dep cannot even
+    /// load one. And the files those tests run — the scripts, their helpers,
+    /// their expected output — have to be copied in, which
+    /// `copy_test_runtime_data` skipped precisely because they were absent
+    /// from `tests`.
+    ///
+    /// So this is not a second list of tests to render. Nothing emits a rule
+    /// for these; they exist so the module arrives RESOLVABLE.
+    pub unexpressed_tests: Vec<Test>,
 }
 
 #[cfg(test)]

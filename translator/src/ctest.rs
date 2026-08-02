@@ -159,7 +159,7 @@ pub(crate) fn ctest_reply_to_tests(reply: CtestReply) -> Vec<Test> {
 pub(crate) fn partition_tests_by_buildable_command(
     tests: Vec<Test>,
     targets: &[Target],
-) -> (Vec<Test>, Option<NeedsAttention>) {
+) -> (Vec<Test>, Vec<Test>, Option<NeedsAttention>) {
     let executables: HashSet<&str> = targets
         .iter()
         .filter(|t| t.kind == TargetKind::Executable)
@@ -171,15 +171,17 @@ pub(crate) fn partition_tests_by_buildable_command(
         .partition(|test| executables.contains(test.target.as_str()));
 
     if unbuildable.is_empty() {
-        return (buildable, None);
+        return (buildable, Vec::new(), None);
     }
 
     let names: Vec<String> = unbuildable.iter().map(|t| t.name.clone()).collect();
     let commands: Vec<String> = unbuildable.iter().map(|t| t.command.clone()).collect();
-    (
-        buildable,
-        Some(ctest_command_not_a_target_needs_attention(&names, &commands)),
-    )
+    let escalation = ctest_command_not_a_target_needs_attention(&names, &commands);
+    // The unbuildable tests are RETURNED, not just named. Naming them was
+    // enough while the escalation was the whole handoff; it is not enough now
+    // that the module has to arrive resolvable — see
+    // `BuildGraph::unexpressed_tests`.
+    (buildable, unbuildable, Some(escalation))
 }
 
 /// Rewrites each test's `working_directory` from the absolute path CTest
@@ -340,9 +342,13 @@ mod tests {
         let tests = vec![test_running("xmltest", "xmltest", "/abs/build/xmltest")];
         let targets = vec![executable_target("xmltest")];
 
-        let (kept, escalation) = partition_tests_by_buildable_command(tests, &targets);
+        let (kept, unexpressed, escalation) = partition_tests_by_buildable_command(tests, &targets);
 
         assert_eq!(kept.len(), 1, "the test must still be emitted");
+        assert!(
+            unexpressed.is_empty(),
+            "a test that IS expressed must not also be reported as unexpressed"
+        );
         assert!(
             escalation.is_none(),
             "a test wrapping a cc_binary this module emits is fully translated, so \
@@ -359,12 +365,21 @@ mod tests {
         // so an empty target list isn't what makes this fire.
         let targets = vec![executable_target("json_parse")];
 
-        let (kept, escalation) = partition_tests_by_buildable_command(tests, &targets);
+        let (kept, unexpressed, escalation) = partition_tests_by_buildable_command(tests, &targets);
 
         assert!(
             kept.is_empty(),
             "a test whose command isn't a target we emit has no cc_binary to wrap, so \
              emitting an sh_test for it would produce a label that can't resolve"
+        );
+        // Escalating names the test; RETURNING it is what makes the module
+        // arrive resolvable — codegen adds rules_shell for it, and
+        // copy_test_runtime_data carries the script it runs. Naming alone
+        // shipped json-c a module missing 74 of its tests/ files.
+        assert_eq!(
+            unexpressed.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(),
+            vec!["test1"],
+            "an escalated test must still be carried on the graph"
         );
         let item = escalation.expect("a test that can't be translated must escalate");
         assert!(
@@ -390,7 +405,7 @@ mod tests {
         ];
         let targets = vec![executable_target("xmltest")];
 
-        let (kept, escalation) = partition_tests_by_buildable_command(tests, &targets);
+        let (kept, unexpressed, escalation) = partition_tests_by_buildable_command(tests, &targets);
 
         assert_eq!(
             kept.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(),

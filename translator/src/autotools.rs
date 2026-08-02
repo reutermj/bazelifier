@@ -1073,6 +1073,9 @@ pub(crate) fn to_graph(
             },
             targets,
             tests: Vec::new(),
+            // No Autotools test frontend yet, so nothing is expressed and
+            // nothing is escalated — absence, not an empty result.
+            unexpressed_tests: Vec::new(),
             config_headers: Vec::new(),
         },
         needs_attention,

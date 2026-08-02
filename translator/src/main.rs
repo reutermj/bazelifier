@@ -580,7 +580,11 @@ fn copy_test_runtime_data(
     graph: &model::BuildGraph,
 ) -> std::io::Result<()> {
     let mut copied_roots = HashSet::new();
-    for test in &graph.tests {
+    // Escalated tests too. Their scripts, helpers and expected-output files
+    // are exactly what a resolution needs, and skipping them left json-c's
+    // module missing 74 of the 103 files in its tests/ directory — the
+    // escalation named the scripts and nothing carried them.
+    for test in graph.tests.iter().chain(&graph.unexpressed_tests) {
         let work_rel = Path::new(&test.working_directory);
         if !copied_roots.insert(test.working_directory.clone()) {
             continue;
@@ -779,6 +783,7 @@ mod tests {
                 },
             ],
             tests: vec![],
+            unexpressed_tests: Vec::new(),
             config_headers: vec![],
         }
     }
