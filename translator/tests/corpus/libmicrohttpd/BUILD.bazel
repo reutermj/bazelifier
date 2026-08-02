@@ -16,6 +16,27 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # Sources come from the @libmicrohttpd http_archive (pinned in MODULE.bazel)
 # as a release TARBALL. source_dir is left empty so the rule derives it from
 # where configure.ac landed.
+#
+# Green post-agent: 111 targets, 94 expressed tests, 16 ground-truth
+# comparisons and 30 module tests pass. The classifier's majority branch is
+# validated — 94 tests came from `TESTS = $(check_PROGRAMS)`, the shape
+# jansson could not reach.
+#
+# Three translator gaps found and fixed, all from scale rather than novelty:
+#
+#  - `$(am__EXEEXT_N)` needed TRANSITIVE expansion; one level left 14 tests
+#    escalating as literal variable text.
+#  - The same variables are declared per directory (five times for
+#    `am__EXEEXT_1`, one of them empty), so they must accumulate like
+#    primaries. Last-wins lost four definitions.
+#  - A source that is BOTH `#include`d and compiled must stay in srcs. The
+#    textual-include detection from expat assumed the roles are exclusive,
+#    and test_postprocessor_md lost three sources to it (bzl-e31).
+#
+# 65 test targets are deliberately not expressed, on record in the generated
+# BUILD.bazel: they `#include <curl/curl.h>`, and libcurl is a third-party
+# library the conversion cannot supply. HTTPS support is likewise disabled
+# rather than host-captured, since the module ships no GnuTLS.
 convert_autotools_project(
     name = "converted",
     srcs = ["@libmicrohttpd//:all_srcs"],
