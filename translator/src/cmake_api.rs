@@ -30,7 +30,9 @@ use crate::needs_attention::{
     sources_outside_deliverable_needs_attention, unsupported_target_needs_attention,
 };
 use crate::ninja_deps;
-use crate::paths::{absolutize, common_ancestor, normalize_lexically, resolve_against};
+use crate::paths::{
+    absolutize, anchor_for_display, common_ancestor, normalize_lexically, resolve_against,
+};
 
 #[derive(Debug, Deserialize)]
 struct CodemodelIndexReply {
@@ -663,53 +665,7 @@ fn rebase_to_module_root(
                         // .../sandbox/linux-sandbox/780/execroot/... — which
                         // does not exist for the reader and is not stable
                         // across runs, so it identifies nothing.
-                        let display = absolute
-                            .strip_prefix(build_dir)
-                            .map(|rel| format!("<build dir>/{}", rel.display()))
-                            .or_else(|_| {
-                                absolute
-                                    .strip_prefix(deliverable_root)
-                                    .map(|rel| format!("<deliverable root>/{}", rel.display()))
-                            })
-                            // Neither root strips: the file is genuinely
-                            // outside both, which is fixture 008's shape and
-                            // a real project's too. An absolute path is all
-                            // that is left, but the leading directories are
-                            // this conversion's sandbox and mean nothing to
-                            // the reader — so it is anchored on the last
-                            // component the two have in common instead.
-                            .unwrap_or_else(|_| {
-                                // The common ancestor can be `/` — a
-                                // vendored path sharing nothing with the
-                                // deliverable — in which case stripping it
-                                // leaves the whole absolute path. Fall back
-                                // to the last two components, which is what
-                                // actually identifies the file to a reader
-                                // who cannot see this machine.
-                                let anchored =
-                                    common_ancestor(deliverable_root, &[absolute.clone()]);
-                                let rel = if anchored.parent().is_some() {
-                                    absolute.strip_prefix(&anchored).ok()
-                                } else {
-                                    None
-                                };
-                                match rel {
-                                    Some(rel) => {
-                                        format!("<outside the deliverable>/{}", rel.display())
-                                    }
-                                    None => {
-                                        let tail: PathBuf = absolute
-                                            .components()
-                                            .rev()
-                                            .take(2)
-                                            .collect::<Vec<_>>()
-                                            .into_iter()
-                                            .rev()
-                                            .collect();
-                                        format!(".../{}", tail.display())
-                                    }
-                                }
-                            });
+                        let display = anchor_for_display(&absolute, build_dir, deliverable_root);
                         if absolute.starts_with(build_dir) {
                             build_dir_outputs.push(display);
                         } else {

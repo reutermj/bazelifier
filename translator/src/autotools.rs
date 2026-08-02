@@ -48,7 +48,7 @@ use crate::needs_attention::{
     ConfigDialect, ctest_command_not_a_target_needs_attention,
     sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
 };
-use crate::paths::{absolutize, common_ancestor, normalize_lexically};
+use crate::paths::{absolutize, anchor_for_display, common_ancestor, normalize_lexically};
 
 /// One resolved command from the build stream, split into a program and its
 /// arguments with shell noise already removed.
@@ -1138,13 +1138,20 @@ pub(crate) fn to_graph(
             .iter()
             .filter_map(|src| rebase(src, &decl_dir))
             .collect();
+        // Anchored, not absolute: this string ships in an escalation to an
+        // agent who cannot see this machine, and under Bazel the raw path is
+        // a sandbox directory with a run-specific number in it. The CMake
+        // frontend has done this since bzl-0vq; the shared helper is what
+        // stops the two answering differently again (bzl-ti2).
         let mut escaped: Vec<String> = declared_sources
             .iter()
             .filter(|src| rebase(src, &decl_dir).is_none())
             .map(|src| {
-                normalize_lexically(&decl_dir.join(src))
-                    .to_string_lossy()
-                    .into_owned()
+                anchor_for_display(
+                    &normalize_lexically(&decl_dir.join(src)),
+                    build_root,
+                    deliverable_root,
+                )
             })
             .collect();
 
@@ -1779,6 +1786,24 @@ make[1]: Leaving directory '/src/app'\n\
             "the escalation must name the file AND the target now missing it, \
              because the resolution is per target; got:\n{:#?}",
             escalations[0]
+        );
+        // The HOW, not just the what. A raw absolute path satisfies the
+        // `contains` above, which is exactly why this frontend shipped one
+        // for months without any tier noticing (bzl-ti2): the assertion was
+        // written to pass either way.
+        assert!(
+            escalations[0].gap.contains("<outside the deliverable>/")
+                || escalations[0].gap.contains(".../"),
+            "the path must be ANCHORED on something the reader can locate — \
+             an absolute path here is a Bazel sandbox directory with a \
+             run-specific number, meaningless to an agent in an unpacked \
+             workspace; got:\n{}",
+            escalations[0].gap
+        );
+        assert!(
+            !escalations[0].gap.contains("/src/outside/evil.c"),
+            "and specifically not the conversion's own absolute path:\n{}",
+            escalations[0].gap
         );
     }
 
