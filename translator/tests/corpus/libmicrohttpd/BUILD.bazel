@@ -1,0 +1,23 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Fourth Autotools corpus project. Selection rationale is in the
+# `libmicrohttpd` http_archive comment in MODULE.bazel; the short version is
+# that it validates the automake TESTS classifier's MAJORITY branch, which
+# jansson — the project that motivated the classifier — structurally cannot
+# reach.
+#
+#   TESTS = $(check_PROGRAMS)   <- libmicrohttpd, and most projects
+#   a shell script              <- jansson, xz
+#
+# Also the largest Autotools project in the corpus at 118 own .c files, which
+# is the point: jansson at 14 made a bug obvious, this one checks the fix
+# holds at scale.
+#
+# Sources come from the @libmicrohttpd http_archive (pinned in MODULE.bazel)
+# as a release TARBALL. source_dir is left empty so the rule derives it from
+# where configure.ac landed.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@libmicrohttpd//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)

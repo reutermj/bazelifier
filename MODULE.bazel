@@ -259,3 +259,43 @@ http_archive(
     strip_prefix = "jansson-2.14",
     url = "https://github.com/akheron/jansson/releases/download/v2.14/jansson-2.14.tar.gz",
 )
+
+# Fourth AUTOTOOLS corpus project: libmicrohttpd 1.0.1. Onboarded to VALIDATE
+# a capability rather than to add a shape — the automake `TESTS` classifier
+# was built during jansson's onboarding, and jansson could only exercise its
+# minority branch.
+#
+# The three shapes, measured across six projects before the classifier was
+# written:
+#
+#   TESTS = $(check_PROGRAMS)   libmicrohttpd, gsl, wget   binaries, directly
+#   a shell script              jansson, xz                drives them itself
+#   a project-specific variable libgd, wget, gsl           nothing resolves it
+#
+# jansson is in the SECOND row. libmicrohttpd is the first, with `TESTS =
+# $(check_PROGRAMS)` and 27 check_PROGRAMS declarations — so it tests the
+# branch that covers most projects and that no corpus project has run.
+#
+# Rejected alternatives for that role: gsl has the same shape and 54 test
+# declarations, but 1043 of its own .c files put its escalations well past
+# what anyone can read; wget mixes all three shapes, which makes a failure
+# hard to attribute.
+#
+# Larger than the other Autotools projects at 118 own .c files, and that is
+# deliberate — jansson at 14 was chosen to make a bug obvious, this one to
+# check the fix holds at scale. `make` and `make check TESTS=` both succeed
+# natively, the latter building 161 test binaries.
+#
+# INPUT to the translator only, same copy-through model as the rest.
+http_archive(
+    name = "libmicrohttpd",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-qJ4J/JtN403eGfT8tPqqHOECmbmQjbETK7+h3keIK5Q=",
+    strip_prefix = "libmicrohttpd-1.0.1",
+    url = "https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-1.0.1.tar.gz",
+)
