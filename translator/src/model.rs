@@ -24,12 +24,17 @@ use crate::needs_attention::NeedsAttention;
 /// filesystem layout into a module that is supposed to be checked into
 /// someone else's repo.
 ///
-/// Bazel only catches part of this on its own: an absolute path in a
-/// *label* attribute (`srcs`, `hdrs`, `deps`) is an analysis error, but
-/// `includes` is a plain string list and an absolute path there is
-/// accepted silently — the module then builds on the machine that
-/// generated it and nowhere else. Hence the check lives here and is
-/// enforced at codegen, not left to Bazel.
+/// Bazel only catches PART of this on its own, which is why the check exists
+/// at all rather than being left to it: an absolute path in a label
+/// attribute is an analysis error, but `includes` is a plain string list and
+/// takes one silently, so the module builds on the machine that generated it
+/// and nowhere else.
+///
+/// That asymmetry is a fact about a specific Bazel version, verified and
+/// dated in docs/architecture/bazel-codegen.md. Stated there rather than
+/// here so there is one place to re-check if a future Bazel starts
+/// validating `includes` — at which point the argument for an `assert!` over
+/// a `debug_assert!` weakens.
 pub fn is_module_relative(path: &str) -> bool {
     let path = Path::new(path);
     !path.is_absolute() && !path.components().any(|c| matches!(c, Component::ParentDir))

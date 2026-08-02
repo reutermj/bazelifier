@@ -114,6 +114,27 @@ structurally cannot.
   without it, a toolchain include path like `/usr/include` gets fully
   listed and every entry discarded.
 
+## What has changed since: the compiler's answer is now available
+
+The rejection above turns on not having real evidence — scanning source text
+means re-implementing a preprocessor, badly. That objection is now partly
+answered, by different means: `ninja_deps` reads `ninja -t deps`, which is
+the **compiler's** record of which files each translation unit actually
+opened, resolved against the real include search path. It is correct on
+`#if`, computed includes and the angled/quoted distinction, because it is not
+a parse at all.
+
+That does not overturn the rule, and the reason is worth stating so nobody
+re-derives it. `inject_opened_files` **only ever adds**: `ninja -t deps` sees
+ONE configuration, so a header behind a disabled `#ifdef` is absent from it
+while still being a real input for a consumer who configures differently.
+Narrowing the include-path sweep to what the compiler happened to open would
+therefore drop headers a different configuration needs — the precision is
+real but is not the precision this rule is about.
+
+So the two coexist deliberately: the sweep is the floor, and opened-files
+adds what sits outside a declared include directory.
+
 ## Related but different
 
 `inject_unenumerated_installed_headers` (bzl-fxa.10) is easy to confuse with

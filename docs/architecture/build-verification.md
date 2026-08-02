@@ -383,16 +383,11 @@ Consequences for this project:
   somehow. An agent that deleted the item without touching `hdrs` would
   also go green. Whether to add a structural assertion on the generated
   `BUILD.bazel` is still open.
-- Bazel's `layering_check` feature *does* enforce the split, but it
-  requires module maps and a supporting (clang-based) toolchain and is off
-  by default — including under the hermetic **`llvm`** toolchain fixtures
-  actually build with: `llvm` enables module map *generation* but leaves
-  `layering_check` itself in `known_features` (requestable, not active),
-  matching `rules_cc`'s own documented recipe for toolchain authors. So
-  this isn't a host-vs-hermetic-toolchain distinction — no toolchain in use
-  here enforces the split. See
-  [the lore doc](../lore/bazel-does-not-enforce-hdrs-vs-srcs.md) for the
-  full experiment and the toolchain-source citation.
+- `layering_check` *would* enforce the split and is not active under any
+  toolchain in use here — including the hermetic `llvm` one, so this is not
+  a host-vs-hermetic distinction. The lore doc has the reason and the
+  toolchain-source citation; it is the likeliest thing on this page to
+  change, so it is stated once there rather than twice (bzl-ayl).
 
 ## Why unpack it (rather than validate in-tree)
 

@@ -266,30 +266,16 @@ pub(crate) fn inject_unenumerated_installed_headers(
 /// Attaches every header sitting in a target's own include directories that
 /// no target enumerated, so Bazel stages it into the compile sandbox.
 ///
-/// The two build systems disagree about what a header *is*. CMake compiles a
-/// `.c` and lets the preprocessor find headers on disk via `-I`; a header is
-/// therefore never a build input and the File API never reports it as a
-/// target source. Bazel stages only DECLARED inputs, so the same header is
-/// absent at compile time and the build fails with `file not found` while the
-/// `-I` flag is present and correct.
+/// **Everything on the include path is an input** — CMake's own semantic, and
+/// the whole declaration available. Why that is the rule, and why scanning
+/// `#include` lines instead was rejected, is in
+/// docs/lore/everything-on-the-include-path-is-an-input.md; the discovery and
+/// its two later corrections live there rather than being restated here.
 ///
-/// **Everything on the include path is an input.** That is CMake's own
-/// semantic, and it is the whole declaration available: CMake has no per-file
-/// statement that a target uses one header from a directory and not another,
-/// so there is nothing here to be more precise than.
-///
-/// An earlier version of this scanned each source for `#include "..."` and
-/// staged only the named headers. That was rejected: it re-implemented a
-/// preprocessor badly (no `#if` evaluation, no computed includes, quoted form
-/// only), it made the frontend read source text when its source of truth is
-/// the File API (docs/architecture/cmake-frontend.md), and it bought nothing
-/// — on json-c the two approaches select the identical set of headers.
-///
-/// Distinct from `inject_unenumerated_installed_headers`, which acts on the
-/// project's `install()` declarations — its authoritative statement that a
-/// header is PUBLIC — and populates a library's `public_headers` (→ `hdrs`).
-/// An include directory carries no such claim, so headers land in `sources`,
-/// where a header contributes nothing but its presence in the sandbox.
+/// Headers land in `sources`, not `public_headers`: an include directory
+/// carries no claim that a header is PUBLIC, which is what
+/// `inject_unenumerated_installed_headers` acts on. Here a header contributes
+/// nothing but its presence in the sandbox.
 ///
 /// Include dirs outside the source tree are skipped: those are the build
 /// directory (whose headers the config_header machinery reproduces) and
