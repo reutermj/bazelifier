@@ -33,10 +33,28 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 #    textual-include detection from expat assumed the roles are exclusive,
 #    and test_postprocessor_md lost three sources to it (bzl-e31).
 #
-# 65 test targets are deliberately not expressed, on record in the generated
-# BUILD.bazel: they `#include <curl/curl.h>`, and libcurl is a third-party
-# library the conversion cannot supply. HTTPS support is likewise disabled
-# rather than host-captured, since the module ships no GnuTLS.
+# 65 test targets are currently not expressed, and the reason first recorded
+# here was WRONG. It said libcurl is "a third-party library the conversion
+# cannot supply". libcurl is installed on this machine — at the multiarch
+# path `/usr/include/x86_64-linux-gnu/curl/` — and the project's own `make
+# check` compiles and links all 65 against it.
+#
+# The real gap is that this is the corpus's FIRST project depending on a
+# library it does not itself build, and the pipeline has no path for that
+# (bzl-x8l). `external_links` is collected and then discarded, so the
+# dependency vanishes with no escalation.
+#
+# The fix is NOT to emit `-lcurl`: linking a host library would break the
+# hermeticity CLAUDE.md requires of generated output. The dependency has to
+# be CONVERTED and depended on as another Bazel module, which is what the
+# validation workspace's cross-module `bazel_dep` wiring already exists to
+# support. Until then these 65 are an open gap, not a resolved omission —
+# and this project's post-agent green was reached by deleting them, which
+# the gate could not distinguish from a real pass (bzl-ned).
+#
+# HTTPS is a different and legitimate case: disabled rather than
+# host-captured, since the module ships no GnuTLS and automake puts
+# connection_https.c behind `if ENABLE_HTTPS`.
 convert_autotools_project(
     name = "converted",
     srcs = ["@libmicrohttpd//:all_srcs"],
