@@ -45,10 +45,17 @@ import sys
 # a header rather than configure it. autoconf emits its own directives alone on
 # the line.
 #
-# The trailing `\s*$` is what enforces that, not the leading `^` — these are
-# applied with `re.match`, which already anchors at the start. The `^` is
-# therefore redundant and kept only for symmetry with the patterns below.
-_AC_UNDEF = re.compile(r"^#\s*undef\s+(\S+)\s*$")
+# "Anything around it" includes a SPACE AFTER THE HASH. The pattern was
+# `#\s*undef` and that permitted `# undef GUARD`, which gnulib's headers write
+# inside an `#if` to undefine a macro they set themselves — rewriting it to
+# `/* #undef GUARD */` breaks the split double-inclusion guard `#include_next`
+# depends on (bzl-vj5). autoheader always emits `#undef` unspaced at column 0.
+#
+# The trailing `\s*$` and the exact `#undef` prefix are what enforce this, not
+# the leading `^` — these are applied with `re.match`, which already anchors at
+# the start. The `^` is therefore redundant and kept only for symmetry with the
+# patterns below.
+_AC_UNDEF = re.compile(r"^#undef[ \t]+(\S+)\s*$")
 
 _CMAKEDEFINE01 = re.compile(r"^(.*?)#cmakedefine01\s+(\S+)\s*$")
 _CMAKEDEFINE = re.compile(r"^(.*?)#cmakedefine\s+(\S+)(.*)$")

@@ -267,10 +267,19 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
         // configure, so asserting its absence outright would fail on a
         // correct header. `#undef PACKAGE_NAME` for a name we supplied a
         // value for cannot be correct.
+        //
+        // Wrapped in the comment autoconf itself writes, because the matcher
+        // is `grep -F` and a bare `#undef PACKAGE` is a SUBSTRING of
+        // `/* #undef PACKAGE_URL */` — a macro jansson legitimately leaves
+        // undefined, whose presence failed the test on a CORRECT header.
+        //
+        // `/* #undef NAME */` is exactly what config.status emits for a name
+        // it did not resolve, so this matches the real failure and cannot
+        // collide with a longer name: the trailing ` */` terminates it.
         model::ConfigDialect::Undef => header
             .values
             .iter()
-            .map(|(n, _)| format!("#undef {n}"))
+            .map(|(n, _)| format!("/* #undef {n} */"))
             .collect(),
         // Nothing declares here, so the `@NAME@` check below is the whole
         // assertion — and it is the strong one for this dialect anyway.
@@ -406,7 +415,15 @@ fn render_sh_test(out: &mut String, test: &model::Test) {
 /// class of bug, since it depends on a project's own values rather than on
 /// anything the translator does.
 fn escape_starlark(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
+    // Newlines too, and the backslash pass must come first or it would
+    // double the ones this adds. A raw newline inside a `"..."` literal is a
+    // parse error, not a formatting wart — it went unnoticed until a
+    // config-header assertion needed a line-anchored needle, because no
+    // project value had ever contained one.
+    value
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"")
+        .replace('\n', "\\n")
 }
 
 /// Renders one list-valued attribute, one item per line.
@@ -974,6 +991,18 @@ mod tests {
     // Emitted raw, either one closes the Starlark string early and the whole
     // module stops parsing — a failure that depends on the project's own
     // values, so no fixture without such a value can catch it.
+    #[test]
+    fn escape_starlark_escapes_a_newline() {
+        // A raw newline in a `"..."` literal is a parse error. The backslash
+        // pass has to run first, or it doubles the ones this adds.
+        assert_eq!(escape_starlark("#undef X\n"), "#undef X\\n");
+        assert_eq!(
+            escape_starlark("a\\b\nc"),
+            "a\\\\b\\nc",
+            "an existing backslash stays escaped once, not twice"
+        );
+    }
+
     #[test]
     fn escape_starlark_escapes_quotes_and_backslashes() {
         assert_eq!(
@@ -1853,6 +1882,35 @@ mod tests {
         assert!(
             out.contains("abcd"),
             "and a genuinely distinguishing value must still be asserted:\n{out}"
+        );
+    }
+
+    #[test]
+    fn an_undef_needle_cannot_match_a_longer_macro_name() {
+        // The assertion is an unanchored substring match, so a needle of
+        // `#undef PACKAGE` also matches `/* #undef PACKAGE_URL */` — a macro
+        // the project legitimately leaves undefined. jansson shipped exactly
+        // that pair and its header test failed on a correct header.
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("PACKAGE".to_string(), "\"jansson\"".to_string())],
+            dialect: model::ConfigDialect::Undef,
+        }];
+        let rendered = render(&g).build_bazel;
+        let must_not = rendered
+            .split("must_not_contain = [")
+            .nth(1)
+            .and_then(|rest| rest.split("],").next())
+            .expect("the assertion must render a must_not_contain list");
+
+        assert!(
+            !must_not.contains("\"#undef PACKAGE\""),
+            "a bare `#undef PACKAGE` needle matches `/* #undef PACKAGE_URL */` \
+             too; the needle has to be terminated:\n{must_not}"
         );
     }
 

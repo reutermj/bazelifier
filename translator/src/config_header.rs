@@ -128,7 +128,17 @@ fn undef_names(template_text: &str) -> Vec<String> {
     template_text
         .lines()
         .filter_map(|line| {
-            let rest = line.strip_prefix('#')?.trim_start().strip_prefix("undef")?;
+            // `#undef` exactly — no space after the hash, nothing before it.
+            // That is the form autoheader emits, and requiring it is what
+            // separates a DECLARATION from ordinary C: gnulib's headers
+            // write `# undef GUARD` inside an `#if` to undefine a macro they
+            // set themselves, and consuming that line silently deletes it
+            // from the generated header (bzl-vj5).
+            let rest = line.strip_prefix("#undef")?;
+            // And a following separator, so `#undefine` is not a match.
+            if !rest.starts_with([' ', '\t']) {
+                return None;
+            }
             let name = rest.trim();
             (!name.is_empty() && !name.contains(char::is_whitespace)).then(|| name.to_string())
         })
@@ -397,6 +407,36 @@ mod tests {
             "autoconf quotes a string value and leaves a numeric one bare; \
              make's database carries both as plain text, so the distinction \
              has to be restored here"
+        );
+    }
+
+    // A SPACED `# undef` is ordinary C, not a declaration. gnulib's headers
+    // write it that way when the line sits inside an `#if` — libidn2's
+    // limits.in.h undefines its own inclusion guard four lines after
+    // defining it, and consuming that line breaks the split double-inclusion
+    // guard `#include_next` depends on.
+    //
+    // autoheader always emits `#undef NAME` unspaced at column 0, which is
+    // why no corpus project has hit this: the strict form is what a
+    // declaration actually looks like.
+    #[test]
+    fn a_spaced_undef_is_c_code_not_a_declaration() {
+        assert_eq!(
+            undef_names("#undef PACKAGE_NAME\n# undef _GL_ALREADY_INCLUDING_LIMITS_H\n"),
+            vec!["PACKAGE_NAME".to_string()],
+            "only the unspaced, column-0 form is autoheader's declaration; a \
+             spaced one is the header undefining its own guard and must be \
+             left alone"
+        );
+    }
+
+    #[test]
+    fn an_indented_undef_is_also_c_code() {
+        assert!(
+            undef_names("  #undef SOME_GUARD\n\t#undef OTHER\n").is_empty(),
+            "autoheader writes declarations at column 0; an indented #undef is \
+             inside a conditional and belongs to the program: {:?}",
+            undef_names("  #undef SOME_GUARD\n")
         );
     }
 
