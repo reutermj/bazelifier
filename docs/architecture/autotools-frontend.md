@@ -163,14 +163,30 @@ and unreliable for the rest:
 | `bin_PROGRAMS` | `TargetKind::Executable` |
 | `noinst_LIBRARIES`, `lib_LIBRARIES` | `TargetKind::Library`, `is_shared = false` |
 | `lib_LTLIBRARIES` | `TargetKind::Library`, `is_shared = true` |
-| `check_PROGRAMS` | *skipped* — see below |
+| `check_PROGRAMS` | `TargetKind::Executable`, from a second build pass |
 
-`check_PROGRAMS` are declared but **not built by `make`** (that is `make
-check`), so no link command exists and nothing says which directory their
-sources are relative to. Skipping is the honest option: a target whose sources
-were resolved against a guessed directory is worse than an absent one, and the
-guess fails loudly on copy, which is how this was found. They are recorded for
-the escalation they deserve (bzl-yjn.5).
+`check_PROGRAMS` are **not built by plain `make`** — automake defers anything
+`check_`-prefixed so that installing a project does not pay to compile its
+test suite. So they emit no command, and a frontend that reads only the
+ordinary build cannot see them at all.
+
+This was once resolved by skipping them, on the grounds that a target whose
+sources were resolved against a guessed directory is worse than an absent
+one. That reasoning was sound and the premise was wrong: the evidence is not
+missing, only unrequested. A second pass with **`make check TESTS=`** builds
+every test program and emits the commands, with no guessing at all. Measured
+on jansson — the ordinary build emits 36 compile commands naming no test
+program, and the second emits 19 naming all 18.
+
+`TESTS=` is what keeps that a build rather than a run. Plain `make check`
+would also execute the suite, making conversion depend on whether the
+project's own tests pass; jansson's `check-exports` fails natively while all
+18 compiled tests pass, so a conversion would abort over something unrelated
+to translating it.
+
+The pass is allowed to fail without failing the conversion: a project whose
+test programs do not compile still converts, minus its tests. See
+`build_check_programs`.
 
 The prefix before the underscore is the **install destination** and carries
 real meaning — `noinst_` means built but never installed. That is closer to
@@ -318,14 +334,24 @@ already decided by the time the graph is built.
 - **Two gaps are recovered but not yet escalated.** The frontend escalates
   unmapped config macros and sources that escape the module; it collects two
   more and discards them (bzl-yjn.5):
-  - **External libraries.** A library the project links and does not build (a
-    system `libintl`) is an input the generated module cannot satisfy.
-  - **Declared targets `make` never produced.** `check_PROGRAMS` are the live
-    case — see the target table above.
+  - **External libraries.** A library the project links and does not build is
+    an input the generated module cannot satisfy. libmicrohttpd is the first
+    corpus project with one (libcurl, for 65 of its tests) and it showed the
+    gap is worse than recorded here: `external_links` is collected and
+    discarded, no escalation kind covers it, and `codegen` has no way to
+    express it — so the dependency vanishes and the module fails on a missing
+    header far from the cause. The answer is not a `linkopt`, which would
+    link a HOST library and break hermeticity; the dependency has to be
+    converted and depended on as another Bazel module. Tracked as bzl-x8l.
+  - ~~**Declared targets `make` never produced.**~~ `check_PROGRAMS` were the
+    live case and are now built by a second pass — see the target table
+    above. What remains under this heading is anything else `make` declares
+    and never produces, for which there is still no escalation.
 
-  Both fail *loudly* (an unresolved library, an absent target), which is why
-  the silent one — a dropped source, surfacing as an undefined symbol several
-  steps from its cause — was escalated first.
+  The external-library case was assumed to fail *loudly* (an unresolved
+  library at link) and does not: it fails at compile, on a header, in a
+  target whose dependency was never recorded. That assumption is why the
+  silent-looking case — a dropped source — was escalated first.
 - **An already-configured source tree fails**, because `configure` refuses to
   run twice. Converting a tree someone has built in place is a normal thing to
   attempt.

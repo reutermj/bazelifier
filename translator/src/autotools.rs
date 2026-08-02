@@ -75,9 +75,14 @@ pub(crate) struct BuildCommand {
 
 /// Converts an Autotools project, mirroring `cmake_api::discover`.
 ///
-/// Two steps, not three: the tree is CONFIGURED (so `make` has resolved
-/// variables to report), then really BUILT — and the build's own stdout IS
-/// the command stream, because make echoes every command as it runs it.
+/// The tree is CONFIGURED (so `make` has resolved variables to report), then
+/// really BUILT — and the build's own stdout IS the command stream, because
+/// make echoes every command as it runs it.
+///
+/// Then built a SECOND time with `make check TESTS=`, because automake defers
+/// anything `check_`-prefixed: plain `make` compiles no test program and so
+/// emits no command for one. Two build passes, not one — see
+/// [`build_check_programs`], which also explains why its failure is not fatal.
 ///
 /// There is no dry-run pass. `make -n -B` was used for this and produced a
 /// byte-identical set of build commands 18x slower, because `-B` marks the
@@ -235,8 +240,9 @@ pub fn discover(
     })
 }
 
-/// Moves every textually-`#include`d source out of the compile set and into
-/// `textual_sources`, reading each target's sources off disk to find them.
+/// Records every textually-`#include`d source that is NOT already compiled
+/// into `textual_sources`, reading each target's sources off disk to find
+/// them.
 ///
 /// Reads the filesystem, so it sits here rather than in `to_graph`, which is
 /// pure over the command stream and variable database and is testable for
@@ -247,11 +253,10 @@ pub fn discover(
 /// Two things happen per include, and only the second is obvious. The path is
 /// resolved against the INCLUDING file's directory, since `#include "impl.c"`
 /// in `lib/xmltok.c` means `lib/impl.c` and the caller is the only one who
-/// knows where the includer sits. And if the included file is also in the
-/// target's `srcs`, it is REMOVED from there: a file that is both compiled
-/// and textually included would be compiled twice, once standalone and once
-/// inside its includer, which is a duplicate-symbol link failure rather than
-/// a missing-file one.
+/// knows where the includer sits. And a file that is ALSO a declared source
+/// stays in `srcs` and is not recorded here at all — being `#include`d is no
+/// evidence that a file is not separately compiled. See the body for why;
+/// that one was believed backwards until libmicrohttpd disproved it.
 fn inject_textual_includes(targets: &mut [Target], module_root: &Path) {
     for target in targets.iter_mut() {
         let mut textual: Vec<String> = Vec::new();
@@ -442,21 +447,14 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
             continue;
         }
         let value = value.trim();
-        // A primary ACCUMULATES; everything else takes the last definition.
-        //
         // `make -p` on a recursive project concatenates the database of every
         // subdirectory, so one name can be defined several times meaning
         // different things. For a per-target variable that is harmless —
         // `xz_SOURCES` belongs to whichever directory declares `xz` and no
-        // other — but a primary is declared once PER DIRECTORY, so xz emits
-        // four `bin_PROGRAMS` lines (`xz`, `lzmainfo`, and the top level's
-        // unexpanded `$(am__EXEEXT_1)`). Overwriting kept whichever came last
-        // and silently dropped the rest: the conversion emitted `lzmainfo`,
-        // omitted the project's namesake `xz` binary, and reported success.
-        //
-        // Not make's own semantics — make never sees these definitions
-        // together, because each belongs to a different makefile.
-        if is_primary(name) {
+        // other. Which names are NOT harmless, and why, is
+        // [`accumulates_across_directories`]; merging them here is not make's
+        // own semantics, because make never sees the definitions together.
+        if accumulates_across_directories(name) {
             match vars.entry(name.to_string()) {
                 Entry::Occupied(mut slot) => {
                     let merged: &mut String = slot.get_mut();
@@ -615,25 +613,34 @@ fn strip_exeext(token: &str) -> String {
         .to_string()
 }
 
-/// Whether `name` is an automake primary — `bin_PROGRAMS`, `lib_LTLIBRARIES`.
+/// Whether a variable's definitions must be MERGED across directories rather
+/// than letting the last one win.
 ///
-/// Matched on the suffix alone, the same way [`declared_targets`] reads them,
-/// so the two cannot disagree about what counts as a primary.
-fn is_primary(name: &str) -> bool {
-    // `TESTS` is not a primary, but it accumulates for exactly the same
-    // reason: recursive make declares it per directory, and jansson declares
-    // `run-suites` in test/ and `scripts/clang-format-check` at the root.
-    // Last-wins kept one and silently dropped the other, which is the defect
-    // this whole branch exists to prevent.
-    // `TESTS` is not a primary, and neither is `am__EXEEXT_N`, but both
-    // accumulate for the primaries' reason: recursive make declares them per
-    // directory. libmicrohttpd defines `am__EXEEXT_1` five times — once per
-    // directory with a first conditional, one of them EMPTY — so last-wins
-    // kept whichever came last, lost the other four, and its tests escalated
-    // as the literal text `$(am__EXEEXT_1)`.
-    //
-    // Matched by PREFIX because the suffix is a counter, not a kind. The
-    // `am__` namespace is automake's own and a project cannot collide with it.
+/// Named for the property rather than for its members, because the members
+/// keep growing and there is exactly one reason they belong together:
+/// recursive make declares these per directory and never sees the
+/// definitions together, so combining them is ours to do. Each addition was
+/// found the same way — by a project losing targets:
+///
+/// - **primaries** (`bin_PROGRAMS`, `lib_LTLIBRARIES`, ...) — xz declares
+///   `bin_PROGRAMS` in four directories; last-wins emitted `lzmainfo`,
+///   dropped the project's namesake `xz` binary, and reported success.
+/// - **`TESTS`** — jansson declares `run-suites` in `test/` and
+///   `scripts/clang-format-check` at the root; last-wins kept one.
+/// - **`am__*`** — automake's own per-conditional indirection. libmicrohttpd
+///   defines `am__EXEEXT_1` five times, one of them EMPTY, so last-wins lost
+///   four definitions and its tests escalated as the literal text
+///   `$(am__EXEEXT_1)`.
+///
+/// Deliberately NOT the same predicate as [`declared_targets`]'s, which
+/// accepts only the three primary suffixes: that one answers "is this a
+/// target declaration", this one answers "does this need merging". They
+/// overlap on primaries and diverge everywhere else, and an earlier version
+/// of this comment claimed they could not disagree — they must.
+///
+/// `am__` is matched by PREFIX because its suffix is a counter, not a kind;
+/// the namespace is automake's own and a project cannot collide with it.
+fn accumulates_across_directories(name: &str) -> bool {
     name == "TESTS"
         || name.starts_with("am__")
         || name
