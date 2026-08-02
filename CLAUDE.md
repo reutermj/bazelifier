@@ -9,8 +9,12 @@ bazelifier converts build scripts from other build systems into Bazel
 `BUILD` files. Two frontends exist — **CMake** (first and more developed) and
 **Autotools** — sharing one model and one codegen. Others (Make, Meson, ...)
 remain possible later; the boundary that would let them in is now tested
-rather than assumed, since the Autotools frontend needed no codegen change and
-no new model field.
+rather than assumed. The invariant is that **codegen never learns which
+frontend ran** — not that a frontend adds no model fields. Two have been
+added since (`Target::soname`, `BuildGraph::unexpressed_tests`), each with a
+codegen change, and both are fine precisely because codegen still only reads
+a value and never asks where it came from. A field count was only ever a
+proxy for the real test, and it stopped tracking it.
 
 ## Architecture (short version)
 
@@ -62,9 +66,10 @@ source in every fixture build.
 - `translator/` — the Rust translator crate:
   - `src/autotools.rs` — Autotools frontend: recovers the graph from the
     build's own stdout (the resolved command stream, this frontend's File API
-    analogue) joined with `make -p`. Adding a THIRD frontend is documented in
-    that doc's "Adding a third" — five places, none obvious from one file (make's variable database, which carries the target NAMES
-    the command stream lacks). See
+    analogue) joined with `make -p` (make's variable database, which carries
+    the target NAMES the command stream lacks). Adding a THIRD frontend is
+    documented in that doc's "Adding a third" — five places, none obvious
+    from one file. See
     [docs/architecture/autotools-frontend.md](docs/architecture/autotools-frontend.md).
   - `src/cmake_api.rs` — CMake frontend: reads the File API
     (`codemodel-v2` + `cache-v2`) and runs the real build to capture
@@ -76,6 +81,21 @@ source in every fixture build.
     and the templates read off disk. Owns the `@cc_config` catalog mapping
     (`CATALOG_DEFINES`, kept in step with the Starlark catalog by
     `//:catalog_sync_check`).
+  - `src/config_header.rs` — the Autotools config-header seam. Separate for
+    the same reason as `configure_file.rs` and for the same kind of reason it
+    is not merged WITH it: it reads a third input (`config.status`), resolves
+    values from make's variable database rather than the CMake cache, parses
+    autoconf's `#undef` dialect rather than `#cmakedefine`/`@VAR@`, and runs
+    BEFORE the graph exists rather than after the codemodel walk.
+  - `src/libtool.rs` — libtool artifact handling (`.la` control files,
+    `dlname=`, wrapper scripts in place of binaries). Its own module rather
+    than the driver's business, and deliberately frontend-agnostic: every
+    function keys on what an artifact IS — its extension, its first lines —
+    never on which frontend ran.
+  - `src/ninja_deps.rs` — reads `ninja -t deps` for the headers a target
+    actually opened. A fourth input, and the only one produced by the
+    COMPILER rather than by the build system; CMake-only, because Autotools
+    has no analogue.
   - `src/ctest.rs` — the CTest frontend, separate because it reads a
     different source: the File API has no test model, so registered tests
     come from `ctest --show-only=json-v1`. Owns reading the reply, rebasing

@@ -14,10 +14,16 @@ true — but untested, because CMake was the only frontend. A second one either
 renders through unmodified codegen or reveals that the boundary was CMake's
 shape all along.
 
-It rendered through unmodified. `model::Target` needed **no new fields**:
-automake's primaries map onto what `TargetKind` and `is_shared` already
-described, and `is_shared` — added weeks earlier for zlib's shared/static
-split — turned out to be exactly what libtool needed.
+It rendered through unmodified. *At the time it landed*, `model::Target`
+needed **no new fields**: automake's primaries map onto what `TargetKind` and
+`is_shared` already described, and `is_shared` — added weeks earlier for
+zlib's shared/static split — turned out to be exactly what libtool needed.
+
+Two fields have been added since (`Target::soname`,
+`BuildGraph::unexpressed_tests`), each with a codegen change, so read the
+paragraph above as history rather than as a standing guarantee. What the
+second frontend actually established is narrower and still holds: codegen
+never learns which frontend ran.
 
 ### Adding a third
 
@@ -61,11 +67,13 @@ produced it. Two obligations are easy to miss and both have bitten:
   handles the same case, agree with it deliberately rather than by accident
   (bzl-7nd).
 
-Two things you will probably NOT need, based on both existing frontends:
-a new `model` field, and any change to `codegen`. If you find yourself
-adding either, that is worth pausing on — it may be a genuine gap in the
-model, or it may be the frontend's shape leaking past the boundary this
-document exists to check.
+You may well need a new `model` field and a matching `codegen` change — two
+have been added since this section was written, and both were legitimate.
+The test is not whether you added one; it is **whether codegen has to ask
+which frontend ran**. A field it merely reads (`Option<String>` present for
+one frontend, `None` for the other) is fine. A branch on the frontend, or a
+field whose meaning differs by producer, is the shape leaking past the
+boundary this document exists to check.
 
 ## Source of truth: the command stream, not `Makefile.am`
 

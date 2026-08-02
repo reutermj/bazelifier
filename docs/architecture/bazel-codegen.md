@@ -67,10 +67,11 @@ alongside `shared/helper.cpp`). Everything below is relative to that root.
                        and the project's own CMakeLists.txt is not among
                        them — see cmake-frontend.md's "only referenced files
                        enter the module"
-  _include/           copies of this module's public headers, present ONLY
-                       when a project declared its module root as an include
-                       directory — a rules_cc workaround, not project layout.
-                       See "_include/: a staging workaround" below
+  _include/           copies of headers that must be reachable by an angled
+                       include — public headers AND generated config headers.
+                       Present ONLY when a project declared its module root as
+                       an include directory — a rules_cc workaround, not
+                       project layout. See "_include/: a staging workaround"
   resolutions/        markdown recipes for the shapes of gap that appear in
     README.md          needs_attention/, shipped with every module because
     <shape>.md         the resolving agent has no access to this repo — see
@@ -187,9 +188,12 @@ of its transitive dependents to include any file in your workspace"). zlib's
 compile.
 
 It fires only when a project declared its own module root as an include
-directory, and stages only headers the project declared public. When rules_cc
-supports reaching a module-root header from an angled include, delete the
-staging and emit the headers in place.
+directory. What it stages is a decision that has already changed once — see
+`render_staged_headers` and `staged_for` in `translator/src/codegen.rs`,
+which own the trigger and record why gating it on public headers alone left
+xz's liblzma with an `-I_include` for a directory it could not reach. When
+rules_cc supports reaching a module-root header from an angled include,
+delete the staging and emit the headers in place.
 
 ## Formatting and linting
 
