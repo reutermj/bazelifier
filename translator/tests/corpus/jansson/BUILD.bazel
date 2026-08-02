@@ -1,0 +1,18 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Third Autotools corpus project. Selection rationale and the five rejected
+# candidates are in the `jansson` http_archive comment in MODULE.bazel.
+#
+# Onboarded for one reason: xz and expat both report `tests: 0`, so nothing
+# has ever exercised the Autotools frontend's test path. jansson has 18
+# compiled `check_PROGRAMS` under test/suites/api, which is what makes the
+# silence in bzl-b6m reproducible against a project small enough to read.
+#
+# Sources come from the @jansson http_archive (pinned in MODULE.bazel) as a
+# release TARBALL. source_dir is left empty so the rule derives it from where
+# configure.ac landed.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@jansson//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)

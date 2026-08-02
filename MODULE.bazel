@@ -219,3 +219,43 @@ http_archive(
     strip_prefix = "expat-2.6.2",
     url = "https://github.com/libexpat/libexpat/releases/download/R_2_6_2/expat-2.6.2.tar.gz",
 )
+
+# Third AUTOTOOLS corpus project: jansson 2.14. Chosen to force the corpus's
+# clearest gap rather than for a new target shape: xz and expat BOTH report
+# `tests: 0`, so the Autotools frontend's test path has never been exercised
+# end to end. That silence is bzl-b6m — `check_PROGRAMS` are not built by
+# plain `make`, so they appear in no command and are dropped without an
+# escalation. jansson is the first Autotools project in the corpus with a
+# real compiled suite: 18 `check_PROGRAMS` under test/suites/api.
+#
+# Measured against the same criteria as expat:
+#
+#   jansson 2.14    0 gnulib headers, 14 own .c, 18 check_PROGRAMS  <- chosen
+#   gsl 2.7.1       0 gnulib, but 1043 own .c — escalations nobody can read
+#   libmicrohttpd   0 gnulib, 118 own .c — viable later, 8x larger
+#   libidn2 2.3.7  19 gnulib replacement headers — the GNU hello rule
+#   libffi 3.4.6    0 gnulib, but DejaGnu rather than automake TESTS, which
+#                   would mean supporting a runner no other project uses
+#   libuv v1.48.0   GitHub source archive with an incomplete m4/ — see
+#                   bzl-mu5 on why that, not a missing `configure`, is the
+#                   real disqualifier
+#
+# `make check` does not pass cleanly, and that is understood rather than
+# overlooked: the api suite reports `F..................`, where the single
+# failure is `check-exports` — a SCRIPT diffing exported symbols against a
+# reference list — and all 18 compiled tests pass. Symbol versioning is
+# already tracked as bzl-819, so jansson may exercise that too.
+#
+# INPUT to the translator only, same copy-through model as the rest.
+http_archive(
+    name = "jansson",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-V5jQEOQc+NdrZiNs+y8lQ8jQghgdFrwwhatJU41LmSk=",
+    strip_prefix = "jansson-2.14",
+    url = "https://github.com/akheron/jansson/releases/download/v2.14/jansson-2.14.tar.gz",
+)

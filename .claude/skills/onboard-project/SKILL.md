@@ -139,10 +139,24 @@ http_archive(
 ```
 
 **Autotools projects take a release TARBALL (`http_archive`); CMake projects
-take `git_repository`.** Not a style preference — a tarball ships `configure`
-pre-generated, and a git checkout would need `autoreconf -i`, making the
-conversion depend on the host's autotools. Both Autotools corpus projects are
-tarballs and all four CMake ones are checkouts; follow that.
+take `git_repository`.** Both Autotools corpus projects are tarballs and all
+four CMake ones are checkouts; follow that, but know why, because the reason
+is narrower than it looks.
+
+`convert_autotools_project` currently requires `configure` to be present, so
+a tarball works and a checkout does not. That is a **current limitation, not
+a constraint** (bzl-mu5): the pipeline already shells out to `cmake`,
+`make`, `ctest` and `ninja` on the host, so `autoreconf -i` would add no new
+category of dependency, and deleting a shipped `configure` and regenerating
+it demonstrably works.
+
+The real requirement is that **the tree ships the `m4/` macro files its
+`configure.ac` requires**. Release tarballs always do. GitHub's
+auto-generated source archives sometimes do not — libuv's v1.48.0 archive
+fails `autoreconf -i` on a missing `m4/libuv-extra-automake-flags.m4`. So
+when you reject a candidate here, reject it for an incomplete tree, and
+check by running `autoreconf -i` on a copy rather than by looking for
+`configure`.
 
 **The selection rationale goes in this comment**, including the candidates you
 rejected and the number that rejected them. It is the only place the next
