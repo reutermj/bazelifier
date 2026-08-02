@@ -176,10 +176,64 @@ pub fn sources_outside_deliverable_needs_attention(
 /// (json-c's `JSON_C_HAVE_INTTYPES_H`, an alias of the catalog's
 /// `HAVE_INTTYPES_H`) lands here rather than being silently mapped to a
 /// lookalike. See docs/architecture/configure-file-and-toolchain-probes.md.
+/// Which build system produced the template, for the two facts in this
+/// escalation that differ by dialect.
+///
+/// Passed in rather than guessed, because the item ships to an agent who
+/// cannot see the project's build files and has no way to catch us being
+/// wrong: xz received an item naming `#cmakedefine`, `@VAR@` and a
+/// `CMakeLists.txt`, for an autoconf project whose `config.h.in` is 153
+/// `#undef` lines and which has no `CMakeLists.txt` at all.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum ConfigDialect {
+    /// `#cmakedefine NAME` and `@VAR@`, from a `configure_file()` template.
+    CMake,
+    /// `#undef NAME`, from an autoconf `config.h.in`.
+    Autoconf,
+}
+
+impl ConfigDialect {
+    /// How an unresolved name manifests in the generated header — the reason
+    /// the agent has to care, and the thing the pass criterion is stated in.
+    fn unresolved_forms(self) -> &'static str {
+        match self {
+            Self::CMake => {
+                "Each is referenced either as a `#cmakedefine` (which would be silently left \
+                 undefined) or as a plain `@VAR@` substitution (which would be left LITERAL in \
+                 the output — an `@NAME@` token in the header that breaks every source that \
+                 includes it)."
+            }
+            Self::Autoconf => {
+                "Each is referenced as an `#undef NAME` line that `configure` would normally \
+                 rewrite into a `#define` (or leave commented out). Left unresolved the name \
+                 stays undefined, so every `#ifdef` on it silently takes the wrong branch — a \
+                 miscompile rather than a build failure, which is the harder direction."
+            }
+        }
+    }
+
+    /// The project's own build files, which a resolution must never edit.
+    fn build_files(self) -> &'static str {
+        match self {
+            Self::CMake => "`CMakeLists.txt`",
+            Self::Autoconf => "`configure.ac` or `Makefile.am`",
+        }
+    }
+
+    /// What "complete" means, in the vocabulary of this dialect.
+    fn completion_criterion(self) -> &'static str {
+        match self {
+            Self::CMake => "no undefined `#cmakedefine` and no literal `@VAR@` left in the output",
+            Self::Autoconf => "no `#undef` left for a name that should have been defined",
+        }
+    }
+}
+
 pub fn unmapped_config_macros_needs_attention(
     output: &str,
     template: &str,
     macros: &[String],
+    dialect: ConfigDialect,
 ) -> NeedsAttention {
     let title = format!("Config header '{output}' references names not in the shared catalog");
     NeedsAttention {
@@ -189,10 +243,8 @@ pub fn unmapped_config_macros_needs_attention(
             "The config header '{output}' is generated from the template `{template}` and the \
              translator reproduced it with a `config_header` rule wired to `@cc_config` probes \
              — but these name(s) it references have no probe in the shared catalog and no value \
-             the translator could resolve, so the generated header would be wrong:\n\n{}\n\nEach \
-             is referenced either as a `#cmakedefine` (which would be silently left undefined) \
-             or as a plain `@VAR@` substitution (which would be left LITERAL in the output — an \
-             `@NAME@` token in the header that breaks every source that includes it). The \
+             the translator could resolve, so the generated header would be wrong:\n\n{}\n\n{} \
+             The \
              catalog covers the common autoconf facts (`HAVE_<header>`, `HAVE_<symbol>`, \
              `SIZEOF_<type>`); a name absent from it is one the translator will not guess a \
              probe for — including a project-specific alias of a catalog fact (e.g. a \
@@ -202,7 +254,8 @@ pub fn unmapped_config_macros_needs_attention(
                 .iter()
                 .map(|m| format!("- `{m}`"))
                 .collect::<Vec<_>>()
-                .join("\n")
+                .join("\n"),
+            dialect.unresolved_forms()
         ),
         context: format!(
             "Decide, for each name, what it should resolve to under the CONSUMER's toolchain \
@@ -222,21 +275,21 @@ pub fn unmapped_config_macros_needs_attention(
              - an alias of a fact the catalog already has (the `{output}` name differs only by \
              a project prefix from a catalog `HAVE_*`/`SIZEOF_*`): wire the aliased define to \
              that existing `@cc_config//catalog:` probe in the generated `config_header`;\n\
-             - a project value, not a toolchain probe — an option, a version, or a plain \
-             `@VAR@` the project computes itself (e.g. an umbrella-include guard that gates \
-             whether one header pulls in another): supply it as a `values` entry on the \
+             - a project value, not a toolchain probe — an option, a version, or a name the \
+             project computes itself (e.g. an umbrella-include guard that gates whether one \
+             header pulls in another): supply it as a `values` entry on the \
              `config_header` (a Bazel config knob or a fixed default), since it does not depend \
              on the consumer's toolchain.\n\n\
-             Do NOT copy this host's generated header, and do NOT edit the project's \
-             CMakeLists.txt."
+             Do NOT copy this host's generated header, and do NOT edit the project's {}.",
+            dialect.build_files()
         ),
         expected_output: format!(
-            "Resolve every listed name so '{output}' is complete — no undefined `#cmakedefine` \
-             and no literal `@VAR@` left in the output: extend the catalog (and \
+            "Resolve every listed name so '{output}' is complete — {}: extend the catalog (and \
              `CATALOG_DEFINES`) for a genuine new fact, point an alias at the existing catalog \
              probe, or add a `values` entry for a project value — in the GENERATED output, or \
              the catalog, only. The header must end up correct for whatever toolchain builds \
-             the converted module, not baked from the conversion host."
+             the converted module, not baked from the conversion host.",
+            dialect.completion_criterion()
         ),
         title,
     }
@@ -551,8 +604,7 @@ pub fn ctest_command_not_a_target_needs_attention(
              indirectly — comparing its output against a checked-in `.expected` file, \
              looping over fixtures, or setting environment the binary needs."
         ),
-        context:
-            "This is a translator capability gap, not a problem with the project. Driving a \
+        context: "This is a translator capability gap, not a problem with the project. Driving a \
              test suite through scripts is ordinary practice, and those scripts ship with the \
              sources, so nothing here is missing or unreproducible — what the translator \
              cannot yet do is express 'run this script' as a Bazel test.\n\nThree things are \
@@ -572,7 +624,7 @@ pub fn ctest_command_not_a_target_needs_attention(
                `data`, or it will not be present when the test runs.\n\n\
              A test that is absent is invisible: unlike a build failure, nothing reports it. \
              Whatever these tests were checking is currently unchecked in the converted module."
-                .to_string(),
+            .to_string(),
         expected_output:
             "For each test listed above, add a test to the generated `BUILD.bazel` that \
              reproduces what it checked — typically an `sh_test` whose `srcs` is the project's \
@@ -804,6 +856,7 @@ mod tests {
             "json_config.h",
             "cmake/json_config.h.in",
             &["JSON_C_HAVE_INTTYPES_H".to_string()],
+            ConfigDialect::CMake,
         );
 
         assert!(
@@ -852,6 +905,7 @@ mod tests {
             "json.h",
             "json.h.cmakein",
             &["JSON_H_JSON_PATCH".to_string()],
+            ConfigDialect::CMake,
         );
 
         assert!(
@@ -864,6 +918,75 @@ mod tests {
             "the expected-output must require no literal @VAR@ remains, not just a defined \
              #cmakedefine:\n{}",
             item.expected_output
+        );
+    }
+
+    // The same escalation ships from both frontends, and three of its facts
+    // are dialect-specific: how an unresolved name manifests, which build
+    // files must not be edited, and what "complete" means. xz received an
+    // item naming `#cmakedefine`, `@VAR@` and a `CMakeLists.txt` — for an
+    // autoconf project with none of the three, whose own shipped
+    // `resolutions/` recipe simultaneously said `configure.ac`/`Makefile.am`.
+    // The NEGATIVE half is the half that failed: the item read plausibly, and
+    // only naming a construct the project does not contain gave it away.
+    #[test]
+    fn an_autoconf_config_header_escalation_speaks_autoconf_not_cmake() {
+        let item = unmapped_config_macros_needs_attention(
+            "config.h",
+            "config.h.in",
+            &["HAVE_IMMINTRIN_H".to_string()],
+            ConfigDialect::Autoconf,
+        );
+        let whole = format!("{}\n{}\n{}", item.gap, item.context, item.expected_output);
+
+        assert!(
+            item.gap.contains("#undef"),
+            "an autoconf item must say how an unresolved name manifests in ITS dialect — as an \
+             `#undef` configure would have rewritten:\n{}",
+            item.gap
+        );
+        assert!(
+            item.context.contains("configure.ac") && item.context.contains("Makefile.am"),
+            "an autoconf item must name the build files a resolution must not edit, and this \
+             project has no CMakeLists.txt to name:\n{}",
+            item.context
+        );
+        for cmake_only in ["#cmakedefine", "@VAR@", "CMakeLists.txt"] {
+            assert!(
+                !whole.contains(cmake_only),
+                "an autoconf item must not mention `{cmake_only}` — the project contains no \
+                 such construct, so the instruction is unfollowable and contradicts the \
+                 `resolutions/` recipe shipped beside it:\n{whole}"
+            );
+        }
+    }
+
+    // The other direction, so the dialect switch cannot be wired to a
+    // constant: a CMake item must keep saying `#cmakedefine`/`@VAR@`, which
+    // the assertions above would otherwise happily accept being deleted.
+    #[test]
+    fn a_cmake_config_header_escalation_still_speaks_cmake() {
+        let item = unmapped_config_macros_needs_attention(
+            "config.h",
+            "config.h.cmakein",
+            &["HAVE_UNISTD_H".to_string()],
+            ConfigDialect::CMake,
+        );
+        let whole = format!("{}\n{}\n{}", item.gap, item.context, item.expected_output);
+
+        assert!(
+            item.gap.contains("#cmakedefine") && item.gap.contains("`@VAR@`"),
+            "a CMake item must still name both CMake unresolved forms:\n{}",
+            item.gap
+        );
+        assert!(
+            item.context.contains("CMakeLists.txt"),
+            "a CMake item must still name CMakeLists.txt as the file not to edit:\n{}",
+            item.context
+        );
+        assert!(
+            !whole.contains("#undef"),
+            "a CMake item must not describe autoconf's `#undef` dialect:\n{whole}"
         );
     }
 
@@ -951,7 +1074,10 @@ mod tests {
         // asserted with its body attached — a heading present but empty is
         // the failure worth catching.
         assert!(rendered.contains("## Gap\n\ngap text\n"), "{rendered}");
-        assert!(rendered.contains("## Context\n\ncontext text\n"), "{rendered}");
+        assert!(
+            rendered.contains("## Context\n\ncontext text\n"),
+            "{rendered}"
+        );
         assert!(
             rendered.contains("## Expected output\n\nexpected text\n"),
             "{rendered}"
@@ -972,9 +1098,8 @@ mod tests {
             expected_output: "expected text".to_string(),
         });
         assert!(
-            rendered.starts_with(
-                "---\nkind: header_visibility\nsubject: \"greet\"\n---\n\n# Library"
-            ),
+            rendered
+                .starts_with("---\nkind: header_visibility\nsubject: \"greet\"\n---\n\n# Library"),
             "the header opens the file and the title follows it:\n{rendered}"
         );
     }
@@ -1000,7 +1125,10 @@ mod tests {
             .collect();
         assert_eq!(
             header,
-            vec!["kind: unsupported_target", "subject: \"weird name: with 'quotes'\""],
+            vec![
+                "kind: unsupported_target",
+                "subject: \"weird name: with 'quotes'\""
+            ],
             "the header stays two lines whatever the subject contains:\n{rendered}"
         );
     }
@@ -1038,7 +1166,12 @@ mod tests {
     fn every_escalation_kind_is_distinct_and_non_empty() {
         let items = vec![
             sources_outside_deliverable_needs_attention("t", &["a.c".to_string()]),
-            unmapped_config_macros_needs_attention("config.h", "config.h.in", &["X".to_string()]),
+            unmapped_config_macros_needs_attention(
+                "config.h",
+                "config.h.in",
+                &["X".to_string()],
+                ConfigDialect::CMake,
+            ),
             generated_config_header_needs_attention("t", &["gen.h".to_string()]),
             generated_sources_needs_attention("t", &["gen.c".to_string()]),
             unsupported_target_needs_attention("t", "OBJECT_LIBRARY", &["dep".to_string()]),

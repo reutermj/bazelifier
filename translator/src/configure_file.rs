@@ -42,7 +42,7 @@ use std::path::{Path, PathBuf};
 use crate::headers::is_config_header_output;
 use crate::model::ConfigHeader;
 use crate::needs_attention::{
-    NeedsAttention, generated_config_header_needs_attention,
+    ConfigDialect, NeedsAttention, generated_config_header_needs_attention,
     unmapped_config_macros_needs_attention,
 };
 use crate::paths::normalize_lexically;
@@ -132,6 +132,7 @@ pub(crate) fn build_config_headers(
                 &output_name,
                 &template_rel,
                 &unmapped,
+                ConfigDialect::CMake,
             ));
         }
         headers.push(header);
