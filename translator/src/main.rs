@@ -6,6 +6,7 @@ mod headers;
 mod libtool;
 mod ctest;
 mod codegen;
+mod config_header;
 mod model;
 mod ninja_deps;
 mod needs_attention;

@@ -36,7 +36,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::configure_file::catalog_label;
+use crate::config_header::{parse_config_headers, plan_config_header};
 use crate::error::Error;
 use crate::headers::{
     inject_headers_on_include_dirs, is_buildable_source, is_header_file, is_translation_unit,
@@ -44,7 +44,7 @@ use crate::headers::{
 use crate::needs_attention::{
     sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
 };
-use crate::model::{BuildGraph, ConfigHeader, Discovery, ModuleInfo, Target, TargetKind};
+use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind};
 use crate::paths::{absolutize, common_ancestor, normalize_lexically};
 
 /// One resolved command from the build stream, split into a program and its
@@ -345,16 +345,6 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
     vars
 }
 
-/// Whether a substituted value is a bare number, and so must NOT be quoted.
-///
-/// autoconf's own rule: `AC_DEFINE([SIZEOF_LONG], [8])` emits `8`, while
-/// `AC_DEFINE([PACKAGE], ["xz"])` emits `"xz"`. Getting this backwards fails
-/// in opposite directions — an unquoted string becomes stray identifiers, a
-/// quoted number becomes a type error in `#if`.
-fn is_numeric_literal(value: &str) -> bool {
-    !value.is_empty() && value.chars().all(|c| c.is_ascii_digit())
-}
-
 /// Whether `name` is an automake primary — `bin_PROGRAMS`, `lib_LTLIBRARIES`.
 ///
 /// Matched on the suffix alone, the same way [`declared_targets`] reads them,
@@ -362,141 +352,6 @@ fn is_numeric_literal(value: &str) -> bool {
 fn is_primary(name: &str) -> bool {
     name.rsplit_once('_')
         .is_some_and(|(_, primary)| matches!(primary, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"))
-}
-
-/// Builds the `config_header` plan for an autoconf template, and the macros
-/// it references that the shared catalog cannot resolve.
-///
-/// The catalog is the SAME one the CMake frontend maps `#cmakedefine` names
-/// through — a `HAVE_UNISTD_H` probe is the same fact whichever build system
-/// asked for it, and reusing the catalog is a large part of why Autotools was
-/// the right second frontend rather than an excuse to build a parallel one.
-///
-/// Package metadata (`PACKAGE`, `VERSION`, ...) is resolved from make's
-/// variable database rather than probed: those are values `configure`
-/// substituted, not facts about the toolchain, so probing for them would be
-/// both wrong and impossible.
-pub(crate) fn plan_config_header(
-    output: &str,
-    template: &str,
-    template_text: &str,
-    vars: &HashMap<String, String>,
-) -> (ConfigHeader, Vec<String>) {
-    let mut probes = Vec::new();
-    let mut values = Vec::new();
-    let mut unmapped = Vec::new();
-
-    for name in undef_names(template_text) {
-        if let Some(label) = catalog_label(&name) {
-            probes.push(label);
-        } else if let Some(value) = vars.get(&name).filter(|v| !v.is_empty()) {
-            // A value configure substituted — PACKAGE, VERSION and friends.
-            //
-            // The emptiness check is load-bearing, not defensive. `configure`
-            // seeds make's database with EVERY macro it knows, most of them
-            // empty, so a bare `vars.get` matches names it has no value for:
-            // hello has `BITSIZEOF_PTRDIFF_T = ` in its database, and taking
-            // that as a substitution emitted `"BITSIZEOF_PTRDIFF_T": """"` —
-            // an unclosed string literal that would not parse. An empty
-            // variable is the absence of a value, so the macro falls through
-            // to the escalation below where it belongs.
-            //
-            // Quoted the way autoconf itself would. `AC_DEFINE([PACKAGE_NAME],
-            // ["XZ Utils"])` puts a C STRING LITERAL in config.h — quotes
-            // included — while make's variable database carries the bare text.
-            // Passing that through raw emitted `#define PACKAGE_NAME XZ Utils`,
-            // which the preprocessor splices into `printf("xz (" XZ Utils ")")`
-            // and clang rejects as an undeclared identifier, several files from
-            // the config header that caused it.
-            //
-            // A purely numeric value is left bare, matching autoconf: SIZEOF_*
-            // and ASSUME_RAM are used in arithmetic and `#if`, where a string
-            // literal is a type error rather than a quoting nicety.
-            //
-            // Note this is C quoting, not Starlark quoting — codegen escapes
-            // the result again on the way into the BUILD file.
-            let value = if is_numeric_literal(value) {
-                value.clone()
-            } else {
-                format!("\"{value}\"")
-            };
-            values.push((name, value));
-        } else {
-            // Neither a catalog fact nor a substituted value. Escalated
-            // rather than guessed at, exactly as the CMake frontend refuses
-            // to match a project-prefixed alias to a lookalike catalog entry.
-            unmapped.push(name);
-        }
-    }
-
-    probes.sort_unstable();
-    probes.dedup();
-    values.sort_unstable();
-    values.dedup();
-    unmapped.sort_unstable();
-    unmapped.dedup();
-
-    (
-        ConfigHeader {
-            output: output.to_string(),
-            template: template.to_string(),
-            template_source: None,
-            catalog_probes: probes,
-            values,
-        },
-        unmapped,
-    )
-}
-
-/// Every name an autoconf template declares with a bare `#undef`.
-///
-/// Line-anchored for the same reason the expander is: a mid-line `#undef` is
-/// ordinary C undefining a macro, not a declaration to resolve.
-fn undef_names(template_text: &str) -> Vec<String> {
-    template_text
-        .lines()
-        .filter_map(|line| {
-            let rest = line.strip_prefix('#')?.trim_start().strip_prefix("undef")?;
-            let name = rest.trim();
-            (!name.is_empty() && !name.contains(char::is_whitespace))
-                .then(|| name.to_string())
-        })
-        .collect()
-}
-
-/// The config header a project declares with `AC_CONFIG_HEADERS`, as
-/// (output, template) — `("config.h", "config.in")` for GNU hello.
-///
-/// Read from `config.status` rather than `configure.ac`, for the same reason
-/// the rest of this frontend reads resolved output: `configure.ac` is the
-/// input, and its macro arguments can be variables. `config.status` is what
-/// `configure` actually decided, and it records BOTH sides:
-///
-/// ```text
-/// config_headers=" config.h:config.in"
-/// ```
-///
-/// The template is not always `<output>.in`. hello declares
-/// `AC_CONFIG_HEADERS([config.h:config.in])` to keep the filename 8.3-safe,
-/// so assuming the name would find nothing. Autoconf defaults the template to
-/// `<output>.in` when only one side is given, which is handled here rather
-/// than by the caller.
-pub(crate) fn parse_config_headers(config_status: &str) -> Vec<(String, String)> {
-    let Some(line) = config_status
-        .lines()
-        .find_map(|l| l.trim().strip_prefix("config_headers="))
-    else {
-        return Vec::new();
-    };
-    line.trim_matches(&['"', '\''][..])
-        .split_whitespace()
-        .map(|spec| match spec.split_once(':') {
-            Some((output, template)) => (output.to_string(), template.to_string()),
-            // Only the output named: autoconf's default template is
-            // `<output>.in`.
-            None => (spec.to_string(), format!("{spec}.in")),
-        })
-        .collect()
 }
 
 /// Recovers every target automake DECLARED, from the primaries.
@@ -1758,25 +1613,6 @@ make[1]: Leaving directory '/src/app'\n\
         assert_eq!(compiled_source(&plain).as_deref(), Some("main.c"));
     }
 
-    // AC_CONFIG_HEADERS names BOTH sides, and the template is not always
-    // `<output>.in` — GNU hello declares config.h:config.in to keep the name
-    // 8.3-safe, so assuming would find nothing.
-    #[test]
-    fn parse_config_headers_reads_both_sides_of_the_declaration() {
-        assert_eq!(
-            parse_config_headers("config_headers=\" config.h:config.in\"\n"),
-            vec![("config.h".to_string(), "config.in".to_string())]
-        );
-        // Only the output named: autoconf defaults the template to <output>.in.
-        assert_eq!(
-            parse_config_headers("config_headers=\"config.h\"\n"),
-            vec![("config.h".to_string(), "config.h.in".to_string())]
-        );
-        // A project declaring none — fixture 001 — must yield none rather
-        // than a default that does not exist.
-        assert!(parse_config_headers("other=1\n").is_empty());
-    }
-
     // `configure` seeds make's database with EVERY macro it knows, most of
     // them EMPTY. Treating an empty variable as a substituted value emitted
     //     "BITSIZEOF_PTRDIFF_T": """"
@@ -1963,68 +1799,6 @@ make[1]: Leaving directory '/src'\n\
                 && !graph.targets[0].public_headers.contains(&"README".to_string()),
             "automake permits a non-source in _SOURCES; it is neither compiled \
              nor a header, and the negated partition used to make it one"
-        );
-    }
-
-    #[test]
-    fn a_substituted_value_is_quoted_unless_it_is_a_number() {
-        let vars: HashMap<String, String> = [
-            ("PACKAGE_NAME".to_string(), "XZ Utils".to_string()),
-            ("ASSUME_RAM".to_string(), "128".to_string()),
-        ]
-        .into_iter()
-        .collect();
-        let (header, _) = plan_config_header(
-            "config.h",
-            "config.in",
-            "#undef PACKAGE_NAME\n#undef ASSUME_RAM\n",
-            &vars,
-        );
-
-        assert_eq!(
-            header.values,
-            vec![
-                ("ASSUME_RAM".to_string(), "128".to_string()),
-                ("PACKAGE_NAME".to_string(), "\"XZ Utils\"".to_string()),
-            ],
-            "autoconf quotes a string value and leaves a numeric one bare; \
-             make's database carries both as plain text, so the distinction \
-             has to be restored here"
-        );
-    }
-
-    #[test]
-    fn an_empty_make_variable_is_not_a_substituted_value() {
-        let vars: HashMap<String, String> = [
-            ("PACKAGE".to_string(), "hello".to_string()),
-            ("BITSIZEOF_PTRDIFF_T".to_string(), String::new()),
-        ]
-        .into_iter()
-        .collect();
-        let (header, unmapped) = plan_config_header(
-            "config.h",
-            "config.in",
-            "#undef PACKAGE\n#undef BITSIZEOF_PTRDIFF_T\n#undef HAVE_UNISTD_H\n",
-            &vars,
-        );
-
-        assert_eq!(
-            header.values,
-            vec![("PACKAGE".to_string(), "\"hello\"".to_string())],
-            "only a real substitution is a value, and a non-numeric one carries \
-             the C quotes autoconf itself would emit: `AC_DEFINE([PACKAGE], \
-             [\"hello\"])` puts a string LITERAL in config.h"
-        );
-        assert_eq!(
-            header.catalog_probes,
-            vec!["@cc_config//catalog:have_unistd_h"],
-            "a catalog fact is probed, not substituted"
-        );
-        assert_eq!(
-            unmapped,
-            vec!["BITSIZEOF_PTRDIFF_T"],
-            "an empty variable is the ABSENCE of a value, so the macro is \
-             escalated rather than emitted as an empty string"
         );
     }
 

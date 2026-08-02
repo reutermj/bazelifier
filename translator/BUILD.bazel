@@ -8,6 +8,7 @@ rust_binary(
         "src/autotools.rs",
         "src/cmake_api.rs",
         "src/codegen.rs",
+        "src/config_header.rs",
         "src/configure_file.rs",
         "src/ctest.rs",
         "src/error.rs",
