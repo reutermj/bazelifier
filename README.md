@@ -84,6 +84,15 @@ never by editing the project's own build files. Converting a build system
 involves judgement calls at many points; the equivalence checks are the
 contract, not reproducibility of the process.
 
+And a conversion reproduces what the project's build system **does**, not
+what happens to matter on the machine that ran it. A construct with no
+effect on the conversion host — a portability shim its libc makes
+redundant, a conditional branch its platform never takes, a feature probe
+that succeeds here — is still reproduced, because "no effect" is a fact
+about that machine rather than about the project. Dropping it yields a
+module that works where it was converted and is silently wrong elsewhere,
+which is the failure the generated modules' hermeticity exists to prevent.
+
 ## Status
 
 Early stage / prototype. Validation uses small, synthetic ("unit") projects

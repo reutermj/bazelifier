@@ -42,6 +42,15 @@ toolchain**, the same toolchain the rest of the generated module compiles
 with — computed at the consumer's `bazel build` time, not captured from
 ours.
 
+This is the best-worked instance of a rule that is not specific to config
+headers: a conversion replicates what the build system *does*, never what
+this host makes look unnecessary. The same reasoning applies to a
+portability shim the conversion machine's libc renders inert and to a
+conditional branch its platform never takes — see
+[overview.md](overview.md#replicate-the-builds-behaviour-not-this-hosts-outcome).
+Kept here in full because this is where the decision was first forced and
+where the mechanism lives.
+
 Bazel has no built-in equivalent of autoconf's compile-probes, so we build
 one.
 

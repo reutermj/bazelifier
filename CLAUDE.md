@@ -371,6 +371,25 @@ source in every fixture build.
   answer is usually the same. And resolutions are ephemeral on purpose:
   don't build a cache that replays them, since a re-conversion would then
   look green without the agent stage having engaged with what changed.
+- **Replicate the build's BEHAVIOUR, not this host's outcome.** The platform
+  analogue of the rule above, and it fails the same way: silently, on the
+  platform you have not tried. A conversion reproduces what the project's
+  build system *does*; "this construct has no effect here" is a fact about
+  the conversion machine, not about the project.
+
+  Measured instance: every one of libidn2's gnulib `gl/*.h` replacement
+  headers can be deleted and the library still builds with byte-identical
+  output — on glibc/Linux. That is precisely the platform gnulib is *not*
+  for. Skipping them would produce a module that works here and is silently
+  wrong on musl, macOS or Windows, with the failure landing on whoever tries
+  that platform rather than on whoever made the decision.
+
+  Same class as copying the resolved `config.h` instead of probing, just
+  coarser and so harder to spot. It also covers a conditional branch this
+  platform never takes and a feature probe that happens to succeed here.
+  Skipping is not forbidden — it is a decision to RECORD in the conversion,
+  never an optimisation applied quietly. See
+  [docs/architecture/overview.md](docs/architecture/overview.md#replicate-the-builds-behaviour-not-this-hosts-outcome).
 
 ## When you learn something non-obvious
 
