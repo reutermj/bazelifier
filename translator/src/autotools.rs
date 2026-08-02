@@ -1038,6 +1038,18 @@ pub(crate) fn to_graph(
             // From the PRIMARY, not from a filename: LTLIBRARIES is libtool's
             // form and builds a shared library, LIBRARIES is a plain archive.
             is_shared: decl.primary == "LTLIBRARIES",
+            // Against the BUILD tree and the declaring directory: automake
+            // names a target `liblzma.la` while the file is written to
+            // `src/liblzma/liblzma.la`, so the build root alone does not
+            // find it.
+            soname: libtool_dlname(
+                &build_root.join(
+                    decl_dir
+                        .strip_prefix(module_root)
+                        .unwrap_or(Path::new("")),
+                )
+                .join(&decl.name),
+            ),
             sources,
             // `include_HEADERS` names the project's public headers, the same
             // statement CMake makes with install(FILES ... DESTINATION
@@ -1119,6 +1131,28 @@ fn public_headers(vars: &HashMap<String, String>) -> Vec<String> {
         })
         .flat_map(|(_, v)| v.split_whitespace().map(str::to_string))
         .collect()
+}
+
+/// The SONAME a libtool `.la` declares, from its own `dlname=` field.
+///
+/// A `.la` is a text control file, not a library, and it is the only place
+/// the real name is written down: `liblzma.la` builds `liblzma.so.5`, and
+/// nothing about the automake target name says so. Read rather than derived
+/// because libtool owns the versioning scheme — `current`/`age`/`revision`
+/// do not map to the filename by any rule worth reimplementing.
+///
+/// `None` for a static-only library, whose `dlname` is empty, and for
+/// anything that is not a `.la`.
+fn libtool_dlname(la_path: &Path) -> Option<String> {
+    if la_path.extension().and_then(|e| e.to_str()) != Some("la") {
+        return None;
+    }
+    let text = std::fs::read_to_string(la_path).ok()?;
+    let dlname = text
+        .lines()
+        .find_map(|l| l.strip_prefix("dlname="))?
+        .trim_matches('\'');
+    (!dlname.is_empty()).then(|| dlname.to_string())
 }
 
 /// The Bazel target name for an automake target name.

@@ -715,6 +715,17 @@ fn render_shared_library(out: &mut String, target: &Target) {
         shared_library_name(&target.name)
     ));
     render_string_list(out, "deps", &[format!(":{}", target.name)]);
+    // Without this Bazel names the output after the TARGET, so an automake
+    // `liblzma.la` produces `libliblzma.la_shared.so` — a filename embedding
+    // a control-file extension that means nothing in Bazel and matches no
+    // consumer's `DT_NEEDED`. The frontend read the real name off the `.la`;
+    // see `model::Target::soname`.
+    if let Some(soname) = &target.soname {
+        out.push_str(&format!(
+            "    shared_lib_name = \"{}\",\n",
+            escape_starlark(soname)
+        ));
+    }
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
 }
@@ -1707,6 +1718,49 @@ mod tests {
     // autoconf value carries C quotes and a CMake one does not, so counting
     // the stored bytes would let `"ab"` through while rejecting `ab` — the
     // same fact, opposite verdicts. See `ConfigHeader::values`.
+    // Without shared_lib_name Bazel names the output after the TARGET, and
+    // an automake target is `liblzma.la` — so the library ships as
+    // `libliblzma.la_shared.so`, embedding a control-file extension and
+    // matching no consumer's DT_NEEDED. The frontend reads the real name off
+    // the .la's own dlname=.
+    #[test]
+    fn a_shared_library_is_named_by_its_soname_when_the_frontend_knows_it() {
+        let mut out = String::new();
+        render_shared_library(
+            &mut out,
+            &Target {
+                name: "liblzma.la".to_string(),
+                kind: TargetKind::Library,
+                is_shared: true,
+                soname: Some("liblzma.so.5".to_string()),
+                ..Default::default()
+            },
+        );
+        assert!(
+            out.contains(r#"shared_lib_name = "liblzma.so.5""#),
+            "the real SONAME must reach the rule:\n{out}"
+        );
+
+        // And omitted when unknown, rather than guessed from the target name:
+        // CMake's add_library(foo SHARED) already produces libfoo.so, and
+        // inventing a name there would be worse than Bazel's default.
+        let mut out = String::new();
+        render_shared_library(
+            &mut out,
+            &Target {
+                name: "greet".to_string(),
+                kind: TargetKind::Library,
+                is_shared: true,
+                soname: None,
+                ..Default::default()
+            },
+        );
+        assert!(
+            !out.contains("shared_lib_name"),
+            "an unknown SONAME must not be invented:\n{out}"
+        );
+    }
+
     #[test]
     fn the_value_length_filter_ignores_c_quotes() {
         let mut out = String::new();

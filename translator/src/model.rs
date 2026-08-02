@@ -69,6 +69,22 @@ pub struct Target {
     /// consumers that link it, so it rides alongside the kind rather than
     /// inside it. See `codegen::render_shared_library`.
     pub is_shared: bool,
+    /// The filename a consumer's `DT_NEEDED` will name for this library —
+    /// `liblzma.so.5`, not the Bazel target name. `None` when the frontend
+    /// could not determine it, or when the target is not shared.
+    ///
+    /// Carried because the target NAME cannot stand in for it. That name has
+    /// already been sanitised for Bazel label legality, and for Autotools it
+    /// starts life as an automake target like `liblzma.la` — so the derived
+    /// output is `libliblzma.la_shared.so`, which embeds a control-file
+    /// extension that means nothing in Bazel and matches no SONAME any
+    /// consumer expects.
+    ///
+    /// The Autotools frontend reads it from the `.la`'s own `dlname=`, which
+    /// is the same field ground-truth staging already consults. Empty for
+    /// CMake, which has not needed it yet: `add_library(foo SHARED)` produces
+    /// `libfoo.so`, and the target name already carries that.
+    pub soname: Option<String>,
     /// Private source file paths (compiled, not exposed to consumers).
     pub sources: Vec<String>,
     /// Files this target's sources `#include` TEXTUALLY rather than compile —
