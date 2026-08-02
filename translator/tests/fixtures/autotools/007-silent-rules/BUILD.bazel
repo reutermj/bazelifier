@@ -1,0 +1,21 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# AM_SILENT_RULES([yes]), which makes `make` print "  CC main.o" instead of
+# the compile command. This frontend's entire input IS the command stream, so
+# such a project converted to an empty graph — silently, since an empty graph
+# is not an error.
+#
+# No corpus project had the macro (xz, expat, jansson and libmicrohttpd all
+# lack it), which is why it stayed invisible until libidn2. Measured there: 0
+# compile commands without `V=1`, 226 with it.
+#
+# Two sources on purpose. With an empty stream the target still renders from
+# the declaration, so a single-source fixture would look fine; only a MISSING
+# source shows the loss.
+#
+# Converts green — the frontend passes V=1 unconditionally.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

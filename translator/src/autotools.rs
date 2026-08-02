@@ -354,6 +354,20 @@ fn build(build_dir: &Path, extra_args: &[&str]) -> Result<String, Error> {
         .unwrap_or(1);
     let output = Command::new("make")
         .arg(format!("-j{jobs}"))
+        // automake's escape hatch from AM_SILENT_RULES. A project that
+        // enables it prints "  CC foo.o" instead of the command, and this
+        // frontend's ENTIRE input is the command stream — so such a project
+        // converts to an empty graph rather than failing. Measured on
+        // libidn2: 0 compile commands without this flag, 226 with it.
+        //
+        // Passed unconditionally rather than only when configure.ac has
+        // AM_SILENT_RULES, because the narrower version would mean reading
+        // configure.ac, which this frontend deliberately does not do — and
+        // the broad version measured free. All four Autotools corpus
+        // projects convert byte-identically with it (modulo a sandbox number
+        // that already varied run to run), with identical target, test and
+        // escalation counts.
+        .arg("V=1")
         // Keeps make's `Entering directory` announcements attached to the
         // commands they enclose. Under `-j` a sub-make's output can otherwise
         // interleave with its siblings', and `parse_commands` reads those

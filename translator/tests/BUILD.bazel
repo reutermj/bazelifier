@@ -49,6 +49,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/004-config-header:converted",
         "//translator/tests/fixtures/autotools/005-textually-included-source:converted",
         "//translator/tests/fixtures/autotools/006-automake-tests:converted",
+        "//translator/tests/fixtures/autotools/007-silent-rules:converted",
     ],
 )
 
