@@ -444,7 +444,7 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
 /// a shell script that drives binaries indirectly (jansson, xz), and a
 /// project-specific variable nothing resolves (libgd, wget, gsl). The third
 /// is load-bearing rather than a fallback — it is 2 of the 6.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum TestEntry {
     /// Names a `check_PROGRAMS` binary, run directly. Expressible as a test
     /// rule around a target this module already builds.
@@ -513,6 +513,14 @@ fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
             entries.push(TestEntry::Script(bare));
         }
     }
+    // Deduplicated, first-seen order preserved. Accumulating TESTS across
+    // directories means one declaration arrives once per sub-make that read
+    // it — jansson's five `TESTS = ` lines are two distinct tests — and a
+    // repeat is the same test seen twice, never a second one. Order is kept
+    // rather than sorted because it is the order the project declared them
+    // in, which is the only ordering evidence there is.
+    let mut seen = std::collections::HashSet::new();
+    entries.retain(|e| seen.insert(e.clone()));
     entries
 }
 
@@ -2219,6 +2227,29 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
             ],
             "both declarations must survive the flattening — make never sees \
              them together, so merging is ours to do"
+        );
+    }
+
+    // Accumulating across directories means the same declaration arrives more
+    // than once: `make -p` reports a directory's TESTS once per sub-make that
+    // reads it, so jansson's five `TESTS = ` lines are really two distinct
+    // tests. Shipped un-deduplicated, the escalation listed `run-suites` twice
+    // and `clang-format-check` three times, which reads as five separate
+    // problems to whoever has to resolve it.
+    #[test]
+    fn a_test_declared_once_is_not_reported_several_times() {
+        let vars = parse_variables(
+            "TESTS = run-suites\nTESTS = scripts/format-check\n\
+             TESTS = run-suites\nTESTS = scripts/format-check\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![
+                TestEntry::Script("run-suites".to_string()),
+                TestEntry::Script("scripts/format-check".to_string()),
+            ],
+            "deduplicated, and in first-seen order — a repeat is the same \
+             declaration seen twice, not a second test"
         );
     }
 
