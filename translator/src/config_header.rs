@@ -127,8 +127,7 @@ fn undef_names(template_text: &str) -> Vec<String> {
         .filter_map(|line| {
             let rest = line.strip_prefix('#')?.trim_start().strip_prefix("undef")?;
             let name = rest.trim();
-            (!name.is_empty() && !name.contains(char::is_whitespace))
-                .then(|| name.to_string())
+            (!name.is_empty() && !name.contains(char::is_whitespace)).then(|| name.to_string())
         })
         .collect()
 }
@@ -171,7 +170,6 @@ pub(crate) fn parse_config_headers(config_status: &str) -> Vec<(String, String)>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::autotools::parse_variables;
 
     // AC_CONFIG_HEADERS names BOTH sides, and the template is not always
     // `<output>.in` — GNU hello declares config.h:config.in to keep the name
@@ -192,6 +190,11 @@ mod tests {
         assert!(parse_config_headers("other=1\n").is_empty());
     }
 
+    // Both directions, because the two failures are opposite and each is
+    // silent at the point it is made. An unquoted string splices into
+    // neighbouring tokens (`printf("xz (" XZ Utils ")")` — clang reports
+    // undeclared identifiers in a file that never mentions the macro), while a
+    // quoted number is a type error wherever `#if` or arithmetic uses it.
     #[test]
     fn a_substituted_value_is_quoted_unless_it_is_a_number() {
         let vars: HashMap<String, String> = [
@@ -219,6 +222,11 @@ mod tests {
         );
     }
 
+    // `configure` seeds make's database with EVERY macro it knows, most of
+    // them EMPTY. Treating an empty variable as a substituted value emitted
+    //     "BITSIZEOF_PTRDIFF_T": """"
+    // — an unclosed string literal, so the generated module would not parse.
+    // The macro belongs in the escalation instead.
     #[test]
     fn an_empty_make_variable_is_not_a_substituted_value() {
         let vars: HashMap<String, String> = [

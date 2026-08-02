@@ -1,17 +1,17 @@
 mod autotools;
 mod cmake_api;
+mod codegen;
+mod config_header;
 mod configure_file;
+mod ctest;
 mod error;
 mod headers;
 mod libtool;
-mod ctest;
-mod codegen;
-mod config_header;
 mod model;
-mod ninja_deps;
 mod needs_attention;
-mod resolutions;
+mod ninja_deps;
 mod paths;
+mod resolutions;
 
 use std::collections::HashSet;
 use std::fs;
@@ -140,11 +140,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         None => {
             return Err(Box::new(error::Error::NoFrontendDetected {
                 source_dir: args.source_dir.display().to_string(),
-            }))
+            }));
         }
     };
     let discovery = match frontend {
-        Frontend::Cmake => cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?,
+        Frontend::Cmake => {
+            cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?
+        }
         Frontend::Autotools => {
             autotools::discover(&args.source_dir, &args.build_dir, deliverable_root)?
         }
@@ -243,9 +245,7 @@ fn write_conversion_summary(
 ) -> std::io::Result<()> {
     let mut escalations: Vec<serde_json::Value> = needs_attention
         .iter()
-        .map(|item| {
-            serde_json::json!({ "kind": item.kind, "subject": item.subject })
-        })
+        .map(|item| serde_json::json!({ "kind": item.kind, "subject": item.subject }))
         .collect();
     // Sorted so two runs of the same input produce the same bytes; the sweep
     // diffs these, and an ordering difference would read as a change.
@@ -531,7 +531,17 @@ fn copy_referenced_sources(
     // source compiled into both a static and a shared library).
     let mut copied = HashSet::new();
     for target in &graph.targets {
-        for relative in target.sources.iter().chain(target.public_headers.iter()) {
+        // `textual_sources` too: a file in `textual_hdrs` is an input Bazel
+        // demands on disk exactly like one in `srcs`. Omitting it fails at
+        // ANALYSIS with "missing input file", not at compile — a different
+        // and more confusing error than the "file not found" you get when the
+        // rule never mentioned it at all.
+        for relative in target
+            .sources
+            .iter()
+            .chain(target.public_headers.iter())
+            .chain(target.textual_sources.iter())
+        {
             if copied.insert(relative.as_str()) {
                 copy_into(&module_root.join(relative), &out_dir.join(relative))?;
             }
@@ -756,11 +766,17 @@ mod tests {
     fn the_conversion_summary_distinguishes_shared_from_static_libraries() {
         let mut graph = two_target_graph();
         let summary = summary_of(&graph, &[], "summary_shared");
-        assert_eq!(summary["targets"][0]["kind"], "shared_library", "{summary:#}");
+        assert_eq!(
+            summary["targets"][0]["kind"], "shared_library",
+            "{summary:#}"
+        );
 
         graph.targets[1].is_shared = false;
         let summary = summary_of(&graph, &[], "summary_static");
-        assert_eq!(summary["targets"][0]["kind"], "static_library", "{summary:#}");
+        assert_eq!(
+            summary["targets"][0]["kind"], "static_library",
+            "{summary:#}"
+        );
     }
 
     // A clean conversion must still write the file, with an EMPTY escalation
@@ -907,11 +923,6 @@ mod tests {
             );
         }
     }
-
-    #[test]
-
-
-
 
     #[test]
     fn is_shared_library_matches_so_and_versioned_so_only() {

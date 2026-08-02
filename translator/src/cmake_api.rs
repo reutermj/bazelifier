@@ -20,17 +20,16 @@ use crate::configure_file::{build_config_headers, parse_configure_files};
 use crate::ctest;
 use crate::error::Error;
 use crate::headers::{
-    inject_headers_on_include_dirs, is_buildable_source, is_config_header_output, inject_opened_files, inject_unenumerated_installed_headers, is_include_destination,
-    looks_like_header,
+    inject_headers_on_include_dirs, inject_opened_files, inject_unenumerated_installed_headers,
+    is_buildable_source, is_config_header_output, is_include_destination, looks_like_header,
 };
 use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind};
-use crate::ninja_deps;
 use crate::needs_attention::{
     NeedsAttention, generated_config_header_needs_attention, generated_sources_needs_attention,
-    header_visibility_needs_attention,
-    inert_convenience_targets_needs_attention, sources_outside_deliverable_needs_attention,
-    unsupported_target_needs_attention,
+    header_visibility_needs_attention, inert_convenience_targets_needs_attention,
+    sources_outside_deliverable_needs_attention, unsupported_target_needs_attention,
 };
+use crate::ninja_deps;
 use crate::paths::{absolutize, common_ancestor, normalize_lexically, resolve_against};
 
 #[derive(Debug, Deserialize)]
@@ -311,8 +310,12 @@ pub fn discover(
         ctest::partition_tests_by_buildable_command(tests, &codemodel.targets);
 
     let cache = read_cache_values(&reply_dir)?;
-    let (config_headers, config_escalations) =
-        build_config_headers(&configure_files, &codemodel.module_root, &abs_build_dir, &cache);
+    let (config_headers, config_escalations) = build_config_headers(
+        &configure_files,
+        &codemodel.module_root,
+        &abs_build_dir,
+        &cache,
+    );
     let mut needs_attention = codemodel.needs_attention;
     needs_attention.extend(config_escalations);
     needs_attention.extend(test_escalation);
@@ -664,9 +667,9 @@ fn rebase_to_module_root(
                             .strip_prefix(build_dir)
                             .map(|rel| format!("<build dir>/{}", rel.display()))
                             .or_else(|_| {
-                                absolute.strip_prefix(deliverable_root).map(|rel| {
-                                    format!("<deliverable root>/{}", rel.display())
-                                })
+                                absolute
+                                    .strip_prefix(deliverable_root)
+                                    .map(|rel| format!("<deliverable root>/{}", rel.display()))
                             })
                             // Neither root strips: the file is genuinely
                             // outside both, which is fixture 008's shape and
@@ -683,10 +686,8 @@ fn rebase_to_module_root(
                                 // to the last two components, which is what
                                 // actually identifies the file to a reader
                                 // who cannot see this machine.
-                                let anchored = common_ancestor(
-                                    deliverable_root,
-                                    &[absolute.clone()],
-                                );
+                                let anchored =
+                                    common_ancestor(deliverable_root, &[absolute.clone()]);
                                 let rel = if anchored.parent().is_some() {
                                     absolute.strip_prefix(&anchored).ok()
                                 } else {
@@ -1523,10 +1524,9 @@ mod tests {
     // prove a refactor changed nothing.
     #[test]
     fn to_target_sorts_dependencies_so_reply_order_cannot_leak_through() {
-        let names: HashMap<&str, &str> =
-            [("a::@1", "alpha"), ("g::@1", "gamma"), ("m::@1", "mu")]
-                .into_iter()
-                .collect();
+        let names: HashMap<&str, &str> = [("a::@1", "alpha"), ("g::@1", "gamma"), ("m::@1", "mu")]
+            .into_iter()
+            .collect();
 
         let deps_in = |ids: [&str; 3]| {
             let reply = TargetReply {
@@ -1547,11 +1547,7 @@ mod tests {
             target.dependencies
         };
 
-        let sorted = vec![
-            "alpha".to_string(),
-            "gamma".to_string(),
-            "mu".to_string(),
-        ];
+        let sorted = vec!["alpha".to_string(), "gamma".to_string(), "mu".to_string()];
         // The same three edges in three different reply orders — exactly what
         // CMake was observed doing across runs — must render identically.
         assert_eq!(deps_in(["a::@1", "g::@1", "m::@1"]), sorted);
@@ -2127,9 +2123,6 @@ mod tests {
         );
     }
 
-    // The cap doing its job: a file outside the deliverable must not drag
-    // the module root out with it, however far up the tree it sits.
-    #[test]
     // An escalation is read by an agent in an unpacked workspace, where this
     // conversion's absolute paths do not exist — under Bazel they are a
     // sandbox directory with a run-specific number in it, so they identify
@@ -2159,6 +2152,8 @@ mod tests {
         );
     }
 
+    // The cap doing its job: a file outside the deliverable must not drag
+    // the module root out with it, however far up the tree it sits.
     #[test]
     fn rebase_refuses_to_widen_past_the_deliverable_root() {
         let mut targets = vec![target_with(
@@ -2850,7 +2845,6 @@ mod tests {
              Installer::type/destination/paths"
         );
     }
-
 
     #[test]
     fn target_defines_deserializes_real_capture() {

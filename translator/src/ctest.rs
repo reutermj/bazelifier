@@ -360,7 +360,11 @@ mod tests {
     // The direction that must escalate: json-c's shape.
     #[test]
     fn a_test_running_a_script_escalates_and_is_not_emitted() {
-        let tests = vec![test_running("test1", "test1.test", "/abs/src/tests/test1.test")];
+        let tests = vec![test_running(
+            "test1",
+            "test1.test",
+            "/abs/src/tests/test1.test",
+        )];
         // The module builds an executable, just not the one the test runs —
         // so an empty target list isn't what makes this fire.
         let targets = vec![executable_target("json_parse")];
@@ -377,7 +381,10 @@ mod tests {
         // copy_test_runtime_data carries the script it runs. Naming alone
         // shipped json-c a module missing 74 of its tests/ files.
         assert_eq!(
-            unexpressed.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(),
+            unexpressed
+                .iter()
+                .map(|t| t.name.as_str())
+                .collect::<Vec<_>>(),
             vec!["test1"],
             "an escalated test must still be carried on the graph"
         );

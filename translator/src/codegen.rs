@@ -83,9 +83,7 @@ fn module_name(project_name: &str) -> String {
         name.insert_str(0, "m_");
     }
     // Must end with a lowercase letter or digit.
-    while name
-        .ends_with(|c: char| !(c.is_ascii_lowercase() || c.is_ascii_digit()))
-    {
+    while name.ends_with(|c: char| !(c.is_ascii_lowercase() || c.is_ascii_digit())) {
         name.pop();
     }
     name
@@ -679,7 +677,9 @@ fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
          # `#include <angled>`. Workaround for a rules_cc limitation; remove it\n\
          # and emit the headers in place once upstream supports this.\n",
     );
-    out.push_str(&format!("genrule(\n    name = \"{STAGED_HEADERS_TARGET}\",\n"));
+    out.push_str(&format!(
+        "genrule(\n    name = \"{STAGED_HEADERS_TARGET}\",\n"
+    ));
     render_path_list(out, "srcs", &srcs);
     render_path_list(out, "outs", &outs);
     // One explicit `cp` per header, with both paths written out by codegen.
@@ -1591,12 +1591,18 @@ mod tests {
     fn renders_module_bazel_without_version_when_absent() {
         let rendered = render(&graph(None)).module_bazel;
         let module_block = rendered.split(")\n\n").next().unwrap();
-        assert!(module_block.contains("name = \"hello_world\""), "{module_block}");
+        assert!(
+            module_block.contains("name = \"hello_world\""),
+            "{module_block}"
+        );
         assert!(
             !module_block.contains("version ="),
             "a project with no CMAKE_PROJECT_VERSION must omit version entirely:\n{module_block}"
         );
-        assert!(rendered.contains("bazel_dep(name = \"rules_cc\""), "{rendered}");
+        assert!(
+            rendered.contains("bazel_dep(name = \"rules_cc\""),
+            "{rendered}"
+        );
         assert!(rendered.contains("bazel_dep(name = \"llvm\""), "{rendered}");
         assert!(
             rendered.contains("register_toolchains(\"@llvm//toolchain:all\")"),
@@ -1724,17 +1730,6 @@ mod tests {
     // so the assertion passed whether or not the substitution ran. Short
     // values ("1", "OFF") are unanchored substrings a real header hits by
     // accident. Both read as coverage while checking nothing.
-    #[test]
-    // The threshold judges how DISTINGUISHING a needle is, so it has to
-    // measure the same thing whichever frontend produced the value. An
-    // autoconf value carries C quotes and a CMake one does not, so counting
-    // the stored bytes would let `"ab"` through while rejecting `ab` — the
-    // same fact, opposite verdicts. See `ConfigHeader::values`.
-    // Without shared_lib_name Bazel names the output after the TARGET, and
-    // an automake target is `liblzma.la` — so the library ships as
-    // `libliblzma.la_shared.so`, embedding a control-file extension and
-    // matching no consumer's DT_NEEDED. The frontend reads the real name off
-    // the .la's own dlname=.
     // Staging exists so an angled include can reach a module-root header. It
     // must not cost the ordinary case: a project that includes its own header
     // with quotes, from the file beside it, still needs the original where it
@@ -1763,6 +1758,11 @@ mod tests {
         );
     }
 
+    // Without shared_lib_name Bazel names the output after the TARGET, and
+    // an automake target is `liblzma.la` — so the library ships as
+    // `libliblzma.la_shared.so`, embedding a control-file extension and
+    // matching no consumer's DT_NEEDED. The frontend reads the real name off
+    // the .la's own dlname=.
     #[test]
     fn a_shared_library_is_named_by_its_soname_when_the_frontend_knows_it() {
         let mut out = String::new();
@@ -1801,6 +1801,11 @@ mod tests {
         );
     }
 
+    // The threshold judges how DISTINGUISHING a needle is, so it has to
+    // measure the same thing whichever frontend produced the value. An
+    // autoconf value carries C quotes and a CMake one does not, so counting
+    // the stored bytes would let `"ab"` through while rejecting `ab` — the
+    // same fact, opposite verdicts. See `ConfigHeader::values`.
     #[test]
     fn the_value_length_filter_ignores_c_quotes() {
         let mut out = String::new();
@@ -1920,7 +1925,8 @@ mod tests {
             "a SHARED library needs a cc_shared_library wrapping it:\n{rendered}"
         );
         assert!(
-            rendered.contains("load(\"@rules_cc//cc:cc_shared_library.bzl\", \"cc_shared_library\")"),
+            rendered
+                .contains("load(\"@rules_cc//cc:cc_shared_library.bzl\", \"cc_shared_library\")"),
             "and its load:\n{rendered}"
         );
         assert!(
