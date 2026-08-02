@@ -299,3 +299,27 @@ http_archive(
     strip_prefix = "libmicrohttpd-1.0.1",
     url = "https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-1.0.1.tar.gz",
 )
+
+# gnulib PROOF PROJECT: libidn2 2.3.7. Not onboarded as a corpus project yet
+# — pinned so the gnulib replacement-header path (bzl-9xo) has a real project
+# to be tested against, since no existing corpus project vendors gnulib.
+#
+# Chosen over gzip, patch and nano, which vendor it too, because it is the
+# small end: 11 generated replacement headers and 10 gnulib objects, against
+# gzip's 18 and 55. Small to build the capability, large to validate it.
+#
+# NOTE it also carries AM_SILENT_RULES([yes]) — the macro that made a project
+# convert to an empty graph until dbc8a52. It is the only project measured
+# with it, which is why that bug survived four Autotools onboardings.
+http_archive(
+    name = "libidn2",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-TCGnkbYQuVGbnQ4SuAl78vNZsS+N2SZHYRqSnmv9fWQ=",
+    strip_prefix = "libidn2-2.3.7",
+    url = "https://ftp.gnu.org/gnu/libidn/libidn2-2.3.7.tar.gz",
+)

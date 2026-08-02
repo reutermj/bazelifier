@@ -1,0 +1,24 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The gnulib proof project (bzl-9xo). No other corpus project vendors gnulib,
+# so nothing else exercises the replacement-header path: templates parsed off
+# the generation recipe, emitted as config_header rules, and exposed through
+# a cc_library whose `includes` makes `#include <string.h>` find the
+# replacement while its `#include_next` reaches the real one.
+#
+# 24 replacement headers, from TWO vendored gnulib trees: gl/ and
+# unistring/, since libidn2 also vendors libunistring with its own gnulib
+# subset. Reproduced rather than skipped even though they are inert on
+# glibc/Linux — that is a fact about the conversion host, and gnulib exists
+# because it is false elsewhere. See docs/architecture/overview.md.
+#
+# CURRENTLY RED, and deliberately enrolled that way. The conversion succeeds
+# and the gnulib path is proven — 24 headers with correct templates and
+# values — but the module does not yet BUILD: `cc_binary idn2` fails
+# analysis for a reason not yet diagnosed. Work in progress under bzl-9xo,
+# not a resolved state.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@libidn2//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)

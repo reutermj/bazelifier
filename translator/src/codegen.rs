@@ -398,8 +398,16 @@ fn config_header_output(header: &model::ConfigHeader) -> String {
 }
 
 pub fn config_header_name(header: &model::ConfigHeader) -> String {
-    header
-        .output
+    // From the OUTPUT PATH, not the filename: a project can shadow the same
+    // system header from two directories, and libidn2 does — it vendors two
+    // gnulib trees, gl/ and unistring/, each generating its own limits.h,
+    // stddef.h, string.h and four more. Naming by filename gave two rules
+    // called `limits_h`, which is a hard analysis error rather than a
+    // warning, so the module could not build at all.
+    //
+    // Shares config_header_output for exactly that reason: the name and the
+    // output have to disagree about nothing.
+    config_header_output(header)
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
         .collect()
@@ -773,6 +781,15 @@ fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
             format!("{STAGED_INCLUDE_DIR}/{}", h.output),
         )
     }));
+    // Deduped on the OUTPUT path, after the merge. Each list is unique on its
+    // own, but a header can be in both — libidn2's lib/idn2.h is a public
+    // header AND generated from idn2.h.in — and two genrule outputs of one
+    // name is a hard analysis error ("more than one generated file named").
+    //
+    // First wins, so a generated header does not displace the copy of itself
+    // that the public-header pass already staged from a real source file.
+    let mut seen = std::collections::HashSet::new();
+    staged.retain(|(_, out)| seen.insert(out.clone()));
     let outs: Vec<String> = staged.iter().map(|(_, o)| o.clone()).collect();
 
     if staged.is_empty() {
@@ -2053,6 +2070,77 @@ mod tests {
             rendered.contains("output = \"gl/string.h\""),
             "and it must be generated INTO that directory, not the module \
              root — otherwise the include path points at nothing:\n{rendered}"
+        );
+    }
+
+    #[test]
+    fn the_staging_genrule_declares_each_output_once() {
+        // Bazel rejects a genrule with two outputs of one name outright:
+        // "rule '_staged_hdrs' has more than one generated file named ...".
+        //
+        // libidn2 hit it because lib/idn2.h is BOTH a public header and a
+        // generated config header — it is produced from idn2.h.in — so it
+        // reached the staging list from each side. The public-header list is
+        // deduped on its own and the config-header list is too; nothing
+        // deduped the MERGE.
+        let mut g = graph(None);
+        g.targets[0].public_headers = vec!["lib/idn2.h".to_string()];
+        g.targets[0].needs_root_include = true;
+        g.config_headers = vec![model::ConfigHeader {
+            output: "lib/idn2.h".to_string(),
+            template: "lib/idn2.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            dialect: model::ConfigDialect::Substitution,
+            shadow_dir: None,
+        }];
+        let rendered = render(&g).build_bazel;
+
+        let outs = rendered
+            .split("outs = [")
+            .nth(1)
+            .and_then(|r| r.split(']').next())
+            .expect("the staging genrule must render an outs list");
+        let paths: Vec<&str> = outs.split('"').skip(1).step_by(2).collect();
+        let mut seen = std::collections::HashSet::new();
+        for p in &paths {
+            assert!(
+                seen.insert(*p),
+                "`{p}` declared twice in one genrule is an analysis error, \
+                 not a warning:\n{outs}"
+            );
+        }
+    }
+
+    #[test]
+    fn two_shadowing_headers_of_the_same_name_get_distinct_targets() {
+        // libidn2 vendors TWO gnulib trees, gl/ and unistring/, and both
+        // generate a limits.h. The target name derived from the output
+        // filename alone collides, which is a hard Bazel analysis error —
+        // the module cannot build at all.
+        let mut g = graph(None);
+        let mk = |dir: &str| model::ConfigHeader {
+            output: "limits.h".to_string(),
+            template: format!("{dir}/limits.in.h"),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            dialect: model::ConfigDialect::Substitution,
+            shadow_dir: Some(dir.to_string()),
+        };
+        g.config_headers = vec![mk("gl"), mk("unistring")];
+        let rendered = render(&g).build_bazel;
+
+        let names: Vec<&str> = rendered
+            .match_indices("config_header(")
+            .filter_map(|(i, _)| rendered[i..].split('"').nth(1))
+            .collect();
+        assert_eq!(names.len(), 2, "both headers are still emitted: {names:?}");
+        assert_ne!(
+            names[0], names[1],
+            "two rules with one name is an analysis error, not a warning: \
+             {names:?}"
         );
     }
 

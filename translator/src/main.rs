@@ -692,8 +692,8 @@ mod tests {
         // sandbox path that stops existing when the action ends, and Bazel
         // rejects the tree artifact outright: "child GNUmakefile is a
         // dangling symbolic link".
-        let dir = std::env::temp_dir()
-            .join(format!("bzlf_symlink_{}_{}", std::process::id(), line!()));
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_symlink_{}_{}", std::process::id(), line!()));
         let src = dir.join("src");
         let dst = dir.join("dst");
         std::fs::create_dir_all(&src).unwrap();

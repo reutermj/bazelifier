@@ -217,6 +217,41 @@ pub fn discover(
         &absolutize(build_dir)?,
     );
     graph.config_headers = config_headers;
+    // And a THIRD source: headers the project generates as REPLACEMENTS for
+    // system ones. gnulib is the case that exists — it ships `string.in.h`
+    // and generates a `string.h` that shadows the platform's, so
+    // `#include <string.h>` finds gnulib's and its `#include_next` reaches
+    // the real one behind it.
+    //
+    // Reproduced rather than skipped even where the replacement turns out to
+    // be inert on this libc: that is a fact about the conversion host, and
+    // gnulib exists precisely because it is false elsewhere. See
+    // docs/architecture/overview.md.
+    //
+    // Unlike the other two sources this is not a declaration anywhere — no
+    // AC_CONFIG_HEADERS, no AC_CONFIG_FILES. The only evidence is the
+    // generation recipe in the build's own output, which is why it is parsed
+    // from the stream. See `parse_replacement_headers`.
+    for replacement in parse_replacement_headers(&stream, &absolutize(build_dir)?) {
+        let Some((template, shadow_dir)) = rebase_shadow_dir(&replacement, &module_root) else {
+            // Generated somewhere the module cannot name. Skipped rather than
+            // escalated for now: no corpus project hits it, and inventing an
+            // escalation text with no project behind it is how they go stale.
+            continue;
+        };
+        graph.config_headers.push(crate::model::ConfigHeader {
+            output: replacement.output.clone(),
+            template,
+            template_source: None,
+            catalog_probes: Vec::new(),
+            // Plain `@VAR@` throughout — gnulib templates declare nothing
+            // with `#undef`, and every value is already resolved in the
+            // recipe, so there is nothing for a catalog probe to answer.
+            values: replacement.values.clone(),
+            dialect: crate::model::ConfigDialect::Substitution,
+            shadow_dir: Some(shadow_dir),
+        });
+    }
     needs_attention.extend(graph_needs_attention);
 
     // The same header-staging passes the CMake frontend runs, and for the
@@ -830,6 +865,30 @@ fn parse_replacement_headers(stdout: &str, build_dir: &Path) -> Vec<ReplacementH
         }
     }
     found
+}
+
+/// The module-relative directory a replacement header is generated into, or
+/// `None` when it lands outside the module.
+///
+/// The recipe runs in the BUILD tree (`<build>/gl`), and the module is laid
+/// out like the SOURCE tree, so the build-relative part is what carries
+/// over — the same rebasing every other path in this frontend gets, and the
+/// reason a raw `dir` cannot be used directly.
+fn rebase_shadow_dir(header: &ReplacementHeader, module_root: &Path) -> Option<(String, String)> {
+    // The template sits beside its output in the source tree, so its
+    // directory is the one the module will have. Derived from the template
+    // rather than from `dir` because `dir` is the build tree's copy, which
+    // an out-of-tree build puts somewhere the module never mirrors.
+    //
+    // Returns the template MODULE-RELATIVE alongside the directory: the
+    // recipe names it absolutely, and every path-valued field of the model
+    // is required to be module-relative (`model::is_module_relative`).
+    // Leaving it absolute made the source copier resolve it back to the
+    // original file and try to copy it onto itself.
+    let template = Path::new(&header.template);
+    let rel_template = template.strip_prefix(module_root).ok()?.to_str()?;
+    let rel_dir = Path::new(rel_template).parent()?.to_str()?;
+    (!rel_dir.is_empty()).then(|| (rel_template.to_string(), rel_dir.to_string()))
 }
 
 /// The final name in gnulib's atomic `mv <name>.h-t <name>.h`.
