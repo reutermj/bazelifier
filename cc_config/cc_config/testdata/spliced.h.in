@@ -1,0 +1,11 @@
+/* Template exercising sed's `r` splice — gnulib's mechanism. */
+#ifndef SPLICED_H
+#define SPLICED_H
+
+/* The definitions of HELPER are copied here.  */
+
+#define TEMPLATE_VERSION "@PACKAGE_VERSION@"
+
+/* The definitions of HELPER are copied here.  */
+
+#endif

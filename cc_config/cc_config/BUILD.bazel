@@ -1,4 +1,4 @@
-load("@aspect_rules_py//py:defs.bzl", "py_binary")
+load("@aspect_rules_py//py:defs.bzl", "py_binary", "py_library", "py_test")
 load(":config_header.bzl", "assert_config_header_test", "config_header")
 load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists", "check_type_size", "probe_alias")
 
@@ -13,6 +13,23 @@ py_binary(
     name = "expand_config_header",
     srcs = ["expand_config_header.py"],
     visibility = ["//visibility:public"],
+)
+
+# The same source as a library, so the test can import it. The binary above
+# stays the thing the rule runs.
+py_library(
+    name = "expand_config_header_lib",
+    srcs = ["expand_config_header.py"],
+)
+
+# Two of sed's `r` behaviours — how many times text lands and in what order —
+# are invisible to assert_config_header_test, which can only ask whether a
+# needle is present. Pinned here instead.
+py_test(
+    name = "expand_config_header_test",
+    size = "small",
+    srcs = ["expand_config_header_test.py"],
+    deps = [":expand_config_header_lib"],
 )
 
 # Probe-mechanics tests: a header that must exist under any C toolchain, and
@@ -302,6 +319,43 @@ assert_config_header_test(
         "HAVE_STDLIB_H",
         "@ALIASED_HAVE_PRESENT@",
         "@ALIASED_HAVE_ABSENT@",
+    ],
+)
+
+# bzl-9xo.6: sed's `r` splice. gnulib assembles a generated header out of
+# parts — the template carries a marker comment and the recipe inserts a whole
+# helper file after it. Nothing about that is a substitution, so a reader that
+# knows only `s|@VAR@|value|` drops it silently and the header generates
+# WITHOUT the macros it declares, failing much later in every consumer.
+config_header(
+    name = "spliced_h",
+    output = "spliced.h",
+    splices = {"testdata/helper_defs.h": "definitions of HELPER are copied here"},
+    template = "testdata/spliced.h.in",
+    values = {"PACKAGE_VERSION": "9.9.9"},
+)
+
+assert_config_header_test(
+    name = "spliced_test",
+    header = ":spliced_h",
+    must_contain = [
+        # The helper's content arrives.
+        "#define HELPER_MACRO(x) ((x) + 1)",
+        # The marker line is KEPT, not replaced — sed's `r` appends after it.
+        "/* The definitions of HELPER are copied here.  */",
+        # Ordinary substitution still happens in the TEMPLATE's own text.
+        "#define TEMPLATE_VERSION \"9.9.9\"",
+        # The spliced file's own @VAR@ survives UNSUBSTITUTED, because the
+        # recipe's `r` commands run in its last sed pass, after substitution.
+        # Verified on libidn2: c++defs.h has seven @VAR@ references and all
+        # seven reach the generated stdlib.h verbatim. Splicing before
+        # expansion would produce a header the project's build never emits.
+        "@PACKAGE_VERSION@ must NOT be substituted",
+    ],
+    must_not_contain = [
+        # The failure this exists to catch: the splice dropped entirely, which
+        # leaves a header that looks fine until something uses the macro.
+        "@HELPER_DEFS@",
     ],
 )
 

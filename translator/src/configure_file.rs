@@ -509,6 +509,8 @@ fn resolve_config_header(
         // CMake `configure_file` target may be pure `@VAR@` substitution with
         // no `#cmakedefine` in it, and asserting the absence of a construct
         // the template never had is a gate that cannot fail.
+        // `configure_file` substitutes; CMake has no splice mechanism.
+        splices: Vec::new(),
         dialect: if macros.cmakedefines.is_empty() {
             crate::model::ConfigDialect::Substitution
         } else {

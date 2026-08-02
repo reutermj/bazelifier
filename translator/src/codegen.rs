@@ -153,6 +153,15 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     if graph.targets.iter().any(|t| t.is_shared) {
         rules.push("cc_shared_library");
     }
+    // Shadowing config headers get a companion cc_library carrying their
+    // directory on the include path (render_shadow_headers) — a rule no
+    // TARGET kind implies, so a module whose only cc_library is that one
+    // loaded nothing and failed to load at all. Fixture
+    // 008-spliced-replacement-header is exactly that shape: one cc_binary
+    // plus the shadow library.
+    if graph.config_headers.iter().any(|h| h.shadow_dir.is_some()) {
+        rules.push("cc_library");
+    }
     rules.sort_unstable();
     rules.dedup();
 
@@ -265,6 +274,39 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
     ));
     out.push_str(&format!("    template = \"{}\",\n", header.template));
     render_string_list(out, "probes", &header.catalog_probes);
+    if !header.splices.is_empty() {
+        // Keyed by the FILE, valued by the marker — the direction the rule's
+        // `label_keyed_string_dict` takes, and the direction the relationship
+        // runs: one `c++defs.h` serves fourteen of libidn2's headers, while a
+        // marker names exactly one file.
+        //
+        // Emitted sorted, because a Starlark dict literal's order is not
+        // meaningful to Bazel and an unsorted one would make the generated
+        // BUILD file differ run to run. sed's ORDER still matters, and is
+        // preserved where it is applied — the rule passes one `--splice` per
+        // entry and the expander applies them as given.
+        //
+        // A dict keyed by file cannot express ONE file spliced at TWO markers.
+        // Measured on libidn2, whose 42 splices across two gnulib trees use
+        // exactly four files at exactly one marker each — the mapping is 1:1,
+        // and gnulib generates these recipes, so it is 1:1 by construction
+        // rather than by luck. The expander handles the general case anyway
+        // (it takes an ordered list), so widening this is a codegen change
+        // alone if a project ever contradicts it.
+        out.push_str("    splices = {\n");
+        let mut by_file: Vec<(&String, &String)> =
+            header.splices.iter().map(|(m, f)| (f, m)).collect();
+        by_file.sort();
+        by_file.dedup();
+        for (file, marker) in by_file {
+            out.push_str(&format!(
+                "        \"{}\": \"{}\",\n",
+                escape_starlark(file),
+                escape_starlark(marker)
+            ));
+        }
+        out.push_str("    },\n");
+    }
     if !header.values.is_empty() {
         out.push_str("    values = {\n");
         for (name, value) in &header.values {
@@ -340,7 +382,21 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
     // A surviving `@NAME@` means the substitution never ran. Only checked for
     // names we actually supply — a template may legitimately contain an `@`
     // that is not a substitution.
-    must_not_contain.extend(header.values.iter().map(|(n, _)| format!("@{n}@")));
+    //
+    // SKIPPED entirely when the recipe splices files in, because then a
+    // surviving `@NAME@` is expected rather than a failure: sed's `r` runs in
+    // the recipe's LAST pass, so a spliced file's own placeholders are never
+    // substituted. Measured on libidn2, where c++defs.h carries seven that
+    // reach the generated header verbatim. Asserting their absence would fail
+    // on a CORRECT header — the same shape as the `#cmakedefine` assertion
+    // that could not fail (bzl-lvm), in the opposite direction.
+    //
+    // Dropping the check rather than narrowing it to the template's own text:
+    // the assertion runs `grep -F` over the finished header and cannot tell
+    // which region a match came from.
+    if header.splices.is_empty() {
+        must_not_contain.extend(header.values.iter().map(|(n, _)| format!("@{n}@")));
+    }
 
     // Only values that can actually fail a `grep -qF`. An EMPTY value is
     // vacuous — `grep -qF -- ""` matches any non-empty file — and a very short
@@ -775,12 +831,25 @@ fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
         .iter()
         .map(|h| (h.clone(), format!("{STAGED_INCLUDE_DIR}/{h}")))
         .collect();
-    staged.extend(graph.config_headers.iter().map(|h| {
-        (
-            format!(":{}", config_header_name(h)),
-            format!("{STAGED_INCLUDE_DIR}/{}", h.output),
-        )
-    }));
+    // A SHADOWING header is excluded: it is already reachable through its own
+    // directory, which is the whole mechanism (`render_shadow_headers` puts
+    // that directory on the include path so `#include <string.h>` finds the
+    // replacement). Staging it too copies it to `_include/gl/string.h`, where
+    // nothing looks, and the copy shadows nothing — the source then fails to
+    // find the header at all. libidn2 never showed this because it has no
+    // `needs_root_include` target, so the staging pass does not run for it.
+    staged.extend(
+        graph
+            .config_headers
+            .iter()
+            .filter(|h| h.shadow_dir.is_none())
+            .map(|h| {
+                (
+                    format!(":{}", config_header_name(h)),
+                    format!("{STAGED_INCLUDE_DIR}/{}", h.output),
+                )
+            }),
+    );
     // Deduped on the OUTPUT path, after the merge. Each list is unique on its
     // own, but a header can be in both — libidn2's lib/idn2.h is a public
     // header AND generated from idn2.h.in — and two genrule outputs of one
@@ -1128,6 +1197,7 @@ mod tests {
                 template_source: None,
                 catalog_probes: vec![],
                 values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
+                splices: Vec::new(),
                 dialect: model::ConfigDialect::Cmakedefine,
                 shadow_dir: None,
             },
@@ -1963,6 +2033,7 @@ mod tests {
                     // Four characters of signal, quoted to six.
                     ("LONG".to_string(), "\"abcd\"".to_string()),
                 ],
+                splices: Vec::new(),
                 dialect: model::ConfigDialect::Cmakedefine,
                 shadow_dir: None,
             },
@@ -1991,6 +2062,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![("PACKAGE".to_string(), "\"jansson\"".to_string())],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
@@ -2017,6 +2089,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
@@ -2056,6 +2129,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![("NEXT_STRING_H".to_string(), "<string.h>".to_string())],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: Some("gl".to_string()),
         }];
@@ -2070,6 +2144,74 @@ mod tests {
             rendered.contains("output = \"gl/string.h\""),
             "and it must be generated INTO that directory, not the module \
              root — otherwise the include path points at nothing:\n{rendered}"
+        );
+        // The include-path library is a cc_library no TARGET kind implies,
+        // and a rule emitted without its load makes the whole package
+        // unloadable ("This rule has been removed from Bazel"). This graph
+        // is one cc_binary plus the shadow library, which is the shape
+        // fixture 008-spliced-replacement-header has and the shape that
+        // broke — every other module happens to contain a real cc_library.
+        assert!(
+            rendered.contains("load(\"@rules_cc//cc:cc_library.bzl\", \"cc_library\")"),
+            "the shadow library needs its own load:\n{rendered}"
+        );
+    }
+
+    #[test]
+    fn a_spliced_helper_reaches_the_generated_rule() {
+        // The macros a gnulib header DECLARES live in a separate file the
+        // recipe splices in — no #include, no @VAR@. Carried through the model
+        // but never rendered, the header generates without them and every
+        // consumer fails on `_GL_CXXALIAS_SYS` (bzl-9xo.6).
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "string.h".to_string(),
+            template: "gl/string.in.h".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            splices: vec![(
+                "definitions of _GL_FUNCDECL_RPL".to_string(),
+                "gl/c++defs.h".to_string(),
+            )],
+            dialect: model::ConfigDialect::Substitution,
+            shadow_dir: Some("gl".to_string()),
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("splices = {"),
+            "the splice must reach the rule, or the header generates without \
+             the macros it declares:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("\"gl/c++defs.h\": \"definitions of _GL_FUNCDECL_RPL\","),
+            "keyed by the FILE and valued by the MARKER, matching the rule's \
+             label_keyed_string_dict:\n{rendered}"
+        );
+    }
+
+    #[test]
+    fn a_header_with_no_splices_emits_no_splices_attribute() {
+        // The negative. Without it the attribute could be emitted always —
+        // empty for most headers — and the test above would still pass while
+        // every CMake config header grew a meaningless line.
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            splices: Vec::new(),
+            dialect: model::ConfigDialect::Undef,
+            shadow_dir: None,
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            !rendered.contains("splices"),
+            "no splices, no attribute:\n{rendered}"
         );
     }
 
@@ -2092,6 +2234,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: None,
         }];
@@ -2126,6 +2269,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: Some(dir.to_string()),
         };
@@ -2157,6 +2301,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: Some("gl".to_string()),
         }];
@@ -2181,6 +2326,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![("PACKAGE".to_string(), "\"x\"".to_string())],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
@@ -2206,6 +2352,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec![],
             values: vec![("PACKAGE_NAME".to_string(), "zlib".to_string())],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];
@@ -2241,6 +2388,7 @@ mod tests {
                 ("FLAG".to_string(), "1".to_string()),
                 ("OPTION".to_string(), "OFF".to_string()),
             ],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];
@@ -2385,6 +2533,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec!["@cc_config//catalog:have_unistd_h".to_string()],
             values: vec![("PROJECT_VERSION".to_string(), "3.7.0".to_string())],
+            splices: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];

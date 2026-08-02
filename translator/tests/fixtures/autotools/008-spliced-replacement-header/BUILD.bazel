@@ -1,0 +1,27 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# gnulib's OTHER assembly mechanism: sed's `r` command, which splices a whole
+# helper file into a generated header at a marker comment. Nothing about it is
+# a substitution, so a recipe reader that knows only `s|@VAR@|value|` drops it
+# silently — the header still generates, just without the macros it declares,
+# and the failure lands much later in every consumer (bzl-9xo.6).
+#
+# Measured on libidn2: 42 splices across 14 headers, four helper files.
+#
+# Three behaviours this pins that a substitution-only fixture cannot:
+#
+#   - the helper's text arrives (HELPER_ADD is USED by src_main.c, so a
+#     dropped splice fails the build rather than passing quietly);
+#   - the marker comment is KEPT — `r` appends after it, never replaces it;
+#   - the helper's own @PACKAGE_VERSION@ survives UNSUBSTITUTED, because
+#     gnulib runs the `r` commands in the recipe's LAST sed pass. The
+#     intuitive order (splice, then substitute) produces a header the
+#     project's own build never emits.
+#
+# The program prints "1.0 42", so the ground-truth comparison fails if the
+# spliced macro is wrong rather than merely absent.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

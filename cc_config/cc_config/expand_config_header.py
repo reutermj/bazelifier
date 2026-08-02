@@ -90,6 +90,39 @@ def _substitute_vars(text, values):
     return _VAR.sub(repl, text)
 
 
+def splice_files(template, splices):
+    """Insert whole files after the lines matching their markers — sed's `r`.
+
+    gnulib assembles a generated header from parts: the template carries
+    `/* The definitions of _GL_FUNCDECL_RPL etc. are copied here.  */` and the
+    recipe splices `c++defs.h` in at that comment. No `#include` is involved,
+    which is why nothing else in this file would see it.
+
+    Three behaviours copied from sed, each of which changes the output:
+
+    - the matched line is KEPT and the file goes after it, not over it;
+    - the marker is a substring match on the line, not an anchored one;
+    - every matching line gets a copy, since `r` is not once-only.
+
+    `splices` is an ordered list of `(marker, path)`. Applied in order, and a
+    later splice can match a line an earlier one inserted — as sed would.
+    """
+    for marker, path in splices:
+        with open(path) as fh:
+            content = fh.read()
+        if content and not content.endswith("\n"):
+            content += "\n"
+        out = []
+        for line in template.splitlines(keepends=True):
+            out.append(line)
+            if marker in line:
+                if not line.endswith("\n"):
+                    out.append("\n")
+                out.append(content)
+        template = "".join(out)
+    return template
+
+
 def expand(template, is_set, values):
     out = []
     for line in template.splitlines(keepends=True):
@@ -149,6 +182,13 @@ def main():
         default=[],
         help="MACRO=/path/to/result-file (containing true/false), repeatable.",
     )
+    parser.add_argument(
+        "--splice",
+        action="append",
+        default=[],
+        help="MARKER=/path/to/file, repeatable and ORDER-SIGNIFICANT: the "
+        "file is inserted after each line containing MARKER (sed's `r`).",
+    )
     args = parser.parse_args()
 
     with open(args.template) as fh:
@@ -189,8 +229,23 @@ def main():
         # value is CMake-true (so OFF/FALSE/NO/0/NOTFOUND undef, matching CMake).
         return name in values and _is_cmake_true(values[name])
 
+    splices = []
+    for spec in args.splice:
+        marker, _, path = spec.partition("=")
+        if not path:
+            sys.stderr.write("--splice needs MARKER=path, got %r\n" % spec)
+            return 1
+        splices.append((marker, path))
+
+    # AFTER expansion, which is the order the recipe uses and NOT the intuitive
+    # one. gnulib's `r` commands are in the LAST sed pass, so the spliced text
+    # is never substituted. Verified on libidn2: c++defs.h contains seven
+    # @VAR@ references and all seven survive verbatim into the generated
+    # stdlib.h (they sit in a documentation comment, where an expanded value
+    # would be actively misleading). Splicing first would substitute them and
+    # produce a header the project's own build never generates.
     with open(args.output, "w") as fh:
-        fh.write(expand(template, is_set, values))
+        fh.write(splice_files(expand(template, is_set, values), splices))
     return 0
 
 

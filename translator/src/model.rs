@@ -332,6 +332,26 @@ pub struct ConfigHeader {
     /// may legitimately generate its own `string.h` that shadows nothing.
     /// The frontend knows, because it saw the recipe.
     pub shadow_dir: Option<String>,
+    /// Whole files the recipe splices into the template, as
+    /// `(marker, path)` — sed's `r` command, in the order the recipe gives
+    /// them.
+    ///
+    /// gnulib generates a header whose macros come from a SEPARATE file:
+    /// `-e '/definitions of _GL_FUNCDECL_RPL/r ./c++defs.h'` inserts all of
+    /// `c++defs.h` after the template comment naming it. No `#include` is
+    /// involved and no `@VAR@` is substituted, so a recipe reader that knows
+    /// only `s|…|…|` drops them silently and the header generates without
+    /// the macros it declares — failing much later, in the consumer, on
+    /// every `_GL_CXXALIAS_SYS` line.
+    ///
+    /// `path` is module-relative, like every other path-valued field
+    /// (`is_module_relative`); the recipe names it relative to the build
+    /// directory it ran in.
+    ///
+    /// Ordered, and NOT deduplicated: sed applies each `r` independently, so
+    /// two markers matching the same file both fire, and the order decides
+    /// what lands where.
+    pub splices: Vec<(String, String)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -113,6 +113,8 @@ pub(crate) fn plan_config_header(
             template_source: None,
             catalog_probes: probes,
             values,
+            // autoconf assembles a config header by substitution alone.
+            splices: Vec::new(),
             // AC_CONFIG_HEADERS: the template declares with `#undef`.
             dialect: crate::model::ConfigDialect::Undef,
             // Not a shadowing header: these come from AC_CONFIG_HEADERS /
@@ -194,6 +196,8 @@ pub(crate) fn plan_substitution_header(
             template_source: None,
             catalog_probes: Vec::new(),
             values,
+            // autoconf assembles a config header by substitution alone.
+            splices: Vec::new(),
             // AC_CONFIG_FILES: `@VAR@` substitution, no declarations.
             dialect: crate::model::ConfigDialect::Substitution,
             // Not a shadowing header: these come from AC_CONFIG_HEADERS /

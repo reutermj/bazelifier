@@ -29,9 +29,19 @@ def _config_header_impl(ctx):
         # result file's name (which is the probe target's name).
         args.add("--result", "%s=%s" % (info.define, info.result.path))
 
+    # Keyed by the FILE and valued by the marker, which is the direction the
+    # relationship actually runs: gnulib splices one `c++defs.h` at a marker
+    # naming it, and the same file is spliced into fourteen different headers.
+    # A marker identifies exactly one file; a file serves many markers.
+    splice_files = []
+    for file, marker in ctx.attr.splices.items():
+        spliced = file.files.to_list()[0]
+        splice_files.append(spliced)
+        args.add("--splice", "%s=%s" % (marker, spliced.path))
+
     ctx.actions.run(
         outputs = [output],
-        inputs = depset(direct = [ctx.file.template, values_file] + result_files),
+        inputs = depset(direct = [ctx.file.template, values_file] + result_files + splice_files),
         executable = ctx.executable._expander,
         arguments = [args],
         mnemonic = "CcConfigHeader",
@@ -58,6 +68,13 @@ config_header = rule(
         ),
         "values": attr.string_dict(
             doc = "Plain @VAR@ substitutions (e.g. version strings), name -> value.",
+        ),
+        "splices": attr.label_keyed_string_dict(
+            allow_files = True,
+            doc = "Whole files inserted after a marker line — sed's `r`. " +
+                  "Keyed by the file (a label) and valued by the marker text, " +
+                  "because one file may be spliced at several markers and a " +
+                  "marker names exactly one file.",
         ),
         "_expander": attr.label(
             default = Label("@cc_config//cc_config:expand_config_header"),

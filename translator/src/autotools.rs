@@ -250,6 +250,7 @@ pub fn discover(
             // recipe, so there is nothing for a catalog probe to answer.
             values: replacement.values.clone(),
             dialect: crate::model::ConfigDialect::Substitution,
+            splices: rebase_splices(&replacement.splices, &shadow_dir, &module_root),
             shadow_dir: Some(shadow_dir),
         });
     }
@@ -805,6 +806,9 @@ pub(crate) struct ReplacementHeader {
     pub(crate) template: String,
     /// Every `@VAR@` the recipe substitutes, sorted by name.
     pub(crate) values: Vec<(String, String)>,
+    /// Every whole file the recipe splices in, as `(marker, path)`, in
+    /// recipe order — sed's `r`. See `model::ConfigHeader::splices`.
+    pub(crate) splices: Vec<(String, String)>,
     /// The directory the recipe ran in, absolute.
     pub(crate) dir: PathBuf,
 }
@@ -836,6 +840,7 @@ fn parse_replacement_headers(stdout: &str, build_dir: &Path) -> Vec<ReplacementH
     // One recipe spans several lines, continued with a trailing backslash, so
     // substitutions accumulate until the redirect that ends it.
     let mut values: Vec<(String, String)> = Vec::new();
+    let mut splices: Vec<(String, String)> = Vec::new();
     let mut template: Option<String> = None;
 
     for line in stdout.lines() {
@@ -849,6 +854,9 @@ fn parse_replacement_headers(stdout: &str, build_dir: &Path) -> Vec<ReplacementH
         for (name, value) in sed_substitutions(line) {
             values.push((name, value));
         }
+        // Not a substitution: `r` splices a whole file in at a marker. Kept
+        // ordered and undeduplicated, unlike `values` — see `sed_file_splices`.
+        splices.extend(sed_file_splices(line));
         // The recipe redirects to a TEMP file and a later `mv` renames it —
         // gnulib writes atomically. So the redirect names the template and
         // the `mv` names the header, and both are needed: keying on the
@@ -876,6 +884,7 @@ fn parse_replacement_headers(stdout: &str, build_dir: &Path) -> Vec<ReplacementH
                 output: renamed,
                 template,
                 values: std::mem::take(&mut values),
+                splices: std::mem::take(&mut splices),
                 dir: dir.clone(),
             });
         }
@@ -907,6 +916,41 @@ fn rebase_shadow_dir(header: &ReplacementHeader, module_root: &Path) -> Option<(
     (!rel_dir.is_empty()).then(|| (rel_template.to_string(), rel_dir.to_string()))
 }
 
+/// Splice paths made module-relative, by joining them onto the directory the
+/// recipe ran in.
+///
+/// Every path-valued field of the model must be module-relative
+/// (`model::is_module_relative`), and the recipe names these BOTH ways
+/// depending on how the build was invoked:
+///
+/// - `./c++defs.h`, relative to the directory the recipe ran in, for an
+///   in-tree build;
+/// - an absolute path under the source tree for an out-of-tree one, which is
+///   how the translator itself builds every project.
+///
+/// Handling only the first emitted `gl/<absolute path>` — a concatenation
+/// naming nothing — for all 14 of libidn2's splices, and Bazel reports that
+/// as a missing label rather than as a bad path.
+fn rebase_splices(
+    splices: &[(String, String)],
+    shadow_dir: &str,
+    module_root: &Path,
+) -> Vec<(String, String)> {
+    splices
+        .iter()
+        .filter_map(|(marker, file)| {
+            let path = Path::new(file);
+            let rebased = if path.is_absolute() {
+                path.strip_prefix(module_root).ok()?.to_str()?.to_string()
+            } else {
+                let bare = file.strip_prefix("./").unwrap_or(file);
+                format!("{shadow_dir}/{bare}")
+            };
+            Some((marker.clone(), rebased))
+        })
+        .collect()
+}
+
 /// The final name in gnulib's atomic `mv <name>.h-t <name>.h`.
 ///
 /// Its own step because the generation recipe redirects to the TEMP file, so
@@ -916,7 +960,54 @@ fn atomic_rename(line: &str) -> Option<String> {
     let rest = rest.strip_prefix("-f ").unwrap_or(rest);
     let (from, to) = rest.split_once(' ')?;
     let to = to.trim();
-    (from.contains(".h-t") && to.ends_with(".h")).then(|| to.to_string())
+    if !from.contains(".h-t") || !to.ends_with(".h") {
+        return None;
+    }
+    // The FILENAME, never the path the recipe wrote. gnulib's recipes run
+    // inside the directory they generate into and so rename a bare
+    // `string.h`, but a project whose recipe runs one level up writes
+    // `mv gl/mystring.h-t gl/mystring.h`. `config_header_output` re-adds the
+    // directory from `shadow_dir`, so keeping the path here produced
+    // `output = "gl/gl/mystring.h"` — a header generated two levels down from
+    // where its own include path points, and so unreachable.
+    Path::new(to)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(str::to_string)
+}
+
+/// Every `-e '/PATTERN/r FILE'` on one line, as `(pattern, file)`.
+///
+/// sed's `r` command inserts a whole file after each line matching the
+/// pattern. gnulib uses it to assemble a generated header out of parts: the
+/// template carries `/* The definitions of _GL_FUNCDECL_RPL etc. are copied
+/// here. */` and the recipe splices `c++defs.h` in at that comment.
+///
+/// Nothing here is a substitution, so this is its own parser rather than a
+/// branch of [`sed_substitutions`] — and the two run over the same line,
+/// since one recipe uses both.
+fn sed_file_splices(line: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    let mut rest = line;
+    // Anchored on `-e '` rather than on `/`, because a bare `/` appears in
+    // every path in the recipe. The quote also bounds the filename, which
+    // may not be the last thing on the line.
+    while let Some(at) = rest.find("-e '/") {
+        let after = &rest[at + "-e '/".len()..];
+        let Some((quoted, remainder)) = after.split_once('\'') else {
+            break;
+        };
+        rest = remainder;
+        // `/PATTERN/r FILE`. Split at the LAST `/r ` so a pattern containing
+        // one does not truncate it.
+        if let Some((pattern, file)) = quoted.rsplit_once("/r ")
+            && !pattern.is_empty()
+            && !file.trim().is_empty()
+        {
+            out.push((pattern.to_string(), file.trim().to_string()));
+        }
+    }
+    out
 }
 
 /// Every `s|@''NAME''@|value|` and `s/@''NAME''@/value/g` on one line.
@@ -2715,6 +2806,146 @@ make[1]: Leaving directory '/build/gl'\n\
         );
         assert_eq!(found[0].output, "alloca.h");
         assert_eq!(found[0].template, "/src/gl/alloca.in.h");
+    }
+
+    // The macros a generated header DECLARES often live in a separate file,
+    // spliced in by sed's `r` command rather than substituted. Nothing about
+    // this looks like `s|@VAR@|value|`, so a recipe reader that knows only
+    // substitutions drops it in silence — and the header still generates,
+    // just without the macros, failing later in every consumer.
+    #[test]
+    fn a_spliced_helper_file_is_recovered_from_the_recipe() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+/bin/sed -e 's|@''GUARD_PREFIX''@|GL|g' \\\n\
+      -e '/definitions of _GL_FUNCDECL_RPL/r ./c++defs.h' \\\n\
+      -e '/definition of _GL_ARG_NONNULL/r ./arg-nonnull.h' \\\n\
+      < /src/gl/string.in.h > string.h-t1\n\
+mv string.h-t1 string.h\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+        assert_eq!(found.len(), 1, "{found:#?}");
+        assert_eq!(
+            found[0].splices,
+            vec![
+                (
+                    "definitions of _GL_FUNCDECL_RPL".to_string(),
+                    "./c++defs.h".to_string()
+                ),
+                (
+                    "definition of _GL_ARG_NONNULL".to_string(),
+                    "./arg-nonnull.h".to_string()
+                ),
+            ],
+            "both `r` splices, in recipe order: {:#?}",
+            found[0]
+        );
+    }
+
+    // Order is the whole content of the field. sed applies each `r`
+    // independently at the line its pattern matched, so reordering them puts
+    // the text somewhere else in the header — and a set or a map would lose
+    // that while still looking populated.
+    #[test]
+    fn splices_keep_recipe_order_and_are_not_deduplicated() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+/bin/sed -e '/second marker/r ./shared.h' \\\n\
+      -e '/first marker/r ./shared.h' \\\n\
+      < /src/gl/x.in.h > x.h-t\n\
+mv x.h-t x.h\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+        assert_eq!(
+            found[0].splices,
+            vec![
+                ("second marker".to_string(), "./shared.h".to_string()),
+                ("first marker".to_string(), "./shared.h".to_string()),
+            ],
+            "one file spliced at two markers fires twice, in the recipe's \
+             order — not once, and not sorted: {:#?}",
+            found[0]
+        );
+    }
+
+    // A recipe that runs one level UP from the directory it generates into
+    // writes `mv gl/x.h-t gl/x.h`. `config_header_output` re-adds the
+    // directory from `shadow_dir`, so keeping the path here doubled it —
+    // `gl/gl/x.h`, generated two levels from where its include path points.
+    // gnulib's own recipes cd into `gl/` first and so never showed this.
+    #[test]
+    fn a_path_qualified_rename_yields_just_the_filename() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build'\n\
+/bin/sed -e 's|@''X''@|1|g' < /src/gl/mystring.in.h > gl/mystring.h-t\n\
+mv gl/mystring.h-t gl/mystring.h\n\
+make[1]: Leaving directory '/build'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+        assert_eq!(found.len(), 1, "{found:#?}");
+        assert_eq!(
+            found[0].output, "mystring.h",
+            "the directory comes from shadow_dir, so carrying it here too \
+             doubles it"
+        );
+    }
+
+    // The recipe names a spliced file relative to its own directory in an
+    // IN-TREE build and absolutely in an out-of-tree one — and the translator
+    // always builds out of tree, so the absolute form is the one that ships.
+    // Handling only the relative form emitted `gl/<absolute path>`, a
+    // concatenation naming nothing, for all 14 of libidn2's splices. Every
+    // unit test still passed, because they were all written in the relative
+    // form I had measured by hand.
+    #[test]
+    fn an_absolutely_named_splice_is_rebased_onto_the_module() {
+        let rebased = rebase_splices(
+            &[("marker".to_string(), "/src/gl/c++defs.h".to_string())],
+            "gl",
+            Path::new("/src"),
+        );
+        assert_eq!(
+            rebased,
+            vec![("marker".to_string(), "gl/c++defs.h".to_string())],
+            "an absolute path is made module-relative, never concatenated \
+             onto the shadow dir"
+        );
+    }
+
+    #[test]
+    fn a_relatively_named_splice_is_joined_onto_the_shadow_dir() {
+        let rebased = rebase_splices(
+            &[("marker".to_string(), "./c++defs.h".to_string())],
+            "gl",
+            Path::new("/src"),
+        );
+        assert_eq!(
+            rebased,
+            vec![("marker".to_string(), "gl/c++defs.h".to_string())],
+            "the relative form is named against the recipe's own directory, \
+             which `shadow_dir` already holds in module terms"
+        );
+    }
+
+    // The negative: a recipe with no `r` must not acquire one. Without this
+    // the field could be populated by anything and the positive test above
+    // would still pass.
+    #[test]
+    fn a_recipe_without_a_splice_has_none() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+/bin/sed -e 's|@''X''@|1|g' < /src/gl/limits.in.h > limits.h-t\n\
+mv limits.h-t limits.h\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+        assert!(
+            found[0].splices.is_empty(),
+            "no `r` in the recipe: {:#?}",
+            found[0]
+        );
     }
 
     // A redirect with no rename is some other recipe, not a header.
