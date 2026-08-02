@@ -335,6 +335,21 @@ source in every fixture build.
   contract. Don't redesign the agent stage out of the loop in the name of
   determinism. This is separate from the requirement that *generated
   output* build hermetically, which still holds.
+- **When the translator can't be certain, escalate — don't guess.** This is
+  the working form of the two-stage split (see
+  `docs/architecture/overview.md`), and it is the decision that comes up
+  most often. Stage one is deterministic and mechanical; anything needing
+  judgement about *this* project belongs to stage two. A heuristic that is
+  right most of the time is worse than an escalation, because it fails
+  silently and on the projects you have not tried yet — the translator
+  refuses to map `JSON_C_HAVE_INTTYPES_H` onto `HAVE_INTTYPES_H` for exactly
+  this reason, though the two are almost always the same fact.
+
+  The bar for making something deterministic is that the *input states it* —
+  the alias is in the template, the linkage is in the primary — not that the
+  answer is usually the same. And resolutions are ephemeral on purpose:
+  don't build a cache that replays them, since a re-conversion would then
+  look green without the agent stage having engaged with what changed.
 
 ## When you learn something non-obvious
 

@@ -63,13 +63,49 @@ source build system files (e.g. CMakeLists.txt)
             └──────────────► (loop back to verification, until green)
 ```
 
-The agent is **inside** the loop, not a fallback beside it. What this
-pipeline validates is that a deterministic translator plus an agent can
-convert a project — so an unresolved gap is an unfinished run, and green
-is the only passing state. Judgement calls are expected at several points;
-the equivalence checks, not reproducibility of the process, are the
-contract. Note this makes the pipeline deliberately non-hermetic, which is
-an accepted modelling choice rather than a defect to design out.
+### The two stages are different in kind, on purpose
+
+This is the project's central design decision, so it is worth stating as a
+claim rather than a caveat.
+
+A build translation splits into two unlike problems. One is **mechanical**:
+which sources a library compiles, what its include paths are, which targets
+link which. A program can get that exactly right from what the build system
+itself reports. The other is **judgement about a particular project**: what a
+`UTILITY` target is for, whether `JSON_C_HAVE_STDINT_H` means what
+`HAVE_STDINT_H` means, whether a test's working directory is load-bearing.
+That has no answer derivable from the inputs, and a translator that guesses
+at it is confidently wrong rather than usefully approximate.
+
+**Stage one is deterministic and refuses to guess.** Same commit, same
+project, byte-identical output. Where confidence runs out it escalates
+rather than falling back to a heuristic — an escalation is the translator
+being honest about the edge of what it can know, and every one it emits is a
+place a heuristic *could* have been added and deliberately was not.
+
+**Stage two is an agent and is not reproducible.** Two runs may resolve one
+item differently and both be right. That is the shape of the problem, not a
+defect to engineer out; a pipeline restricted to the deterministic half
+would convert almost nothing real.
+
+**Validation, not reproducibility, is the contract.** A conversion must
+build with no reference back to this repo, behave identically to the
+original, and pass its own tests. Those checks are objective and are what
+the project iterates against. The process may vary; the result may not.
+
+Two things follow, both of which look like defects until you have read the
+above:
+
+- The pipeline is **deliberately non-hermetic**. An accepted modelling
+  choice, not something to design away.
+- Resolutions are **ephemeral**. They are not cached and replayed, because
+  replaying one would make a re-conversion look green without the agent
+  stage having engaged with what changed — which is exactly what is being
+  tested. See bzl-b9b.
+
+The agent is therefore **inside** the loop, not a fallback beside it: what
+is validated is "translator + agent", so an unresolved gap is an unfinished
+run and green is the only passing state.
 
 Source build files are never edited to make a conversion succeed — see
 [build-verification.md](build-verification.md#the-input-build-files-are-immutable).
