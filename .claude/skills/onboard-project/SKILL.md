@@ -106,10 +106,17 @@ test -f $t/configure && echo "configure shipped" || echo "needs autoreconf"
 - **Vendored code outnumbering its own.** The ratio is the point: hello is 170
   lines of its own around 72 vendored files. You would be converting the
   vendor.
-- **Too big to read.** xz's config header escalates 143 macros in one item. It
-  is a legitimate corpus project but a bad one to develop against, because you
-  cannot tell a good item from a bad one at that size. Prefer a project whose
-  first escalation fits on a screen.
+- **Too big to read** — *when developing a capability.* xz's config header
+  escalates 143 macros in one item, and you cannot tell a good item from a bad
+  one at that size. Prefer a small project when the goal is to find or fix
+  something.
+
+  **But onboard a large one straight afterwards, to validate the fix.** Three
+  of libmicrohttpd's bugs came from scale rather than from a novel construct,
+  and one of them — a file both `#include`d and compiled — broke a fix made
+  three commits earlier for expat. jansson at 14 source files could not have
+  found it; libmicrohttpd at 118 found it immediately. Small to diagnose,
+  large to validate, in that order.
 
 **What you WANT is a shape the corpus lacks, or a GAP it cannot see.** Not a
 project that will convert cleanly. Write down, before starting, what this
@@ -239,6 +246,16 @@ sources against the compiled ones.
 For each translator gap, in this order — it is the tier discipline from
 CLAUDE.md applied to onboarding:
 
+0. **Verify the CAUSE before writing the fix, not just the symptom.** Every
+   run so far has produced one diagnosis that was wrong while its symptom was
+   real. expat's textual includes were blamed on `_SOURCES` (they were in
+   `EXTRA_DIST`); libmicrohttpd's missing sources were blamed on automake's
+   per-target object prefix (the cause was a fix made three commits earlier
+   for expat). Both would have sent the fix into code that was working. The
+   check is cheap: state the mechanism, then find the line that implements
+   it. If you cannot, you have a symptom rather than a diagnosis — and
+   correct the bead before writing code, so the next reader inherits the
+   right lead.
 1. **Write the failing test first, at the lowest tier that can fail on it.**
    A unit test if the decision is expressible over inputs we write; a fixture
    if it needs a real build to contradict us. Watch it go red before fixing.
