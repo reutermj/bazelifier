@@ -31,8 +31,8 @@
 //! `bin_PROGRAMS = hello` and `noinst_LIBRARIES = lib/libhello.a` onto one
 //! name, producing a module that could not load.
 
-use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -492,39 +492,52 @@ pub(crate) enum TestEntry {
 /// reason the rest of this frontend reads resolved output — `TESTS` is
 /// routinely a variable reference and the input text cannot say what it holds.
 ///
-/// One level of expansion, deliberately. `make -p` reports
-/// `TESTS = $(check_PROGRAMS)` unexpanded while `check_PROGRAMS` beside it IS
-/// expanded, so resolving a single reference against the same database turns
-/// the majority case into a concrete list with no shell parsing. Recursing
-/// further would mean implementing make's expander, and nothing measured
-/// needs it.
+/// Expansion is TRANSITIVE but bounded. `make -p` reports
+/// `TESTS = $(check_PROGRAMS)`, and libmicrohttpd's `check_PROGRAMS` in turn
+/// carries `$(am__EXEEXT_1)` — automake's per-conditional indirection, the
+/// same shape as the `$(am__append_N)` already handled for `_SOURCES`. One
+/// level left 14 of its tests reported as the literal text
+/// `$(am__EXEEXT_1)`. The bound is what keeps this from becoming make's own
+/// expander: a reference that has already been followed is not followed
+/// again, so a cycle terminates as `Unresolved` rather than looping.
 fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
     let Some(raw) = vars.get("TESTS") else {
         return Vec::new();
     };
     let mut entries = Vec::new();
-    for token in raw.split_whitespace() {
-        // `$(check_PROGRAMS)` and friends: resolve against the database.
+    let mut expanded: HashSet<String> = HashSet::new();
+    let mut queue: Vec<String> = raw.split_whitespace().map(str::to_string).collect();
+    queue.reverse();
+
+    while let Some(token) = queue.pop() {
+        // `$(check_PROGRAMS)` / `${VAR}`: resolve against the database and
+        // push the expansion back on, so a reference inside it resolves too.
         if let Some(name) = token
             .strip_prefix("$(")
             .and_then(|t| t.strip_suffix(')'))
             .or_else(|| token.strip_prefix("${").and_then(|t| t.strip_suffix('}')))
         {
             match vars.get(name) {
-                Some(expansion) => entries.extend(
-                    expansion
-                        .split_whitespace()
-                        .map(|t| TestEntry::Binary(strip_exeext(t))),
-                ),
-                None => entries.push(TestEntry::Unresolved(token.to_string())),
+                // `expanded` is the cycle bound, not a dedup: following one
+                // name twice can only repeat work, and a self-reference would
+                // otherwise never terminate.
+                Some(expansion) if expanded.insert(name.to_string()) => {
+                    let mut parts: Vec<String> =
+                        expansion.split_whitespace().map(str::to_string).collect();
+                    parts.reverse();
+                    queue.extend(parts);
+                }
+                // Either the database has no such name, or we have already
+                // followed it. Both mean this token cannot be resolved here.
+                _ => entries.push(TestEntry::Unresolved(token.to_string())),
             }
             continue;
         }
         // A bare name. A path or a known script extension is something to
         // RUN; anything else is a binary if the project builds one by that
-        // name, and unresolved if it does not — the distinction jansson
-        // turns on, where `run-suites` sits beside 18 real binaries.
-        let bare = strip_exeext(token);
+        // name, and a script if it does not — the distinction jansson turns
+        // on, where `run-suites` sits beside 18 real binaries.
+        let bare = strip_exeext(&token);
         let is_script = bare.contains('/')
             || matches!(
                 Path::new(&bare).extension().and_then(|e| e.to_str()),
@@ -532,10 +545,7 @@ fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
             );
         if is_script {
             entries.push(TestEntry::Script(bare));
-        } else if vars
-            .get("check_PROGRAMS")
-            .is_some_and(|p| p.split_whitespace().any(|t| strip_exeext(t) == bare))
-        {
+        } else if is_declared_check_program(vars, &bare) {
             entries.push(TestEntry::Binary(bare));
         } else {
             entries.push(TestEntry::Script(bare));
@@ -547,9 +557,41 @@ fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
     // repeat is the same test seen twice, never a second one. Order is kept
     // rather than sorted because it is the order the project declared them
     // in, which is the only ordering evidence there is.
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = HashSet::new();
     entries.retain(|e| seen.insert(e.clone()));
     entries
+}
+
+/// Whether `name` is one of the project's `check_PROGRAMS`, following the
+/// same indirections `classify_tests` does.
+///
+/// Its own function because the membership test has to see through
+/// `$(am__EXEEXT_N)` exactly as the expansion does; comparing against the raw
+/// variable text would classify every conditional test as a script.
+fn is_declared_check_program(vars: &HashMap<String, String>, name: &str) -> bool {
+    let Some(raw) = vars.get("check_PROGRAMS") else {
+        return false;
+    };
+    let mut seen: HashSet<String> = HashSet::new();
+    let mut queue: Vec<String> = raw.split_whitespace().map(str::to_string).collect();
+    while let Some(token) = queue.pop() {
+        if let Some(var) = token
+            .strip_prefix("$(")
+            .and_then(|t| t.strip_suffix(')'))
+            .or_else(|| token.strip_prefix("${").and_then(|t| t.strip_suffix('}')))
+        {
+            if let Some(expansion) = vars.get(var)
+                && seen.insert(var.to_string())
+            {
+                queue.extend(expansion.split_whitespace().map(str::to_string));
+            }
+            continue;
+        }
+        if strip_exeext(&token) == name {
+            return true;
+        }
+    }
+    false
 }
 
 /// Drops automake's `$(EXEEXT)`, which is empty on every platform this
@@ -2222,6 +2264,48 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
             "jansson's shape: the binaries exist but TESTS names the scripts \
              that DRIVE them, so mapping TESTS onto check_PROGRAMS would \
              register the wrong thing and miss all 18"
+        );
+    }
+
+    // One level of expansion was enough for jansson and libmicrohttpd's
+    // TESTS, and not for what those expand INTO. libmicrohttpd's
+    // check_PROGRAMS carries `$(am__EXEEXT_1)` — automake's per-conditional
+    // indirection, the `$(am__append_N)` shape already handled for _SOURCES —
+    // so 14 of its tests escalated as literal `$(am__EXEEXT_1)` rather than
+    // resolving to test_md5.
+    #[test]
+    fn a_conditional_test_variable_resolves_through_its_indirection() {
+        let vars = parse_variables(
+            "am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+             am__EXEEXT_2 = test_sha1$(EXEEXT) test_sha256$(EXEEXT)\n\
+             check_PROGRAMS = test_base$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2)\n\
+             TESTS = $(check_PROGRAMS)\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![
+                TestEntry::Binary("test_base".to_string()),
+                TestEntry::Binary("test_md5".to_string()),
+                TestEntry::Binary("test_sha1".to_string()),
+                TestEntry::Binary("test_sha256".to_string()),
+            ],
+            "a reference inside an expansion has to resolve too, or a project \
+             using automake conditionals reports its tests as the literal text \
+             `$(am__EXEEXT_1)`"
+        );
+    }
+
+    // The bound has to exist, because make's own expander is not being
+    // reimplemented: a variable that refers to itself must terminate rather
+    // than recurse forever, and it must not silently yield nothing.
+    #[test]
+    fn a_self_referential_variable_terminates_as_unresolved() {
+        let vars = parse_variables("LOOP = $(LOOP)\nTESTS = $(LOOP)\n");
+        assert_eq!(
+            classify_tests(&vars),
+            vec![TestEntry::Unresolved("$(LOOP)".to_string())],
+            "cycles are the reason expansion is bounded; the honest answer at \
+             the bound is that we could not resolve it"
         );
     }
 
