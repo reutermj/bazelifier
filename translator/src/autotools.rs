@@ -36,7 +36,9 @@ use std::collections::hash_map::Entry;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::config_header::{parse_config_headers, plan_config_header};
+use crate::config_header::{
+    parse_config_file_headers, parse_config_headers, plan_config_header, plan_substitution_header,
+};
 use crate::error::Error;
 use crate::headers::{
     inject_headers_on_include_dirs, is_buildable_source, is_header_file, is_translation_unit,
@@ -148,6 +150,32 @@ pub fn discover(
             continue;
         };
         let (header, unmapped) = plan_config_header(&output, &template, &text, &vars);
+        if !unmapped.is_empty() {
+            needs_attention.push(unmapped_config_macros_needs_attention(
+                &output,
+                &template,
+                &unmapped,
+                ConfigDialect::Autoconf,
+            ));
+        }
+        config_headers.push(header);
+    }
+    // And the OTHER way autoconf generates a header: inside AC_CONFIG_FILES,
+    // alongside the Makefiles. jansson declares its private header with
+    // AC_CONFIG_HEADERS and its public one — jansson_config.h, included by
+    // the installed jansson.h — here, so reading only the first reproduced
+    // the private header and silently dropped the public one.
+    //
+    // A different dialect, not just a different list: these templates are
+    // `@VAR@` substitution with no `#undef` declarations, which is CMake's
+    // configure_file dialect rather than autoconf's config.h one. Hence
+    // `plan_substitution_header` rather than `plan_config_header`.
+    for output in parse_config_file_headers(&status) {
+        let template = format!("{output}.in");
+        let Ok(text) = std::fs::read_to_string(source_dir.join(&template)) else {
+            continue;
+        };
+        let (header, unmapped) = plan_substitution_header(&output, &template, &text, &vars);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
                 &output,

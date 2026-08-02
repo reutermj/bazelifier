@@ -11,6 +11,25 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # Sources come from the @jansson http_archive (pinned in MODULE.bazel) as a
 # release TARBALL. source_dir is left empty so the rule derives it from where
 # configure.ac landed.
+#
+# Green post-agent: 20 targets, 19 ground-truth comparisons and both
+# config-header assertions pass. Onboarding it surfaced four translator gaps,
+# three of them fixed here:
+#
+#  - check_PROGRAMS were never built, so no command named them and every
+#    Autotools project reported `tests: 0` (bzl-b6m). A second `make check
+#    TESTS=` pass fixed it corpus-wide: xz 0 -> 12 tests, expat 0 -> 2.
+#  - automake TESTS was unclassified. It has three shapes across real
+#    projects and jansson has the minority one, so this drove a classifier
+#    rather than a mapping.
+#  - jansson_config.h is declared through AC_CONFIG_FILES, not
+#    AC_CONFIG_HEADERS, and was silently dropped (bzl-lno.3).
+#
+# Its two TESTS entries stay unexpressed, deliberately and on record in the
+# generated BUILD.bazel: run-suites needs .json corpora the conversion does
+# not carry, and clang-format-check is a style check on the project's own
+# repository. What the suite verifies is covered by the 18 test programs
+# being built and compared.
 convert_autotools_project(
     name = "converted",
     srcs = ["@jansson//:all_srcs"],

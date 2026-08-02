@@ -19,6 +19,7 @@
 //! `unmapped_config_macros` escalation.
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use crate::configure_file::catalog_label;
 use crate::model::ConfigHeader;
@@ -132,6 +133,101 @@ fn undef_names(template_text: &str) -> Vec<String> {
         .collect()
 }
 
+/// Builds the `config_header` plan for an `AC_CONFIG_FILES` header — one
+/// whose template is `@VAR@` substitution rather than `#undef` declarations.
+///
+/// Separate from [`plan_config_header`] because the two dialects disagree
+/// about the SHAPE of an answer, not merely its source. A `#undef NAME` asks
+/// whether a fact holds, so a catalog probe can answer it and the value gets
+/// C-quoted the way `AC_DEFINE` would. An `@VAR@` is a textual replacement —
+/// `#define JSON_INLINE @json_inline@` must yield the keyword `inline`, and
+/// quoting it would emit a string literal where a keyword belongs.
+///
+/// No catalog lookup for the same reason: these names are the project's own
+/// lowercase shell variables (`json_have_localeconv`), not portable toolchain
+/// facts, so there is nothing for a probe to answer.
+pub(crate) fn plan_substitution_header(
+    output: &str,
+    template: &str,
+    template_text: &str,
+    vars: &HashMap<String, String>,
+) -> (ConfigHeader, Vec<String>) {
+    let mut values = Vec::new();
+    let mut unmapped = Vec::new();
+
+    for name in crate::configure_file::substituted_names(template_text) {
+        match vars.get(&name).filter(|v| !v.is_empty()) {
+            // Raw, not quoted. See the dialect argument above.
+            Some(value) => values.push((name, value.clone())),
+            // Left literal in the output otherwise: an `@NAME@` token that
+            // breaks every source including the header, which is a louder
+            // failure than an undefined macro but no less wrong.
+            None => unmapped.push(name),
+        }
+    }
+
+    values.sort_unstable();
+    values.dedup();
+    unmapped.sort_unstable();
+    unmapped.dedup();
+
+    (
+        ConfigHeader {
+            output: output.to_string(),
+            template: template.to_string(),
+            template_source: None,
+            catalog_probes: Vec::new(),
+            values,
+        },
+        unmapped,
+    )
+}
+
+/// The headers a project generates through `AC_CONFIG_FILES` rather than
+/// `AC_CONFIG_HEADERS`, read from `config.status`'s `config_files=`.
+///
+/// Both variables produce generated files and only one is a header source:
+///
+/// ```text
+/// config_headers=" jansson_private_config.h"
+/// config_files="  jansson.pc Makefile src/jansson_config.h test/Makefile"
+/// ```
+///
+/// The distinction is not cosmetic. `AC_CONFIG_HEADERS` templates carry
+/// `#undef` declarations, while `AC_CONFIG_FILES` templates are `@VAR@`
+/// substitution only — the same dialect CMake's `configure_file` uses, which
+/// is why the expansion reuses `configure_file`'s machinery rather than
+/// `undef_names`.
+///
+/// Filtered by extension, which is a judgement the input only half states:
+/// `config_files` is a flat list mixing Makefiles, `.pc` files and headers
+/// with nothing marking which is which. jansson's ten entries are eight
+/// Makefiles, a `.pc`, and one header. Extension is the only available
+/// signal, and the failure direction is safe — a missed header fails loudly
+/// at compile, while a wrongly-included Makefile would produce a
+/// `config_header` rule nothing depends on.
+pub(crate) fn parse_config_file_headers(config_status: &str) -> Vec<String> {
+    let Some(line) = config_status
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("config_files="))
+    else {
+        return Vec::new();
+    };
+    line.trim_matches(&['"', '\''][..])
+        .split_whitespace()
+        // Only the output side: unlike `config_headers`, entries here are not
+        // written `output:template`, and autoconf's template is `<output>.in`.
+        .map(|spec| spec.split(':').next().unwrap_or(spec))
+        .filter(|path| {
+            matches!(
+                Path::new(path).extension().and_then(|e| e.to_str()),
+                Some("h" | "hpp" | "hh" | "hxx")
+            )
+        })
+        .map(str::to_string)
+        .collect()
+}
+
 /// The config header a project declares with `AC_CONFIG_HEADERS`, as
 /// (output, template) — `("config.h", "config.in")` for GNU hello.
 ///
@@ -170,6 +266,84 @@ pub(crate) fn parse_config_headers(config_status: &str) -> Vec<(String, String)>
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // An AC_CONFIG_FILES header substitutes @VAR@ and declares no #undef, so
+    // planning it with the config.h dialect finds nothing at all. jansson's
+    // six substitutions all resolve from make's variable database.
+    #[test]
+    fn a_substitution_header_resolves_at_vars_from_the_database() {
+        const TEMPLATE: &str = "#define JSON_INLINE @json_inline@\n\
+                                #define JSON_HAVE_LOCALECONV @json_have_localeconv@\n";
+        let vars: HashMap<String, String> = [
+            ("json_inline".to_string(), "inline".to_string()),
+            ("json_have_localeconv".to_string(), "1".to_string()),
+        ]
+        .into_iter()
+        .collect();
+
+        let (header, unmapped) =
+            plan_substitution_header("jansson_config.h", "jansson_config.h.in", TEMPLATE, &vars);
+
+        assert!(
+            unmapped.is_empty(),
+            "every @VAR@ is in the database, so nothing should escalate: {unmapped:?}"
+        );
+        assert_eq!(
+            header.values,
+            vec![
+                ("json_have_localeconv".to_string(), "1".to_string()),
+                ("json_inline".to_string(), "inline".to_string()),
+            ],
+            "substituted TEXTUALLY, so neither value is C-quoted — unlike \
+             AC_DEFINE, @VAR@ replaces the token in place and `\"inline\"` \
+             would emit a string literal where a keyword belongs"
+        );
+    }
+
+    #[test]
+    fn a_substitution_header_escalates_a_var_the_database_cannot_answer() {
+        const TEMPLATE: &str = "#define THING @unknowable_thing@\n";
+        let (_, unmapped) = plan_substitution_header("x.h", "x.h.in", TEMPLATE, &HashMap::new());
+        assert_eq!(
+            unmapped,
+            vec!["unknowable_thing".to_string()],
+            "left LITERAL in the output otherwise — an `@NAME@` token the \
+             compiler chokes on, which is worse than an undefined macro"
+        );
+    }
+
+    // autoconf generates a config header TWO ways and the frontend long read
+    // only one. jansson declares its private header with AC_CONFIG_HEADERS
+    // and its PUBLIC one (jansson_config.h, included by the installed
+    // jansson.h) inside AC_CONFIG_FILES — so the private one was reproduced
+    // and the public one silently dropped, surfacing as a missing include
+    // several steps from the cause.
+    //
+    // The list is mixed, which is the whole difficulty: jansson's ten entries
+    // are eight Makefiles, a .pc file, and exactly one header.
+    #[test]
+    fn config_files_yields_only_the_entries_that_are_headers() {
+        const STATUS: &str = "config_files=\" jansson.pc Makefile doc/Makefile \
+                              src/jansson_config.h test/Makefile\"\n";
+        assert_eq!(
+            parse_config_file_headers(STATUS),
+            vec!["src/jansson_config.h".to_string()],
+            "a Makefile and a .pc are generated files this conversion has no \
+             use for; only a header is an input to a compile"
+        );
+    }
+
+    #[test]
+    fn a_project_whose_config_files_has_no_header_yields_nothing() {
+        const STATUS: &str = "config_files=\" Makefile src/Makefile foo.pc\"\n";
+        assert!(
+            parse_config_file_headers(STATUS).is_empty(),
+            "the common case — most projects generate only Makefiles this way, \
+             and inventing a config_header rule for one would emit a rule for \
+             a file nothing includes: {:?}",
+            parse_config_file_headers(STATUS)
+        );
+    }
 
     // AC_CONFIG_HEADERS names BOTH sides, and the template is not always
     // `<output>.in` — GNU hello declares config.h:config.in to keep the name

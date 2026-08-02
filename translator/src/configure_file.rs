@@ -253,6 +253,17 @@ pub(crate) fn catalog_label(define: &str) -> Option<String> {
 /// each deduplicated in first-seen order. The translator reads this to learn
 /// which config values a generated header needs — the File API and trace give
 /// the template/output pair but not its contents.
+/// Every `@VAR@` name a template substitutes, deduplicated in first-seen
+/// order.
+///
+/// Exposed for the Autotools frontend's `AC_CONFIG_FILES` headers, which use
+/// this dialect and no other. Shared rather than reimplemented because the
+/// `@@`-escape and identifier-character rules are exactly the same question,
+/// and two answers to it would drift.
+pub(crate) fn substituted_names(template: &str) -> Vec<String> {
+    parse_template_macros(template).vars
+}
+
 fn parse_template_macros(template: &str) -> TemplateMacros {
     let mut cmakedefines = Vec::new();
     let mut seen_define = HashSet::new();
