@@ -312,6 +312,26 @@ pub struct ConfigHeader {
     /// true of every autoconf template ever written, and therefore a gate
     /// that cannot fail (bzl-lvm).
     pub dialect: ConfigDialect,
+    /// The directory this header must be generated into and reachable
+    /// THROUGH, when it shadows a system header of the same name.
+    ///
+    /// `None` for an ordinary config header: `config.h` is included as
+    /// `"config.h"` by sources that carry it in `srcs`, and giving it an
+    /// include path would put the module root on the search path — which
+    /// Bazel rejects outright (`includes = ["."]`).
+    ///
+    /// `Some("gl")` for a gnulib replacement. Its whole mechanism is that
+    /// `#include <string.h>` finds the GENERATED header, whose
+    /// `#include_next` then reaches the real one; that needs the generating
+    /// directory on the include path, and needs the header written into it
+    /// rather than into the module root. Two headers named `string.h` in one
+    /// module would otherwise collide.
+    ///
+    /// Carried rather than inferred from the name, because "does this shadow
+    /// a system header" is not answerable from `string.h` alone — a project
+    /// may legitimately generate its own `string.h` that shadows nothing.
+    /// The frontend knows, because it saw the recipe.
+    pub shadow_dir: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

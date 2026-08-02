@@ -514,6 +514,9 @@ fn resolve_config_header(
         } else {
             crate::model::ConfigDialect::Cmakedefine
         },
+        // A `configure_file` generates the project's own header, never a
+        // replacement for a system one — CMake has no gnulib analogue.
+        shadow_dir: None,
     };
     (header, unmapped)
 }

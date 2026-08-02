@@ -115,6 +115,10 @@ pub(crate) fn plan_config_header(
             values,
             // AC_CONFIG_HEADERS: the template declares with `#undef`.
             dialect: crate::model::ConfigDialect::Undef,
+            // Not a shadowing header: these come from AC_CONFIG_HEADERS /
+            // AC_CONFIG_FILES / configure_file, which generate a project's own
+            // header rather than a replacement for a system one.
+            shadow_dir: None,
         },
         unmapped,
     )
@@ -192,6 +196,10 @@ pub(crate) fn plan_substitution_header(
             values,
             // AC_CONFIG_FILES: `@VAR@` substitution, no declarations.
             dialect: crate::model::ConfigDialect::Substitution,
+            // Not a shadowing header: these come from AC_CONFIG_HEADERS /
+            // AC_CONFIG_FILES / configure_file, which generate a project's own
+            // header rather than a replacement for a system one.
+            shadow_dir: None,
         },
         unmapped,
     )

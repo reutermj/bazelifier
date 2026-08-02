@@ -174,6 +174,7 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         render_config_header(&mut out, config_header);
         out.push('\n');
     }
+    render_shadow_headers(&mut out, &graph.config_headers);
 
     // Which of this module's targets are shared libraries, so a consumer
     // linking one can be given the dynamic_deps edge that makes Bazel link
@@ -205,12 +206,63 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
 /// Renders one `config_header` rule: the `cc_config` probe-driven
 /// reproduction of a `configure_file`-generated header. See
 /// docs/architecture/configure-file-and-toolchain-probes.md.
+/// The library carrying every SHADOWING config header, with the directories
+/// they live in on the include path.
+///
+/// This is the whole mechanism gnulib depends on. A generated `string.h`
+/// only shadows the system one if its directory is searched first, and
+/// `#include_next` then reaches the real header behind it. Bazel puts a
+/// dep's `includes` ahead of the toolchain's own search path, so plain
+/// `includes` is enough — verified end to end before this was written; no
+/// `copts` or `-isystem` ordering is involved.
+///
+/// One library rather than one per header: they share an include directory,
+/// and a target either wants the project's replacement headers or does not.
+/// Emitted only when something shadows, so a project with an ordinary
+/// `config.h` sees no change.
+fn render_shadow_headers(out: &mut String, headers: &[model::ConfigHeader]) {
+    let shadowing: Vec<&model::ConfigHeader> =
+        headers.iter().filter(|h| h.shadow_dir.is_some()).collect();
+    if shadowing.is_empty() {
+        return;
+    }
+    let mut dirs: Vec<String> = shadowing
+        .iter()
+        .filter_map(|h| h.shadow_dir.clone())
+        .collect();
+    dirs.sort();
+    dirs.dedup();
+
+    out.push_str(&format!(
+        "cc_library(\n    name = \"{SHADOW_HEADERS_TARGET}\",\n"
+    ));
+    render_string_list(
+        out,
+        "hdrs",
+        &shadowing
+            .iter()
+            .map(|h| format!(":{}", config_header_name(h)))
+            .collect::<Vec<_>>(),
+    );
+    render_string_list(out, "includes", &dirs);
+    out.push_str("    visibility = [\"//visibility:public\"],\n)\n\n");
+}
+
+/// The library name every target depends on to get the shadowing headers.
+const SHADOW_HEADERS_TARGET: &str = "_shadow_hdrs";
+
 fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
     out.push_str(&format!(
         "config_header(\n    name = \"{}\",\n",
         config_header_name(header)
     ));
-    out.push_str(&format!("    output = \"{}\",\n", header.output));
+    // A shadowing header is generated INTO its own directory, because that
+    // directory is what goes on the include path — and because two headers
+    // named `string.h` in one module would otherwise collide.
+    out.push_str(&format!(
+        "    output = \"{}\",\n",
+        config_header_output(header)
+    ));
     out.push_str(&format!("    template = \"{}\",\n", header.template));
     render_string_list(out, "probes", &header.catalog_probes);
     if !header.values.is_empty() {
@@ -332,6 +384,19 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
 /// The rule name for a config header's target — its output with non-identifier
 /// characters replaced, so `config.h` becomes a valid target `config_h` that
 /// won't collide with the output file of the same base name.
+/// Where a config header is written, which is its own directory when it
+/// shadows a system header and the plain output path otherwise.
+///
+/// One place, because the `output` attribute, the `includes` entry and the
+/// `hdrs` reference all have to agree about it — three uses that drifted
+/// apart once already for `_include/` staging (`staged_for`).
+fn config_header_output(header: &model::ConfigHeader) -> String {
+    match &header.shadow_dir {
+        Some(dir) => format!("{dir}/{}", header.output),
+        None => header.output.clone(),
+    }
+}
+
 pub fn config_header_name(header: &model::ConfigHeader) -> String {
     header
         .output
@@ -586,6 +651,15 @@ fn render_cc_rule(
     render_string_list(out, "local_defines", &target.local_defines);
     let mut deps: Vec<String> = target.dependencies.clone();
     deps.extend(textual_dep);
+    // Every target, when the project shadows a system header. The library is
+    // only useful if it is on the compile's include path, and a project that
+    // vendors gnulib expects the replacement everywhere it compiles — the
+    // build system puts `-I gl` in its global CPPFLAGS for exactly that
+    // reason. Emitted only when something shadows, so a project with an
+    // ordinary config.h gains no dep.
+    if config_headers.iter().any(|h| h.shadow_dir.is_some()) {
+        deps.push(SHADOW_HEADERS_TARGET.to_string());
+    }
     render_deps(out, &deps);
 
     // A dependency CMake declared SHARED gets a dynamic_deps edge ALONGSIDE
@@ -1038,6 +1112,7 @@ mod tests {
                 catalog_probes: vec![],
                 values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
                 dialect: model::ConfigDialect::Cmakedefine,
+                shadow_dir: None,
             },
         );
         assert!(
@@ -1872,6 +1947,7 @@ mod tests {
                     ("LONG".to_string(), "\"abcd\"".to_string()),
                 ],
                 dialect: model::ConfigDialect::Cmakedefine,
+                shadow_dir: None,
             },
         );
         assert!(
@@ -1899,6 +1975,7 @@ mod tests {
             catalog_probes: vec![],
             values: vec![("PACKAGE".to_string(), "\"jansson\"".to_string())],
             dialect: model::ConfigDialect::Undef,
+            shadow_dir: None,
         }];
         let rendered = render(&g).build_bazel;
         let must_not = rendered
@@ -1924,6 +2001,7 @@ mod tests {
             catalog_probes: vec![],
             values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
             dialect: model::ConfigDialect::Undef,
+            shadow_dir: None,
         }];
         let rendered = render(&g).build_bazel;
         let must_not = rendered
@@ -1949,6 +2027,89 @@ mod tests {
     // constant: a CMake header must still be checked for the construct IT
     // can leave behind.
     #[test]
+    fn a_replacement_header_is_reachable_by_an_include_path() {
+        // gnulib's whole mechanism is that `#include <string.h>` finds the
+        // GENERATED header, whose `#include_next` then reaches the system
+        // one. That needs an include PATH, not a srcs entry: a config header
+        // in srcs is reachable as "config.h" and never as <string.h>.
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "string.h".to_string(),
+            template: "gl/string.in.h".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("NEXT_STRING_H".to_string(), "<string.h>".to_string())],
+            dialect: model::ConfigDialect::Substitution,
+            shadow_dir: Some("gl".to_string()),
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("includes = [\"gl\"]") || rendered.contains("\"gl\","),
+            "a replacement header needs its directory on the include path, or \
+             the shadowing never happens:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("output = \"gl/string.h\""),
+            "and it must be generated INTO that directory, not the module \
+             root — otherwise the include path points at nothing:\n{rendered}"
+        );
+    }
+
+    #[test]
+    fn every_target_depends_on_the_shadow_library() {
+        // The library is inert unless targets actually depend on it: an
+        // include path only exists on a compile that has the dep. A project
+        // vendoring gnulib puts `-I gl` in its global CPPFLAGS, so every
+        // target expects the replacement.
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "string.h".to_string(),
+            template: "gl/string.in.h".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            dialect: model::ConfigDialect::Substitution,
+            shadow_dir: Some("gl".to_string()),
+        }];
+        let rendered = render(&g).build_bazel;
+        assert!(
+            rendered.contains("\":_shadow_hdrs\""),
+            "a target with no dep on the shadow library never sees the \
+             replacement header:\n{rendered}"
+        );
+    }
+
+    #[test]
+    fn an_ordinary_config_header_gets_no_include_path() {
+        // The other direction, so the shadow path cannot be wired to always
+        // fire. config.h is included as "config.h" from sources that list it
+        // in srcs; giving it an includes entry would put the module root on
+        // the include path, which Bazel rejects outright.
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("PACKAGE".to_string(), "\"x\"".to_string())],
+            dialect: model::ConfigDialect::Undef,
+            shadow_dir: None,
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("output = \"config.h\""),
+            "an ordinary config header keeps its plain output path:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("_shadow_hdrs"),
+            "and no shadow library is emitted at all, so a project without \
+             replacement headers gains nothing:\n{rendered}"
+        );
+    }
+
+    #[test]
     fn a_cmake_header_is_still_asserted_against_cmakedefine() {
         let mut g = graph(None);
         g.config_headers = vec![model::ConfigHeader {
@@ -1958,6 +2119,7 @@ mod tests {
             catalog_probes: vec![],
             values: vec![("PACKAGE_NAME".to_string(), "zlib".to_string())],
             dialect: model::ConfigDialect::Cmakedefine,
+            shadow_dir: None,
         }];
         let rendered = render(&g).build_bazel;
         let must_not = rendered
@@ -1992,6 +2154,7 @@ mod tests {
                 ("OPTION".to_string(), "OFF".to_string()),
             ],
             dialect: model::ConfigDialect::Cmakedefine,
+            shadow_dir: None,
         }];
         let rendered = render(&g).build_bazel;
 
@@ -2135,6 +2298,7 @@ mod tests {
             catalog_probes: vec!["@cc_config//catalog:have_unistd_h".to_string()],
             values: vec![("PROJECT_VERSION".to_string(), "3.7.0".to_string())],
             dialect: model::ConfigDialect::Cmakedefine,
+            shadow_dir: None,
         }];
         let rendered = render(&g).build_bazel;
 
