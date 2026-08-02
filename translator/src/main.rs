@@ -639,6 +639,20 @@ fn copy_runtime_tree(src: &Path, dst: &Path) -> std::io::Result<()> {
         }
         let child_src = entry.path();
         let child_dst = dst.join(&name);
+        // Never a symlink. A project's `configure` can create one in the
+        // BUILD directory pointing back into the source tree — libidn2 does,
+        // for the GNUmakefile maintainer wrapper — and under Bazel that
+        // target is a sandbox path that stops existing when the action ends.
+        // Copying it makes the whole tree artifact invalid ("child
+        // GNUmakefile is a dangling symbolic link"), which fails the
+        // conversion rather than losing one file.
+        //
+        // Checked with `symlink_metadata`, not `is_dir`/`exists`: those
+        // follow the link, so a dangling one reads as absent and a live one
+        // reads as whatever it points at.
+        if entry.file_type().is_ok_and(|t| t.is_symlink()) {
+            continue;
+        }
         if child_src.is_dir() {
             copy_runtime_tree(&child_src, &child_dst)?;
         } else {
@@ -670,6 +684,36 @@ fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn copy_runtime_tree_skips_a_symlink() {
+        // A project's configure can create a symlink in the BUILD directory
+        // pointing back into the source tree — libidn2 does, for the
+        // GNUmakefile maintainer wrapper. Copying it produces a link to a
+        // sandbox path that stops existing when the action ends, and Bazel
+        // rejects the tree artifact outright: "child GNUmakefile is a
+        // dangling symbolic link".
+        let dir = std::env::temp_dir()
+            .join(format!("bzlf_symlink_{}_{}", std::process::id(), line!()));
+        let src = dir.join("src");
+        let dst = dir.join("dst");
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("real.txt"), "data").unwrap();
+        std::os::unix::fs::symlink("/nonexistent/target", src.join("link")).unwrap();
+
+        super::copy_runtime_tree(&src, &dst).unwrap();
+
+        assert!(
+            dst.join("real.txt").is_file(),
+            "an ordinary file is still copied"
+        );
+        assert!(
+            !dst.join("link").exists() && std::fs::symlink_metadata(dst.join("link")).is_err(),
+            "a symlink must not be reproduced: its target is a path that does \
+             not exist outside this conversion"
+        );
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
     use super::*;
 
     fn summary_of(

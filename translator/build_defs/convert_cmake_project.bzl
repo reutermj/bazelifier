@@ -52,7 +52,13 @@ def _convert_cmake_project_impl(ctx):
     # A scratch directory for the CMake configure step (`cmake -B`). Kept
     # separate from out_dir so the translator's declared output only ever
     # contains the generated module, not CMake's own build byproducts.
-    build_scratch = ctx.actions.declare_directory(ctx.attr.name + "_build")
+    # NOT a declared output. Nothing consumes it — the rule returns only
+    # out_dir — and declaring it makes Bazel VALIDATE it, which fails on any
+    # symlink the project's own configure leaves behind (libidn2 creates a
+    # GNUmakefile wrapper pointing into the source tree, whose target stops
+    # existing when the action ends). A sibling path under the action's own
+    # output directory is writable and Bazel discards it with the sandbox.
+    build_scratch_path = out_dir.path + "_build"
 
     srcs = ctx.files.srcs
     if not srcs:
@@ -73,7 +79,7 @@ def _convert_cmake_project_impl(ctx):
 
     args = ctx.actions.args()
     args.add(source_dir)
-    args.add("--build-dir", build_scratch.path)
+    args.add("--build-dir", build_scratch_path)
     args.add("--out-module", out_dir.path)
     args.add("--deliverable-root", deliverable_root)
 
@@ -86,7 +92,7 @@ def _convert_cmake_project_impl(ctx):
     args.add("--frontend", ctx.attr.frontend)
 
     ctx.actions.run(
-        outputs = [out_dir, build_scratch],
+        outputs = [out_dir],
         inputs = srcs,
         executable = ctx.executable._bazelifier,
         arguments = [args],
