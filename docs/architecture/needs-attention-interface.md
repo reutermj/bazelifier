@@ -125,16 +125,27 @@ grep the escalation text for the limitation it just removed.
 
 - Exact schema for the "structured underneath" part — revisit once enough
   distinct escalations exist to see which fields actually recur.
-- **Open question:** how resolved items feed back into the translator. Today
-  a resolution is ephemeral: the agent edits the generated `BUILD.bazel` in
-  the unpacked validation workspace and nothing is persisted. A directory of
-  accepted overrides? New mapping rules the translator learns for next time?
-  Needs a decision — this is the "agent stage of the fixture loop" that isn't
-  wired up yet.
+- **Open question:** how a resolution persists ACROSS conversions. The agent
+  stage itself is wired up now — `.claude/skills/resolve-escalations/` drives
+  it and `tools/sweep/sweep.py --post-agent` sets it up and measures it — and
+  `--workspace` keeps the unpacked tree so a resolution survives within a
+  session. What does not exist is anywhere for it to live afterwards:
+  re-convert and the work is gone. A directory of accepted overlays applied
+  after conversion? New mapping rules the translator learns? Or accept
+  ephemerality as the cost of the deliberately non-hermetic design — which is
+  defensible, but has a measurable price: it is why no corpus project but xz
+  has been taken green. See bzl-b9b.
 - **Open question:** how to tell a genuine resolution from a deleted markdown
-  file, for gaps where the build goes green either way (header visibility is
-  the live example). See
-  [build-verification.md](build-verification.md#header-visibility-is-not-enforced-by-default).
+  file. The resolving agent is *told* the rule — deleting an item claims the
+  gap is closed — but nothing checks it.
+
+  Worth scoping before solving: wherever a bad resolution changes behaviour,
+  the equivalence check already catches it. The gap is only real for gaps
+  that go green either way, and header visibility is the live example (3 of
+  the corpus's 17 current items). `layering_check` would close that one at
+  the compiler for free — bzl-ayl, blocked on toolchain support. See
+  [build-verification.md](build-verification.md#header-visibility-is-not-enforced-by-default)
+  and bzl-ned.
 
 ## `resolutions/`: the other half of the handoff
 
