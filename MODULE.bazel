@@ -181,3 +181,41 @@ http_archive(
     strip_prefix = "xz-5.4.7",
     url = "https://github.com/tukaani-project/xz/releases/download/v5.4.7/xz-5.4.7.tar.gz",
 )
+
+# Second AUTOTOOLS corpus project: libexpat 2.6.2. Selected by measuring six
+# candidates against the same test that rejected GNU hello above — gnulib's
+# generated REPLACEMENT SYSTEM HEADERS, counted as `lib/*.in.h`:
+#
+#   expat 2.6.2    0 replacement headers, 13 own .c    <- chosen
+#   gzip 1.13     26
+#   patch 2.7.6   25
+#   nano 7.2      38
+#   libunistring  31
+#   units 2.22     — no Makefile.am at all: a hand-written Makefile.in has no
+#                    automake primaries for `make -p` to report, so the
+#                    frontend's second source of truth would be empty
+#
+# What it adds over xz: recursive make across five SUBDIRS (lib, examples,
+# tests, xmlwf, doc), where xz's tree is shallower, and a C++ check program
+# beside the C ones. What makes it tractable where xz is not: 41 config
+# macros against xz's 153, most already in the shared catalog — an escalation
+# small enough to READ, which is the property that makes it useful for
+# developing the onboarding procedure.
+#
+# Release TARBALL, not a git checkout, for the reason xz's entry gives: the
+# tarball ships `configure` pre-generated, so the conversion does not depend
+# on the host's autotools.
+#
+# INPUT to the translator only, same copy-through model as the rest.
+http_archive(
+    name = "expat",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-1M840m4hpWZU/+Ss2c1UgRZGGWJoAjKFBqKGmvqymrM=",
+    strip_prefix = "expat-2.6.2",
+    url = "https://github.com/libexpat/libexpat/releases/download/R_2_6_2/expat-2.6.2.tar.gz",
+)

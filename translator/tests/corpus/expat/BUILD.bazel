@@ -1,0 +1,28 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Second Autotools corpus project, after xz. Selection rationale and the five
+# rejected candidates are in the `expat` http_archive comment in MODULE.bazel;
+# the short version is that it is the only one of six with no gnulib
+# replacement headers and a real Makefile.am.
+#
+# What it exercises that xz does not: recursive make across five SUBDIRS
+# (lib, examples, tests, xmlwf, doc), one libtool shared library consumed by a
+# program in a SIBLING directory, and a C++ check program beside the C ones.
+#
+# Sources come from the @expat http_archive (pinned in MODULE.bazel) as a
+# release TARBALL, which ships `configure` pre-generated — a git checkout
+# would need `autoreconf -i` and make the conversion depend on the host's
+# autotools. source_dir is left empty so the rule derives it from where
+# configure.ac landed.
+#
+# The conversion succeeds (7 targets, 1 escalation). The module does NOT yet
+# build: lib/xmltok.c textually `#include`s xmltok_impl.c and xmltok_ns.c,
+# which reach neither the module nor any rule attribute. That is a TRANSLATOR
+# gap rather than an escalation, and is fixed in the commits that follow
+# (bzl-7pe.3). The remaining XML_GE/XML_CONTEXT_BYTES failure is the open
+# needs_attention item doing its job — agent-stage work.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@expat//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+)
