@@ -1,0 +1,23 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The automake TESTS classifier, which was unit-only until this fixture. Its
+# three branches are chosen by one function (`classify_tests`), and the
+# corpus covers them unevenly: jansson exercises only Script, expat and
+# libmicrohttpd only Binary, and Unresolved nothing at all.
+#
+# All three in one Makefile.am, so a regression in the dispatch shows up here
+# rather than in whichever real project happens to hit it:
+#
+#   $(check_PROGRAMS)   -> a real test    (the majority shape)
+#   src/run-suite.sh    -> escalates      (jansson's and xz's shape)
+#   $(UNDEFINED_TESTS)  -> escalates      (the database cannot answer it)
+#
+# Deliberately RED: two of the three branches escalate by design, so this
+# fixture starts with an open needs_attention item and the agent stage closes
+# it. That is the cycle escalation-firing fixtures exist to exercise — see
+# CLAUDE.md, "A red fixture is unfinished work, not a terminal state."
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)
