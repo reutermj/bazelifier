@@ -744,6 +744,139 @@ pub(crate) fn canonical_name(target_name: &str) -> String {
 /// misinterpreted, which is the safe direction: a missed command shows up as a
 /// target with no sources, while a misparsed one would silently produce a
 /// wrong rule.
+/// A system header a project generates a REPLACEMENT for — gnulib's
+/// mechanism, recovered from the build's own generation recipe.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ReplacementHeader {
+    /// The generated header, as it will be included (`string.h`).
+    pub(crate) output: String,
+    /// The `.in.h` template, as the recipe named it.
+    pub(crate) template: String,
+    /// Every `@VAR@` the recipe substitutes, sorted by name.
+    pub(crate) values: Vec<(String, String)>,
+    /// The directory the recipe ran in, absolute.
+    pub(crate) dir: PathBuf,
+}
+
+/// Recovers every replacement header from the build's `V=1` output.
+///
+/// gnulib ships `string.in.h` and generates a real `string.h` into the build
+/// tree, placed ahead of `/usr/include` so `#include <string.h>` finds it and
+/// its `#include_next` reaches the system one. Reproducing that is what lets
+/// a converted module behave the way the project's build does on a platform
+/// where the replacement is NOT inert — see docs/architecture/overview.md.
+///
+/// The stream is the only source that answers this. Two alternatives were
+/// measured on libidn2 and both fail:
+///
+/// - The `<HEADER>_H` variables in `make -p` look like a per-header decision
+///   (`ALLOCA_H = alloca.h`, `ASSERT_H` empty) but MISS six of the eleven —
+///   there is no `STRING_H` at all — and INVENT `iconv.h`, which is set but
+///   never generated. They state intent, not outcome.
+/// - Counting the `<name>.h:` rules in the generated Makefile over-reports:
+///   16 rules exist and 11 fire.
+///
+/// Requires `V=1`, because these recipes are silenced by `AM_SILENT_RULES` —
+/// see [`build`], which passes it for a different reason that happens to
+/// make this possible.
+fn parse_replacement_headers(stdout: &str, build_dir: &Path) -> Vec<ReplacementHeader> {
+    let mut found = Vec::new();
+    let mut dir = build_dir.to_path_buf();
+    // One recipe spans several lines, continued with a trailing backslash, so
+    // substitutions accumulate until the redirect that ends it.
+    let mut values: Vec<(String, String)> = Vec::new();
+    let mut template: Option<String> = None;
+
+    for line in stdout.lines() {
+        if let Some(entered) = entering_directory(line) {
+            dir = entered;
+            continue;
+        }
+        // Both delimiter forms appear in ONE recipe: `s|...|` where the value
+        // may contain a slash (`<string.h>`), `s/.../` elsewhere. A parser
+        // that knows one silently drops half the substitutions.
+        for (name, value) in sed_substitutions(line) {
+            values.push((name, value));
+        }
+        // The recipe redirects to a TEMP file and a later `mv` renames it —
+        // gnulib writes atomically. So the redirect names the template and
+        // the `mv` names the header, and both are needed: keying on the
+        // redirect alone yields `string.h-t1`, which is not a header anyone
+        // includes.
+        //
+        // TWO recipe forms, and libidn2 uses both — 4 headers pass the
+        // template on stdin (`< foo.in.h > foo.h-t`) and 7 pass it
+        // positionally (`foo.in.h > foo.h-t`). Handling one silently found
+        // four of eleven, so the `<` is matched optionally.
+        if let Some((before, _)) = line.split_once('>')
+            && let Some(src) = before
+                .split_whitespace()
+                .rev()
+                .find(|t| t.ends_with(".in.h"))
+        {
+            template = Some(src.to_string());
+        }
+        if let Some(renamed) = atomic_rename(line)
+            && let Some(template) = template.take()
+        {
+            values.sort();
+            values.dedup();
+            found.push(ReplacementHeader {
+                output: renamed,
+                template,
+                values: std::mem::take(&mut values),
+                dir: dir.clone(),
+            });
+        }
+    }
+    found
+}
+
+/// The final name in gnulib's atomic `mv <name>.h-t <name>.h`.
+///
+/// Its own step because the generation recipe redirects to the TEMP file, so
+/// the header's real name appears only here.
+fn atomic_rename(line: &str) -> Option<String> {
+    let rest = line.trim().strip_prefix("mv ")?;
+    let rest = rest.strip_prefix("-f ").unwrap_or(rest);
+    let (from, to) = rest.split_once(' ')?;
+    let to = to.trim();
+    (from.contains(".h-t") && to.ends_with(".h")).then(|| to.to_string())
+}
+
+/// Every `s|@''NAME''@|value|` and `s/@''NAME''@/value/g` on one line.
+///
+/// The doubled quotes are automake's own escaping, present so `configure`
+/// does not substitute the placeholder while writing the Makefile.
+fn sed_substitutions(line: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for (open, close) in [('|', '|'), ('/', '/')] {
+        let marker = format!("s{open}@''");
+        let mut rest = line;
+        while let Some(at) = rest.find(&marker) {
+            let after = &rest[at + marker.len()..];
+            let Some((name, tail)) = after.split_once("''@") else {
+                break;
+            };
+            let Some(tail) = tail.strip_prefix(close) else {
+                rest = after;
+                continue;
+            };
+            let Some((value, remainder)) = tail.split_once(close) else {
+                break;
+            };
+            if name
+                .chars()
+                .all(|c| c.is_ascii_uppercase() || c == '_' || c.is_ascii_digit())
+            {
+                out.push((name.to_string(), value.to_string()));
+            }
+            rest = remainder;
+        }
+    }
+    out
+}
+
 pub(crate) fn parse_commands(stdout: &str, build_dir: &Path) -> Vec<BuildCommand> {
     let mut commands = Vec::new();
     // make announces each descent, and the announcements nest — `make[2]`
@@ -2394,6 +2527,94 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
             classify_tests(&vars),
             vec![TestEntry::Binary("tool.exe".to_string())],
             "${{EXEEXT}} and $(EXEEXT) are one variable written two ways"
+        );
+    }
+
+    #[test]
+    // gnulib generates a replacement for a system header by sed-substituting
+    // its own .in.h template. Both the template and every substituted VALUE
+    // are in the V=1 stream, which is why this needs no second input — the
+    // variable database cannot answer it (it has no STRING_H at all, and
+    // sets ICONV_H for a header the build never generates).
+    #[test]
+    fn a_replacement_header_is_recovered_from_the_generation_recipe() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+/bin/sed -e 's|@''GUARD_PREFIX''@|GL|g' \\\n\
+      -e 's|@''NEXT_STRING_H''@|<string.h>|g' \\\n\
+      -e 's/@''GNULIB_STRDUP''@/0/g' \\\n\
+      < /src/gl/string.in.h > string.h-t1\n\
+mv string.h-t1 string.h\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+
+        assert_eq!(found.len(), 1, "one header generated: {found:#?}");
+        assert_eq!(found[0].output, "string.h");
+        assert_eq!(found[0].template, "/src/gl/string.in.h");
+        assert_eq!(
+            found[0].values,
+            vec![
+                ("GNULIB_STRDUP".to_string(), "0".to_string()),
+                ("GUARD_PREFIX".to_string(), "GL".to_string()),
+                ("NEXT_STRING_H".to_string(), "<string.h>".to_string()),
+            ],
+            "both sed delimiter forms are used in one recipe — `s|...|` for \
+             values that may contain a slash, `s/.../` for the rest — so a \
+             parser that knows only one silently drops half the substitutions"
+        );
+    }
+
+    // gnulib writes atomically: the sed redirects to `<name>.h-t` and a
+    // later `mv` renames it. Keying on the redirect yields `limits.h-t1`,
+    // which is not a header anyone includes — the rename is what names it.
+    #[test]
+    fn the_header_is_named_by_the_rename_not_the_redirect() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+/bin/sed -e 's|@''X''@|1|g' < /src/gl/limits.in.h > limits.h-t1\n\
+mv limits.h-t1 limits.h\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+        assert_eq!(found.len(), 1, "{found:#?}");
+        assert_eq!(found[0].output, "limits.h", "not limits.h-t1");
+        assert_eq!(found[0].template, "/src/gl/limits.in.h");
+    }
+
+    // libidn2 writes SEVEN of its eleven recipes this way — the template as
+    // a positional argument rather than on stdin. Handling only the `<` form
+    // found four of eleven and looked like it worked.
+    #[test]
+    fn a_template_passed_positionally_is_found_too() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+  -e 's|@''HAVE_ALLOCA_H''@|1|g' \\\n\
+  /src/gl/alloca.in.h > alloca.h-t\n\
+mv alloca.h-t alloca.h\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+        assert_eq!(
+            found.len(),
+            1,
+            "no `<` redirect, but still a recipe: {found:#?}"
+        );
+        assert_eq!(found[0].output, "alloca.h");
+        assert_eq!(found[0].template, "/src/gl/alloca.in.h");
+    }
+
+    // A redirect with no rename is some other recipe, not a header.
+    #[test]
+    fn a_redirect_without_a_rename_yields_nothing() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+/bin/sed -e 's|@''X''@|1|g' < /src/gl/limits.in.h > scratch.txt\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        assert!(
+            parse_replacement_headers(STREAM, Path::new("/build")).is_empty(),
+            "only an atomic rename to a .h completes a replacement header"
         );
     }
 
