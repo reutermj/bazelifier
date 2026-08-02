@@ -111,10 +111,25 @@ test -f $t/configure && echo "configure shipped" || echo "needs autoreconf"
   cannot tell a good item from a bad one at that size. Prefer a project whose
   first escalation fits on a screen.
 
-**What you WANT is a shape the corpus lacks**, not a project that will convert
-cleanly. Write down, before starting, what this project brings that no
-existing one does — recursive make across N directories, a C++ target, a
-versioned shared library. If you cannot name it, onboarding it proves little.
+**What you WANT is a shape the corpus lacks, or a GAP it cannot see.** Not a
+project that will convert cleanly. Write down, before starting, what this
+project brings that no existing one does.
+
+The second kind is easy to miss and was the more valuable of the two. Before
+picking, read the sweep for a number that is implausible across existing
+projects: both Autotools projects reported `tests: 0`, which is not a shape
+at all — it is a metric that could not be true. jansson was chosen to force
+it, and closed a P1 that had been open against xz for weeks. No new target
+shape would have revealed it.
+
+**Then measure the shape across 5+ projects before building for it.** A
+capability designed from one project encodes that project as universal.
+jansson's automake `TESTS` are shell scripts, so the obvious design was
+`sh_test` support — and surveying six projects showed `TESTS` has three
+shapes with jansson in the *minority*: libmicrohttpd, gsl and wget run
+`$(check_PROGRAMS)` directly, and gsl alone has 54 of them. Building from
+jansson would have shipped the wrong thing and missed the common case. The
+survey turned a mapping into a classifier and cost twenty minutes.
 
 Verify the candidate configures and builds on this machine before pinning it.
 A project that does not build natively cannot produce ground truth.
@@ -192,6 +207,13 @@ owners — and then **work both piles**, rather than reporting the split:
 - **Agent work** — the translator was right to escalate. A project value only
   a human can decide (`XML_DTD`, `Z_PREFIX`), a test whose command is not a
   target we build.
+- **An accepted cost** — a third state the two piles have no slot for, and
+  every run has produced one. jansson escalates the name `var`, extracted
+  from an English sentence in a comment ("replaces `@var@` substitutions by
+  values"). Fixing it means teaching the extractor about comments, which
+  would suppress real substitutions that autoconf templates genuinely
+  document. Neither fix nor handoff: file it, record why it stays, move on.
+  Do not let it block green.
 - **A translator gap** — the escalation should not exist, or the thing was
   dropped silently. The test is CLAUDE.md's: *does the input state it?* Not
   "is the answer usually the same," but "is the fact present in what we
