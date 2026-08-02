@@ -121,6 +121,40 @@ def open_items(project_dir: pathlib.Path) -> list[pathlib.Path]:
     return sorted(project_dir.glob("needs_attention/*.md"))
 
 
+EXPECTED_COMPARISONS = "expected_comparisons.txt"
+
+
+def freeze_expected_comparisons(work: pathlib.Path) -> None:
+    """Records the comparison targets the CONVERSION produced, before the
+    agent stage can touch them.
+
+    The gate used to derive its expected set by regexing the root
+    `BUILD.bazel` at measurement time — which is *after* the agent has
+    edited the workspace. A resolution that deleted a failing test therefore
+    removed it from the expectation too, and the project went green having
+    fixed nothing. Mutation-verified on jansson: 19 failing comparisons
+    became 0 passed / 0 failed / exit 0.
+
+    Written at unpack, which is the only moment the workspace is known to be
+    the translator's own output. `run_post_agent` refuses to re-unpack for
+    the same reason this exists, so the snapshot survives the agent stage.
+    """
+    names = comparison_names((work / "BUILD.bazel").read_text())
+    (work / EXPECTED_COMPARISONS).write_text("".join(f"{n}\n" for n in sorted(names)))
+
+
+def comparison_names(build_text: str, project: str | None = None) -> list[str]:
+    """Every `*_matches_ground_truth` target in a root `BUILD.bazel`, or just
+    one project's.
+
+    One parser rather than two: the freeze and the per-project measurement
+    have to agree about what counts as a comparison target, and a regex
+    written twice is how they would stop agreeing.
+    """
+    prefix = rf"{re.escape(project)}_" if project else ""
+    return re.findall(rf'name = "({prefix}[A-Za-z0-9_.-]+_matches_ground_truth)"', build_text)
+
+
 def run_post_agent(project: str, work: pathlib.Path) -> dict:
     """Measures what the project actually delivers, after the agent stage.
 
@@ -135,6 +169,7 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
     # unresolved conversion and reporting it as the resolved one.
     if not (work / "BUILD.bazel").is_file():
         unpack_workspace(work)
+        freeze_expected_comparisons(work)
     project_dir = work / "fixtures" / project
     if not project_dir.is_dir():
         raise SystemExit(
@@ -155,10 +190,33 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
     # and read out of the generated root BUILD.bazel. NOT --test_filter, which
     # selects cases WITHIN a test binary and silently matches nothing for an
     # sh_test — it ran the whole corpus and reported 65 passes for one project.
-    names = re.findall(
-        rf'name = "({re.escape(project)}_[A-Za-z0-9_.-]+_matches_ground_truth)"',
-        (work / "BUILD.bazel").read_text(),
-    )
+    # From the FROZEN snapshot, not the current BUILD.bazel. Reading the live
+    # file would let a resolution that deleted a failing comparison delete the
+    # expectation with it — the project then reports 0 failed and goes green
+    # having fixed nothing. See freeze_expected_comparisons.
+    frozen = work / EXPECTED_COMPARISONS
+    if frozen.is_file():
+        names = [
+            n
+            for n in frozen.read_text().split()
+            if n.startswith(f"{project}_") and n.endswith("_matches_ground_truth")
+        ]
+    else:
+        # A workspace unpacked before this existed. Fall back rather than
+        # refuse, but say so: this run cannot detect a deleted comparison.
+        print(
+            f"warning: {frozen.name} missing — expectations taken from the "
+            "current BUILD.bazel, so a DELETED comparison will not be caught. "
+            "Remove the workspace and re-run for a trustworthy result.",
+            file=sys.stderr,
+        )
+        names = comparison_names((work / "BUILD.bazel").read_text(), project)
+
+    # A target the conversion produced and the workspace no longer defines was
+    # deleted by the agent stage. Counted as failed rather than skipped: the
+    # whole point of freezing is that disappearing is not a way to pass.
+    live = set(comparison_names((work / "BUILD.bazel").read_text(), project))
+    deleted = [n for n in names if n not in live]
     # No comparison targets is legitimate, not an error: a project that builds
     # only a library produces no runnable binary to compare. tinyxml2 is that
     # shape and still ships an sh_test of its own, so bailing here would skip
@@ -166,20 +224,42 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
     # green condition, which requires at least one test of some kind to run.
     passed = failed = 0
     if names:
-        tests = bazel(
-            "test",
-            *[f"//:{n}" for n in names],
-            "--override_module=cc_config=" + str(REPO / "cc_config"),
-            "--keep_going",
-            cwd=work,
-        )
+        # Only the surviving labels are handed to Bazel — an undefined one is
+        # a load-time error that would stop the others from running at all.
+        # The deleted ones are counted below without being run, which is the
+        # honest reading: they were expected and are not there.
+        runnable = [n for n in names if n in live]
+        combined = ""
+        if runnable:
+            tests = bazel(
+                "test",
+                *[f"//:{n}" for n in runnable],
+                "--override_module=cc_config=" + str(REPO / "cc_config"),
+                "--keep_going",
+                cwd=work,
+            )
+            combined = tests.stdout + tests.stderr
         # Counted per NAMED target, so a summary line mentioning "PASSED"
         # cannot inflate the number.
-        combined = tests.stdout + tests.stderr
         passed = sum(
-            1 for n in names if re.search(rf"//:{re.escape(n)}\s+.*PASSED", combined)
+            1 for n in runnable if re.search(rf"//:{re.escape(n)}\s+.*PASSED", combined)
         )
+        # Everything expected and not passing, deletions included.
         failed = len(names) - passed
+        if deleted:
+            print(
+                f"\n{len(deleted)} comparison target(s) the conversion produced "
+                "are GONE from the workspace — counted as failed:",
+                file=sys.stderr,
+            )
+            for n in sorted(deleted):
+                print(f"  {n}", file=sys.stderr)
+            print(
+                "A resolution may not reach green by deleting what was failing. "
+                "Restore the target and make it pass, or record in the generated "
+                "BUILD.bazel why it cannot exist.",
+                file=sys.stderr,
+            )
 
     # The module's OWN tests, which the comparisons do not cover and which
     # nothing else runs. A converted module ships config-header assertions and
