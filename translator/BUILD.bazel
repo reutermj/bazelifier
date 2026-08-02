@@ -12,6 +12,7 @@ rust_binary(
         "src/ctest.rs",
         "src/error.rs",
         "src/headers.rs",
+        "src/libtool.rs",
         "src/main.rs",
         "src/model.rs",
         "src/needs_attention.rs",
