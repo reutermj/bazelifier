@@ -27,10 +27,12 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 #  - `textual_sources` was declared but never COPIED, failing at analysis
 #    rather than at compile. Latent on the CMake side too.
 #
-# Every C source now compiles. What remains red is the open needs_attention
-# item, which is agent-stage work by design: XML_GE and XML_CONTEXT_BYTES are
-# project values only a human can decide, so the escalation is correct rather
-# than a defect.
+# Green post-agent: 5/5 ground-truth comparisons and the config-header
+# assertion pass. The one escalation was a legitimate handoff rather than a
+# defect — XML_GE, XML_DTD, XML_CONTEXT_BYTES and friends are project feature
+# switches whose values come from expat's OWN defaults in configure.ac, not
+# from probing this host. Resolutions are ephemeral (bzl-b9b), so re-running
+# the agent stage is expected after any translator change.
 convert_autotools_project(
     name = "converted",
     srcs = ["@expat//:all_srcs"],

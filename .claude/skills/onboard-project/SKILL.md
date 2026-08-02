@@ -58,8 +58,16 @@ repo. Commit when you reach one, even if the next is minutes away.
 | 1 | The project is pinned and converts | `MODULE.bazel` entry, `corpus/<p>/BUILD.bazel`, enrollment |
 | 2 | Each translator fix, separately | the fix, its test, its fixture |
 | 3 | The module builds in the unpacked workspace | whatever closed the last build failure |
-| 4 | The agent stage has resolved the escalations | the resolutions, in the GENERATED output |
-| 5 | Green, measured | metrics row, regenerated page, corpus comment |
+| 4 | The agent stage has resolved the escalations | the post-agent metrics row — see below |
+| 5 | Green, measured | regenerated page, corpus comment, epic's cost note |
+
+**Milestone 4 commits a RESULT, not the resolutions.** They are ephemeral by
+design (bzl-b9b): they live in the unpacked workspace and re-converting
+discards them. Every green corpus project commits only its
+`corpus/<p>/BUILD.bazel` — check json-c, which has exactly one file. What
+lands is the `history_post_agent.jsonl` row saying the project reached green
+at this commit, which is why the resolution has to be redone (and re-earn
+its green) after any later translator change.
 
 **One fix per commit at milestone 2.** Onboarding tends to surface several
 unrelated bugs, and bundling them is what makes a bisect useless later. Each
