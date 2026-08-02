@@ -96,9 +96,16 @@ pub fn discover(
 ) -> Result<Discovery, Error> {
     configure(source_dir, build_dir)?;
     // The build IS the interrogation: make echoes every command as it runs
-    // them, so its stdout is the resolved command stream. There is no second
-    // pass.
-    let stream = build(build_dir)?;
+    // them, so its stdout is the resolved command stream.
+    let stream = build(build_dir, &[])?;
+    // Then a second pass for the test programs, which the first cannot see:
+    // automake defers anything `check_`-prefixed, so plain `make` compiles
+    // none of them and emits no command for them. Appended rather than parsed
+    // separately — a test program is a target like any other, and the whole
+    // point is that it arrives with the same OBSERVED evidence as the rest
+    // rather than being inferred from the declaration. See
+    // `build_check_programs` for why failure here is not fatal.
+    let stream = format!("{stream}\n{}", build_check_programs(build_dir));
     let database = variable_database(build_dir)?;
 
     // An empty stream is a FAILED conversion, not a project with no targets.
@@ -290,7 +297,10 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
 }
 
 /// Really builds the project, producing the ground-truth artifacts.
-fn build(build_dir: &Path) -> Result<String, Error> {
+///
+/// `extra_args` is how the test-programs pass is expressed — see
+/// [`build_check_programs`]. Empty for the ordinary build.
+fn build(build_dir: &Path, extra_args: &[&str]) -> Result<String, Error> {
     // Parallel: the build is the ground-truth capture, and nothing about it
     // needs to be serial. Measured 14s -> 2s on xz. `-j` with no argument
     // would be unbounded, which on a large project starves the machine, so
@@ -307,6 +317,7 @@ fn build(build_dir: &Path) -> Result<String, Error> {
         // compile to the wrong directory, which surfaces as a source path that
         // does not resolve. Measured no slower (still 2s on xz).
         .arg("--output-sync=recurse")
+        .args(extra_args)
         .current_dir(build_dir)
         .output()?;
     if !output.status.success() {
@@ -315,6 +326,31 @@ fn build(build_dir: &Path) -> Result<String, Error> {
         });
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// Builds the project's `check_PROGRAMS` and returns their command stream.
+///
+/// A second pass, because automake's `check_` prefix means plain `make` never
+/// compiles them: they are deferred so someone installing the project does
+/// not pay to build its test suite. Measured on jansson — the ordinary build
+/// emits 36 compile commands and mentions a test program in NONE of them,
+/// while this pass emits 19 that name all 18. Without it the frontend cannot
+/// see the tests at all, and reports `tests: 0`, which is a false positive
+/// claim rather than an absence.
+///
+/// `TESTS=` is what keeps this to a BUILD. `make check` would also RUN the
+/// suite, which costs time the conversion does not need and makes the exit
+/// status depend on whether the project's own tests pass — jansson's
+/// `check-exports` fails natively while all 18 compiled tests pass, so
+/// running them would abort a conversion over something unrelated to
+/// translation. Emptying `TESTS` is automake's own idiom for the build half.
+///
+/// Failure is NOT fatal, and that is the important part. A project whose test
+/// programs do not compile still converts, minus its tests; the alternative
+/// is that one broken test target blocks the whole conversion. The caller
+/// gets an empty stream and carries on.
+fn build_check_programs(build_dir: &Path) -> String {
+    build(build_dir, &["check", "TESTS="]).unwrap_or_default()
 }
 
 /// Runs `make -p` and returns make's resolved variable database.
