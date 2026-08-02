@@ -614,7 +614,17 @@ fn is_primary(name: &str) -> bool {
     // `run-suites` in test/ and `scripts/clang-format-check` at the root.
     // Last-wins kept one and silently dropped the other, which is the defect
     // this whole branch exists to prevent.
+    // `TESTS` is not a primary, and neither is `am__EXEEXT_N`, but both
+    // accumulate for the primaries' reason: recursive make declares them per
+    // directory. libmicrohttpd defines `am__EXEEXT_1` five times — once per
+    // directory with a first conditional, one of them EMPTY — so last-wins
+    // kept whichever came last, lost the other four, and its tests escalated
+    // as the literal text `$(am__EXEEXT_1)`.
+    //
+    // Matched by PREFIX because the suffix is a counter, not a kind. The
+    // `am__` namespace is automake's own and a project cannot collide with it.
     name == "TESTS"
+        || name.starts_with("am__")
         || name
             .rsplit_once('_')
             .is_some_and(|(_, primary)| matches!(primary, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"))
@@ -2292,6 +2302,31 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
             "a reference inside an expansion has to resolve too, or a project \
              using automake conditionals reports its tests as the literal text \
              `$(am__EXEEXT_1)`"
+        );
+    }
+
+    // libmicrohttpd defines `am__EXEEXT_1` FIVE times — once per directory
+    // that has a first conditional, including one directory where it is
+    // EMPTY. Last-wins kept whichever came last and lost the rest, so its
+    // tests escalated as the literal text `$(am__EXEEXT_1)`. Same reason
+    // primaries and TESTS accumulate: make never sees these together.
+    #[test]
+    fn a_conditional_variable_defined_per_directory_keeps_every_definition() {
+        let vars = parse_variables(
+            "am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+             am__EXEEXT_1 = \n\
+             am__EXEEXT_1 = perf_replies$(EXEEXT)\n\
+             check_PROGRAMS = $(am__EXEEXT_1)\n\
+             TESTS = $(check_PROGRAMS)\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![
+                TestEntry::Binary("test_md5".to_string()),
+                TestEntry::Binary("perf_replies".to_string()),
+            ],
+            "an empty definition must not erase the real ones, and every \
+             directory's contribution has to survive the flattening"
         );
     }
 
