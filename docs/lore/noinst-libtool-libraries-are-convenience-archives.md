@@ -68,11 +68,27 @@ Fixed: `is_shared` now requires `destination != "noinst"`. That is the whole
 of the "libtool library" question and it is well-evidenced — the destination
 prefix is the input stating it, and libmicrohttpd exercises the negative.
 
-**Not** fixed: expressing the absorption itself. Bazel wants a static dep
-absorbed into a shared library named in `static_deps`, and codegen emits
-none, so libidn2 still fails one error further on. Left open on purpose —
-`static_deps` is a whole-library declaration and the real relationship is
-selective and transitive, so it is a coarser claim than one project's
-evidence supports. Modelling a Bazel attribute from a single witness is
-exactly what the corpus rule about measuring a shape across five projects
-exists to prevent.
+**Not** fixed deterministically: expressing the absorption itself. The
+translator escalates it instead, because whether the archive should be
+absorbed or exported is a project judgement the input does not state.
+
+The attribute to reach for is **`deps`** on the `cc_shared_library` — it
+links the archive in and keeps its symbols local, which is what a `noinst_`
+archive is for. Two spellings that look right and are not:
+
+- **`static_deps` is forbidden.** rules_cc rejects it: *"a no-op and its
+  usage is forbidden after `cc_shared_library` is no longer experimental"*
+  (`cc/private/rules_impl/cc_shared_library_impl.bzl`, 0.2.22). It is all
+  over older material and it cannot work.
+- **`roots` was renamed to `deps`.** Same vintage, same problem.
+
+`exports_filter` is the real alternative and means something different: it
+asserts the shared library **exports** those symbols. Check before claiming
+it — libidn2's own `.so` exports 23 symbols, none of them libgnu's, whose
+objects are present as local `t` symbols.
+
+Still deliberately not deterministic: `deps` is a whole-library statement
+and the real relationship is selective and transitive (above), so which
+branch is right is a coarser claim than one project's evidence supports.
+Modelling a Bazel attribute from a single witness is exactly what the corpus
+rule about measuring a shape across five projects exists to prevent.
