@@ -91,7 +91,16 @@ finished when all four hold:
 3. every **ground-truth comparison** passes — stdout, stderr and exit code
    match what the project's own build system produced, and
 4. every test the **module itself** ships passes: the config-header
-   assertions, and any test the project registered.
+   assertions, and any test the project registered — a CTest test the
+   translator could express becomes an `sh_test` in the module, and it
+   counts.
+
+At least one test of *some* kind must have run. Both shapes are legitimate
+on their own: a library-only project has no runnable binary to compare and
+may still ship an `sh_test`; a fixture with no config header and no
+registered test has only its comparison. What must never pass is a project
+where everything failed to build, which reports zero passed and zero failed
+on both counts.
 
 Re-running `sweep.py --post-agent` checks all four and exits 0 only when they
 hold. It reports the last two separately, because they fail for different

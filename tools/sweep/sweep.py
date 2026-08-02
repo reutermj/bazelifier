@@ -159,24 +159,27 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
         rf'name = "({re.escape(project)}_[A-Za-z0-9_.-]+_matches_ground_truth)"',
         (work / "BUILD.bazel").read_text(),
     )
-    if not names:
-        raise SystemExit(
-            f"'{project}' has no comparison targets in the generated workspace. "
-            "A project with no runnable binary produces none, so there is "
-            "nothing for the post-agent half to measure."
+    # No comparison targets is legitimate, not an error: a project that builds
+    # only a library produces no runnable binary to compare. tinyxml2 is that
+    # shape and still ships an sh_test of its own, so bailing here would skip
+    # the only check it has. What IS an error is having neither — see the
+    # green condition, which requires at least one test of some kind to run.
+    passed = failed = 0
+    if names:
+        tests = bazel(
+            "test",
+            *[f"//:{n}" for n in names],
+            "--override_module=cc_config=" + str(REPO / "cc_config"),
+            "--keep_going",
+            cwd=work,
         )
-    tests = bazel(
-        "test",
-        *[f"//:{n}" for n in names],
-        "--override_module=cc_config=" + str(REPO / "cc_config"),
-        "--keep_going",
-        cwd=work,
-    )
-    # Counted per NAMED target, so a summary line mentioning "PASSED" cannot
-    # inflate the number.
-    combined = tests.stdout + tests.stderr
-    passed = sum(1 for n in names if re.search(rf"//:{re.escape(n)}\s+.*PASSED", combined))
-    failed = len(names) - passed
+        # Counted per NAMED target, so a summary line mentioning "PASSED"
+        # cannot inflate the number.
+        combined = tests.stdout + tests.stderr
+        passed = sum(
+            1 for n in names if re.search(rf"//:{re.escape(n)}\s+.*PASSED", combined)
+        )
+        failed = len(names) - passed
 
     # The module's OWN tests, which the comparisons do not cover and which
     # nothing else runs. A converted module ships config-header assertions and
@@ -394,20 +397,20 @@ def main() -> int:
             args.json.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
         # Open items mean an unfinished conversion, so the exit code says so —
         # green is the only passing state.
+        ran = result["comparisons_passed"] + result["module_tests_passed"]
         green = (
             result["resolved"]
             and result["comparisons_failed"] == 0
-            and result["comparisons_passed"] > 0
             and result["module_tests_failed"] == 0
+            and ran > 0
         )
-        # comparisons_passed > 0 matters: a project whose comparisons all
-        # failed to BUILD reports 0 passed and 0 failed, which would otherwise
-        # read as success — a gate looking at nothing.
-        #
-        # module_tests are NOT held to the same > 0 rule: a module that
-        # registered no tests legitimately has none, and requiring one would
-        # fail every fixture without a config header. Their FAILURES still
-        # count, which is the half that matters.
+        # `ran > 0` is the gate-looking-at-nothing guard, and it counts BOTH
+        # kinds rather than requiring one of each. Either alone is a real
+        # shape: a library-only project (tinyxml2) has no runnable binary to
+        # compare and still ships an sh_test; a fixture with no config header
+        # and no registered test has only its comparison. What must not pass
+        # is a project where everything failed to BUILD — that reports 0
+        # passed and 0 failed on both counts and would otherwise read green.
         return 0 if green else 1
 
     sweep = run_pre_agent()
