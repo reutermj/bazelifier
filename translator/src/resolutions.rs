@@ -61,6 +61,10 @@ pub fn all() -> Vec<Recipe> {
             filename: "ctest-command-not-a-target.md",
             body: CTEST_COMMAND_NOT_A_TARGET,
         },
+        Recipe {
+            filename: "shared-library-absorbs-static.md",
+            body: SHARED_LIBRARY_ABSORBS_STATIC,
+        },
     ]
 }
 
@@ -564,3 +568,82 @@ config header:
   it to that probe deliberately; the translator refused to guess for you on
   purpose.
 "##;
+
+/// How to resolve a shared library that links a static one from the same
+/// module. Deliberately lays out the options with their trade-offs rather
+/// than prescribing one: which is right depends on what the archive is to
+/// the project, which is exactly why the translator escalates.
+const SHARED_LIBRARY_ABSORBS_STATIC: &str = r#"# Recipe: a shared library that absorbs a static one
+
+## What you are looking at
+
+A `cc_shared_library` in this module links a `cc_library` that is also in
+this module, and Bazel refuses to build it:
+
+```
+Two shared libraries in dependencies link the same library statically
+The following libraries were linked statically by different
+  cc_shared_libraries but not exported
+```
+
+The error names generated rules, not anything in the original project, which
+is why an item was written for it.
+
+In the original build this was almost certainly automake's
+`noinst_LTLIBRARIES` — a **convenience archive**. It is compiled but never
+installed, and exists so several targets can share a set of objects. libtool
+builds no `.so` for one; the objects are pulled into whatever links it.
+gnulib's `libgnu.la` is the common example.
+
+## Deciding
+
+Ask one question: **does anything other than this shared library use the
+archive?**
+
+Check the project's own `Makefile.am` for other `_LIBADD` or `_LDADD` lines
+naming it, and look at whether any program links it directly.
+
+### Nothing else uses it — fold it in
+
+The usual case. The archive was an organisational device inside one library.
+
+Move its `srcs`, `hdrs`, `includes` and `local_defines` into the shared
+library's own `cc_library`, delete the separate rule, and remove it from
+`deps`. Watch for `copts` or `local_defines` that differ between the two —
+if the archive was compiled with different flags, folding changes how those
+sources are built and you need the third option instead.
+
+### Several targets use it — `static_deps`
+
+Keep the `cc_library` and name it in the `cc_shared_library`'s `static_deps`.
+One definition of the sources, absorbed into the shared library.
+
+Be aware this is a **whole-library** statement and the original build's is
+not: a static archive contributes only the members something references, so
+the real `.so` typically contains some of the archive's objects and not
+others. The link works either way; the resulting library is slightly larger
+than the project's own. Say so in your resolution rather than leaving the
+difference unrecorded.
+
+### Consumers call into it — export it
+
+Rare for a `noinst_` library, which is by definition not part of the
+installed interface. Only choose this if the project's public headers
+declare functions the archive defines.
+
+## Two things that will bite
+
+**The dependency may be transitive.** The archive can be reached through
+another library rather than named directly by the shared one. Follow the
+`deps` chain before folding anything in — the target that actually
+references the symbols may not be the one you started from.
+
+**Do not just delete the archive's rule.** Its sources have to end up
+somewhere. Dropping them leaves undefined symbols at link, far from this
+item, and a green analysis phase makes that look unrelated.
+
+## Not a resolution
+
+Editing the project's `Makefile.am` or `configure.ac`. The input build files
+are immutable; the resolution belongs in the generated `BUILD.bazel`.
+"#;

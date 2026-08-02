@@ -46,7 +46,8 @@ use crate::headers::{
 use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind, Test};
 use crate::needs_attention::{
     ConfigDialect, ctest_command_not_a_target_needs_attention,
-    sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
+    shared_library_absorbs_static_needs_attention, sources_outside_deliverable_needs_attention,
+    unmapped_config_macros_needs_attention,
 };
 use crate::paths::{absolutize, anchor_for_display, common_ancestor, normalize_lexically};
 
@@ -1595,6 +1596,36 @@ pub(crate) fn to_graph(
             }
         }
     }
+    // A shared library that links a static one from the same module. Bazel
+    // rejects it at ANALYSIS, naming generated rules rather than anything in
+    // the project, so without this the user sees a failure they cannot
+    // connect to what they wrote.
+    //
+    // Escalated rather than resolved because the translator has the facts and
+    // not the judgement: it knows automake declared the archive `noinst_` and
+    // that the shared library links it, but not whether the archive is an
+    // implementation detail to fold in or an interface to export. The
+    // relationship is also selective — the linker takes only referenced
+    // members — so no single Bazel attribute states it exactly.
+    let static_libraries: HashSet<&str> = targets
+        .iter()
+        .filter(|t| matches!(t.kind, TargetKind::Library) && !t.is_shared)
+        .map(|t| t.name.as_str())
+        .collect();
+    for target in targets.iter().filter(|t| t.is_shared) {
+        let absorbed: Vec<String> = target
+            .dependencies
+            .iter()
+            .filter(|d| static_libraries.contains(d.as_str()))
+            .cloned()
+            .collect();
+        if !absorbed.is_empty() {
+            needs_attention.push(shared_library_absorbs_static_needs_attention(
+                &target.name,
+                &absorbed,
+            ));
+        }
+    }
     if !unexpressed_tests.is_empty() {
         needs_attention.push(ctest_command_not_a_target_needs_attention(
             &unexpressed_tests
@@ -2767,6 +2798,79 @@ make[1]: Leaving directory '/build/gl'\n\
     // EMPTY. Last-wins kept whichever came last and lost the rest, so its
     // tests escalated as the literal text `$(am__EXEEXT_1)`. Same reason
     // primaries and TESTS accumulate: make never sees these together.
+    #[test]
+    fn a_shared_library_absorbing_a_static_one_escalates() {
+        // Bazel rejects this at ANALYSIS with an error naming generated
+        // rules, so without an escalation the user sees a failure they
+        // cannot connect to anything they wrote.
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/gl'\n\
+gcc -c -o helper.o helper.c\n\
+libtool --tag=CC --mode=link gcc helper.o -o libgnu.la\n\
+make[1]: Leaving directory '/src/gl'\n\
+make[1]: Entering directory '/src/lib'\n\
+gcc -c -o main.o main.c\n\
+libtool --tag=CC --mode=link gcc main.o ../gl/libgnu.la -o libthing.la\n\
+make[1]: Leaving directory '/src/lib'\n\
+";
+        let vars = parse_variables(
+            "noinst_LTLIBRARIES = gl/libgnu.la\nlibgnu_la_SOURCES = helper.c\n\
+             lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n",
+        );
+        let (_, escalations, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "conv",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        let item = escalations
+            .iter()
+            .find(|e| e.kind == "shared_library_absorbs_static")
+            .unwrap_or_else(|| {
+                panic!("a shared library linking a static one must escalate: {escalations:#?}")
+            });
+        assert!(
+            item.gap.contains("libgnu"),
+            "and must name the absorbed archive: {}",
+            item.gap
+        );
+    }
+
+    // The other direction, so the check cannot be wired to always fire: a
+    // shared library with no static dependency is the ordinary case and must
+    // stay silent. xz, expat and jansson are all this shape.
+    #[test]
+    fn a_shared_library_with_no_static_dependency_does_not_escalate() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/lib'\n\
+gcc -c -o main.o main.c\n\
+libtool --tag=CC --mode=link gcc main.o -o libthing.la\n\
+make[1]: Leaving directory '/src/lib'\n\
+";
+        let vars =
+            parse_variables("lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n");
+        let (_, escalations, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "conv",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        assert!(
+            !escalations
+                .iter()
+                .any(|e| e.kind == "shared_library_absorbs_static"),
+            "no static dependency, nothing to escalate: {escalations:#?}"
+        );
+    }
+
     #[test]
     fn a_noinst_libtool_library_is_not_shared() {
         // `noinst_` means built but never installed — libtool makes it a

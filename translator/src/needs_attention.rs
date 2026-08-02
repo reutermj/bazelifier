@@ -651,6 +651,90 @@ pub fn ctest_command_not_a_target_needs_attention(
 /// the `hdrs`/`srcs` split, so consumers can include the header either way.
 /// The item exists because the gap is invisible in a green build, which is
 /// the case most needing explicit triage rather than least.
+/// Escalates a shared library that absorbs a static one from the same
+/// module — automake's `noinst_LTLIBRARIES` convenience archive, `LIBADD`ed
+/// into an installed `lib_LTLIBRARIES`.
+///
+/// The translator has the FACTS and not the JUDGEMENT, which is why this
+/// escalates rather than picking an attribute. It knows the archive is not
+/// installed, that the shared library links it, and that Bazel rejects the
+/// combination. What it cannot know is whether the archive is an
+/// implementation detail to fold in or an interface to export — and the
+/// relationship is subtler than any single Bazel attribute expresses, since
+/// the linker takes only the members actually referenced.
+pub fn shared_library_absorbs_static_needs_attention(
+    shared: &str,
+    absorbed: &[String],
+) -> NeedsAttention {
+    let title = format!(
+        "Shared library '{shared}' absorbs {} static librar(y/ies)",
+        absorbed.len()
+    );
+    NeedsAttention {
+        kind: "shared_library_absorbs_static",
+        subject: shared.to_string(),
+        gap: format!(
+            "The shared library '{shared}' links these static libraries from this same \
+             module:\n\n{}\n\nBazel does not accept that as written. A `cc_library` \
+             reached through a `cc_shared_library` is linked INTO it, and Bazel refuses \
+             to do so unless told explicitly how, failing at ANALYSIS with one of:\n\n\
+             - \"Two shared libraries in dependencies link the same library statically\"\n\
+             - \"The following libraries were linked statically by different \
+             cc_shared_libraries but not exported\"\n\n\
+             That error names generated rules rather than anything in the project, which \
+             is why it is escalated here instead of left for you to decode.\n\n\
+             The project's own build expresses this with automake's \
+             `noinst_LTLIBRARIES` — a CONVENIENCE ARCHIVE, built but never installed, \
+             whose object files are meant to be pulled into whatever links it. libtool \
+             produces no shared object for one at all.",
+            absorbed
+                .iter()
+                .map(|a| format!("- `{a}`"))
+                .collect::<Vec<_>>()
+                .join("\n")
+        ),
+        context: format!(
+            "Three resolutions, and which is right depends on what the archive IS to \
+             this project. The translator cannot tell them apart, which is why you are \
+             reading this.\n\n\
+             - **Fold it in.** If the archive exists only to organise the shared \
+             library's own sources — the usual case for a `noinst_` convenience \
+             library — move its `srcs` and `hdrs` into '{shared}' directly and delete \
+             the separate rule. Simplest, and correct whenever nothing else links the \
+             archive.\n\
+             - **Declare it in `static_deps`.** Keeps the separate `cc_library` and \
+             tells the `cc_shared_library` it absorbs it. Right when several targets \
+             link the archive and you want one definition of its sources. Note this is \
+             a WHOLE-LIBRARY claim.\n\
+             - **Export its symbols.** Only if consumers of '{shared}' are meant to \
+             call into the archive, which for a `noinst_` library they usually are \
+             not.\n\n\
+             One thing to know before choosing, because it makes `static_deps` an \
+             over-statement: the absorption is SELECTIVE. A static archive contributes \
+             only the members something actually references, so the shared object ends \
+             up with some of the archive's objects and not others. If you check the \
+             original build you will typically find only the referenced ones present. \
+             `static_deps` says the whole archive is absorbed, which is true enough for \
+             the link to work and is not what the original build did.\n\n\
+             The relationship can also be TRANSITIVE — the archive may be reached \
+             through another library rather than named directly by '{shared}' — so \
+             check which target actually references its symbols before folding \
+             anything in.\n\n\
+             Resolve this in the GENERATED output only. Do NOT edit the project's \
+             `Makefile.am` or `configure.ac`."
+        ),
+        expected_output: format!(
+            "'{shared}' and the librar(y/ies) it absorbs build without a Bazel analysis \
+             error, and the shared object still provides the symbols consumers expect. \
+             If you folded an archive in, its separate rule is gone rather than left \
+             orphaned; if you used `static_deps`, every target that links the archive \
+             agrees. A resolution that merely deletes the archive's rule and drops its \
+             sources is wrong — the symbols would go missing at link, far from here."
+        ),
+        title,
+    }
+}
+
 pub fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
     let title = format!("Library '{target_name}' has headers with no public declaration");
     NeedsAttention {
@@ -929,6 +1013,51 @@ mod tests {
     // `resolutions/` recipe simultaneously said `configure.ac`/`Makefile.am`.
     // The NEGATIVE half is the half that failed: the item read plausibly, and
     // only naming a construct the project does not contain gave it away.
+    #[test]
+    fn the_absorbed_static_escalation_names_both_ends_and_the_bazel_error() {
+        let item = shared_library_absorbs_static_needs_attention(
+            "libidn2.la",
+            &["libgnu.la".to_string(), "libunistring.la".to_string()],
+        );
+
+        assert!(
+            item.gap.contains("libidn2.la")
+                && item.gap.contains("libgnu.la")
+                && item.gap.contains("libunistring.la"),
+            "the agent has to know WHICH shared library and WHICH archives; \
+             the resolution differs per archive:\n{}",
+            item.gap
+        );
+        // The failure the user actually sees is a Bazel analysis error naming
+        // rules nobody wrote. An item that does not quote it leaves them
+        // unable to connect the two.
+        assert!(
+            item.gap.contains("linked statically by different")
+                || item.gap.contains("link the same"),
+            "the item must quote the Bazel error it explains, or the reader \
+             cannot tell this item is about the failure in front of \
+             them:\n{}",
+            item.gap
+        );
+        // Three genuinely different resolutions, and which is right depends
+        // on whether the archive is an implementation detail.
+        assert!(
+            item.context.contains("static_deps")
+                && item.context.to_lowercase().contains("fold it in")
+                && item.context.to_lowercase().contains("export its symbols"),
+            "all three options must be offered, since the translator cannot \
+             choose between them — that is why this escalates:\n{}",
+            item.context
+        );
+        assert!(
+            item.context.to_lowercase().contains("selective"),
+            "and the item must say the absorption is SELECTIVE, because a \
+             reader who assumes whole-library semantics picks static_deps \
+             without noticing it overstates the relationship:\n{}",
+            item.context
+        );
+    }
+
     #[test]
     fn an_autoconf_config_header_escalation_speaks_autoconf_not_cmake() {
         let item = unmapped_config_macros_needs_attention(
