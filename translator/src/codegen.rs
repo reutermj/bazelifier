@@ -274,12 +274,24 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
     // The `@VAR@` check in `must_not_contain` still covers those values, and
     // is the stronger test anyway: a surviving placeholder proves the
     // substitution did not run, whatever the value was.
+    // Measured on the value WITHOUT its C quotes, when it has them. An
+    // autoconf value arrives already quoted (see `ConfigHeader::values`), so
+    // `"ab"` is four characters and would clear this bar while the identical
+    // CMake value `ab` does not — the threshold would mean something
+    // different per frontend, which is exactly what it must not do.
     const MIN_DISTINGUISHING_LEN: usize = 4;
     let must_contain: Vec<String> = header
         .values
         .iter()
         .map(|(_, value)| value)
-        .filter(|value| value.len() >= MIN_DISTINGUISHING_LEN)
+        .filter(|value| {
+            value
+                .strip_prefix('"')
+                .and_then(|v| v.strip_suffix('"'))
+                .unwrap_or(value)
+                .len()
+                >= MIN_DISTINGUISHING_LEN
+        })
         .cloned()
         .collect();
 
@@ -1689,6 +1701,41 @@ mod tests {
     // so the assertion passed whether or not the substitution ran. Short
     // values ("1", "OFF") are unanchored substrings a real header hits by
     // accident. Both read as coverage while checking nothing.
+    #[test]
+    // The threshold judges how DISTINGUISHING a needle is, so it has to
+    // measure the same thing whichever frontend produced the value. An
+    // autoconf value carries C quotes and a CMake one does not, so counting
+    // the stored bytes would let `"ab"` through while rejecting `ab` — the
+    // same fact, opposite verdicts. See `ConfigHeader::values`.
+    #[test]
+    fn the_value_length_filter_ignores_c_quotes() {
+        let mut out = String::new();
+        render_config_header_assertion(
+            &mut out,
+            &model::ConfigHeader {
+                output: "config.h".to_string(),
+                template: "config.h.in".to_string(),
+                template_source: None,
+                catalog_probes: vec![],
+                values: vec![
+                    // Two characters of signal, quoted to four bytes.
+                    ("SHORT".to_string(), "\"ab\"".to_string()),
+                    // Four characters of signal, quoted to six.
+                    ("LONG".to_string(), "\"abcd\"".to_string()),
+                ],
+            },
+        );
+        assert!(
+            !out.contains("\\\"ab\\\""),
+            "a two-character value is an unanchored substring a real header \
+             hits by accident; its quotes must not buy it past the bar:\n{out}"
+        );
+        assert!(
+            out.contains("abcd"),
+            "and a genuinely distinguishing value must still be asserted:\n{out}"
+        );
+    }
+
     #[test]
     fn config_header_assertion_omits_values_that_cannot_fail() {
         let mut g = graph(None);

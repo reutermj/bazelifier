@@ -232,8 +232,29 @@ pub struct ConfigHeader {
     /// Catalog probe labels (`@cc_config//catalog:have_endian_h`) for the
     /// template's `#cmakedefine`s the catalog covers.
     pub catalog_probes: Vec<String>,
-    /// `@VAR@` substitutions resolved from the CMake cache at conversion time
-    /// (toolchain-independent, e.g. version strings), as (name, value).
+    /// Substitutions the frontend resolved at conversion time — package
+    /// metadata, version strings, anything that is a fact about the PROJECT
+    /// rather than about the consumer's toolchain — as (name, value).
+    ///
+    /// **The value is stored exactly as it must appear in the generated
+    /// header**, quoting included. That is the invariant, and it is not the
+    /// same as "the value the build system reported", because the two
+    /// dialects differ:
+    ///
+    /// - CMake templates carry their own quotes —
+    ///   `#cmakedefine FOO "@FOO@"` — so the cache value goes in raw.
+    /// - autoconf's `#undef FOO` has nowhere to put them, and `AC_DEFINE`
+    ///   emits a C string literal, so a non-numeric value arrives already
+    ///   wrapped in `"`. A numeric one does not: `SIZEOF_LONG` and
+    ///   `ASSUME_RAM` are used in `#if` and arithmetic, where a string
+    ///   literal is a type error rather than a quoting nicety.
+    ///
+    /// Stated here because the field is shared and the callers disagree,
+    /// which is invisible at the type level: `String` on both sides. A
+    /// consumer that assumes either convention is wrong for one frontend —
+    /// `codegen::render_config_header_assertion` filters short values to
+    /// avoid vacuous `grep` needles, and those two quote characters shift
+    /// where that threshold falls.
     pub values: Vec<(String, String)>,
 }
 
