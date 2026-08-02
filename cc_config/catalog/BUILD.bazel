@@ -1,7 +1,17 @@
-# Smoke test: consume a few catalog probes through a config header and assert
-# the values are correct for the toolchain the module builds against (llvm +
-# glibc, Linux x86-64). These facts are stable for that toolchain; the test
-# would surface a probe that regresses or a catalog entry with a wrong header.
+# Smoke test: consume catalog probes through a config header and assert the
+# values are correct for the toolchain the module builds against (llvm +
+# glibc, Linux x86-64). These facts are stable for that toolchain.
+#
+# It is the ONLY thing that checks a catalog entry's header PATH.
+# //:catalog_sync_check compares the define NAMES here against the
+# translator's CATALOG_DEFINES and cannot see the path at all, so a typo in
+# one used to pass both gates while the probe silently reported false — and
+# false is indistinguishable from "the platform lacks it". Mutating
+# sys/socket.h to sys/sockettypo.h now fails this test; it did not before.
+#
+# So an entry added to the catalog above wants an assertion here. Not every
+# one is worth the line, but a probe nothing asserts is a probe whose answer
+# nothing has ever checked.
 load("//cc_config:config_header.bzl", "assert_config_header_test", "config_header")
 load(":catalog.bzl", "cc_config_catalog")
 
@@ -233,6 +243,26 @@ config_header(
         ":have_stdlib_h",
         ":sizeof_long",
         ":sizeof_int",
+        ":have_sys_socket_h",
+        ":have_netinet_in_h",
+        ":have_arpa_inet_h",
+        ":have_netdb_h",
+        ":have_poll_h",
+        ":have_pthread_h",
+        ":have_sched_h",
+        ":have_signal_h",
+        ":have_time_h",
+        ":have_errno_h",
+        ":have_stddef_h",
+        ":have_stdalign_h",
+        ":have_sys_ioctl_h",
+        ":have_sys_mman_h",
+        ":have_sys_select_h",
+        ":have_sys_uio_h",
+        ":have_sys_msg_h",
+        ":have_net_if_h",
+        ":have_netinet_ip_h",
+        ":have_netinet_tcp_h",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -246,6 +276,26 @@ assert_config_header_test(
         "#define HAVE_STDLIB_H",
         "#define SIZEOF_LONG 8",
         "#define SIZEOF_INT 4",
+        "#define HAVE_SYS_SOCKET_H",
+        "#define HAVE_NETINET_IN_H",
+        "#define HAVE_ARPA_INET_H",
+        "#define HAVE_NETDB_H",
+        "#define HAVE_POLL_H",
+        "#define HAVE_PTHREAD_H",
+        "#define HAVE_SCHED_H",
+        "#define HAVE_SIGNAL_H",
+        "#define HAVE_TIME_H",
+        "#define HAVE_ERRNO_H",
+        "#define HAVE_STDDEF_H",
+        "#define HAVE_STDALIGN_H",
+        "#define HAVE_SYS_IOCTL_H",
+        "#define HAVE_SYS_MMAN_H",
+        "#define HAVE_SYS_SELECT_H",
+        "#define HAVE_SYS_UIO_H",
+        "#define HAVE_SYS_MSG_H",
+        "#define HAVE_NET_IF_H",
+        "#define HAVE_NETINET_IP_H",
+        "#define HAVE_NETINET_TCP_H",
     ],
     must_not_contain = [
         "#define HAVE_XLOCALE_H",  # must not be defined on glibc
