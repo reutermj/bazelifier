@@ -26,6 +26,36 @@ GRID = "#e4e7eb"
 SERIES = ["#2f6f9f", "#b0562a", "#4a7c59", "#8a5a9e", "#a03e52", "#7a6a3a"]
 
 
+def load_post_agent(history: pathlib.Path) -> dict[str, dict]:
+    """Latest post-agent run per project, from the sibling JSONL.
+
+    Absent for most projects, and that is the point: "not measured" and "not
+    green" are different states, and conflating them is what let a project sit
+    unvalidated for three days without it being visible (bzl-spf).
+    """
+    path = history.with_name(history.stem + "_post_agent.jsonl")
+    if not path.exists():
+        return {}
+    latest: dict[str, dict] = {}
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        prev = latest.get(row["project"])
+        if prev is None or row.get("timestamp", 0) >= prev.get("timestamp", 0):
+            latest[row["project"]] = row
+    return latest
+
+
+def validated_cell(row: dict | None) -> str:
+    """How a project's post-agent state renders, including never-run."""
+    if row is None:
+        return '<span class="flat" title="the agent stage has not been run for this project">not measured</span>'
+    if row.get("green"):
+        return f'<span class="down" title="at {row["commit"]}">validated</span>'
+    return '<span class="up">not green</span>'
+
+
 def load(path: pathlib.Path) -> list[dict]:
     rows = [
         json.loads(line) for line in path.read_text().splitlines() if line.strip()
@@ -177,7 +207,7 @@ def series_for(rows: list[dict], project: str) -> list[tuple[dict, dict]]:
     return out
 
 
-def render_project(rows: list[dict], project: str) -> str:
+def render_project(rows: list[dict], project: str, post: dict | None) -> str:
     pairs = series_for(rows, project)
     labels = [s.get("date", "?") + " " + s["commit"][:7] for s, _ in pairs]
     recs = [r for _, r in pairs]
@@ -207,6 +237,27 @@ def render_project(rows: list[dict], project: str) -> str:
                 [(k, [r["escalations_by_kind"].get(k, 0) for r in recs]) for k in kinds],
                 labels,
             )
+        )
+
+    if post is None:
+        post_section = (
+            '<p class="sub">Whether it is currently GREEN is a separate '
+            "question, and the agent stage has never been run for it — so this "
+            'page says "not measured" rather than implying "not green". Run '
+            f"<code>python3 tools/sweep/sweep.py --post-agent {html.escape(project)} "
+            "--append metrics/history.jsonl</code>.</p>"
+        )
+    else:
+        verdict = "GREEN" if post.get("green") else "NOT green"
+        post_section = (
+            f'<p class="sub">Post-agent, at <code>{html.escape(post["commit"])}</code> '
+            f'({html.escape(post.get("date", "?"))}): <strong>{verdict}</strong> — '
+            f"{post['comparisons_passed']} of "
+            f"{post['comparisons_passed'] + post['comparisons_failed']} comparisons "
+            f"and {post['module_tests_passed']} of "
+            f"{post['module_tests_passed'] + post['module_tests_failed']} module tests "
+            "passed. Resolutions are ephemeral by design, so this describes one "
+            "run at one commit rather than a standing property.</p>"
         )
 
     open_rows = "".join(
@@ -244,15 +295,12 @@ ephemeral: a translation carries project-specific semantics, and the point
 is that the process adapts to them rather than memorises them. So this page
 shows what the translator alone achieves, which is the half that should be
 reproducible.</p>
-<p class="sub">It does <strong>not</strong> show whether the project is
-currently green — that needs the agent stage, and nothing records its result
-yet (bzl-ccv.10). Run it with
-<code>python3 tools/sweep/sweep.py --post-agent {html.escape(project)}</code>.</p>
+{post_section}
 </section>
 """
 
 
-def render(rows: list[dict]) -> str:
+def render(rows: list[dict], post: dict[str, dict]) -> str:
     labels = [r.get("date", "?") + " " + r["commit"][:7] for r in rows]
     tots = [totals(r) for r in rows]
 
@@ -314,7 +362,8 @@ def render(rows: list[dict]) -> str:
             f"<tr><td><a href=\"{slug(p['project'])}.html\">"
             f"{html.escape(p['project'])}</a></td>"
             f"<td class=n>{p['targets']}</td><td class=n>{p['tests']}</td>"
-            f"<td class=n>{p['escalations']}</td><td>{delta}</td></tr>"
+            f"<td class=n>{p['escalations']}</td><td>{delta}</td>"
+            f"<td>{validated_cell(post.get(p['project']))}</td></tr>"
         )
 
     t = totals(latest)
@@ -326,7 +375,8 @@ def render(rows: list[dict]) -> str:
   <code>{html.escape(latest["commit"])}</code></p>
 
 <div class="cards">
-  <div class="card"><b>{t['clean']}/{t['projects']}</b><span>projects clean</span></div>
+  <div class="card"><b>{sum(1 for r in post.values() if r.get("green"))}/{t['projects']}</b><span>projects validated</span></div>
+  <div class="card"><b>{t['clean']}/{t['projects']}</b><span>no open escalations</span></div>
   <div class="card"><b>{t['escalations']}</b><span>open escalations</span></div>
   <div class="card"><b>{t['targets']}</b><span>targets</span></div>
   <div class="card"><b>{t['tests']}</b><span>tests</span></div>
@@ -337,7 +387,7 @@ def render(rows: list[dict]) -> str:
 <section><h2>Per project, latest sweep</h2>
 <div class="wrap"><table>
 <tr><th>project</th><th class=n>targets</th><th class=n>tests</th>
-    <th class=n>escalations</th><th>change</th></tr>
+    <th class=n>escalations</th><th>change</th><th>validated</th></tr>
 {"".join(body_rows)}
 </table></div></section>
 """
@@ -356,8 +406,9 @@ def main() -> int:
     )
     args = ap.parse_args()
     rows = load(args.history)
+    post = load_post_agent(args.history)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(render(rows))
+    args.out.write_text(render(rows, post))
 
     # One page per project, beside the index. Written every run rather than
     # only for projects that changed: a stale page is worse than none, and a
@@ -365,7 +416,7 @@ def main() -> int:
     projects = sorted({p["project"] for r in rows for p in r["projects"]})
     for project in projects:
         (args.out.parent / f"{slug(project)}.html").write_text(
-            render_project(rows, project)
+            render_project(rows, project, post.get(project))
         )
     print(f"wrote {args.out} and {len(projects)} project pages")
     return 0

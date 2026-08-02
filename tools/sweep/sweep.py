@@ -332,6 +332,49 @@ def append_history(path: pathlib.Path, sweep: dict) -> None:
     print(f"\nappended to {path} ({len(rows)} sweeps)")
 
 
+def record_post_agent(path: pathlib.Path, result: dict) -> None:
+    """Appends one post-agent run to its own JSONL, separate from the sweep.
+
+    Separate on purpose. A pre-agent row is a property of the COMMIT — same
+    commit, same numbers — while a post-agent result is a property of
+    (commit, workspace, agent run), and re-resolving is expected rather than
+    exceptional: resolutions are deliberately ephemeral (bzl-b9b). Merging
+    the two would present a non-deterministic result in a column readers
+    treat as reproducible.
+
+    Keyed by (commit, project) so re-running the stage on one project
+    replaces its row rather than accumulating attempts, but a DIFFERENT
+    commit keeps its own — which is what makes "was this project ever green,
+    and at which commit" answerable.
+    """
+    row = {
+        "commit": result["commit"],
+        "project": result["project"],
+        "date": time.strftime("%Y-%m-%d"),
+        "timestamp": int(time.time()),
+        "resolved": result["resolved"],
+        "open_items": [i["kind"] for i in result["open_items"]],
+        "comparisons_passed": result["comparisons_passed"],
+        "comparisons_failed": result["comparisons_failed"],
+        "module_tests_passed": result["module_tests_passed"],
+        "module_tests_failed": result["module_tests_failed"],
+        "green": result["green"],
+    }
+    rows = []
+    if path.exists():
+        rows = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+    rows = [
+        r
+        for r in rows
+        if (r.get("commit"), r.get("project")) != (row["commit"], row["project"])
+    ]
+    rows.append(row)
+    rows.sort(key=lambda r: (r.get("timestamp", 0), r.get("project", "")))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in rows))
+    print(f"\nrecorded to {path} ({len(rows)} runs)")
+
+
 def report_post_agent(r: dict) -> str:
     out = [f"project:   {r['project']}", f"workspace: {r['workspace']}", ""]
     if r["open_items"]:
@@ -398,6 +441,12 @@ def main() -> int:
         # Open items mean an unfinished conversion, so the exit code says so —
         # green is the only passing state.
         ran = result["comparisons_passed"] + result["module_tests_passed"]
+        result["commit"] = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=REPO,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
         green = (
             result["resolved"]
             and result["comparisons_failed"] == 0
@@ -411,6 +460,14 @@ def main() -> int:
         # and no registered test has only its comparison. What must not pass
         # is a project where everything failed to BUILD — that reports 0
         # passed and 0 failed on both counts and would otherwise read green.
+        result["green"] = green
+        if args.append:
+            # Its own file beside the sweep history — see record_post_agent
+            # for why a post-agent result must not share a row with the
+            # pre-agent numbers.
+            record_post_agent(
+                args.append.with_name(args.append.stem + "_post_agent.jsonl"), result
+            )
         return 0 if green else 1
 
     sweep = run_pre_agent()
