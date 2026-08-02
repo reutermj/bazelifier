@@ -1456,9 +1456,17 @@ pub(crate) fn to_graph(
                 "PROGRAMS" => TargetKind::Executable,
                 _ => TargetKind::Library,
             },
-            // From the PRIMARY, not from a filename: LTLIBRARIES is libtool's
-            // form and builds a shared library, LIBRARIES is a plain archive.
-            is_shared: decl.primary == "LTLIBRARIES",
+            // From the PRIMARY and the DESTINATION together, not from a
+            // filename. LTLIBRARIES is libtool's form and LIBRARIES a plain
+            // archive — but `noinst_` overrides that: a libtool library that
+            // is never installed is a CONVENIENCE archive, absorbed into
+            // whatever links it, and libtool builds no `.so` for one at all.
+            //
+            // libidn2's libgnu.la is the case. Treating it as shared emitted
+            // a cc_shared_library for it AND absorbed it into libidn2's, and
+            // Bazel rejects that outright: "Two shared libraries in
+            // dependencies link the same library statically."
+            is_shared: decl.primary == "LTLIBRARIES" && decl.destination != "noinst",
             // Against the BUILD tree and the declaring directory: automake
             // names a target `liblzma.la` while the file is written to
             // `src/liblzma/liblzma.la`, so the build root alone does not
@@ -2744,6 +2752,76 @@ make[1]: Leaving directory '/build/gl'\n\
     // EMPTY. Last-wins kept whichever came last and lost the rest, so its
     // tests escalated as the literal text `$(am__EXEEXT_1)`. Same reason
     // primaries and TESTS accumulate: make never sees these together.
+    #[test]
+    fn a_noinst_libtool_library_is_not_shared() {
+        // `noinst_` means built but never installed — libtool makes it a
+        // static CONVENIENCE archive to be absorbed into whatever links it,
+        // and produces no .so at all. libidn2's libgnu.la is one; the real
+        // build emits libgnu.a and nothing else, while lib_LTLIBRARIES
+        // libidn2.la does produce libidn2.so.
+        //
+        // Treating every LTLIBRARIES as shared made the module emit a
+        // cc_shared_library for libgnu AND absorb it into libidn2's, which
+        // Bazel rejects outright: "Two shared libraries in dependencies link
+        // the same library statically."
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/gl'\n\
+gcc -c -o helper.o helper.c\n\
+libtool --tag=CC --mode=link gcc helper.o -o libgnu.la\n\
+make[1]: Leaving directory '/src/gl'\n\
+";
+        let vars =
+            parse_variables("noinst_LTLIBRARIES = libgnu.la\nlibgnu_la_SOURCES = helper.c\n");
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "conv",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        assert!(
+            !graph.targets.is_empty(),
+            "the convenience library is still a target"
+        );
+        assert!(
+            !graph.targets[0].is_shared,
+            "a noinst_ libtool library is a static convenience archive, not a \
+             shared library: {:#?}",
+            graph.targets[0]
+        );
+    }
+
+    // The other direction, so the destination check cannot be wired to
+    // always-false: an INSTALLED libtool library really is shared.
+    #[test]
+    fn a_lib_libtool_library_is_still_shared() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/src/lib'\n\
+gcc -c -o a.o a.c\n\
+libtool --tag=CC --mode=link gcc a.o -o libthing.la\n\
+make[1]: Leaving directory '/src/lib'\n\
+";
+        let vars = parse_variables("lib_LTLIBRARIES = libthing.la\nlibthing_la_SOURCES = a.c\n");
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/src")),
+            &declared_targets(&vars),
+            &vars,
+            "conv",
+            Path::new("/src"),
+            Path::new("/src"),
+            Path::new("/src"),
+        );
+
+        assert!(
+            graph.targets.first().is_some_and(|t| t.is_shared),
+            "lib_LTLIBRARIES installs a .so and must stay shared: {:#?}",
+            graph.targets
+        );
+    }
+
     #[test]
     fn a_conditional_variable_defined_per_directory_keeps_every_definition() {
         let vars = parse_variables(
