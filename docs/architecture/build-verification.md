@@ -339,6 +339,14 @@ Numbers are not shared across the two sets, so pick names that stay distinct.
   that pins recursive make: `app/` compiles `../common/util.c`, so every path
   in the command stream is relative to the subdirectory the command ran in
   rather than to the build root.
+- `autotools/004-config-header` — the Autotools config-header path, which
+  was unit-only until it existed: `AC_CONFIG_HEADERS` recovered from
+  `config.status`, expanded through the shared `cc_config` catalog against
+  the consumer's toolchain. Deliberately FULLY MAPPED, so it converts with
+  no escalation and is green — the escalating direction is xz's, and it
+  cannot be a fixture without being permanently red. Its binary prints what
+  the header resolved to, so a probe answering differently than it did for
+  the original build fails the comparison rather than passing silently.
 - `autotools/003-sibling-outside-project-root` — enrolled, and the Autotools
   mirror of `006-sibling-sources`: the project is `proj/` but compiles
   `../shared/helper.c`, so the module root widens to the fixture directory and

@@ -51,6 +51,15 @@ cc_config_catalog(
             ["time.h"],
             "HAVE_CLOCK_GETTIME",
         ),
+        # autoconf's AC_HEADER_STDC, which every autoconf project emits. It
+        # asks whether the C89 standard headers are present and conforming;
+        # probing for `free` in stdlib.h is the practical form of that, and is
+        # what the answer turns on for any toolchain this converts against.
+        (
+            "free",
+            ["stdlib.h"],
+            "STDC_HEADERS",
+        ),
         (
             "futimens",
             ["sys/stat.h"],

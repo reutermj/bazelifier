@@ -230,6 +230,7 @@ const CATALOG_DEFINES: &[&str] = &[
     "HAVE_VSYSLOG",
     "HAVE_WCHAR_H",
     "HAVE_XLOCALE_H",
+    "STDC_HEADERS",
     "SIZEOF_INT",
     "SIZEOF_INT64_T",
     "SIZEOF_LONG",

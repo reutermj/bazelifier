@@ -1,0 +1,14 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The Autotools config-header path, which was unit-only before this fixture:
+# AC_CONFIG_HEADERS read from config.status, expanded through the shared
+# cc_config catalog against the CONSUMER's toolchain.
+#
+# Fully mapped on purpose — every macro has a catalog probe, so this converts
+# with no escalation and is green. The escalating direction is xz's, and it
+# cannot be a fixture without being permanently red. See configure.ac.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)
