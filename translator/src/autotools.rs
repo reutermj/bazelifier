@@ -41,10 +41,10 @@ use crate::error::Error;
 use crate::headers::{
     inject_headers_on_include_dirs, is_buildable_source, is_header_file, is_translation_unit,
 };
-use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind};
+use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind, Test};
 use crate::needs_attention::{
-    ConfigDialect, sources_outside_deliverable_needs_attention,
-    unmapped_config_macros_needs_attention,
+    ConfigDialect, ctest_command_not_a_target_needs_attention,
+    sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
 };
 use crate::paths::{absolutize, common_ancestor, normalize_lexically};
 
@@ -1179,14 +1179,81 @@ pub(crate) fn to_graph(
 
     // A source that escaped the module is the one drop that fails silently.
     // The target still renders, still links, and reports an undefined symbol
-    // several steps from the cause; the other two announce themselves (a
-    // missing check_PROGRAMS is absent, a system library fails to resolve).
+    // several steps from the cause; a system library that fails to resolve
+    // announces itself at link. (A missing check_PROGRAMS used to be listed
+    // here as self-announcing too. jansson disproved that: it converted to
+    // one target and `tests: 0`, a positive claim rather than an absence.)
     // Escalated per target because the resolution is per target: which rule is
     // incomplete is the first thing the agent needs.
-    let needs_attention = outside_module
+    let mut needs_attention: Vec<_> = outside_module
         .iter()
         .map(|(target, sources)| sources_outside_deliverable_needs_attention(target, sources))
         .collect();
+
+    // Automake's TESTS, split by what each entry turns out to be. A Binary
+    // names a check_PROGRAMS this module builds, so it becomes a real test; a
+    // Script or an Unresolved reference cannot be expressed as a rule around
+    // a target, so it is carried on `unexpressed_tests` and escalated.
+    //
+    // `working_directory` is the module root for all of them. automake runs a
+    // test from the directory its Makefile.am declared it in, and that is
+    // where the built binary already sits, so there is no CTest-style
+    // WORKING_DIRECTORY to rebase.
+    let (mut tests, mut unexpressed_tests) = (Vec::new(), Vec::new());
+    for entry in classify_tests(vars) {
+        match entry {
+            TestEntry::Binary(name) => {
+                let label = target_label(&name);
+                // Only if the module actually builds it. A TESTS entry naming
+                // a binary no target produced would render a rule pointing at
+                // nothing, which fails at analysis rather than saying why.
+                if targets.iter().any(|t| t.name == label) {
+                    tests.push(Test {
+                        name: name.clone(),
+                        target: label,
+                        command: name,
+                        working_directory: String::new(),
+                        // automake has no PASS_REGULAR_EXPRESSION analogue:
+                        // the exit code alone decides, which is what None
+                        // already means.
+                        pass_regex: None,
+                    });
+                } else {
+                    unexpressed_tests.push(Test {
+                        name: name.clone(),
+                        target: String::new(),
+                        command: name,
+                        working_directory: String::new(),
+                        // automake has no PASS_REGULAR_EXPRESSION analogue:
+                        // the exit code alone decides, which is what None
+                        // already means.
+                        pass_regex: None,
+                    });
+                }
+            }
+            TestEntry::Script(path) | TestEntry::Unresolved(path) => {
+                unexpressed_tests.push(Test {
+                    name: path.clone(),
+                    target: String::new(),
+                    command: path,
+                    working_directory: String::new(),
+                    pass_regex: None,
+                });
+            }
+        }
+    }
+    if !unexpressed_tests.is_empty() {
+        needs_attention.push(ctest_command_not_a_target_needs_attention(
+            &unexpressed_tests
+                .iter()
+                .map(|t| t.name.clone())
+                .collect::<Vec<_>>(),
+            &unexpressed_tests
+                .iter()
+                .map(|t| t.command.clone())
+                .collect::<Vec<_>>(),
+        ));
+    }
 
     // Not yet escalated — see bzl-yjn.5. Recorded here so the information is
     // recovered rather than discarded, and so the escalation, when it lands,
@@ -1200,10 +1267,13 @@ pub(crate) fn to_graph(
                 version: vars.get("VERSION").cloned(),
             },
             targets,
-            tests: Vec::new(),
-            // No Autotools test frontend yet, so nothing is expressed and
-            // nothing is escalated — absence, not an empty result.
-            unexpressed_tests: Vec::new(),
+            tests,
+            // A TESTS entry this frontend cannot express: a script that runs
+            // the suite itself, or a variable reference the database does not
+            // answer. Carried rather than dropped so the module still gets
+            // `rules_shell` and the agent has something to write an `sh_test`
+            // against — the same role these play on the CMake side.
+            unexpressed_tests,
             config_headers: Vec::new(),
         },
         needs_attention,
