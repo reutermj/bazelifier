@@ -279,7 +279,18 @@ fn inject_textual_includes(targets: &mut [Target], module_root: &Path) {
         }
         textual.sort();
         textual.dedup();
-        target.sources.retain(|s| !textual.contains(s));
+        // A file that is BOTH included and declared as a source is compiled
+        // in its own right, and stays in `srcs`. Being `#include`d is not
+        // evidence to the contrary: libmicrohttpd's test_postprocessor_md.c
+        // includes internal.c, mhd_str.c and mhd_panic.c while `_SOURCES`
+        // declares all three, and automake compiles each into a per-target
+        // object. Removing them left the target undefined at link on the
+        // symbols they define.
+        //
+        // So the textual set is only those NOT already compiled. expat's
+        // xmltok_impl.c is in neither `_SOURCES` nor any command, which is
+        // what made it textual-only there.
+        textual.retain(|t| !target.sources.contains(t));
         target.textual_sources.extend(textual);
         target.textual_sources.sort();
         target.textual_sources.dedup();
@@ -2303,6 +2314,46 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
              using automake conditionals reports its tests as the literal text \
              `$(am__EXEEXT_1)`"
         );
+    }
+
+    // Being `#include`d does NOT mean a file is not also compiled.
+    // libmicrohttpd's test_postprocessor_md.c includes internal.c, mhd_str.c
+    // and mhd_panic.c, AND its `_SOURCES` declares all three, and automake
+    // compiles each into a per-target object. Treating the include as proof
+    // they are textual-only removed them from `srcs`, and the target failed
+    // to link on the symbols they define.
+    #[test]
+    fn a_source_that_is_both_included_and_compiled_stays_compiled() {
+        let mut targets = vec![Target {
+            name: "prog".to_string(),
+            kind: TargetKind::Executable,
+            sources: vec!["main.c".to_string(), "helper.c".to_string()],
+            ..Default::default()
+        }];
+        // main.c includes helper.c, but helper.c is a declared source of the
+        // same target, so it is compiled in its own right.
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_bothroles_{}_{}", std::process::id(), line!()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("main.c"), "#include \"helper.c\"\n").unwrap();
+        std::fs::write(dir.join("helper.c"), "int helper(void) { return 1; }\n").unwrap();
+
+        inject_textual_includes(&mut targets, &dir);
+
+        assert!(
+            targets[0].sources.contains(&"helper.c".to_string()),
+            "a declared source has its own compile command, so it must stay in \
+             srcs however many files include it — dropping it is an undefined \
+             symbol at link: {:?}",
+            targets[0].sources
+        );
+        assert!(
+            !targets[0].textual_sources.contains(&"helper.c".to_string()),
+            "and it must not ALSO be textual_hdrs, which would stage the same \
+             file twice: {:?}",
+            targets[0].textual_sources
+        );
+        std::fs::remove_dir_all(&dir).ok();
     }
 
     // libmicrohttpd defines `am__EXEEXT_1` FIVE times — once per directory
