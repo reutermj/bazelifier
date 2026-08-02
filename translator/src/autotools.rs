@@ -437,13 +437,109 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
     vars
 }
 
+/// What an automake `TESTS` entry turns out to be.
+///
+/// Three variants because real projects use all three, measured across six:
+/// `$(check_PROGRAMS)` naming binaries directly (libmicrohttpd, gsl, wget),
+/// a shell script that drives binaries indirectly (jansson, xz), and a
+/// project-specific variable nothing resolves (libgd, wget, gsl). The third
+/// is load-bearing rather than a fallback — it is 2 of the 6.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum TestEntry {
+    /// Names a `check_PROGRAMS` binary, run directly. Expressible as a test
+    /// rule around a target this module already builds.
+    Binary(String),
+    /// A script that runs the tests itself. The binaries it drives are still
+    /// built, but what to RUN is the script.
+    Script(String),
+    /// A reference the variable database does not answer. Escalated, never
+    /// guessed: assuming it is a binary would invent a target, and dropping
+    /// it would report fewer tests than the project has.
+    Unresolved(String),
+}
+
+/// Classifies every entry in make's `TESTS` variable.
+///
+/// The evidence is the variable database, not the `Makefile.am`, for the same
+/// reason the rest of this frontend reads resolved output — `TESTS` is
+/// routinely a variable reference and the input text cannot say what it holds.
+///
+/// One level of expansion, deliberately. `make -p` reports
+/// `TESTS = $(check_PROGRAMS)` unexpanded while `check_PROGRAMS` beside it IS
+/// expanded, so resolving a single reference against the same database turns
+/// the majority case into a concrete list with no shell parsing. Recursing
+/// further would mean implementing make's expander, and nothing measured
+/// needs it.
+fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
+    let Some(raw) = vars.get("TESTS") else {
+        return Vec::new();
+    };
+    let mut entries = Vec::new();
+    for token in raw.split_whitespace() {
+        // `$(check_PROGRAMS)` and friends: resolve against the database.
+        if let Some(name) = token
+            .strip_prefix("$(")
+            .and_then(|t| t.strip_suffix(')'))
+            .or_else(|| token.strip_prefix("${").and_then(|t| t.strip_suffix('}')))
+        {
+            match vars.get(name) {
+                Some(expansion) => entries.extend(
+                    expansion
+                        .split_whitespace()
+                        .map(|t| TestEntry::Binary(strip_exeext(t))),
+                ),
+                None => entries.push(TestEntry::Unresolved(token.to_string())),
+            }
+            continue;
+        }
+        // A bare name. A path or a known script extension is something to
+        // RUN; anything else is a binary if the project builds one by that
+        // name, and unresolved if it does not — the distinction jansson
+        // turns on, where `run-suites` sits beside 18 real binaries.
+        let bare = strip_exeext(token);
+        let is_script = bare.contains('/')
+            || matches!(
+                Path::new(&bare).extension().and_then(|e| e.to_str()),
+                Some("sh" | "py" | "pl" | "test")
+            );
+        if is_script {
+            entries.push(TestEntry::Script(bare));
+        } else if vars
+            .get("check_PROGRAMS")
+            .is_some_and(|p| p.split_whitespace().any(|t| strip_exeext(t) == bare))
+        {
+            entries.push(TestEntry::Binary(bare));
+        } else {
+            entries.push(TestEntry::Script(bare));
+        }
+    }
+    entries
+}
+
+/// Drops automake's `$(EXEEXT)`, which is empty on every platform this
+/// converts for and would otherwise become part of the name.
+fn strip_exeext(token: &str) -> String {
+    token
+        .strip_suffix("$(EXEEXT)")
+        .or_else(|| token.strip_suffix("${EXEEXT}"))
+        .unwrap_or(token)
+        .to_string()
+}
+
 /// Whether `name` is an automake primary — `bin_PROGRAMS`, `lib_LTLIBRARIES`.
 ///
 /// Matched on the suffix alone, the same way [`declared_targets`] reads them,
 /// so the two cannot disagree about what counts as a primary.
 fn is_primary(name: &str) -> bool {
-    name.rsplit_once('_')
-        .is_some_and(|(_, primary)| matches!(primary, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"))
+    // `TESTS` is not a primary, but it accumulates for exactly the same
+    // reason: recursive make declares it per directory, and jansson declares
+    // `run-suites` in test/ and `scripts/clang-format-check` at the root.
+    // Last-wins kept one and silently dropped the other, which is the defect
+    // this whole branch exists to prevent.
+    name == "TESTS"
+        || name
+            .rsplit_once('_')
+            .is_some_and(|(_, primary)| matches!(primary, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"))
 }
 
 /// Recovers every target automake DECLARED, from the primaries.
@@ -1975,6 +2071,96 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         assert_eq!(canonical_name("libshout.la"), "libshout_la");
         assert_eq!(canonical_name("libgreet.a"), "libgreet_a");
         assert_eq!(canonical_name("my-tool"), "my_tool");
+    }
+
+    // `TESTS` splits three ways across real projects, and the majority case
+    // is NOT the one the first project onboarded showed. Surveyed six:
+    //
+    //   libmicrohttpd, gsl, wget   TESTS = $(check_PROGRAMS)  -> binaries
+    //   jansson, xz                a shell script             -> script
+    //   libgd, wget, gsl           a project-specific var     -> unresolved
+    //
+    // gsl alone contributes 54 binaries, so generalising from jansson's
+    // scripts would have missed the common shape entirely.
+    #[test]
+    fn tests_naming_check_programs_are_classified_as_binaries() {
+        // Exactly what `make -p` reports for libmicrohttpd: TESTS carries an
+        // unexpanded reference while check_PROGRAMS beside it is expanded.
+        let vars = parse_variables(
+            "check_PROGRAMS = test_str_compare$(EXEEXT) test_str_token$(EXEEXT)\n\
+             TESTS = $(check_PROGRAMS)\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![
+                TestEntry::Binary("test_str_compare".to_string()),
+                TestEntry::Binary("test_str_token".to_string()),
+            ],
+            "a one-level variable reference resolves against the same database \
+             it sits in — no shell parsing, and $(EXEEXT) is stripped because \
+             it is empty on every platform this converts for"
+        );
+    }
+
+    #[test]
+    fn tests_naming_a_script_are_classified_as_scripts() {
+        let vars = parse_variables(
+            "check_PROGRAMS = test_array$(EXEEXT)\nTESTS = run-suites scripts/format-check\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![
+                TestEntry::Script("run-suites".to_string()),
+                TestEntry::Script("scripts/format-check".to_string()),
+            ],
+            "jansson's shape: the binaries exist but TESTS names the scripts \
+             that DRIVE them, so mapping TESTS onto check_PROGRAMS would \
+             register the wrong thing and miss all 18"
+        );
+    }
+
+    // The branch that is load-bearing rather than a fallback: 2 of the 6
+    // surveyed projects have a TESTS entry no database lookup resolves.
+    #[test]
+    fn a_tests_entry_that_resolves_to_nothing_is_unresolved_not_guessed() {
+        let vars = parse_variables("check_PROGRAMS = test_a$(EXEEXT)\nTESTS = $(libgd_tests)\n");
+        assert_eq!(
+            classify_tests(&vars),
+            vec![TestEntry::Unresolved("$(libgd_tests)".to_string())],
+            "libgd's shape. The variable is defined nowhere make -p reports, so \
+             the honest answer is that we do not know — escalate rather than \
+             silently drop it or guess it is a binary"
+        );
+    }
+
+    // `TESTS` is per-DIRECTORY under recursive make, and the frontend reads
+    // one flattened database. jansson declares `run-suites` in test/ and
+    // `scripts/clang-format-check` at the root; last-wins kept whichever came
+    // second and reported half the suite. Same failure the primaries already
+    // accumulate to avoid.
+    #[test]
+    fn tests_declared_in_several_directories_all_survive() {
+        let vars = parse_variables("TESTS = run-suites\nTESTS = scripts/format-check\n");
+        assert_eq!(
+            classify_tests(&vars),
+            vec![
+                TestEntry::Script("run-suites".to_string()),
+                TestEntry::Script("scripts/format-check".to_string()),
+            ],
+            "both declarations must survive the flattening — make never sees \
+             them together, so merging is ours to do"
+        );
+    }
+
+    #[test]
+    fn a_project_with_no_tests_variable_classifies_nothing() {
+        let vars = parse_variables("check_PROGRAMS = helper$(EXEEXT)\n");
+        assert!(
+            classify_tests(&vars).is_empty(),
+            "gzip declares check_PROGRAMS and no TESTS at all: building a \
+             helper binary is not the same as declaring a test, and inventing \
+             one would report a test the project never ran"
+        );
     }
 
     // Identity comes from the primaries, not from artifact paths. The
