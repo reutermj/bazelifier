@@ -45,6 +45,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/002-sibling-sources-recursive-make:converted",
         "//translator/tests/fixtures/autotools/003-sibling-outside-project-root:converted",
         "//translator/tests/fixtures/autotools/004-config-header:converted",
+        "//translator/tests/fixtures/autotools/005-textually-included-source:converted",
     ],
 )
 

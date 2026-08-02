@@ -1,0 +1,20 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# A SOURCE file #included textually rather than compiled — expat's shape,
+# reduced. src/table.c does `#include "impl.c"`, and impl.c appears in no
+# compile command (nothing compiles it) and in no `_SOURCES` (it is in
+# EXTRA_DIST, a per-directory tarball list with no target attribution). The
+# `#include` line is the only input that states the dependency, which is why
+# the translator reads it — see headers::textually_included_sources.
+#
+# impl.c is deliberately not a standalone translation unit: it references
+# ROW_COUNT, which only its includer defines. So if the translator regresses
+# and puts it in `srcs`, this fixture goes RED at compile rather than
+# silently emitting a duplicate symbol.
+#
+# Converts with no escalation and is green.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

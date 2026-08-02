@@ -31,8 +31,8 @@
 //! `bin_PROGRAMS = hello` and `noinst_LIBRARIES = lib/libhello.a` onto one
 //! name, producing a module that could not load.
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -41,10 +41,11 @@ use crate::error::Error;
 use crate::headers::{
     inject_headers_on_include_dirs, is_buildable_source, is_header_file, is_translation_unit,
 };
-use crate::needs_attention::{
-    sources_outside_deliverable_needs_attention, unmapped_config_macros_needs_attention,
-};
 use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind};
+use crate::needs_attention::{
+    ConfigDialect, sources_outside_deliverable_needs_attention,
+    unmapped_config_macros_needs_attention,
+};
 use crate::paths::{absolutize, common_ancestor, normalize_lexically};
 
 /// One resolved command from the build stream, split into a program and its
@@ -142,7 +143,10 @@ pub fn discover(
         let (header, unmapped) = plan_config_header(&output, &template, &text, &vars);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
-                &output, &template, &unmapped,
+                &output,
+                &template,
+                &unmapped,
+                ConfigDialect::Autoconf,
             ));
         }
         config_headers.push(header);
@@ -182,6 +186,7 @@ pub fn discover(
     // CMake-specific — `headers` takes a `[Target]` and a source root and
     // knows nothing about where the graph came from.
     inject_headers_on_include_dirs(&mut graph.targets, &module_root);
+    inject_textual_includes(&mut graph.targets, &module_root);
 
     Ok(Discovery {
         graph,
@@ -193,6 +198,57 @@ pub fn discover(
         needs_attention,
         module_root,
     })
+}
+
+/// Moves every textually-`#include`d source out of the compile set and into
+/// `textual_sources`, reading each target's sources off disk to find them.
+///
+/// Reads the filesystem, so it sits here rather than in `to_graph`, which is
+/// pure over the command stream and variable database and is testable for
+/// that reason. The scan itself is `headers::textually_included_sources` —
+/// shared, because the CMake frontend faces the same question and neither
+/// frontend may import the other.
+///
+/// Two things happen per include, and only the second is obvious. The path is
+/// resolved against the INCLUDING file's directory, since `#include "impl.c"`
+/// in `lib/xmltok.c` means `lib/impl.c` and the caller is the only one who
+/// knows where the includer sits. And if the included file is also in the
+/// target's `srcs`, it is REMOVED from there: a file that is both compiled
+/// and textually included would be compiled twice, once standalone and once
+/// inside its includer, which is a duplicate-symbol link failure rather than
+/// a missing-file one.
+fn inject_textual_includes(targets: &mut [Target], module_root: &Path) {
+    for target in targets.iter_mut() {
+        let mut textual: Vec<String> = Vec::new();
+        for source in &target.sources {
+            let Ok(text) = std::fs::read_to_string(module_root.join(source)) else {
+                // A generated or already-staged source may not be on disk at
+                // this point. Silently skipped rather than escalated: the
+                // scan is an enrichment, and a file we cannot read is
+                // indistinguishable from one with no textual includes.
+                continue;
+            };
+            let includer_dir = Path::new(source).parent().unwrap_or(Path::new(""));
+            for included in crate::headers::textually_included_sources(&text) {
+                let resolved = normalize_lexically(&includer_dir.join(&included));
+                let Some(resolved) = resolved.to_str() else {
+                    continue;
+                };
+                // An include escaping the module root cannot be expressed as
+                // a label; the existing escaped-source paths own that case.
+                if resolved.starts_with("..") {
+                    continue;
+                }
+                textual.push(resolved.to_string());
+            }
+        }
+        textual.sort();
+        textual.dedup();
+        target.sources.retain(|s| !textual.contains(s));
+        target.textual_sources.extend(textual);
+        target.textual_sources.sort();
+        target.textual_sources.dedup();
+    }
 }
 
 /// Runs `configure` in `build_dir`, out of tree.
@@ -592,7 +648,11 @@ pub(crate) fn to_graph(
     source_dir: &Path,
     deliverable_root: &Path,
     build_root: &Path,
-) -> (BuildGraph, Vec<crate::needs_attention::NeedsAttention>, PathBuf) {
+) -> (
+    BuildGraph,
+    Vec<crate::needs_attention::NeedsAttention>,
+    PathBuf,
+) {
     // artifact basename -> the link/archive command that produced it, so a
     // declared target can find the step that built it. Needed before the
     // module root can be chosen, because the root depends on where each
@@ -772,7 +832,10 @@ pub(crate) fn to_graph(
                 })
                 .collect()
         } else {
-            declared_raw.split_whitespace().map(str::to_string).collect()
+            declared_raw
+                .split_whitespace()
+                .map(str::to_string)
+                .collect()
         };
         // Three categories, not two. Partitioning on `!is_translation_unit`
         // made every unrecognised extension a header, so a `.c++` the
@@ -829,7 +892,11 @@ pub(crate) fn to_graph(
         let mut escaped: Vec<String> = declared_sources
             .iter()
             .filter(|src| rebase(src, &decl_dir).is_none())
-            .map(|src| normalize_lexically(&decl_dir.join(src)).to_string_lossy().into_owned())
+            .map(|src| {
+                normalize_lexically(&decl_dir.join(src))
+                    .to_string_lossy()
+                    .into_owned()
+            })
             .collect();
 
         // Flags come from the COMMAND STREAM, via the objects this target's
@@ -897,7 +964,10 @@ pub(crate) fn to_graph(
             if !is_library(input) {
                 continue;
             }
-            match declared.iter().find(|d| basename(&d.name) == basename(input)) {
+            match declared
+                .iter()
+                .find(|d| basename(&d.name) == basename(input))
+            {
                 Some(dep) if dep.name != decl.name => dependencies.push(target_label(&dep.name)),
                 Some(_) => {}
                 // A library the project links but does not build — $(LIBINTL)
@@ -932,12 +1002,9 @@ pub(crate) fn to_graph(
             // `src/liblzma/liblzma.la`, so the build root alone does not
             // find it.
             soname: libtool_dlname(
-                &build_root.join(
-                    decl_dir
-                        .strip_prefix(module_root)
-                        .unwrap_or(Path::new("")),
-                )
-                .join(&decl.name),
+                &build_root
+                    .join(decl_dir.strip_prefix(module_root).unwrap_or(Path::new("")))
+                    .join(&decl.name),
             ),
             sources,
             // `include_HEADERS` names the project's public headers, the same
@@ -1282,7 +1349,11 @@ libshout_la_SOURCES = src/shout.c\n\
     /// Only for tests asserting on graph shape. A test about what the frontend
     /// ESCALATES must read the second element instead of reaching for this.
     fn graph_only(
-        result: (BuildGraph, Vec<crate::needs_attention::NeedsAttention>, PathBuf),
+        result: (
+            BuildGraph,
+            Vec<crate::needs_attention::NeedsAttention>,
+            PathBuf,
+        ),
     ) -> BuildGraph {
         result.0
     }
@@ -1613,17 +1684,6 @@ make[1]: Leaving directory '/src/app'\n\
         assert_eq!(compiled_source(&plain).as_deref(), Some("main.c"));
     }
 
-    // `configure` seeds make's database with EVERY macro it knows, most of
-    // them EMPTY. Treating an empty variable as a substituted value emitted
-    //     "BITSIZEOF_PTRDIFF_T": """"
-    // — an unclosed string literal, so the generated module would not parse.
-    // The macro belongs in the escalation instead.
-    #[test]
-    // Both directions, because the two failures are opposite and each is
-    // silent at the point it is made. An unquoted string splices into
-    // neighbouring tokens (`printf("xz (" XZ Utils ")")` — clang reports
-    // undeclared identifiers in a file that never mentions the macro), while a
-    // quoted number is a type error wherever `#if` or arithmetic uses it.
     // automake compiles conditional sources by appending `$(am__append_N)` to
     // `_SOURCES`, one per `if`, and make's database reports those references
     // VERBATIM. Taking the literal text drops every conditional source: xz's
@@ -1680,9 +1740,8 @@ gcc -c -o base.o base.c\n\
 ar cru libfoo.a base.o\n\
 make[1]: Leaving directory '/src/lib'\n\
 ";
-        let vars = parse_variables(
-            "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c base.h\n",
-        );
+        let vars =
+            parse_variables("noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c base.h\n");
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
@@ -1764,7 +1823,6 @@ make[1]: Leaving directory '/src/lib'\n\
     }
 
     #[test]
-    #[test]
     fn an_uppercase_or_cxx_source_is_compiled_not_silently_dropped() {
         const STREAM: &str = "\
 make[1]: Entering directory '/src'\n\
@@ -1796,7 +1854,9 @@ make[1]: Leaving directory '/src'\n\
         );
         assert!(
             !graph.targets[0].sources.contains(&"README".to_string())
-                && !graph.targets[0].public_headers.contains(&"README".to_string()),
+                && !graph.targets[0]
+                    .public_headers
+                    .contains(&"README".to_string()),
             "automake permits a non-source in _SOURCES; it is neither compiled \
              nor a header, and the negated partition used to make it one"
         );

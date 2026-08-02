@@ -112,6 +112,48 @@ const HEADER_EXTENSIONS: &[&str] = &["h", "hpp", "hh", "hxx", "inc", "ipp", "tcc
 /// Only ever adds. It cannot remove: `ninja_deps` sees one configuration, and
 /// a header behind a disabled `#ifdef` is absent from it while still being a
 /// real input for a consumer configuring differently.
+/// Every source file a translation unit `#include`s textually — a `.c`,
+/// `.cc`, `.cpp` and so on, never a header — in the order found.
+///
+/// Frontend-neutral, and here rather than in either frontend because both
+/// need it and neither may import the other. It answers the same question as
+/// [`inject_opened_files`] from weaker evidence: that function learns what
+/// the COMPILER opened (`ninja -t deps`), which is authoritative but exists
+/// only where a build emits a depfile. This reads the `#include` line
+/// instead, which every C family project has.
+///
+/// Autotools has no depfile analogue, and for a textually-included source no
+/// other input states the fact at all: nothing compiles it, so it appears in
+/// no command, and expat keeps its two in `EXTRA_DIST` — automake's
+/// ship-in-the-tarball list, which is per-DIRECTORY and also carries 14
+/// headers plus a `.cmake` file for a different build system, so it cannot
+/// attribute the file to a target. The `#include` line can, and it is the
+/// dependency itself rather than a proxy for it.
+///
+/// Deliberately blind to `#if`: an include inside a branch is collected
+/// whether or not the branch would be taken. That is the safe direction,
+/// because `textual_hdrs` only makes a file AVAILABLE to a compile — an
+/// unused entry costs nothing, while a missing one is a build failure.
+/// Evaluating the branches would need a preprocessor and a configuration to
+/// evaluate against, which is the guessing CLAUDE.md forbids.
+pub(crate) fn textually_included_sources(source_text: &str) -> Vec<String> {
+    source_text
+        .lines()
+        .filter_map(|line| {
+            let rest = line.trim_start().strip_prefix('#')?.trim_start();
+            let rest = rest.strip_prefix("include")?.trim_start();
+            // Quoted form only. `#include <foo.c>` searches the system paths,
+            // where a project's own textual include never lives.
+            let name = rest.strip_prefix('"')?.split('"').next()?;
+            // A header include is what the ordinary header paths already
+            // handle; only a non-header can be a textual SOURCE. Routed
+            // through the same predicate the rest of this module uses so the
+            // two cannot drift.
+            (!name.is_empty() && !is_header_file(Path::new(name))).then(|| name.to_string())
+        })
+        .collect()
+}
+
 pub(crate) fn inject_opened_files(
     targets: &mut [Target],
     opened_by_target: &HashMap<String, Vec<String>>,
@@ -460,7 +502,6 @@ pub(crate) fn is_config_header_output(output: &Path) -> bool {
     matches!(extension_of(output).as_deref(), Some(e) if INTERFACE_HEADER_EXTENSIONS.contains(&e))
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -601,10 +642,7 @@ mod tests {
                 is_header_file(Path::new(upper)),
                 "{upper} must be a header to the staging predicate"
             );
-            assert!(
-                is_buildable_source(upper),
-                "{upper} must be buildable"
-            );
+            assert!(is_buildable_source(upper), "{upper} must be buildable");
             assert!(
                 is_config_header_output(Path::new(upper)),
                 "{upper} must count as a config-header output"
@@ -894,5 +932,64 @@ mod tests {
         );
 
         fs::remove_dir_all(&dir).ok();
+    }
+
+    // A source `#include`d rather than compiled is invisible to every other
+    // input an Autotools conversion has: nothing compiles it, so it is in no
+    // command, and expat keeps its two in EXTRA_DIST — a per-DIRECTORY list
+    // that also carries 14 headers and a .cmake file for another build
+    // system, so it cannot attribute the file to a target. The #include line
+    // can. Both forms count: expat's xmltok.c uses the plain `#include` and
+    // the indented `#  include` inside an `#if`.
+    #[test]
+    fn a_textually_included_source_is_found_by_scanning_the_includer() {
+        const SOURCE: &str = "\
+#include <stdio.h>\n\
+#include \"local.h\"\n\
+#include \"impl.c\"\n\
+#ifdef WIDE\n\
+#  include \"impl_wide.c\"\n\
+#endif\n\
+";
+        assert_eq!(
+            textually_included_sources(SOURCE),
+            vec!["impl.c".to_string(), "impl_wide.c".to_string()],
+            "an include inside an #if is collected whether or not the branch \
+             would be taken: textual_hdrs only makes a file AVAILABLE, so an \
+             unused entry costs nothing while a missing one is a build failure"
+        );
+    }
+
+    // Frontend-neutral by construction, not by intent: this is shared code and
+    // the CMake corpus is C++, so a `.cc`/`.cpp` textual include has to be
+    // found by the same scan. fmt does `#include "../src/os.cc"`.
+    #[test]
+    fn scanning_finds_cxx_textual_includes_and_keeps_the_relative_path() {
+        const SOURCE: &str = "#include \"../src/os.cc\"\n#include \"helper.cpp\"\n";
+        assert_eq!(
+            textually_included_sources(SOURCE),
+            vec!["../src/os.cc".to_string(), "helper.cpp".to_string()],
+            "the path is returned exactly as written — it is relative to the \
+             INCLUDING file, and only the caller knows where that sits"
+        );
+    }
+
+    // The negative, so the scan cannot be wired to "every include". A header
+    // is what the ordinary header paths already carry, and a system include
+    // is not the project's file at all — collecting either would put every
+    // header in textual_hdrs.
+    #[test]
+    fn scanning_ignores_header_and_angled_includes() {
+        const SOURCE: &str = "\
+#include <stdlib.h>\n\
+#include \"config.h\"\n\
+#include <sys/types.h>\n\
+#include \"nested/thing.hpp\"\n\
+";
+        assert!(
+            textually_included_sources(SOURCE).is_empty(),
+            "only a non-header, quoted include is a textual SOURCE: {:?}",
+            textually_included_sources(SOURCE)
+        );
     }
 }
