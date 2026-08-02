@@ -546,7 +546,7 @@ fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
         // RUN; anything else is a binary if the project builds one by that
         // name, and a script if it does not — the distinction jansson turns
         // on, where `run-suites` sits beside 18 real binaries.
-        let bare = strip_exeext(&token);
+        let bare = expand_exeext(&token, vars);
         let is_script = bare.contains('/')
             || matches!(
                 Path::new(&bare).extension().and_then(|e| e.to_str()),
@@ -596,21 +596,32 @@ fn is_declared_check_program(vars: &HashMap<String, String>, name: &str) -> bool
             }
             continue;
         }
-        if strip_exeext(&token) == name {
+        if expand_exeext(&token, vars) == name {
             return true;
         }
     }
     false
 }
 
-/// Drops automake's `$(EXEEXT)`, which is empty on every platform this
-/// converts for and would otherwise become part of the name.
-fn strip_exeext(token: &str) -> String {
+/// Expands automake's `$(EXEEXT)` from the variable database, in either
+/// bracket form.
+///
+/// From the database rather than assumed empty, even though it IS empty on
+/// every platform this converts for today. The database states the answer, so
+/// assuming one is the guessing this frontend exists not to do — and the two
+/// answers have already disagreed once: `declared_targets` expanded while a
+/// second copy stripped, so on a `.exe` toolchain a target named `prog.exe`
+/// would never match a test entry named `prog`, every test would escalate as
+/// inexpressible, and the project would convert with `tests: 0` and nothing
+/// failing.
+///
+/// Both bracket forms, because they are one variable written two ways and
+/// only one copy used to know that.
+fn expand_exeext(token: &str, vars: &HashMap<String, String>) -> String {
+    let exeext = vars.get("EXEEXT").map(String::as_str).unwrap_or("");
     token
-        .strip_suffix("$(EXEEXT)")
-        .or_else(|| token.strip_suffix("${EXEEXT}"))
-        .unwrap_or(token)
-        .to_string()
+        .replace("$(EXEEXT)", exeext)
+        .replace("${EXEEXT}", exeext)
 }
 
 /// Whether a variable's definitions must be MERGED across directories rather
@@ -669,10 +680,10 @@ pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTa
         // front of the destination; the destination is the last segment.
         let destination = destination.rsplit('_').next().unwrap_or(destination);
         for name in value.split_whitespace() {
-            // $(EXEEXT) is empty on Linux and `.exe` elsewhere; the database
-            // provides it, so it is expanded rather than assumed.
-            let exeext = vars.get("EXEEXT").map(String::as_str).unwrap_or("");
-            let name = name.replace("$(EXEEXT)", exeext);
+            // Through the shared helper, not inline: a target's name and the
+            // test entry naming it have to expand identically or the two
+            // never match. They did not, once.
+            let name = expand_exeext(name, vars);
             if name.is_empty() {
                 continue;
             }
@@ -2301,6 +2312,52 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
     // indirection, the `$(am__append_N)` shape already handled for _SOURCES —
     // so 14 of its tests escalated as literal `$(am__EXEEXT_1)` rather than
     // resolving to test_md5.
+    #[test]
+    fn a_test_name_expands_exeext_the_same_way_a_target_name_does() {
+        // On a Windows-targeting build EXEEXT is ".exe", and `declared_targets`
+        // has always expanded it from the database — its own test says
+        // "$(EXEEXT) must be expanded from the database, not assumed empty".
+        // `classify_tests` used to strip it unconditionally instead, so the
+        // target became `prog.exe` while the test entry became `prog`, the
+        // membership check missed, and EVERY test escalated as inexpressible.
+        // Nothing failed; the project just converted with tests: 0.
+        let vars = parse_variables(
+            "EXEEXT = .exe\n\
+             check_PROGRAMS = check_one$(EXEEXT)\n\
+             TESTS = $(check_PROGRAMS)\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![TestEntry::Binary("check_one.exe".to_string())],
+            "the test entry has to carry the same name the target does, or the \
+             two never match"
+        );
+        assert_eq!(
+            declared_targets(&vars)
+                .iter()
+                .map(|d| d.name.clone())
+                .collect::<Vec<_>>(),
+            vec!["check_one.exe".to_string()],
+            "and that name is whatever declared_targets produces — this test \
+             exists to keep the two answers identical"
+        );
+    }
+
+    // The brace form is the same variable. Only one of the two implementations
+    // handled it, so a project writing ${EXEEXT} got a target literally named
+    // `greeter${EXEEXT}`.
+    #[test]
+    fn the_brace_form_of_exeext_expands_too() {
+        let vars = parse_variables(
+            "EXEEXT = .exe\ncheck_PROGRAMS = tool${EXEEXT}\nTESTS = $(check_PROGRAMS)\n",
+        );
+        assert_eq!(
+            classify_tests(&vars),
+            vec![TestEntry::Binary("tool.exe".to_string())],
+            "${{EXEEXT}} and $(EXEEXT) are one variable written two ways"
+        );
+    }
+
     #[test]
     fn a_conditional_test_variable_resolves_through_its_indirection() {
         let vars = parse_variables(
