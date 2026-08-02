@@ -110,6 +110,38 @@ run and green is the only passing state.
 Source build files are never edited to make a conversion succeed — see
 [build-verification.md](build-verification.md#the-input-build-files-are-immutable).
 
+## Replicate the build's behaviour, not this host's outcome
+
+A conversion reproduces **what the project's build system does**, not what
+happens to matter on the machine that ran the conversion. Those differ more
+often than they look like they do, and the difference is always invisible
+here and visible somewhere else.
+
+The config header states the general case in miniature — see
+[configure-file-and-toolchain-probes.md](configure-file-and-toolchain-probes.md#decision-bazel-native-not-host-capture)
+on why the resolved `config.h` sitting in the build directory is *not*
+copied into the module. But the rule is not about config headers. It applies
+to any construct whose effect this host makes look unnecessary:
+
+- A **gnulib replacement header** is inert on glibc/Linux — measured on
+  libidn2, every `gl/*.h` can be deleted and the library still builds with
+  byte-identical output. It is not inert on musl, macOS or Windows, which is
+  the entire reason the project vendors it.
+- A **compile-time conditional** whose branch this platform never takes.
+- A **feature probe** that happens to succeed here.
+
+In each case "we could skip it" means "we could bake in this machine's
+answer", which is the thing the whole pipeline is built to avoid. Skipping
+is not a smaller conversion, it is a conversion that is silently wrong for
+the next platform — and the failure lands on whoever tries that platform,
+far from anyone who could connect it to the decision.
+
+That does not make skipping always wrong. It makes it a **decision to record
+in the conversion**, with what was dropped and why, rather than an
+optimisation to apply quietly. The corollary is that "this is inert here" is
+never sufficient evidence on its own: the question is whether the construct
+is inert *by design* or merely on this platform.
+
 ## Components
 
 - **Translator (Rust):** owns parsing the source build system and codegen

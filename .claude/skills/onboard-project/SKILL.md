@@ -93,12 +93,28 @@ test -f $t/configure && echo "configure shipped" || echo "needs autoreconf"
 
 **Disqualifiers, each learned the hard way:**
 
-- **gnulib replacement system headers** (`lib/*.in.h`, usually 25-38 of them).
-  gnulib GENERATES replacements for `stdio.h`, `string.h` and friends that
-  shadow the real ones. Converting that faithfully means building a
-  gnulib-shaped feature no other project wants. This rejected GNU hello — the
-  canonical autotools project — and then gzip, patch, nano and libunistring.
-  It is the single highest-yield check.
+- **gnulib replacement system headers** (`lib/*.in.h`, usually 25-38 of
+  them) — a COST to size, no longer an automatic rejection. gnulib generates
+  replacements for `stdio.h`, `string.h` and friends that shadow the real
+  ones, and a conversion has to reproduce them.
+
+  A 2026-08-02 spike (bzl-07v) measured the cost and it is lower than this
+  rule assumed: the templates are plain `@VAR@`, which `config_header`
+  already expands, every value is in `make -p`, and a `cc_library` with
+  `includes` gives `#include_next` the ordering it needs. A real
+  `gl/limits.in.h` was reproduced end to end with no new machinery.
+
+  **Do not resolve this by measuring whether gnulib is inert on this
+  platform.** It is inert on glibc/Linux for libidn2 — every `gl/*.h` can be
+  deleted with byte-identical output — and that is a fact about the
+  conversion host, not the project. See
+  [overview.md](../../../docs/architecture/overview.md) on replicating the
+  build's behaviour rather than this host's outcome.
+
+  What still varies is VOLUME: libidn2 generates 11 headers and compiles 10
+  gnulib objects; gzip generates 18 and compiles 55. Prefer the smaller when
+  the goal is to build the capability, the larger when the goal is to
+  validate it.
 - **No `Makefile.am`.** A hand-written `Makefile.in` has no automake primaries
   for `make -p` to report, so the frontend's second source of truth is empty.
   Rejected GNU units, which looks like a normal autotools project until you
@@ -383,9 +399,9 @@ diagnosis is work in progress; a red project without one is rot.
 
 Most of this is neutral. These are not:
 
-- The gnulib and `Makefile.am` disqualifiers are Autotools-only. The CMake
-  equivalent is checking what the File API actually reports — a project whose
-  targets are all `INTERFACE` or `UTILITY` has nothing to convert.
+- The gnulib cost and the `Makefile.am` disqualifier are Autotools-only. The
+  CMake equivalent is checking what the File API actually reports — a project
+  whose targets are all `INTERFACE` or `UTILITY` has nothing to convert.
 - Tarball-vs-checkout is Autotools-only, for the `configure` reason above.
 - `check_PROGRAMS` not being built by plain `make` is Autotools-only, and is
   why `"tests": 0` needs checking there specifically.
