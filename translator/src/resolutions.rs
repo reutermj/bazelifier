@@ -613,10 +613,24 @@ library's own `cc_library`, delete the separate rule, and remove it from
 if the archive was compiled with different flags, folding changes how those
 sources are built and you need the third option instead.
 
-### Several targets use it — `static_deps`
+### Several targets use it — name it in the shared library's `deps`
 
-Keep the `cc_library` and name it in the `cc_shared_library`'s `static_deps`.
-One definition of the sources, absorbed into the shared library.
+Keep the `cc_library` and add it to the `cc_shared_library`'s own `deps`,
+beside the library it wraps:
+
+```python
+cc_shared_library(
+    name = "libthing.la_shared",
+    deps = [
+        ":libgnu.la",      # the convenience archive
+        ":libthing.la",    # the library it is absorbed into
+    ],
+)
+```
+
+The archive is linked in and its symbols stay **local** to the shared
+library, which is what a `noinst_` archive is for. One definition of the
+sources, several consumers.
 
 Be aware this is a **whole-library** statement and the original build's is
 not: a static archive contributes only the members something references, so
@@ -625,11 +639,20 @@ others. The link works either way; the resulting library is slightly larger
 than the project's own. Say so in your resolution rather than leaving the
 difference unrecorded.
 
-### Consumers call into it — export it
+**Not `static_deps`.** rules_cc rejects it — *"a no-op and its usage is
+forbidden after cc_shared_library is no longer experimental"* — and `roots`
+was renamed to `deps`. Older material recommends both; neither works.
 
-Rare for a `noinst_` library, which is by definition not part of the
-installed interface. Only choose this if the project's public headers
-declare functions the archive defines.
+### Consumers call into it — `exports_filter`
+
+Genuinely different from the above, and rare for a `noinst_` library, which
+by definition is not part of the installed interface.
+
+`exports_filter` asserts the shared library **exports** those symbols. That
+is only true if something makes them visible: `__attribute__((visibility))`
+in the sources, or a version script on the link. Check before claiming it —
+in the original build a `noinst_` archive's symbols are usually local (`nm`
+shows `t`, not `T`), and exporting them changes the library's interface.
 
 ## Two things that will bite
 

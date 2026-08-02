@@ -702,13 +702,20 @@ pub fn shared_library_absorbs_static_needs_attention(
              library — move its `srcs` and `hdrs` into '{shared}' directly and delete \
              the separate rule. Simplest, and correct whenever nothing else links the \
              archive.\n\
-             - **Declare it in `static_deps`.** Keeps the separate `cc_library` and \
-             tells the `cc_shared_library` it absorbs it. Right when several targets \
-             link the archive and you want one definition of its sources. Note this is \
-             a WHOLE-LIBRARY claim.\n\
-             - **Export its symbols.** Only if consumers of '{shared}' are meant to \
-             call into the archive, which for a `noinst_` library they usually are \
-             not.\n\n\
+             - **Name it in the `cc_shared_library`'s own `deps`,** alongside the \
+             library itself. The archive is then absorbed into this shared library \
+             and its symbols stay LOCAL to it, which is what a `noinst_` archive is \
+             for. Right when several targets link the archive and you want one \
+             definition of its sources. Note this is a WHOLE-LIBRARY claim.\n\
+             - **Add it to `exports_filter`.** Genuinely different: this asserts the \
+             shared library EXPORTS those symbols, which is only true if the sources \
+             carry visibility attributes or the link uses a version script. For a \
+             `noinst_` archive they usually are not exported, so prefer `deps` unless \
+             you can point at the thing that makes them visible.\n\n\
+             (An older Bazel spelled the first option `static_deps`. That attribute is \
+             now a hard error — \"a no-op and its usage is forbidden after \
+             cc_shared_library is no longer experimental\" — and `roots` was renamed \
+             to `deps`. Use `deps`.)\n\n\
              One thing to know before choosing, because it makes `static_deps` an \
              over-statement: the absorption is SELECTIVE. A static archive contributes \
              only the members something actually references, so the shared object ends \
@@ -1042,11 +1049,28 @@ mod tests {
         // Three genuinely different resolutions, and which is right depends
         // on whether the archive is an implementation detail.
         assert!(
-            item.context.contains("static_deps")
-                && item.context.to_lowercase().contains("fold it in")
-                && item.context.to_lowercase().contains("export its symbols"),
+            item.context.to_lowercase().contains("fold it in")
+                && item.context.contains("`deps`")
+                && item.context.contains("exports_filter"),
             "all three options must be offered, since the translator cannot \
              choose between them — that is why this escalates:\n{}",
+            item.context
+        );
+        // The advice has to be FOLLOWABLE. An earlier version recommended
+        // `static_deps`, which rules_cc rejects outright: "a no-op and its
+        // usage is forbidden after cc_shared_library is no longer
+        // experimental". An agent following the item could not resolve the
+        // item. It may still be MENTIONED, to explain the error someone hits
+        // reading older material, but never as an option to take.
+        assert!(
+            !item
+                .context
+                .split("(An older Bazel")
+                .next()
+                .unwrap_or_default()
+                .contains("static_deps"),
+            "`static_deps` is forbidden by rules_cc and must not be offered as \
+             a resolution:\n{}",
             item.context
         );
         assert!(
