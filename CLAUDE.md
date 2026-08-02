@@ -62,7 +62,8 @@ source in every fixture build.
 - `translator/` — the Rust translator crate:
   - `src/autotools.rs` — Autotools frontend: recovers the graph from the
     build's own stdout (the resolved command stream, this frontend's File API
-    analogue) joined with `make -p` (make's variable database, which carries the target NAMES
+    analogue) joined with `make -p`. Adding a THIRD frontend is documented in
+    that doc's "Adding a third" — five places, none obvious from one file (make's variable database, which carries the target NAMES
     the command stream lacks). See
     [docs/architecture/autotools-frontend.md](docs/architecture/autotools-frontend.md).
   - `src/cmake_api.rs` — CMake frontend: reads the File API

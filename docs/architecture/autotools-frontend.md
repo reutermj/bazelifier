@@ -19,6 +19,54 @@ automake's primaries map onto what `TargetKind` and `is_shared` already
 described, and `is_shared` — added weeks earlier for zlib's shared/static
 split — turned out to be exactly what libtool needed.
 
+### Adding a third
+
+The pattern exists twice now, so it is worth writing down rather than
+re-derived. Five places, none of which are obvious from any one file:
+
+1. `main.rs` — a `Frontend` enum variant.
+2. `main.rs::detect_frontend` — the file that marks a project of that kind.
+   Detection deliberately does NOT fall back to a default: a directory with
+   no marker is not a project this tool converts, and guessing produces a
+   confusing failure deep in a frontend instead of at the entry point.
+3. `main.rs::run` — one dispatch arm calling your `discover`.
+4. `build_defs/convert_cmake_project.bzl` — a `_FRONTENDS` entry (marker
+   file + display label) and the value in the rule's `values` list.
+5. The same file — a `convert_<x>_project` wrapper, which is a thin call
+   passing `frontend = "<x>"`.
+
+`--frontend` is passed explicitly by the rule rather than left to detection,
+because a project can ship both: xz has `CMakeLists.txt` and `configure.ac`,
+and which to convert is the BUILD author's choice rather than something to
+infer.
+
+What a frontend owes the rest of the pipeline is one function:
+
+```rust
+pub fn discover(source_dir: &Path, build_dir: &Path, deliverable_root: &Path)
+    -> Result<Discovery, Error>
+```
+
+Everything downstream consumes `Discovery` without knowing which frontend
+produced it. Two obligations are easy to miss and both have bitten:
+
+- **Honour `deliverable_root`.** The module root is DERIVED — it widens from
+  the project directory to cover anything the build references from inside
+  the deliverable, and `deliverable_root` caps that widening. Accepting the
+  parameter and ignoring it made two equivalent projects convert differently
+  with nothing reporting it (bzl-kga).
+- **Escalate rather than drop.** Anything you cannot express must produce a
+  `needs_attention` item. A silent drop surfaces as an undefined symbol at
+  link time, several steps from the cause — and if the CMake frontend
+  handles the same case, agree with it deliberately rather than by accident
+  (bzl-7nd).
+
+Two things you will probably NOT need, based on both existing frontends:
+a new `model` field, and any change to `codegen`. If you find yourself
+adding either, that is worth pausing on — it may be a genuine gap in the
+model, or it may be the frontend's shape leaking past the boundary this
+document exists to check.
+
 ## Source of truth: the command stream, not `Makefile.am`
 
 **Decision:** the frontend reads the build system's own resolved output, the

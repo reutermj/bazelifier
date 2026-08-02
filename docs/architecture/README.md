@@ -12,7 +12,9 @@ growing a single monolithic design doc.
 - [autotools-frontend.md](autotools-frontend.md) — reading Autotools input,
   via `make`'s resolved command stream and variable database. Written to be
   read alongside `cmake-frontend.md`: the two frontends make the same
-  decisions for the same reasons and differ mainly in available evidence
+  decisions for the same reasons and differ mainly in available evidence.
+  Its "Adding a third" section is the extension guide, since the pattern is
+  only visible once there are two
 - [bazel-codegen.md](bazel-codegen.md) — emitting Bazel `BUILD` files
 - [needs-attention-interface.md](needs-attention-interface.md) — the
   translator → agent handoff contract: what the translator emits when it
