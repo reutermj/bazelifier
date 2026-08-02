@@ -15,12 +15,22 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # autotools. source_dir is left empty so the rule derives it from where
 # configure.ac landed.
 #
-# The conversion succeeds (7 targets, 1 escalation). The module does NOT yet
-# build: lib/xmltok.c textually `#include`s xmltok_impl.c and xmltok_ns.c,
-# which reach neither the module nor any rule attribute. That is a TRANSLATOR
-# gap rather than an escalation, and is fixed in the commits that follow
-# (bzl-7pe.3). The remaining XML_GE/XML_CONTEXT_BYTES failure is the open
-# needs_attention item doing its job — agent-stage work.
+# The conversion succeeds (7 targets, 1 escalation). Onboarding it surfaced
+# two translator bugs, both since fixed:
+#
+#  - lib/xmltok.c textually `#include`s xmltok_impl.c and xmltok_ns.c, which
+#    reached neither `textual_hdrs` nor the module. Fixed by
+#    headers::textually_included_sources — a SHARED scan, because the CMake
+#    frontend faces the same question from better evidence (`ninja -t deps`)
+#    and neither frontend may import the other. Pinned by fixture
+#    autotools/005, which goes red at compile if it regresses (bzl-7pe.3).
+#  - `textual_sources` was declared but never COPIED, failing at analysis
+#    rather than at compile. Latent on the CMake side too.
+#
+# Every C source now compiles. What remains red is the open needs_attention
+# item, which is agent-stage work by design: XML_GE and XML_CONTEXT_BYTES are
+# project values only a human can decide, so the escalation is correct rather
+# than a defect.
 convert_autotools_project(
     name = "converted",
     srcs = ["@expat//:all_srcs"],
