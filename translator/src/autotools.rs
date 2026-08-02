@@ -863,15 +863,25 @@ fn parse_replacement_headers(stdout: &str, build_dir: &Path) -> Vec<ReplacementH
         // redirect alone yields `string.h-t1`, which is not a header anyone
         // includes.
         //
-        // TWO recipe forms, and libidn2 uses both — 4 headers pass the
-        // template on stdin (`< foo.in.h > foo.h-t`) and 7 pass it
-        // positionally (`foo.in.h > foo.h-t`). Handling one silently found
-        // four of eleven, so the `<` is matched optionally.
-        if let Some((before, _)) = line.split_once('>')
-            && let Some(src) = before
-                .split_whitespace()
-                .rev()
-                .find(|t| t.ends_with(".in.h"))
+        // THREE recipe forms, and libidn2 uses all three:
+        //
+        //   1. template on stdin:    `< foo.in.h > foo.h-t`   (4 headers)
+        //   2. template positional:  `foo.in.h > foo.h-t`     (7 headers)
+        //   3. sed's `w`, NO redirect:
+        //        `sed ... -n -e 'w foo.h-t' ./foo.in.h`       (3 headers)
+        //
+        // Handling only the first found 4 of 11 and looked like it worked, so
+        // the `<` is matched optionally. Form 3 has no `>` at all — `-n`
+        // suppresses the default output and `w` does the writing — so keying
+        // on the redirect missed exactly libidn2's uniconv.h, unistr.h and
+        // unitypes.h, which is what the build then failed on.
+        //
+        // Its template is the trailing POSITIONAL argument, after the whole
+        // script, so it is found the same way: the last `.in.h` token on the
+        // line.
+        let names_output = line.contains('>') || line.contains("-e 'w ");
+        if names_output
+            && let Some(src) = line.split_whitespace().rev().find(|t| t.ends_with(".in.h"))
         {
             template = Some(src.to_string());
         }
@@ -2889,6 +2899,47 @@ make[1]: Leaving directory '/build'\n\
             found[0].output, "mystring.h",
             "the directory comes from shadow_dir, so carrying it here too \
              doubles it"
+        );
+    }
+
+    // A third recipe form: sed's `w` writes the output, so there is no `>`
+    // redirect at all (`-n` suppresses the default output). Keying on the
+    // redirect missed exactly libidn2's uniconv.h, unistr.h and unitypes.h —
+    // 3 of its 14 unistring headers, and the three the build then failed on.
+    #[test]
+    fn a_recipe_that_writes_with_sed_w_is_found() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/unistring'\n\
+sed -e 1h -e '1s,.*,/* GENERATED */,' -e 1G -n -e 'w uniconv.h-t' /src/unistring/uniconv.in.h\n\
+mv uniconv.h-t uniconv.h\n\
+make[1]: Leaving directory '/build/unistring'\n\
+";
+        let found = parse_replacement_headers(STREAM, Path::new("/build"));
+        assert_eq!(found.len(), 1, "no `>` in this recipe: {found:#?}");
+        assert_eq!(found[0].output, "uniconv.h");
+        assert_eq!(
+            found[0].template, "/src/unistring/uniconv.in.h",
+            "the template is the trailing positional argument, after the \
+             whole script"
+        );
+    }
+
+    // The widening that made form 3 work must not make a bare mention of a
+    // template into a recipe: `make` announces prerequisites and `cp`s them
+    // around, and a line that names a .in.h without writing anything is not
+    // a generation recipe.
+    #[test]
+    fn a_line_that_only_mentions_a_template_is_not_a_recipe() {
+        const STREAM: &str = "\
+make[1]: Entering directory '/build/gl'\n\
+make: Nothing to be done for '/src/gl/string.in.h'\n\
+mv string.h-t string.h\n\
+make[1]: Leaving directory '/build/gl'\n\
+";
+        assert!(
+            parse_replacement_headers(STREAM, Path::new("/build")).is_empty(),
+            "a rename with no recipe that WROTE anything is not a \
+             replacement header"
         );
     }
 
