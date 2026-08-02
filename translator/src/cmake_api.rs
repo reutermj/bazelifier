@@ -514,6 +514,7 @@ fn read_codemodel_reply(
             &translated_names,
             is_depended_on,
             &installed_headers,
+            build_dir,
         );
 
         // Kept alongside the built target so the reconciliation pass below
@@ -652,7 +653,62 @@ fn rebase_to_module_root(
                         if is_reproduced_config_header {
                             continue;
                         }
-                        let display = absolute.to_string_lossy().into_owned();
+                        // Named relative to a root the AGENT can see, not
+                        // by the absolute path this conversion happened to
+                        // use. A build-dir path here is a Bazel sandbox
+                        // directory with a run-specific number in it —
+                        // .../sandbox/linux-sandbox/780/execroot/... — which
+                        // does not exist for the reader and is not stable
+                        // across runs, so it identifies nothing.
+                        let display = absolute
+                            .strip_prefix(build_dir)
+                            .map(|rel| format!("<build dir>/{}", rel.display()))
+                            .or_else(|_| {
+                                absolute.strip_prefix(deliverable_root).map(|rel| {
+                                    format!("<deliverable root>/{}", rel.display())
+                                })
+                            })
+                            // Neither root strips: the file is genuinely
+                            // outside both, which is fixture 008's shape and
+                            // a real project's too. An absolute path is all
+                            // that is left, but the leading directories are
+                            // this conversion's sandbox and mean nothing to
+                            // the reader — so it is anchored on the last
+                            // component the two have in common instead.
+                            .unwrap_or_else(|_| {
+                                // The common ancestor can be `/` — a
+                                // vendored path sharing nothing with the
+                                // deliverable — in which case stripping it
+                                // leaves the whole absolute path. Fall back
+                                // to the last two components, which is what
+                                // actually identifies the file to a reader
+                                // who cannot see this machine.
+                                let anchored = common_ancestor(
+                                    deliverable_root,
+                                    &[absolute.clone()],
+                                );
+                                let rel = if anchored.parent().is_some() {
+                                    absolute.strip_prefix(&anchored).ok()
+                                } else {
+                                    None
+                                };
+                                match rel {
+                                    Some(rel) => {
+                                        format!("<outside the deliverable>/{}", rel.display())
+                                    }
+                                    None => {
+                                        let tail: PathBuf = absolute
+                                            .components()
+                                            .rev()
+                                            .take(2)
+                                            .collect::<Vec<_>>()
+                                            .into_iter()
+                                            .rev()
+                                            .collect();
+                                        format!(".../{}", tail.display())
+                                    }
+                                }
+                            });
                         if absolute.starts_with(build_dir) {
                             build_dir_outputs.push(display);
                         } else {
@@ -843,6 +899,7 @@ fn to_target(
     translated_names: &HashMap<&str, &str>,
     is_depended_on: bool,
     installed_headers: &HashSet<String>,
+    build_dir: &Path,
 ) -> (Target, Vec<NeedsAttention>) {
     let mut sources = Vec::new();
     let mut public_headers = Vec::new();
@@ -861,7 +918,16 @@ fn to_target(
             if source.path.ends_with(".rule") {
                 continue;
             }
-            generated_sources.push(source.path.clone());
+            // Named relative to the build directory, not by the absolute
+            // path this conversion used. Under Bazel that is a sandbox
+            // directory with a run-specific number in it, which identifies
+            // nothing for the agent reading the escalation.
+            generated_sources.push(
+                Path::new(&source.path)
+                    .strip_prefix(build_dir)
+                    .map(|rel| format!("<build dir>/{}", rel.display()))
+                    .unwrap_or_else(|_| source.path.clone()),
+            );
             continue;
         }
 
@@ -1476,6 +1542,7 @@ mod tests {
                 &names,
                 false,
                 &HashSet::new(),
+                Path::new("/abs/build"),
             );
             target.dependencies
         };
@@ -1515,6 +1582,7 @@ mod tests {
             &HashMap::new(),
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
         assert!(
             target.is_shared,
@@ -1536,6 +1604,7 @@ mod tests {
             &HashMap::new(),
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
         assert!(
             !target.is_shared,
@@ -1568,6 +1637,7 @@ mod tests {
             &HashMap::new(),
             true,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
 
         assert_eq!(target.sources, vec!["src/greet.cpp".to_string()]);
@@ -1602,6 +1672,7 @@ mod tests {
             &HashMap::new(),
             true,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
 
         // The plain header stays in srcs, NOT silently promoted to hdrs.
@@ -1649,6 +1720,7 @@ mod tests {
             &HashMap::new(),
             true,
             &installed,
+            Path::new("/abs/build"),
         );
 
         assert_eq!(
@@ -1738,6 +1810,7 @@ mod tests {
             &HashMap::new(),
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
 
         assert!(needs_attention.is_empty());
@@ -1762,6 +1835,7 @@ mod tests {
             &HashMap::new(),
             true,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
 
         assert!(needs_attention.is_empty());
@@ -1798,6 +1872,7 @@ mod tests {
             &translated_names,
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
@@ -1839,6 +1914,7 @@ mod tests {
             &translated_names,
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
         assert_eq!(target.dependencies, vec!["greet".to_string()]);
     }
@@ -1881,6 +1957,7 @@ mod tests {
             &HashMap::new(),
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
 
         assert_eq!(
@@ -1897,7 +1974,7 @@ mod tests {
         assert!(
             needs_attention[0]
                 .gap
-                .contains("/abs/build/CMakeFiles/obj.dir/src/lib.cpp.o"),
+                .contains("<build dir>/CMakeFiles/obj.dir/src/lib.cpp.o"),
             "the escalation must name the file that was dropped:\n{}",
             needs_attention[0].gap
         );
@@ -1947,11 +2024,12 @@ mod tests {
             &HashMap::new(),
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
 
         assert_eq!(needs_attention.len(), 1);
         assert!(
-            needs_attention[0].gap.contains("/abs/build/gen.cpp")
+            needs_attention[0].gap.contains("<build dir>/gen.cpp")
                 && !needs_attention[0].gap.contains("gen.cpp.rule"),
             "escalation must name the real generated file but not its \
              phantom .rule sibling:\n{}",
@@ -1976,6 +2054,7 @@ mod tests {
             &HashMap::new(),
             false,
             &HashSet::new(),
+            Path::new("/abs/build"),
         );
 
         assert!(needs_attention.is_empty());
@@ -2051,6 +2130,36 @@ mod tests {
     // The cap doing its job: a file outside the deliverable must not drag
     // the module root out with it, however far up the tree it sits.
     #[test]
+    // An escalation is read by an agent in an unpacked workspace, where this
+    // conversion's absolute paths do not exist — under Bazel they are a
+    // sandbox directory with a run-specific number in it, so they identify
+    // nothing and are not even stable across runs. Every path an item names
+    // must therefore be anchored on a root the reader can locate.
+    #[test]
+    fn escalated_paths_are_anchored_not_absolute() {
+        let mut targets = vec![target_with(
+            vec!["src/main.cpp", "/elsewhere/vendor/blob.cpp"],
+            vec![],
+        )];
+        let (_, escalations) = rebase_to_module_root(
+            &mut targets,
+            Path::new("/deliv/proj"),
+            Path::new("/deliv/proj"),
+            Path::new("/deliv/proj/_build"),
+            &HashSet::new(),
+        );
+        let gap = &escalations[0].gap;
+        assert!(
+            !gap.contains("/elsewhere/vendor/blob.cpp"),
+            "the raw absolute path must not survive into the item:\n{gap}"
+        );
+        assert!(
+            gap.contains("vendor/blob.cpp"),
+            "but the file must still be identifiable:\n{gap}"
+        );
+    }
+
+    #[test]
     fn rebase_refuses_to_widen_past_the_deliverable_root() {
         let mut targets = vec![target_with(
             vec!["src/main.cpp", "/elsewhere/vendor/blob.cpp"],
@@ -2068,8 +2177,10 @@ mod tests {
         assert_eq!(module_root, PathBuf::from("/deliv/proj"));
         assert_eq!(targets[0].sources, vec!["src/main.cpp".to_string()]);
         assert_eq!(escalations.len(), 1);
+        // Named by its tail, not its absolute path — see
+        // `escalated_paths_are_anchored_not_absolute` for why.
         assert!(
-            escalations[0].gap.contains("/elsewhere/vendor/blob.cpp"),
+            escalations[0].gap.contains("vendor/blob.cpp"),
             "{}",
             escalations[0].gap
         );
