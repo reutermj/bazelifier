@@ -155,36 +155,59 @@ def line_chart(title: str, series: list[tuple[str, list[float]]], labels: list[s
     )
 
 
-STYLE = """<style>
-  :root { color-scheme: light dark; }
-  body { font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 2rem 1.25rem;
-         max-width: 60rem; color: {INK}; }
-  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
-  h2 { font-size: 1rem; margin: 0 0 .5rem; font-weight: 600; }
-  .sub { color: {MUTED}; margin: 0 0 2rem; }
-  section { margin: 0 0 2.25rem; }
-  svg { width: 100%; height: auto; overflow: visible; }
-  .legend { margin: 0 0 .5rem; font-size: .8rem; color: {MUTED}; }
-  .key { margin-right: 1rem; white-space: nowrap; }
-  .key i { display: inline-block; width: .6rem; height: .6rem; border-radius: 50%;
-            margin-right: .35rem; }
-  .wrap { overflow-x: auto; }
-  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
-  th, td { text-align: left; padding: .35rem .6rem; border-bottom: 1px solid {GRID}; }
-  th { color: {MUTED}; font-weight: 600; }
-  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
-  .up { color: #a03e52; } .down { color: #4a7c59; }
-  .flat, .new { color: {MUTED}; }
-  .cards { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 0 0 2rem; }
-  .card b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
-  .card span { color: {MUTED}; font-size: .8rem; }
-  @media (prefers-color-scheme: dark) {
-    body { color: #e4e7eb; background: #17202a; }
-    th, td { border-color: #2c3946; }
-  }
-  :root[data-theme="dark"] body { color: #e4e7eb; background: #17202a; }
-  :root[data-theme="light"] body { color: {INK}; background: #fff; }
+# An f-string, not a plain one: this block is interpolated into the page via
+# `{STYLE}`, and f-string substitution does not recurse — so a plain string
+# shipped `color: {INK}` to the browser as literal CSS, silently dropping
+# every rule that used one of these three constants.
+STYLE = f"""<style>
+  :root {{ color-scheme: light dark; }}
+  body {{ font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; padding: 2rem 1.25rem;
+         max-width: 60rem; color: {INK}; }}
+  h1 {{ font-size: 1.4rem; margin: 0 0 .25rem; }}
+  h2 {{ font-size: 1rem; margin: 0 0 .5rem; font-weight: 600; }}
+  .sub {{ color: {MUTED}; margin: 0 0 2rem; }}
+  section {{ margin: 0 0 2.25rem; }}
+  svg {{ width: 100%; height: auto; overflow: visible; }}
+  .legend {{ margin: 0 0 .5rem; font-size: .8rem; color: {MUTED}; }}
+  .key {{ margin-right: 1rem; white-space: nowrap; }}
+  .key i {{ display: inline-block; width: .6rem; height: .6rem; border-radius: 50%;
+            margin-right: .35rem; }}
+  .wrap {{ overflow-x: auto; }}
+  table {{ border-collapse: collapse; width: 100%; font-size: .9rem; }}
+  th, td {{ text-align: left; padding: .35rem .6rem; border-bottom: 1px solid {GRID}; }}
+  th {{ color: {MUTED}; font-weight: 600; }}
+  td.n, th.n {{ text-align: right; font-variant-numeric: tabular-nums; }}
+  .up {{ color: #a03e52; }} .down {{ color: #4a7c59; }}
+  .flat, .new {{ color: {MUTED}; }}
+  .cards {{ display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 0 0 2rem; }}
+  .card b {{ display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }}
+  .card span {{ color: {MUTED}; font-size: .8rem; }}
+  @media (prefers-color-scheme: dark) {{
+    body {{ color: #e4e7eb; background: #17202a; }}
+    th, td {{ border-color: #2c3946; }}
+  }}
+  :root[data-theme="dark"] body {{ color: #e4e7eb; background: #17202a; }}
+  :root[data-theme="light"] body {{ color: {INK}; background: #fff; }}
 </style>"""
+
+
+def check_substituted(page: str) -> None:
+    """Refuse to write a page still carrying a template placeholder.
+
+    The failure this exists for is invisible to any check that asks whether
+    the file was written: `STYLE` was a plain string interpolated via
+    `{STYLE}`, f-string substitution does not recurse, and the published page
+    served `color: {INK}` as literal CSS for weeks. The browser drops an
+    invalid rule silently, so the page looks current and merely renders
+    wrong — which CLAUDE.md rates as worse than not publishing at all.
+    """
+    leaked = sorted({m for m in re.findall(r"\{[A-Z_]{2,}\}", page)})
+    if leaked:
+        raise SystemExit(
+            f"refusing to write: {', '.join(leaked)} reached the output as "
+            "literal text. A template placeholder was not substituted — check "
+            "for a plain string that should be an f-string."
+        )
 
 
 def slug(project: str) -> str:
@@ -408,7 +431,9 @@ def main() -> int:
     rows = load(args.history)
     post = load_post_agent(args.history)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(render(rows, post))
+    index = render(rows, post)
+    check_substituted(index)
+    args.out.write_text(index)
 
     # One page per project, beside the index. Written every run rather than
     # only for projects that changed: a stale page is worse than none, and a
