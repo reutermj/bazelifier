@@ -223,6 +223,31 @@ pub struct Test {
     pub pass_regex: Option<String>,
 }
 
+/// How a config-header template DECLARES the names it wants resolved, which
+/// decides what an unresolved one looks like in the output.
+///
+/// Named for the construct rather than the build system, because the two do
+/// not line up: autoconf generates headers BOTH ways, `#undef` through
+/// `AC_CONFIG_HEADERS` and `@VAR@` through `AC_CONFIG_FILES`, and jansson
+/// ships one of each. A variant called `Cmake` would then have to be passed
+/// by the Autotools frontend, which reads as a bug and invites someone to
+/// "fix" it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ConfigDialect {
+    /// `#cmakedefine NAME`, from CMake's `configure_file`. An unresolved one
+    /// stays in the output as the literal directive.
+    #[default]
+    Cmakedefine,
+    /// `#undef NAME`, from autoconf's `AC_CONFIG_HEADERS`. An unresolved one
+    /// stays `#undef`, so the macro is simply absent — a silent miscompile
+    /// rather than a broken build, which is the harder direction.
+    Undef,
+    /// `@VAR@` substitution only, from `AC_CONFIG_FILES` or a CMake template
+    /// with no `#cmakedefine`. An unresolved one is left LITERAL and breaks
+    /// every source that includes the header.
+    Substitution,
+}
+
 /// A `configure_file`-generated config header the translator reproduces via a
 /// `cc_config//:config_header` rule, so it's computed against the consumer's
 /// toolchain rather than baked from the conversion host. Recovered from the
@@ -277,6 +302,16 @@ pub struct ConfigHeader {
     /// avoid vacuous `grep` needles, and those two quote characters shift
     /// where that threshold falls.
     pub values: Vec<(String, String)>,
+    /// Which construct the template declares names with, and so what an
+    /// unresolved one leaves behind.
+    ///
+    /// Carried on the header rather than inferred by codegen, because the
+    /// frontend is the only place that knows: it read the template. Codegen
+    /// guessed `#cmakedefine` for everything, so four Autotools projects
+    /// shipped an assertion that their header contains no `#cmakedefine` —
+    /// true of every autoconf template ever written, and therefore a gate
+    /// that cannot fail (bzl-lvm).
+    pub dialect: ConfigDialect,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

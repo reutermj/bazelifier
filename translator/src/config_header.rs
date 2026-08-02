@@ -113,6 +113,8 @@ pub(crate) fn plan_config_header(
             template_source: None,
             catalog_probes: probes,
             values,
+            // AC_CONFIG_HEADERS: the template declares with `#undef`.
+            dialect: crate::model::ConfigDialect::Undef,
         },
         unmapped,
     )
@@ -178,6 +180,8 @@ pub(crate) fn plan_substitution_header(
             template_source: None,
             catalog_probes: Vec::new(),
             values,
+            // AC_CONFIG_FILES: `@VAR@` substitution, no declarations.
+            dialect: crate::model::ConfigDialect::Substitution,
         },
         unmapped,
     )

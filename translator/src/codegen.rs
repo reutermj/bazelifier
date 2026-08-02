@@ -256,7 +256,26 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
 fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader) {
     let name = config_header_name(header);
 
-    let mut must_not_contain = vec!["#cmakedefine".to_string()];
+    // What an UNRESOLVED name leaves behind, which differs by dialect. This
+    // used to be `#cmakedefine` unconditionally — true of no autoconf
+    // template ever written, so four Autotools projects shipped an assertion
+    // that could not fail (bzl-lvm).
+    let mut must_not_contain = match header.dialect {
+        model::ConfigDialect::Cmakedefine => vec!["#cmakedefine".to_string()],
+        // Per NAME rather than the bare directive: `#undef` is ordinary C and
+        // appears in real headers for reasons that have nothing to do with
+        // configure, so asserting its absence outright would fail on a
+        // correct header. `#undef PACKAGE_NAME` for a name we supplied a
+        // value for cannot be correct.
+        model::ConfigDialect::Undef => header
+            .values
+            .iter()
+            .map(|(n, _)| format!("#undef {n}"))
+            .collect(),
+        // Nothing declares here, so the `@NAME@` check below is the whole
+        // assertion — and it is the strong one for this dialect anyway.
+        model::ConfigDialect::Substitution => Vec::new(),
+    };
     // A surviving `@NAME@` means the substitution never ran. Only checked for
     // names we actually supply — a template may legitimately contain an `@`
     // that is not a substitution.
@@ -989,6 +1008,7 @@ mod tests {
                 template_source: None,
                 catalog_probes: vec![],
                 values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
+                dialect: model::ConfigDialect::Cmakedefine,
             },
         );
         assert!(
@@ -1822,6 +1842,7 @@ mod tests {
                     // Four characters of signal, quoted to six.
                     ("LONG".to_string(), "\"abcd\"".to_string()),
                 ],
+                dialect: model::ConfigDialect::Cmakedefine,
             },
         );
         assert!(
@@ -1832,6 +1853,69 @@ mod tests {
         assert!(
             out.contains("abcd"),
             "and a genuinely distinguishing value must still be asserted:\n{out}"
+        );
+    }
+
+    #[test]
+    fn an_autoconf_header_is_not_asserted_against_a_cmake_construct() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
+            dialect: model::ConfigDialect::Undef,
+        }];
+        let rendered = render(&g).build_bazel;
+        let must_not = rendered
+            .split("must_not_contain = [")
+            .nth(1)
+            .and_then(|rest| rest.split("],").next())
+            .expect("the assertion must render a must_not_contain list");
+
+        assert!(
+            !must_not.contains("#cmakedefine"),
+            "an autoconf template contains no #cmakedefine, so asserting its \
+             absence is a gate that cannot fail — four Autotools projects \
+             shipped exactly that:\n{must_not}"
+        );
+        assert!(
+            must_not.contains("#undef PACKAGE_NAME"),
+            "what CAN fail for this dialect is a name left #undef that should \
+             have been defined:\n{must_not}"
+        );
+    }
+
+    // The other direction, so the dialect switch cannot be wired to a
+    // constant: a CMake header must still be checked for the construct IT
+    // can leave behind.
+    #[test]
+    fn a_cmake_header_is_still_asserted_against_cmakedefine() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.cmakein".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("PACKAGE_NAME".to_string(), "zlib".to_string())],
+            dialect: model::ConfigDialect::Cmakedefine,
+        }];
+        let rendered = render(&g).build_bazel;
+        let must_not = rendered
+            .split("must_not_contain = [")
+            .nth(1)
+            .and_then(|rest| rest.split("],").next())
+            .expect("the assertion must render a must_not_contain list");
+
+        assert!(
+            must_not.contains("#cmakedefine"),
+            "an unsubstituted #cmakedefine is the CMake dialect's real failure \
+             and must still be checked:\n{must_not}"
+        );
+        assert!(
+            !must_not.contains("#undef"),
+            "and autoconf's construct must not be asserted here:\n{must_not}"
         );
     }
 
@@ -1849,6 +1933,7 @@ mod tests {
                 ("FLAG".to_string(), "1".to_string()),
                 ("OPTION".to_string(), "OFF".to_string()),
             ],
+            dialect: model::ConfigDialect::Cmakedefine,
         }];
         let rendered = render(&g).build_bazel;
 
@@ -1991,6 +2076,7 @@ mod tests {
             template_source: None,
             catalog_probes: vec!["@cc_config//catalog:have_unistd_h".to_string()],
             values: vec![("PROJECT_VERSION".to_string(), "3.7.0".to_string())],
+            dialect: model::ConfigDialect::Cmakedefine,
         }];
         let rendered = render(&g).build_bazel;
 

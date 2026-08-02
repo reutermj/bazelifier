@@ -505,6 +505,15 @@ fn resolve_config_header(
         template_source: None,
         catalog_probes,
         values,
+        // Read off the template rather than assumed from the frontend: a
+        // CMake `configure_file` target may be pure `@VAR@` substitution with
+        // no `#cmakedefine` in it, and asserting the absence of a construct
+        // the template never had is a gate that cannot fail.
+        dialect: if macros.cmakedefines.is_empty() {
+            crate::model::ConfigDialect::Substitution
+        } else {
+            crate::model::ConfigDialect::Cmakedefine
+        },
     };
     (header, unmapped)
 }
