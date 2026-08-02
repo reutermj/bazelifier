@@ -59,6 +59,58 @@ mv string.h-t1 string.h
 — these recipes are silenced by `AM_SILENT_RULES`, see
 [am-silent-rules-empties-the-command-stream.md](am-silent-rules-empties-the-command-stream.md).
 
+## The recipe has THREE forms, and the third writes no redirect
+
+Counting redirects finds 11 of libidn2's 14 unistring headers. The other
+three are written by sed's `w` command, which needs no `>` at all — `-n`
+suppresses the default output and `w` does the writing:
+
+```
+sed -e 1h -e '1s,.*,/* GENERATED */,' -e 1G -n -e 'w uniconv.h-t' ./uniconv.in.h
+```
+
+| form | example | libidn2 |
+|---|---|---|
+| template on stdin | `< foo.in.h > foo.h-t` | 4 |
+| template positional | `foo.in.h > foo.h-t` | 7 |
+| sed `w`, no redirect | `-n -e 'w foo.h-t' ./foo.in.h` | 3 |
+
+The three `w`-form headers were exactly `uniconv.h`, `unistr.h` and
+`unitypes.h` — and exactly the three the build then failed on. A dropped
+header is not an error, so the only symptom is a `file not found` much later
+in a consumer.
+
+Widening the match needs a guard: the line must actually WRITE something, or
+any line mentioning a `.in.h` reads as a recipe.
+
+## The macros a header declares may not be IN the template
+
+gnulib assembles a header out of parts, using sed's `r` command to splice a
+whole file in at a marker comment:
+
+```
+-e '/definitions of _GL_FUNCDECL_RPL/r ./c++defs.h'
+```
+
+The real `gl/stdlib.h` contains all of `c++defs.h` inlined at line 238,
+license header and all. No `#include` is involved and nothing is
+substituted, so a reader that knows only `s|...|...|` drops it in silence —
+and the header still generates, just without the macros it declares. libidn2
+has 42 splices across 14 headers, from four helper files.
+
+**The splice runs LAST, after every substitution**, which is the opposite of
+the intuitive order. `c++defs.h` carries seven `@VAR@` references and all
+seven reach the generated header verbatim (they sit in a documentation
+comment, where an expanded value would mislead). Splicing first produces a
+header the project's own build never emits.
+
+Two consequences worth knowing before touching this:
+
+- an `assert_config_header_test` asserting "no `@NAME@` survives" is FALSE
+  for a spliced header, and would fail on a correct one;
+- the marker line is kept — `r` appends after it — and fires at *every*
+  matching line, not just the first.
+
 ## Three things about the recipe that hand-written fixtures got wrong
 
 Each of these passed a unit test written from my assumption and failed
