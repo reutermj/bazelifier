@@ -29,6 +29,18 @@ Each is a distinct shape, and only the first is obvious:
    unenrolled because of libtool wrappers; that was fixed and the fixture
    stayed out — for a *different* reason nobody had filed.
 6. **Acceptance test now passes** and nobody re-ran it.
+7. **The world moved under a diagnosis that was right when written.** Not
+   shape 2 — the diagnosis was never wrong *about its own world*. `bzl-i4i.7`
+   said staging fires for four projects and the corpus contained exactly one
+   angled project-local include; both were true, and both are now false
+   because three projects landed since. `bzl-fxa.21` said "a second frontend
+   would want this"; that frontend arrived and now imports the leak.
+
+   These are the most dangerous beads in the tracker because they read as
+   *unusually rigorous* — they cite counts and measurements, which is exactly
+   what makes a reader trust them and skip re-measuring. **Any bead
+   containing a number, a count, or the word "measured" is a re-measurement
+   candidate**, and the more careful it looks the more it needs one.
 
 ## The method
 
@@ -37,7 +49,26 @@ this order — cheapest disqualifier first:
 
 ```sh
 bd list --status=open
+bd list --status=in_progress   # NOT optional — see below
 ```
+
+**`--status=open` alone misses a whole class.** An `in_progress` bead whose
+work has actually completed is invisible to it; three such beads were found
+in one pass, all closeable. Claimed-and-finished is at least as common here
+as never-started.
+
+**Read DESCRIPTION and NOTES as separate artifacts that can disagree.**
+`bd show` renders the description first, so when someone appends an accurate
+correction on top of a stale body, the stale half is what a reader hits.
+`bzl-b9b`'s notes record a deliberate reframe while its description still
+cites a file deleted three commits earlier; `bzl-yjn`'s notes literally open
+"CORRECTION to this epic's description". A bead can be simultaneously
+well-maintained and misleading.
+
+**Several beads make claims about generated OUTPUT, not source.** Grepping
+`translator/src/` confirms a trigger condition while missing that the
+project count is wrong. Build and unpack the validation workspace, or use
+one already unpacked, and check those against it.
 
 For each: grep the identifiers, files and symptoms the bead names. Then:
 

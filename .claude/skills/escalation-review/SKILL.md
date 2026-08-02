@@ -48,6 +48,28 @@ done | sort
 That reads the machine-readable header every item carries, so it stays right
 as kinds are added.
 
+**Take the frontend census from the checkout, never from the module.**
+Converted modules ship no input build files at all, so "does this module
+contain a `CMakeLists.txt`?" answers *no* for all 37 and will label every
+CMake project Autotools:
+
+```sh
+grep -rl convert_autotools_project translator/tests/   # the Autotools ones
+```
+
+This matters because the highest-value defect in this pass is an escalation
+whose prose is right for one frontend and false for the other, and you
+cannot see it without knowing which project came from which. Cross-check
+against the constructors that frontend actually calls — `autotools.rs` calls
+only two.
+
+**`CONVERSION.json` and `TARGETS` ship too, and are in scope.** A silent
+drop shows up there as a confident zero rather than as an absence: xz's
+`"tests": 0` is a false claim in shipped output for a project with thirteen
+`check_PROGRAMS`, and no item exists to be read. An escalation review that
+only opens `needs_attention/` cannot see the gaps where the escalation is
+the thing that is missing.
+
 ## What to ask
 
 Three groups, and they are different questions rather than a checklist of
@@ -137,14 +159,22 @@ An item can be true, actionable and correctly emitted, and still be nearly
 useless — because it describes the general shape of a problem and leaves the
 agent to rediscover the particulars.
 
-The worked case is zlib's `ctest_command_not_a_target` item: 46 lines, well
-argued, and almost entirely generic. The script "usually invokes a binary
-this module DOES build". The working directory "often points into the CMake
-BUILD tree". Files it reads "have to be listed in the test's `data`". Each
-of those is a placeholder where a fact could be — and
-`ctest_command_not_a_target_needs_attention` takes `commands: &[String]`,
-the actual command lines, which the item never prints. The agent goes
-looking for what the escalation already knew.
+The worked case is fmt's `header_visibility` items. The item says the target
+"has header-like files among its sources" and asks the agent to determine
+which are "actually part of its public interface" — naming none of them. The
+word "header" appears nine times; no filename appears once. Meanwhile the
+generated `BUILD.bazel` in the same module shows `test-main`'s `srcs`
+carrying `test/gtest-extra.h` plus fourteen of fmt's own public headers that
+are *already* in another target's `hdrs` — so much of the classification is
+derivable from a file the agent is holding, and the item does not say so.
+
+(zlib's `ctest_command_not_a_target` item used to be the example here, on
+the grounds that it never printed the commands. It prints them now —
+`ctest.rs:178`. Its live defect is different and larger: the prose describes
+a project shell script driving a built binary, and all thirteen commands are
+`/usr/bin/cmake`, `/usr/bin/ctest` and `/bin/gcov`. Generic prose is not the
+only failure; prose that is *specifically wrong about this project* reads as
+more helpful and costs more.)
 
 Two directions per item:
 
@@ -213,8 +243,13 @@ absences do not exist.
 
 - **P1** — the item states something FALSE for the project it shipped to; its
   resolution cannot be carried out from inside the module; a real gap is passed
-  over silently so the user learns nothing; or its central instruction cannot
-  be followed without a fact the translator had and withheld.
+  over silently so the user learns nothing; its central instruction cannot
+  be followed without a fact the translator had and withheld; or **the item
+  and the `resolutions/` recipe beside it give opposite instructions.** That
+  last one is incoherence in the shipment rather than an error in either
+  document, so it survives reading either alone — and because
+  `resolutions/README.md` says the item wins a tie, the interface resolves it
+  toward whichever one is wrong.
 - **P2** — accurate but names something the agent cannot reach, describes a
   limitation the translator no longer has, or escalates something the
   translator has the evidence to resolve itself.

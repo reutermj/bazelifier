@@ -50,18 +50,41 @@ found something real:
    question, because the answer is invisible by construction — nothing fails,
    two equivalent projects just convert differently.
 
-   Look for a field one frontend processes and the other does not. Found this
-   way: Autotools rebased `sources` but not `public_headers`, sitting in the
-   same struct literal; and its module-root survey reads a narrower path set
-   than CMake's. (An earlier instance, `deliverable_root` accepted and
-   ignored, is FIXED — do not go looking for it. A worked solution, not an
-   open lead.)
+   Look for a field one frontend processes and the other does not, and for a
+   **fix applied to one frontend and never swept to the other** — currently
+   this repo's dominant defect shape. Live instance: `6b7de3d` anchored every
+   path an escalation names, touched `cmake_api.rs` only, and both frontends
+   call the same constructor, so Autotools still passes a raw sandbox path
+   into shipped text. Its sibling shape is a *shared* constructor whose
+   arguments are built by two drifted paths — perfect deduplication at the
+   call it makes, divergence in what it is handed.
+
+   (Three earlier instances are FIXED — do not go hunting: `deliverable_root`
+   accepted and ignored; `public_headers` not rebased; the module-root survey
+   reading a narrower path set. All three are worked solutions, and a cold
+   agent chasing them spends its budget re-confirming fixes.)
 4. **What does a shared field mean to each caller?** A model field two
    frontends populate with different conventions is a leak the type system
-   does not catch — `ConfigHeader::values`, C-quoted by one and raw by the
-   other, documented as neither.
+   does not catch. Live instance: `Target::soname`'s doc asserts the name
+   "has already been sanitised for Bazel label legality" — only Autotools
+   runs `target_label`, so the contract is documented, half-implemented, and
+   unenforced. (`ConfigHeader::values`, C-quoted by one and raw by the other,
+   was the example here and is FIXED — `model.rs` now documents both
+   dialects.)
 5. **What is accepted-and-ignored?** A parameter taken and never read is a
    contract silently unhonoured. Grep for `_`-prefixed parameters.
+6. **Does a stated invariant still hold — and was it ever the right
+   invariant?** Distinct from comment staleness: this is an architectural
+   guarantee asserted as settled in `CLAUDE.md` or `docs/architecture/`,
+   which the code has since violated. Check the claim's date against the
+   commits that would falsify it; `git log --reverse` catches the case where
+   a doc was written *already* stale rather than drifting. Live instance:
+   "the Autotools frontend needed no codegen change and no new model field"
+   was committed 27 minutes after the second commit that added both. The fix
+   is usually not to delete the claim — the underlying property was real —
+   but to state the invariant that actually holds ("codegen never learns
+   which frontend ran") instead of the proxy that does not (a field count).
+   A guardrail known to be stale stops being read.
 
 ## What looks like a leak and isn't
 

@@ -58,12 +58,23 @@ alongside the findings, not instead of them.
 
 ## Know the baseline before calling anything a regression
 
-Five fixtures are red in the unpacked validation workspace today, and that
-is the pipeline working, not a broken test: `003-library-no-file-set`
-(header not in a FILE_SET), `005-unsupported-target-type` (a custom target),
-`007-generated-source` (a generated source → genrule), `008-sources-outside-
-deliverable-root` (a sibling directory outside the root), and
-`015-configure-file-unresolved-var` (an unresolved plain `@VAR@`). Each emits
+**Derive the baseline, don't trust this list.** In an unpacked workspace:
+
+```bash
+cd <workspace>/fixtures
+for d in */; do n=$(ls "$d/needs_attention"/*.md 2>/dev/null | wc -l)
+  [ "$n" -gt 0 ] && echo "$n  ${d%/}"; done | sort -rn
+```
+
+As of 2026-08-02 that is ten projects, not the five a previous version of
+this file named: six synthetic fixtures — `003-library-no-file-set` (header
+not in a FILE_SET), `005-unsupported-target-type` (a custom target),
+`007-generated-source` (a generated source → genrule),
+`008-sources-outside-deliverable-root` (a sibling directory outside the
+root), `015-configure-file-unresolved-var` (an unresolved plain `@VAR@`) and
+`022-ctest-script-command` — plus four corpus projects: `json-c` (6),
+`zlib` (2), `fmt` (2), `xz` (1). The hand-list went stale twice: 022 and the
+whole corpus postdate it. Each emits
 a `needs_attention/` item and the gate fails loud by design; these fixtures
 exist to test the *whole* pipeline including the agent stage, whose job is to
 resolve the item (in the generated output) and turn the fixture green.
@@ -81,11 +92,23 @@ comparison suite and hides every other result; see 015's `main.c`.
 ```sh
 # Tests ALWAYS run through Bazel — never `cargo test` (see CLAUDE.md: cargo's
 # toolchain/resolution differs, so it can pass while the Bazel build is red).
+# A reviewer reporting the suite RED from `cargo test` has already been wrong
+# once; confirm against Bazel with --nocache_test_results before believing it.
 bazel test //translator:bazelifier_test
-cd translator && cargo fmt --check && cargo clippy --all-targets  # fmt/lint only, not tests
+# Run clippy FIRST, and read it as a source of findings rather than as lint
+# noise: `duplicated attribute` is the detector for a doc/comment block
+# orphaned from the test it describes, which is a P1 here. Five sat in the
+# tree unread. Not a test runner.
+cd translator && cargo clippy --all-targets && cargo fmt --check
 python3 .claude/skills/test-review/scripts/coverage_map.py
 bash -n translator/build_defs/compare_runtime_output.sh   # if touched
 ```
+
+Building in the unpacked workspace needs the catalog supplied by flag —
+`--override_module=cc_config=<bazelifier-checkout>/cc_config`. Without it
+you get "module cc_config not found in registries", which reads like blocked
+egress and is not; `cc_config` is deliberately never staged into the
+tarball.
 
 Run the Bazel tiers directly — `bazel test //translator:bazelifier_test`
 (the Rust-unit authority), the fixture conversions, the validation
@@ -150,10 +173,17 @@ genuinely covered; `configure`/`build` are one-line `Command` wrappers whose
 behavior is CMake's. The list earns its keep on the case nobody decided —
 a function that grew logic after its caller's test was written.
 
-To re-validate the script after editing it: delete a fixture from the list
-in `translator/tests/BUILD.bazel` and confirm it reports `NOT ENROLLED`,
-and rename a tested function and confirm it appears. Read the "Scanned N"
-line — an N of 0 means it matched nothing, not that everything is covered.
+To re-validate the script after editing it: delete **an `autotools/`
+fixture and a `corpus/` project** from the list in
+`translator/tests/BUILD.bazel` and confirm each reports `NOT ENROLLED`, and
+rename a tested function and confirm it appears. Read the "Scanned N" and
+"Projects on disk" lines — an N of 0 means it matched nothing, not that
+everything is covered.
+
+Those two specific victims, not any fixture: the check was blind to all
+nine nested projects for months while passing this recipe, because deleting
+a top-level CMake fixture exercised the one path that worked. A mutation
+that only ever probes the easy case certifies the bug.
 
 ## What looks like a finding but isn't
 

@@ -42,6 +42,19 @@ sampling pass into a targeted one.
   frame of reference that is now false, or a doc comment attached to the
   wrong item (Rust silently welds a doc block to whatever follows it, so
   this compiles).
+
+  **Run clippy first for the orphan class**, before reading anything:
+
+  ```sh
+  cd translator && cargo clippy --all-targets 2>&1 | grep -A3 'duplicated attribute'
+  ```
+
+  When a test is inserted above an existing one the `#[test]` gets duplicated
+  along with the comment, and clippy names every site. Five sat unread in
+  this tree, one of them stacking three unrelated rationales above a single
+  test. Read those warnings as findings, not lint noise — and note the
+  trigger is *any commit adding a test to an existing `mod tests`*, not only
+  a rename or file move: three of those five came from plain insertions.
 - **P2** — stale or contradicted, but a reader would notice before acting.
 - **P3** — a dangling `see X` pointer, a miscounted list.
 
@@ -101,6 +114,15 @@ before the first comment-cleanup on this branch works; find it with
 `git log --oneline --all | grep -i "stale\|comment"`. Always read the
 "Scanned N files" line — an N of 0 means the scan covered nothing, not that
 the tree is clean.
+
+**A doc that enumerates code items goes stale by omission, and no checker
+sees it.** `CLAUDE.md`'s "Where things live" lists every translator module
+with the reason it exists separately; `docs/architecture/`'s frontend docs
+list each frontend's inputs. Nothing breaks when a module is added and the
+list is not — but since every other entry states *why this is a real seam*,
+an absent entry reads as "not a seam," which is the opposite of what the
+extraction argued. Diff the inventory against `ls translator/src/*.rs`; the
+reference checker cannot, because a missing name is not a broken one.
 
 ## What looks like a finding but isn't
 

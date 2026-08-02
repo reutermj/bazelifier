@@ -69,13 +69,37 @@ def report_untested_functions(src_dir):
         print(f"    {filename}: {name}")
 
 
+def project_dirs(root):
+    """Directories holding a convertible project: those with their own BUILD.bazel.
+
+    Recursive, because `fixtures/autotools/` groups its fixtures one level
+    down and a non-recursive scan sees the GROUP as a single undertested
+    project while missing every fixture inside it. Keyed on the path relative
+    to `translator/tests/` so it compares directly against the label the
+    enrollment list uses; matching on basename alone silently passed while
+    nine projects went unchecked.
+    """
+    if not root.is_dir():
+        return set()
+    return {
+        p.parent.relative_to(root.parent).as_posix()
+        for p in root.rglob("BUILD.bazel")
+        if p.parent != root
+    }
+
+
 def report_unenrolled_fixtures(tests_dir):
     """Fixture directories on disk vs. the validation_workspace fixtures list."""
     build_file = tests_dir / "BUILD.bazel"
-    enrolled = set(re.findall(r"//translator/tests/fixtures/([^:]+):", build_file.read_text()))
-    on_disk = {p.name for p in (tests_dir / "fixtures").iterdir() if p.is_dir()}
+    # Both trees: `corpus/` holds real projects and is enrolled in the same
+    # list, so a check that only walked `fixtures/` reported a complete list
+    # while a corpus project was missing from it.
+    enrolled = set(
+        re.findall(r"//translator/tests/((?:fixtures|corpus)/[^:]+):", build_file.read_text())
+    )
+    on_disk = project_dirs(tests_dir / "fixtures") | project_dirs(tests_dir / "corpus")
 
-    print(f"\nFixtures on disk: {len(on_disk)}; enrolled in {build_file}: {len(enrolled)}")
+    print(f"\nProjects on disk: {len(on_disk)}; enrolled in {build_file}: {len(enrolled)}")
     for name in sorted(on_disk - enrolled):
         print(f"  NOT ENROLLED (never converted, never tested, nothing reports it): {name}")
     for name in sorted(enrolled - on_disk):
