@@ -82,6 +82,14 @@ Source build files are never edited to make a conversion succeed — see
 - **`needs_attention/` interface:** the contract for escalating unhandled
   constructs to an agent. See
   [needs-attention-interface.md](needs-attention-interface.md).
+- **Agent stage:** resolving those items in the GENERATED output until the
+  module builds and its comparisons pass. Driven by
+  `.claude/skills/resolve-escalations/`; `tools/sweep/sweep.py --post-agent`
+  sets the run up and measures it, and deliberately does not resolve
+  anything itself. The module carries what an agent needs that it could not
+  know otherwise — the items, the recipes in `resolutions/`, and the
+  constraints a resolution must not break — so a module lifted out of the
+  corpus is still resolvable.
 - **Verification:** how we confirm a conversion is actually correct, and the
   plan to make that hermetic. See [build-verification.md](build-verification.md).
 

@@ -66,30 +66,13 @@ pub fn all() -> Vec<Recipe> {
 
 const README: &str = r#"# Recommended resolutions
 
-This directory holds **recipes** for the kinds of gap that appear in
-`../needs_attention/`. Each `needs_attention` item describes one specific
-unresolved thing in THIS project; the file here describes how that shape of
-gap is usually closed in Bazel.
+This directory holds **recipes**: each describes how one *shape* of gap is
+usually closed in Bazel. The `needs_attention` item next door describes what
+is actually wrong in THIS project.
 
-## How to use these
-
-1. Read the `needs_attention` item. It is the authority on what is actually
-   wrong here — the item's own guidance wins over anything in this directory.
-2. Find the recipe whose name matches the shape of the gap:
-
-   - `generated-config-header.md` — a header the build generates from a
-     template (`configure_file`) that the translator could not reproduce at
-     all.
-   - `unmapped-config-macros.md` — the header IS reproduced, but names macros
-     the shared catalog has no probe for. Start here when the item hands you a
-     long list of names; they sort into four groups and are decided per group,
-     not per name.
-   - `header-visibility.md` — a library whose headers nothing declares public.
-   - `ctest-command-not-a-target.md` — a registered test whose command is not
-     a binary this module builds.
-3. **Adapt it.** A recipe cannot know this project's macro names, header
-   layout, or release. It shows the shape of a correct answer, not a patch to
-   apply.
+When the two disagree, **the item wins** — it knows the project and the
+recipe does not. A recipe is a shape to adapt, never a patch to apply; it
+cannot know your macro names, header layout, or release.
 
 ## The rules a resolution must not break
 
@@ -108,10 +91,7 @@ These hold regardless of which recipe you are following:
   converter's checkout. The module has to work when someone drops it into
   their own repo.
 
-## If no recipe fits
 
-That is expected — recipes exist for shapes seen often enough to be worth
-writing down, not for everything. Resolve from the item's own guidance.
 "#;
 
 const GENERATED_CONFIG_HEADER: &str = r##"# Recipe: a config header the build generates
@@ -363,23 +343,30 @@ mod tests {
         }
     }
 
-    // The recipes exist to be FOUND without an index, so README has to name
-    // them. A recipe added without a mention here is invisible in practice.
+    // A recipe is found by `ls resolutions/` and by matching the item's
+    // `kind`, so its FILENAME is the whole index — the README used to carry a
+    // hand-maintained list and that is now the resolve-escalations skill's
+    // job. What still has to hold is that the name says which shape it
+    // covers: a recipe called `notes.md` is invisible however well written.
     #[test]
-    fn the_readme_mentions_every_recipe_it_ships_with() {
-        let recipes = all();
-        let readme = recipes
-            .iter()
-            .find(|r| r.filename == "README.md")
-            .expect("resolutions/ must ship a README");
-
-        for r in recipes.iter().filter(|r| r.filename != "README.md") {
+    fn every_recipe_is_named_for_the_shape_it_covers() {
+        for r in all().iter().filter(|r| r.filename != "README.md") {
+            let stem = r
+                .filename
+                .strip_suffix(".md")
+                .expect("recipes are markdown");
             assert!(
-                readme.body.contains(r.filename),
-                "README does not list {}, so an agent has no way to know it \
-                 exists — the directory has no index but this:\n{}",
+                stem.contains('-') && stem.len() > 8,
+                "a recipe's filename is how it is found — {:?} does not name \
+                 a gap shape",
+                r.filename
+            );
+            assert!(
+                r.body.starts_with(&format!("# Recipe: ")),
+                "{} must open by saying which shape it covers, since that is \
+                 the first thing read after the filename:\n{}",
                 r.filename,
-                readme.body
+                r.body.lines().next().unwrap_or("")
             );
         }
     }
