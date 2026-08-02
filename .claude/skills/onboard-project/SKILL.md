@@ -91,7 +91,10 @@ find $t -name '*.c' -not -path '*/lib/*' | wc -l   # its own code
 test -f $t/configure && echo "configure shipped" || echo "needs autoreconf"
 ```
 
-**Disqualifiers, each learned the hard way:**
+**What to weigh, each learned the hard way.** Two of these are hard
+disqualifiers and two are costs to size — the difference matters, because
+treating a cost as a disqualifier is how libidn2 got rejected on a proxy
+that never measured the thing it stood for.
 
 - **gnulib replacement system headers** (`lib/*.in.h`, usually 25-38 of
   them) — a COST to size, no longer an automatic rejection. gnulib generates
