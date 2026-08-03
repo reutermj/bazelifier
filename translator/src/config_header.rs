@@ -85,10 +85,24 @@ pub(crate) fn plan_config_header(
             //
             // Note this is C quoting, not Starlark quoting — codegen escapes
             // the result again on the way into the BUILD file.
-            let value = if is_numeric_literal(value) {
-                value.clone()
-            } else {
-                format!("\"{value}\"")
+            //
+            // `yes`/`no` are configure's SHELL booleans and not values at
+            // all — the same shape as the emptiness check above, since this
+            // is configure stating a fact rather than supplying text. A
+            // feature it did not find is recorded as the word `no`, and
+            // defining the macro to the string "no" INVERTS the answer:
+            // autoconf leaves the name undefined, while `#if NAME` on a
+            // non-empty string is true. Measured on libidn2's generated
+            // config.h — zero macros are defined to either word, quoted or
+            // bare — so carrying them through as text is never right.
+            //
+            // The bare word only; a value that merely contains it (a version
+            // string, a path) is ordinary data.
+            let value = match value.as_str() {
+                "no" => continue,
+                "yes" => "1".to_string(),
+                _ if is_numeric_literal(value) => value.clone(),
+                _ => format!("\"{value}\""),
             };
             values.push((name, value));
         } else {
@@ -485,6 +499,81 @@ mod tests {
             undef_names("int x; #undef NOT_A_DECL\n").is_empty(),
             "only whitespace may precede the directive: {:?}",
             undef_names("int x; #undef NOT_A_DECL\n")
+        );
+    }
+
+    // `configure` records a feature it did NOT find as the shell word `no`,
+    // and the database keeps it. Taken as a substituted value that becomes
+    // `#define HAVE_LIBUNISTRING "no"`, where autoconf writes
+    // `/* #undef HAVE_LIBUNISTRING */` — and the two disagree in the worst
+    // direction, since a non-empty string makes `#if HAVE_LIBUNISTRING` TRUE
+    // exactly where autoconf makes it false.
+    //
+    // libidn2 also fails to COMPILE on it (clang rejects a string literal at
+    // the start of a preprocessor expression), which is luck: a macro used
+    // only in `#ifdef` would have taken the wrong branch in silence.
+    #[test]
+    fn a_shell_no_is_not_a_value() {
+        let vars = HashMap::from([("HAVE_LIBUNISTRING".to_string(), "no".to_string())]);
+        let (header, unmapped) = plan_config_header(
+            "config.h",
+            "config.h.in",
+            "#undef HAVE_LIBUNISTRING\n",
+            &vars,
+        );
+        assert!(
+            header.values.is_empty(),
+            "`no` is configure's answer NO, not a value to define: {:?}",
+            header.values
+        );
+        assert!(
+            unmapped.is_empty(),
+            "and it needs no agent decision — autoconf leaves the name \
+             undefined, which is what an unresolved `#undef` already \
+             produces: {unmapped:?}"
+        );
+    }
+
+    // `yes` is the same fact in the other direction, and autoconf emits
+    // neither word: measured on libidn2's generated config.h, zero macros are
+    // defined to `yes` or `no`, quoted or bare. It is a configure-internal
+    // boolean, so it resolves as the fact rather than as text.
+    #[test]
+    fn a_shell_yes_is_the_fact_not_the_word() {
+        let vars = HashMap::from([("HAVE_THING".to_string(), "yes".to_string())]);
+        let (header, unmapped) =
+            plan_config_header("config.h", "config.h.in", "#undef HAVE_THING\n", &vars);
+        assert_eq!(
+            header.values,
+            vec![("HAVE_THING".to_string(), "1".to_string())],
+            "autoconf writes `#define HAVE_THING 1`, never `yes`"
+        );
+        assert!(unmapped.is_empty(), "{unmapped:?}");
+    }
+
+    // The narrowness that keeps this from eating real data: only the bare
+    // word counts. A version string or a path that merely contains it is an
+    // ordinary value.
+    #[test]
+    fn a_value_that_merely_contains_no_is_untouched() {
+        let vars = HashMap::from([
+            ("PACKAGE_NAME".to_string(), "nostromo".to_string()),
+            ("NOTE".to_string(), "no thanks".to_string()),
+        ]);
+        let (header, _) = plan_config_header(
+            "config.h",
+            "config.h.in",
+            "#undef PACKAGE_NAME\n#undef NOTE\n",
+            &vars,
+        );
+        assert_eq!(
+            header.values,
+            vec![
+                ("NOTE".to_string(), "\"no thanks\"".to_string()),
+                ("PACKAGE_NAME".to_string(), "\"nostromo\"".to_string()),
+            ],
+            "only the exact word is configure's boolean: {:?}",
+            header.values
         );
     }
 
