@@ -425,6 +425,26 @@ mod tests {
             "the translated test must not appear in the escalation:\n{}",
             item.gap
         );
+        // The escalated half has to come back too, not just be named in the
+        // item. `main.rs`'s copy pass chains `unexpressed_tests` to carry
+        // each escalated test's scripts and data into the module; when that
+        // was skipped, json-c shipped without 74 of the 103 files in its
+        // `tests/` — the escalation named the scripts and nothing carried
+        // them.
+        //
+        // This was bound and never asserted, so returning an empty vec for a
+        // MIXED suite stayed green: the sibling tests above and below both
+        // check it, but only for the pure cases, and mixed is the realistic
+        // shape.
+        assert_eq!(
+            unexpressed
+                .iter()
+                .map(|t| t.name.as_str())
+                .collect::<Vec<_>>(),
+            vec!["test1"],
+            "the escalated test must be returned for its runtime tree to be \
+             copied, not merely mentioned in the item"
+        );
     }
 
     #[test]

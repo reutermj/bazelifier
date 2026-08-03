@@ -712,17 +712,19 @@ pub fn shared_library_absorbs_static_needs_attention(
              carry visibility attributes or the link uses a version script. For a \
              `noinst_` archive they usually are not exported, so prefer `deps` unless \
              you can point at the thing that makes them visible.\n\n\
-             (An older Bazel spelled the first option `static_deps`. That attribute is \
-             now a hard error — \"a no-op and its usage is forbidden after \
+             (An older Bazel spelled the SECOND option `static_deps`. That attribute \
+             is now a hard error — \"a no-op and its usage is forbidden after \
              cc_shared_library is no longer experimental\" — and `roots` was renamed \
-             to `deps`. Use `deps`.)\n\n\
-             One thing to know before choosing, because it makes `static_deps` an \
+             to `deps`. If you find either in older material, the current spelling is \
+             `deps`.)\n\n\
+             One thing to know before choosing, because it makes `deps` an \
              over-statement: the absorption is SELECTIVE. A static archive contributes \
              only the members something actually references, so the shared object ends \
              up with some of the archive's objects and not others. If you check the \
              original build you will typically find only the referenced ones present. \
-             `static_deps` says the whole archive is absorbed, which is true enough for \
-             the link to work and is not what the original build did.\n\n\
+             `deps` says the whole archive is absorbed. The link works either way and \
+             the result is slightly larger than the project's own; say so in your \
+             resolution rather than leaving the difference unrecorded.\n\n\
              The relationship can also be TRANSITIVE — the archive may be reached \
              through another library rather than named directly by '{shared}' — so \
              check which target actually references its symbols before folding \
@@ -734,7 +736,7 @@ pub fn shared_library_absorbs_static_needs_attention(
             "'{shared}' and the librar(y/ies) it absorbs build without a Bazel analysis \
              error, and the shared object still provides the symbols consumers expect. \
              If you folded an archive in, its separate rule is gone rather than left \
-             orphaned; if you used `static_deps`, every target that links the archive \
+             orphaned; if you named it in `deps`, every target that links the archive \
              agrees. A resolution that merely deletes the archive's rule and drops its \
              sources is wrong — the symbols would go missing at link, far from here."
         ),
@@ -1062,22 +1064,34 @@ mod tests {
         // experimental". An agent following the item could not resolve the
         // item. It may still be MENTIONED, to explain the error someone hits
         // reading older material, but never as an option to take.
+        //
+        // Checked over the WHOLE shipped item, not just `context`. The first
+        // version of this assertion split `context` at the deprecation note
+        // and looked no further, so the correction that landed in `context`
+        // and the recipe left `expected_output` still naming `static_deps`
+        // as the success criterion — the item contradicting itself, past the
+        // reach of the test written to prevent exactly that.
+        let mentions: Vec<&str> = [item.context.as_str(), item.expected_output.as_str()]
+            .iter()
+            .flat_map(|s| s.split("(An older Bazel"))
+            .enumerate()
+            // Everything except the deprecation note itself, which is the
+            // one place the forbidden spelling belongs.
+            .filter(|(i, _)| *i != 1)
+            .map(|(_, part)| part)
+            .filter(|part| part.contains("static_deps"))
+            .collect();
         assert!(
-            !item
-                .context
-                .split("(An older Bazel")
-                .next()
-                .unwrap_or_default()
-                .contains("static_deps"),
-            "`static_deps` is forbidden by rules_cc and must not be offered as \
-             a resolution:\n{}",
-            item.context
+            mentions.is_empty(),
+            "`static_deps` is forbidden by rules_cc and must not be offered \
+             as a resolution, in the context OR the expected output:\n{:?}",
+            mentions
         );
         assert!(
             item.context.to_lowercase().contains("selective"),
             "and the item must say the absorption is SELECTIVE, because a \
-             reader who assumes whole-library semantics picks static_deps \
-             without noticing it overstates the relationship:\n{}",
+             reader who assumes whole-library semantics overstates what \
+             `deps` claims:\n{}",
             item.context
         );
     }

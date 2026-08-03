@@ -1,0 +1,10 @@
+# cc_config is its own Bazel module, supplied to converted modules by
+# `--override_module` and deliberately never staged into the validation
+# tarball. Without this line the root `//...` wildcard walks into it and
+# fails to load — `cannot load '//cc_config:config_header.bzl'` — because
+# its labels resolve inside that module, not this one. That broke
+# `bazel test //...` and `bazel query //...` outright.
+#
+# Its own tests still run, from its own root:
+#   cd cc_config && bazel test //cc_config:all
+cc_config
