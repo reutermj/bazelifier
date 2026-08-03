@@ -74,5 +74,48 @@ class SpliceTest(unittest.TestCase):
             self.assertEqual(out, "MARK\n/* @VERSION@ stays */\n1.2.3\n")
 
 
+class SpacedUndefTest(unittest.TestCase):
+    """The spaced `# undef` is written by TWO dialects and the line cannot
+    tell them apart, so the caller's resolved names are the discriminator.
+
+    This asymmetry is deliberate and easy to "fix" into a bug: the Rust side's
+    undef_names() accepts any whitespace, because it only ever reads the one
+    AC_CONFIG_HEADERS template. This expander also runs over gnulib's *.in.h,
+    where the same spelling is a header undefining its own guard (bzl-vj5).
+    """
+
+    def test_a_resolved_name_is_a_declaration(self):
+        # autoconf's AC_USE_SYSTEM_EXTENSIONS. Left as `# undef`, every GNU
+        # extension stays off and libidn2 fails on program_invocation_name.
+        values = {"_GNU_SOURCE": "1"}
+        out = expand(
+            "#ifndef _GNU_SOURCE\n# undef _GNU_SOURCE\n#endif\n",
+            lambda n: n in values,
+            values,
+        )
+        self.assertEqual(out, "#ifndef _GNU_SOURCE\n#define _GNU_SOURCE 1\n#endif\n")
+
+    def test_an_unresolved_name_is_left_alone(self):
+        # gnulib's split double-inclusion guard. The translator never passes
+        # this name, so nothing here may touch the line.
+        values = {"_GNU_SOURCE": "1"}
+        line = "# undef _GL_ALREADY_INCLUDING_LIMITS_H\n"
+        self.assertEqual(expand(line, lambda n: n in values, values), line)
+
+    def test_a_nested_undef_is_a_declaration(self):
+        # expat and libmicrohttpd both write WORDS_BIGENDIAN this way, two
+        # levels deep. Neither is a gnulib project.
+        values = {"WORDS_BIGENDIAN": "1"}
+        out = expand("#  undef WORDS_BIGENDIAN\n", lambda n: n in values, values)
+        self.assertEqual(out, "#define WORDS_BIGENDIAN 1\n")
+
+    def test_a_resolved_but_false_name_is_commented_out(self):
+        # Same contract as the unspaced form: a name the probe answered NO for
+        # becomes the comment config.status writes, not a surviving directive.
+        values = {"WORDS_BIGENDIAN": ""}
+        out = expand("#  undef WORDS_BIGENDIAN\n", lambda n: False, values)
+        self.assertEqual(out, "/* #undef WORDS_BIGENDIAN */\n")
+
+
 if __name__ == "__main__":
     unittest.main()

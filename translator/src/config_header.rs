@@ -126,22 +126,32 @@ pub(crate) fn plan_config_header(
     )
 }
 
-/// Every name an autoconf template declares with a bare `#undef`.
+/// Every name an autoconf template declares with an `#undef`.
 ///
-/// Line-anchored for the same reason the expander is: a mid-line `#undef` is
-/// ordinary C undefining a macro, not a declaration to resolve.
+/// Line-anchored: only WHITESPACE may precede the directive. A mid-line
+/// `#undef` is ordinary C undefining a macro, not a declaration to resolve.
+///
+/// Whitespace *is* allowed — before the hash and after it — because autoconf
+/// uses both. `AC_USE_SYSTEM_EXTENSIONS` writes `# undef _GNU_SOURCE` inside
+/// an `#ifndef`, and expat and libmicrohttpd nest `WORDS_BIGENDIAN` two
+/// levels deep as `#  undef`. Requiring the unspaced column-0 form left all
+/// of those undefined, which for `_GNU_SOURCE` disables every GNU extension
+/// and for `WORDS_BIGENDIAN` picks the wrong branch silently.
+///
+/// This is deliberately LOOSER than `expand_config_header.py`'s `_AC_UNDEF`,
+/// which must stay strict: that runs over gnulib's `*.in.h` too, where
+/// `# undef GUARD` is a header undefining its own inclusion guard and
+/// rewriting it breaks the split double-inclusion guard `#include_next`
+/// depends on (bzl-vj5). Nothing here ever sees such a file — the only
+/// caller passes the template named by `AC_CONFIG_HEADERS`, which is one
+/// file per project.
 fn undef_names(template_text: &str) -> Vec<String> {
     template_text
         .lines()
         .filter_map(|line| {
-            // `#undef` exactly — no space after the hash, nothing before it.
-            // That is the form autoheader emits, and requiring it is what
-            // separates a DECLARATION from ordinary C: gnulib's headers
-            // write `# undef GUARD` inside an `#if` to undefine a macro they
-            // set themselves, and consuming that line silently deletes it
-            // from the generated header (bzl-vj5).
-            let rest = line.strip_prefix("#undef")?;
-            // And a following separator, so `#undefine` is not a match.
+            let rest = line.trim_start().strip_prefix('#')?;
+            let rest = rest.trim_start().strip_prefix("undef")?;
+            // A following separator, so `#undefine` is not a match.
             if !rest.starts_with([' ', '\t']) {
                 return None;
             }
@@ -422,33 +432,59 @@ mod tests {
         );
     }
 
-    // A SPACED `# undef` is ordinary C, not a declaration. gnulib's headers
-    // write it that way when the line sits inside an `#if` — libidn2's
-    // limits.in.h undefines its own inclusion guard four lines after
-    // defining it, and consuming that line breaks the split double-inclusion
-    // guard `#include_next` depends on.
+    // Both spellings autoconf actually uses. The rule used to require an
+    // UNSPACED `#undef` at column 0, on the belief that a spaced one is
+    // gnulib undefining its own include guard — true of gnulib, and false as
+    // a rule about THIS function's input.
     //
-    // autoheader always emits `#undef NAME` unspaced at column 0, which is
-    // why no corpus project has hit this: the strict form is what a
-    // declaration actually looks like.
+    // undef_names only ever sees the template named by AC_CONFIG_HEADERS
+    // (autotools.rs, the `parse_config_headers(&status)` loop). libidn2's
+    // config.status says `config_headers=" config.h"` — one file. gnulib's
+    // `gl/*.in.h` are replacement headers, reach codegen by a different path
+    // as ConfigDialect::Substitution, and never arrive here.
+    //
+    // Measured on all five fetched projects: 46 spaced `# undef` lines and
+    // every one a real declaration. libidn2 and xz carry the 22-macro
+    // AC_USE_SYSTEM_EXTENSIONS block; expat and libmicrohttpd each indent
+    // WORDS_BIGENDIAN two spaces inside a nested `#if`/`# ifndef`. Neither of
+    // those is a gnulib project, so the strict rule was losing a real macro
+    // in two projects that could not have had the problem it guarded against.
+    //
+    // The cc_config expander's `_AC_UNDEF` stays strict on purpose — it runs
+    // over gnulib's templates too. See `expand_config_header.py`.
     #[test]
-    fn a_spaced_undef_is_c_code_not_a_declaration() {
+    fn a_spaced_or_indented_undef_is_still_a_declaration() {
         assert_eq!(
-            undef_names("#undef PACKAGE_NAME\n# undef _GL_ALREADY_INCLUDING_LIMITS_H\n"),
-            vec!["PACKAGE_NAME".to_string()],
-            "only the unspaced, column-0 form is autoheader's declaration; a \
-             spaced one is the header undefining its own guard and must be \
-             left alone"
+            undef_names("#undef PACKAGE_NAME\n# undef _GNU_SOURCE\n#  undef WORDS_BIGENDIAN\n"),
+            vec![
+                "PACKAGE_NAME".to_string(),
+                "_GNU_SOURCE".to_string(),
+                "WORDS_BIGENDIAN".to_string(),
+            ],
+            "autoconf writes AC_USE_SYSTEM_EXTENSIONS macros as `# undef` and \
+             a nested WORDS_BIGENDIAN as `#  undef`; requiring column 0 left \
+             both undefined"
         );
     }
 
     #[test]
-    fn an_indented_undef_is_also_c_code() {
+    fn an_indented_undef_is_a_declaration_too() {
+        assert_eq!(
+            undef_names("  #undef WORDS_BIGENDIAN\n\t#undef OTHER\n"),
+            vec!["WORDS_BIGENDIAN".to_string(), "OTHER".to_string()],
+            "expat and libmicrohttpd both indent WORDS_BIGENDIAN inside a \
+             conditional, and config.status rewrites it like any other"
+        );
+    }
+
+    // The half of the old rule that survives: the relaxation is about
+    // WHITESPACE before the directive, never about code before it.
+    #[test]
+    fn a_mid_line_undef_is_not_a_declaration() {
         assert!(
-            undef_names("  #undef SOME_GUARD\n\t#undef OTHER\n").is_empty(),
-            "autoheader writes declarations at column 0; an indented #undef is \
-             inside a conditional and belongs to the program: {:?}",
-            undef_names("  #undef SOME_GUARD\n")
+            undef_names("int x; #undef NOT_A_DECL\n").is_empty(),
+            "only whitespace may precede the directive: {:?}",
+            undef_names("int x; #undef NOT_A_DECL\n")
         );
     }
 

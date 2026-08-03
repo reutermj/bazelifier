@@ -57,6 +57,26 @@ import sys
 # patterns below.
 _AC_UNDEF = re.compile(r"^#undef[ \t]+(\S+)\s*$")
 
+# The SPACED form, which is ambiguous and so is resolved by evidence rather
+# than by shape. Two dialects write it and this expander sees both:
+#
+#   autoconf   `# undef _GNU_SOURCE` inside `#ifndef _GNU_SOURCE`
+#              (AC_USE_SYSTEM_EXTENSIONS), and `#  undef WORDS_BIGENDIAN`
+#              nested two levels — real declarations config.status rewrites.
+#   gnulib     `# undef _GL_ALREADY_INCLUDING_LIMITS_H` inside an `#if`,
+#              a header undefining its own inclusion guard. Rewriting it
+#              breaks the split double-inclusion guard (bzl-vj5).
+#
+# Nothing in the LINE separates them, so the caller decides: a spaced undef is
+# a declaration only when the name is one the translator resolved and passed
+# in (a probe result or a `values` entry). gnulib's guards are internal to the
+# header and are never passed, so they fall through untouched.
+#
+# This is why the pattern above stays strict rather than growing a `\s*`. An
+# unspaced `#undef` at column 0 is unambiguous and resolves even for a name
+# with no value; a spaced one needs the corroboration.
+_AC_UNDEF_SPACED = re.compile(r"^[ \t]*#[ \t]*undef[ \t]+(\S+)\s*$")
+
 _CMAKEDEFINE01 = re.compile(r"^(.*?)#cmakedefine01\s+(\S+)\s*$")
 _CMAKEDEFINE = re.compile(r"^(.*?)#cmakedefine\s+(\S+)(.*)$")
 _VAR = re.compile(r"@([A-Za-z0-9_]+)@|\$\{([A-Za-z0-9_]+)\}")
@@ -133,6 +153,19 @@ def expand(template, is_set, values):
         if m01:
             prefix, name = m01.group(1), m01.group(2)
             out.append("%s#define %s %d%s" % (prefix, name, 1 if is_set(name) else 0, eol))
+            continue
+
+        # The spaced form first, since it is the narrower claim: it fires only
+        # for a name the caller resolved. An unresolved one falls through to
+        # the strict pattern below, which will not match it either, so the
+        # line is emitted verbatim — the behaviour gnulib's guards need.
+        mspaced = _AC_UNDEF_SPACED.match(body)
+        if mspaced and mspaced.group(1) in values:
+            name = mspaced.group(1)
+            if is_set(name):
+                out.append("#define %s %s%s" % (name, values.get(name, "1"), eol))
+            else:
+                out.append("/* #undef %s */%s" % (name, eol))
             continue
 
         mundef = _AC_UNDEF.match(body)
