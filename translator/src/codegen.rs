@@ -253,7 +253,16 @@ fn render_shadow_headers(out: &mut String, headers: &[model::ConfigHeader]) {
             .map(|h| format!(":{}", config_header_name(h)))
             .collect::<Vec<_>>(),
     );
-    render_string_list(out, "includes", &dirs);
+    // `local_includes`, so this library does not hand its directories to
+    // everything downstream of a target that depends on it. Bazel's
+    // `includes` is transitive; `AM_CPPFLAGS` is not, and libidn2's examples
+    // inherited `gl` through `libidn2.la` and compiled gnulib's `<stdio.h>`.
+    //
+    // Consumers do not need it from here — each target that the build gave
+    // the directory to carries it in its OWN `local_includes`
+    // (`render_target`). What this library supplies is the HEADERS; the
+    // search path is per target, exactly as automake has it.
+    render_string_list(out, "local_includes", &dirs);
     out.push_str("    visibility = [\"//visibility:public\"],\n)\n\n");
 }
 
@@ -720,11 +729,34 @@ fn render_cc_rule(
         }
         render_path_list(out, "hdrs", &hdrs);
     }
-    let mut includes = target.includes.clone();
+    // A shadowing directory goes in `local_includes`, not `includes`, because
+    // Bazel's `includes` is TRANSITIVE and `AM_CPPFLAGS` is not. Left in
+    // `includes`, `gl` reached every consumer of `libidn2.la` — including its
+    // examples, which then compiled gnulib's `<stdio.h>` and tripped its
+    // `#error "Please include config.h first."`. rules_cc documents
+    // `local_includes` as exactly this: "added for this target and not added
+    // to every target that depends on it."
+    //
+    // Nothing is lost. Measured on libidn2, every target that needs `gl`
+    // declares it itself — `idn2` carries its own `-I../gl` — so no target
+    // depends on inheriting it.
+    //
+    // Only the shadow dirs move. An ordinary include dir stays propagating,
+    // which is a separate behavioural claim nothing has measured yet.
+    let shadow_dirs: Vec<&str> = config_headers
+        .iter()
+        .filter_map(|h| h.shadow_dir.as_deref())
+        .collect();
+    let (local_includes, mut includes): (Vec<String>, Vec<String>) = target
+        .includes
+        .iter()
+        .cloned()
+        .partition(|inc| shadow_dirs.contains(&inc.as_str()));
     if staged_for(target, config_headers) {
         includes.push(STAGED_INCLUDE_DIR.to_string());
     }
     render_path_list(out, "includes", &includes);
+    render_path_list(out, "local_includes", &local_includes);
     // Not render_path_list: a define (`FOO`, `FOO=1`) is not a path and
     // must not be run through the module-relative assertion.
     render_string_list(out, "local_defines", &target.local_defines);
@@ -2356,6 +2388,23 @@ mod tests {
             "the build did NOT, and forcing gnulib's <stdio.h> on a source \
              that never includes config.h trips its own #error:\n{rendered}"
         );
+        // Nor via a PROPAGATING include path. Bazel's `includes` reaches
+        // every consumer of a target while automake's AM_CPPFLAGS does not,
+        // so a shadow dir left in `includes` arrived at libidn2's examples
+        // through `deps = [":libidn2.la"]` — with the examples' own target
+        // already correctly carrying neither the dep nor the header.
+        let needs_rendered = render(&needs).build_bazel;
+        assert!(
+            needs_rendered.contains("local_includes = [\n        \"gl\","),
+            "a shadow dir belongs in local_includes, which rules_cc \
+             documents as not added to dependent targets:\n{needs_rendered}"
+        );
+        assert!(
+            !needs_rendered.contains("    includes = [\n        \"gl\","),
+            "...and must NOT also be in the transitive `includes`, or the \
+             leak is unchanged:\n{needs_rendered}"
+        );
+
         // And not via `srcs` either. A generated header lands in the same
         // output directory as the compile, so having it in `srcs` makes
         // `#include <stdio.h>` find it whatever `includes` says — dropping
