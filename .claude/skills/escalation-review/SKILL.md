@@ -64,11 +64,26 @@ against the constructors that frontend actually calls — `autotools.rs` calls
 only two.
 
 **`CONVERSION.json` and `TARGETS` ship too, and are in scope.** A silent
-drop shows up there as a confident zero rather than as an absence: xz's
-`"tests": 0` is a false claim in shipped output for a project with thirteen
-`check_PROGRAMS`, and no item exists to be read. An escalation review that
-only opens `needs_attention/` cannot see the gaps where the escalation is
-the thing that is missing.
+drop shows up there as a confident zero rather than as an absence, and no
+item exists to be read. An escalation review that only opens
+`needs_attention/` cannot see the gaps where the escalation is the thing
+that is missing.
+
+Derive the candidates rather than trusting a list — xz was the standing
+example here until it started reporting 12 tests, and a reviewer chased the
+stale claim for several minutes:
+
+```sh
+cd <workspace>/fixtures
+for d in */; do
+  t=$(python3 -c "import json;print(json.load(open('$d/CONVERSION.json')).get('tests',0))" 2>/dev/null)
+  b=$(grep -c '^cc_binary(' "$d/BUILD.bazel" 2>/dev/null)
+  [ "$t" = 0 ] && [ "${b:-0}" -gt 0 ] && echo "$d tests=0 binaries=$b"
+done
+```
+
+A hit is a candidate, not a verdict: the zero may be correctly escalated
+elsewhere. Check for an item before calling it silent.
 
 ## What to ask
 
@@ -114,6 +129,15 @@ enough** (7).
    `CLAUDE.md` requires this after every translator capability and nothing
    enforces it. Diff the escalation's claims against what the frontend now
    does.
+
+   **And after a CORRECTION, verify it landed in every copy** — the item's
+   `context`, its `expected_output`, the `resolutions/` recipe, and every
+   branch of the item's own prose. This is the opposite direction from a
+   capability landing, and the question above does not point at it. Live
+   instance: `039ac2a` corrected `static_deps`→`deps` in the context and
+   the recipe, and left `expected_output` naming `static_deps` as the
+   success criterion eighteen lines below — one item contradicting itself,
+   found only because a per-run brief named it.
 5. **Would the resolution pass the equivalence check?** An escalation that
    suggests something the comparison would reject is worse than silence.
 
@@ -154,6 +178,16 @@ this drops something real, does the user learn?
 **Compare the frontends against each other.** One escalating a case the other
 silently drops is strong evidence, and they have already diverged that way
 twice.
+
+**A comment claiming an escalation exists is escalation-lane evidence** —
+grep the drop sites for prose asserting the opposite of what they do. Neither
+a pure escalation pass (reads the shipped items, so an absence is invisible)
+nor a pure comment pass (reads source, but cannot know what ships) finds
+this; it falls between the two and needs claiming explicitly. Live instance:
+`autotools.rs` says of `external_links`/`unbuilt` that they are "collected
+rather than dropped: it is an input the generated module cannot satisfy,
+which is an escalation, not a silent omission", roughly two hundred lines
+above the `let _ =` that discards both.
 
 **A clean conversion is a claim.** Zero escalations asserts everything was
 understood. Spot-check a non-trivial one against what the project declares.
@@ -212,6 +246,14 @@ stays. A placeholder where a known fact belongs does not.
   a pass aimed at reducing duplication must leave these strings alone.
 - **Do not smooth the tone** or trim what reads as over-explanation. Length
   is not the defect being looked for.
+
+  **Restructuring a long uniform list IS in scope**, and is neither
+  shortening nor deduplication — say so plainly, because this prohibition
+  and the volume guidance sit eighty lines apart and read as being in
+  tension. libmicrohttpd ships 209 macro names in one flat bullet list and
+  libidn2 164, of which ~120 are a single `GNULIB_*` family with one
+  answer. The finding there is "substitute structure for the flat list", not
+  "make it shorter".
 - **Do not treat a red fixture as a finding.** 003, 005, 015 and others are
   *supposed* to escalate; that is the agent-loop test, not a bug. But a
   fixture being red by design says nothing about whether its item's TEXT is

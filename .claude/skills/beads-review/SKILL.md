@@ -10,7 +10,15 @@ and currently returns zero — while a hand audit the same day found six beads
 that no longer described reality. Activity and accuracy are different
 questions, and only one of them is tooled.
 
-## Why it goes stale, from the six real cases
+**The output is usually not a closure.** The description frames this as
+finding issues already fixed, and that undersells it: on 2026-08-03 the four
+highest-value findings were beads that should all stay OPEN and were all
+actively misdirecting — a retracted plan still in the acceptance criteria, a
+count wrong by 7×, a diagnosis half-solved by a commit that didn't name it.
+"Still open, wrong description" is the characteristic result. Report those
+with the same weight as a closure.
+
+## Why it goes stale, from the real cases seen so far
 
 Each is a distinct shape, and only the first is obvious:
 
@@ -41,6 +49,22 @@ Each is a distinct shape, and only the first is obvious:
    what makes a reader trust them and skip re-measuring. **Any bead
    containing a number, a count, or the word "measured" is a re-measurement
    candidate**, and the more careful it looks the more it needs one.
+
+   **Re-measuring is not the remedy, though — it is the diagnosis.** A
+   corrected count goes stale exactly as fast as the original and carries a
+   false patina of freshness. `bzl-i4i.7` was corrected 4→7 on 2026-08-02
+   and was wrong again at 12 the next day; `bzl-oek` went 14→102,
+   `bzl-7s2` 9→43, `bzl-k1z` 17→29. When you re-measure, **replace the
+   integer with the command that produces it** —
+   `grep -l _staged_hdrs …/fixtures/*/BUILD.bazel | wc -l` — so the next
+   reader re-runs it in two seconds instead of trusting a frozen number.
+   Same move CLAUDE.md already makes for comments; nobody had applied it to
+   beads.
+
+   And check whether the count still supports the bead's *severity*.
+   `bzl-oek`'s P3 rests on "the cost is 14 spurious names"; at 102 the
+   argument no longer follows from its own evidence, which is a finding in
+   its own right.
 8. **A close reason asserting a measurement that was never taken.** Shapes
    1-7 are about *open* beads drifting. This one is about a **closed** bead
    whose stated justification is checkable and false — and it is strictly
@@ -56,6 +80,23 @@ Each is a distinct shape, and only the first is obvious:
    **Audit close reasons that assert an output state.** "X is now Y" is a
    claim about the pipeline, not a summary of intent. `bzl-b6m` is the
    control: same shape, and its numbers held when re-measured.
+9. **The retraction that didn't reach the acceptance criteria.** A bead has
+   three fields that can disagree, not two. When NOTES contradict
+   DESCRIPTION, **read ACCEPTANCE CRITERIA third** — it is rendered last,
+   revised least, and is the field an implementer treats as the contract.
+
+   `bzl-yjn.10` proposes reading `config.status`'s `D[]` table for the
+   `GNULIB_*` group; its own notes then measure that group at zero in four
+   of five projects and say "scratch that framing" — while the acceptance
+   criteria still read "parsed and used for the `GNULIB_*` group only". Not
+   a stale half beside a fresh half: a live, self-refuted *instruction*, and
+   acting on it encodes one project as universal. Distinct from the
+   DESCRIPTION-vs-NOTES case because the retraction landed and still missed
+   the field that matters.
+
+   Same shape resolves benignly when the work is done — `bzl-07v`'s notes
+   void its recommendation and the capability shipped anyway. Check which
+   way it resolves before recommending anything.
 
 ## The method
 
@@ -84,6 +125,14 @@ well-maintained and misleading.
 `translator/src/` confirms a trigger condition while missing that the
 project count is wrong. Build and unpack the validation workspace, or use
 one already unpacked, and check those against it.
+
+**Building there needs `--override_module=cc_config=<checkout>/cc_config`.**
+Without it Bazel fails at repo-mapping with "module cc_config@0.0.0 not
+found in registries", which reads like a broken tarball or blocked egress
+and is neither: `cc_config` is deliberately never staged into it. A 2026-08-03
+reviewer hit this, concluded the independence tier was broken, and lost half
+its planned checks. If a build fails *before analysis*, suspect the flag
+before the pipeline.
 
 For each: grep the identifiers, files and symptoms the bead names. Then:
 
@@ -135,7 +184,7 @@ that found nothing, the run that passed. "Looks done" is not a finding. And
 require "what I could not verify", which for this pass usually means beads
 whose symptom needs a full corpus conversion to reproduce.
 
-**Critique this skill when you are done.** Say whether the six shapes above
+**Critique this skill when you are done.** Say whether the shapes above
 covered what you found, or whether there is a seventh. That list is the whole
 value of this file and it came from a single afternoon's audit — it is
 certainly incomplete.

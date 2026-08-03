@@ -85,6 +85,28 @@ found something real:
    but to state the invariant that actually holds ("codegen never learns
    which frontend ran") instead of the proxy that does not (a field count).
    A guardrail known to be stale stops being read.
+7. **Does a fix at one layer honour a contract asserted at another?** Not Q3
+   (two frontends disagreeing) or Q4 (two frontends populating a field
+   differently) — one *producer* and one *consumer* of a single model field
+   disagreeing about it. The model is where every new capability lands, so
+   this is the seam that keeps appearing. For each new field: find the test
+   that pins its contract, then read the consumer. Live instance:
+   `ConfigHeader::splices` is documented and unit-tested as "ordered, and
+   NOT deduplicated", and codegen renders it into a dict keyed by file,
+   which drops one of two markers on the same file with no error.
+8. **Grep the generated output for one frontend's vocabulary.** The import
+   graph can be clean while emitted *strings and filenames* carry the leak,
+   and nothing in an import audit shows that. Two live instances, both found
+   this way and neither visible from the Rust: codegen writes a file named
+   `run_cmake_test.sh` into five Autotools modules, and the
+   `ctest_command_not_a_target` item opens "CMake registered these tests
+   with `add_test()`" in a module holding only `configure.ac` and
+   `Makefile.am`.
+
+   ```sh
+   grep -rlEi 'cmake|ctest|CMakeLists' <workspace>/fixtures/<autotools-project>/ \
+     | grep -v ground_truth
+   ```
 
 ## What looks like a leak and isn't
 
@@ -100,6 +122,19 @@ found something real:
   like this entry at first glance, because every behavioural gap presents as
   one side having code the other lacks. When in doubt, Q3 wins: this entry is
   about size, not behaviour.
+- **Two deliberately divergent implementations of one rule.** Now a real
+  pattern here and it looks like a defect to every cold reader: the Rust
+  `undef_names` accepts a spaced `# undef` and the Python `_AC_UNDEF`
+  refuses it, on purpose — the Rust only ever sees the one
+  `AC_CONFIG_HEADERS` template, while the expander also runs over gnulib's
+  `*.in.h`, where that spelling is a header undefining its own guard.
+
+  **Execute the seam rather than reading it.** Both sides state their
+  reason, and shape alone cannot tell a sound divergence from a drifted
+  one; running the two over the same input can. The 2026-08-03 reviewer
+  nearly filed this on shape and only running the expander showed it holds.
+  A divergence whose two sides do *not* both document the reason is still a
+  finding.
 - ~~**`ctest.rs` being CMake-only.**~~ **This exemption is REVOKED and is
   now a live lead.** It said `graph.tests` is empty for Autotools so the
   gap was absence rather than a boundary violation. That premise died with
@@ -154,11 +189,19 @@ has never been exercised.
 
 ```sh
 comm -23 \
-  <(find translator/tests/fixtures -name BUILD.bazel -printf '%h\n' \
-      | xargs -n1 basename | sort -u) \
-  <(grep -oE 'fixtures/(autotools/)?[^:]+' translator/tests/BUILD.bazel \
+  <(find translator/tests/fixtures translator/tests/corpus -name BUILD.bazel \
+      -printf '%h\n' | xargs -n1 basename | sort -u) \
+  <(grep -oE '(fixtures|corpus)/[^:]+' translator/tests/BUILD.bazel \
       | xargs -n1 basename | sort -u)
 ```
 
 A hit is not automatically a defect — a fixture may be parked deliberately —
 but an unenrolled fixture with no comment and no bead saying why is.
+
+**Both halves used to be narrower than the tree, in opposite directions.**
+The left walked only `fixtures/`, so `corpus/`'s nine real projects were
+invisible to a check presented as authoritative; the right hardcoded
+`(autotools/)?`, so a third frontend's directory would drop off the
+*enrolled* side and manufacture false positives. Widen both whenever a new
+fixture root appears — and read the counts, since two empty sets also
+`comm` to nothing.

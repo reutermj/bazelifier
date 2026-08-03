@@ -54,11 +54,13 @@ sampling pass into a targeted one.
   findings, not lint noise. The trigger is *any commit adding a test to an
   existing `mod tests`* — not only a rename or file move.
 
-  **Expect zero.** This class was cleaned out on 2026-08-02 (five instances,
-  three from plain insertions, one stacking three unrelated rationales above
-  a single test). A clean run is the normal result, not a broken invocation —
-  the check is cheap and stays because the class recurs, not because there is
-  a backlog waiting.
+  **Do not predict the count — read what clippy says.** This class was
+  cleaned out on 2026-08-02 (five instances) and a sixth appeared within the
+  week, from exactly the trigger named above. An earlier version of this
+  line said "expect zero", which primed the next reviewer to read a genuine
+  hit as a broken invocation. Either result is normal: zero because the
+  class was recently swept, non-zero because a commit added a test. Trust
+  the tool over the prose.
 - **P2** — stale or contradicted, but a reader would notice before acting.
 - **P3** — a dangling `see X` pointer, a miscounted list.
 
@@ -123,6 +125,29 @@ Generalise past `///`: the same commit shape leaves a *module* doc, an
 architecture doc, or a `docs/` page asserting what the code stopped doing.
 Ask what prose would have to change if this commit were correct, then check
 whether it did.
+
+**`docs/lore/` is the highest-stakes instance of that**, and the grep above
+will never point at it. Lore is written as the narrative of a lesson
+learned, so when the lesson is later reversed the page does not merely go
+stale — it teaches the abandoned rule with the authority of hard-won
+experience. Both of the 2026-08-03 P2s were this: the lore still asserted
+the strict `#undef` rule and "plain `includes` is enough" after the code
+had reversed both. For each behaviour-changing commit, grep `docs/lore/`
+for the belief it overturned, not just for identifiers it renamed.
+
+### The other orphan class: a doc block the commit ADDED, above the wrong item
+
+The `doc+=0` heuristic scores an insertion-orphan as clean, because the
+commit *did* add doc lines — just above a function that already had a
+neighbour's. Both P1s on 2026-08-03 were this shape and the grep called
+their commits healthy.
+
+Cheap detector, no history needed: for each `fn`, does its doc block's
+first sentence name a *different* identifier than the `fn` does?
+"Renders one `config_header` rule" above `fn render_shadow_headers`, and
+"Parses a `configure_file` template's text" above `fn substituted_names`,
+both fail it on sight. Clippy's `duplicated attribute` catches the test
+variant of this; nothing catches the function variant, so read for it.
 
 ### Re-validating the checker
 

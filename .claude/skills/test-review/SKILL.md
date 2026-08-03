@@ -85,16 +85,38 @@ comparison suite and hides every other result; see 015's `main.c`.
 
 ## Run what actually runs here
 
+**`bazel test //...` and `bazel query //...` do not work from the repo
+root** — name every tier explicitly. There is no `.bazelignore`, so the
+wildcard walks `cc_config/`, which is a nested module, and dies loading its
+packages:
+
+```
+ERROR: error loading package 'cc_config/catalog': cannot load
+'//cc_config:config_header.bzl': no such file
+```
+
+Two consequences worth knowing before you start. There is no CI here (no
+`.github/`, empty `.bazelrc`), so the "run everything" invocation *is* the
+workflow and it errors instead of running. And `cc_config`'s own tests —
+the Python expander tier, `spliced_test`, the probe assertions — are
+reachable only by `cd cc_config && bazel test //cc_config:all`. Nothing at
+the root reaches them, which makes them orphaned in practice however sound
+they are.
+
 ```sh
 # Tests ALWAYS run through Bazel — never `cargo test` (see CLAUDE.md: cargo's
 # toolchain/resolution differs, so it can pass while the Bazel build is red).
 # A reviewer reporting the suite RED from `cargo test` has already been wrong
 # once; confirm against Bazel with --nocache_test_results before believing it.
 bazel test //translator:bazelifier_test
-# Run clippy FIRST, and read it as a source of findings rather than as lint
-# noise: `duplicated attribute` is the detector for a doc/comment block
-# orphaned from the test it describes, which is a P1 here. Five sat in the
-# tree unread. Not a test runner.
+# Run clippy FIRST and read the WHOLE output as findings, not as lint noise.
+# Two detectors, and the second has the better hit rate:
+#   `duplicated attribute` — a doc block orphaned from the test it describes.
+#   `unused variable` in a test module — a destructured result NOBODY
+#     ASSERTED ON. That is a test silently covering less than its name says,
+#     and on 2026-08-03 it was the P1 while the duplicated attribute two
+#     lines above it was cosmetic.
+# Not a test runner.
 cd translator && cargo clippy --all-targets && cargo fmt --check
 python3 .claude/skills/test-review/scripts/coverage_map.py
 bash -n translator/build_defs/compare_runtime_output.sh   # if touched
@@ -111,9 +133,23 @@ tarball.
 writes it to a page served publicly. It is a pass criterion like any other
 and belongs under review — the three tiers plus buildifier are not the whole
 set. Ask of it what you would ask of any gate: what edit would make it pass
-when it should fail? (Answer, as of 2026-08-02: deleting the failing tests.
-It runs a wildcard over what survives rather than the frozen
-`//:all_ground_truth_comparisons` suite that would catch it.)
+when it should fail? The answer was "delete the failing tests", and it is
+now **half fixed** — which is worse to read than either state, so both
+halves are stated here:
+
+- **Ground-truth comparisons: frozen, and the freeze works.** Verified
+  2026-08-03 by deleting a comparison target from an unpacked workspace —
+  the sweep reported it GONE, counted it failed, and exited 1. Re-verify
+  rather than re-report.
+- **The module's own tests: still unfrozen.** They are counted by regex over
+  whatever survives in `@module//:all`. Deleting a fixture's only test moved
+  `1 passed` → `0 passed, 0 failed` with no failure. The `ran > 0` guard is
+  a count, not an expectation, so it fires only when *everything* vanishes.
+
+The second is the bigger surface, because `validation_workspace.bzl` skips
+the comparison for any binary that has its own test — libmicrohttpd is 110
+binaries, 94 tests, 16 real comparisons, and those 94 rest entirely on the
+deletable half.
 
 Run the Bazel tiers directly — `bazel test //translator:bazelifier_test`
 (the Rust-unit authority), the fixture conversions, the validation
@@ -159,6 +195,14 @@ containing a phrase that spans a wrap matches nothing, the mutation never
 lands, and the green run reads as "the test doesn't bite" when it means
 "you didn't change anything." Confirm the edit applied before believing the
 result.
+
+**Generalise that: confirm the mutation reached the CODE PATH, not just the
+file.** A textual edit can land perfectly and still change nothing the test
+observes. Worked case: breaking splice ordering by sorting inside
+`sed_file_splices` came back green and looked exactly like a finding — that
+function runs per line, so it sorted a one-element vector every time. The
+mutation had to target the accumulation site to bite. When a mutation you
+expected to be caught comes back green, suspect your mutation first.
 
 ## Run the coverage map
 

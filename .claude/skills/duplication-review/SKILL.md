@@ -28,10 +28,25 @@ For code: **has it already diverged?** One copy fixed and the other not is
 the strongest possible evidence for extraction and the highest-value finding
 available. Rank those P1 even when the divergence is currently latent.
 
+**Do not reason about whether a pure predicate diverged — execute it.**
+Compile both copies standalone and feed them the input the difference would
+show up on. That is thirty seconds and it converts a suspicion into a fact
+the reader cannot argue with. `Config.H` through the two config-header
+extension predicates is the worked case: one says true, the other false, and
+no amount of reading the two `matches!` arms side by side would have settled
+it as fast.
+
 ## Bias toward LEAVE
 
-If a shared helper would need three call-site-specific parameters, the
-abstraction is wrong. Say so explicitly rather than proposing it.
+**Scoped to abstractions that do not exist yet.** When a shared helper
+already exists and a call site has inlined its body, the presumption flips
+to EXTRACT — that is the duplication, and it needs no parameters at all.
+Applying the bias there is how the fifth copy of an extension list survived
+a review.
+
+For a *proposed new* helper: if it would need three call-site-specific
+parameters, the abstraction is wrong. Say so explicitly rather than
+proposing it.
 
 The worked example is the two path rebasers. They look identical — both
 resolve, both cap by `deliverable_root`, both drop what escapes — and they
@@ -59,6 +74,17 @@ holds the argument and `overview.md` keeps the two-line claim plus its
 existing pointer. Two EXTRACTs in a rationale pass is a normal result, not a
 sign of over-reach.
 
+**If you find three code homes and no doc home, the finding is the missing
+doc, not the three comments.** This pass assumes a doc argues and code
+restates compactly. When nothing argues, the argument fragments across
+whichever files needed it and every copy is equally authoritative, so
+"demote to a pointer" has nowhere to point. Measured instance: the gnulib
+replacement-header capability spans `autotools.rs`, `model.rs`, `codegen.rs`,
+`config_header.bzl` and `expand_config_header.py`, and a grep for
+`gnulib|replacement header|shadow` across all of `docs/architecture/`
+returns zero. Two of the 2026-08-03 findings were downstream of that
+absence rather than independent of it.
+
 ## What looks like duplication and isn't
 
 Do not report these:
@@ -81,13 +107,39 @@ Do not report these:
     differently, so the shared call looks deduplicated and the inputs have
     drifted;
   - one call site passing a **wrong value** for a shared dialect parameter —
-    `autotools.rs` passes `ConfigDialect::Autoconf` for an `AC_CONFIG_FILES`
-    header three lines below its own comment saying that template is the
-    other dialect. The enum was built to prevent exactly this and the second
-    caller defeated it.
+    `autotools.rs` passes `needs_attention::ConfigDialect::Autoconf` for an
+    `AC_CONFIG_FILES` header a few lines below its own comment saying that
+    template is the other dialect. The enum was built to prevent exactly
+    this and the second caller defeated it;
+  - **the TYPE the strings are selected by, duplicated.** That last case has
+    a cause the first two don't: `model::ConfigDialect` has three variants
+    and `needs_attention::ConfigDialect` has two, so the `Substitution` case
+    has no correct value to pass and the call site had to choose a wrong
+    one. Two enums modelling one concept is plain code duplication whose
+    only symptom is shipped text — report it.
 
-  The observable symptom in both is *text*, which is what makes the
-  exemption tempting. The defect is the code that chose it.
+  And a fourth, which is about the string itself rather than the code
+  around it, so the exemption looks like it covers it and does not:
+
+  - **a correction applied across N homes that missed one, where the miss
+    is inside a protected string.** The string is exempt from
+    *deduplication*, never from being wrong. `039ac2a` corrected
+    `static_deps`→`deps` in the item's `context`, the recipe and the lore,
+    and left the same item's `expected_output` still naming `static_deps`
+    as the success criterion eighteen lines below. One item contradicting
+    itself is not repetition, and the 2026-08-03 reviewer nearly suppressed
+    it because it pattern-matched the exemption.
+
+  The observable symptom in all four is *text*, which is what makes the
+  exemption tempting. The defect is the code that chose it, or a correction
+  that did not finish.
+
+  **A named example here that still reproduces is a finding, not
+  calibration.** The `ConfigDialect` case above has been carried as an
+  illustration across more than one review pass while remaining an open
+  bug. When you confirm a worked example is live, say so in the findings —
+  the alternative is a skill that quietly documents a defect instead of
+  getting it fixed.
 - **A comment that points at a doc** (`see docs/architecture/X`) *instead of*
   making the argument. A pointer **alongside** a full restatement is a
   finding, not the pattern working — `autotools.rs` has both, thirty lines
@@ -130,6 +182,14 @@ cold, and include the relevant beads as hypotheses to *test*. A bead's stated
 diagnosis can be overtaken: `bzl-dc9` described a case-sensitivity split that
 had already been fixed in one of the three modules, and the real finding was
 a fourth copy that grew afterwards.
+
+**Say in the dispatch that the named pairs are the cold-start fix, not the
+search space, and that an all-LEAVE verdict on them is a normal result.**
+On 2026-08-03 five of six named suspects were LEAVE and the pass's only P1
+was on none of them — found instead by the one open-ended prompt in the
+list ("what did the second frontend copy rather than share?"). Without that
+framing an agent reads the list as the assignment and spends its budget
+confirming dismissals. Keep one open-ended question in every dispatch.
 
 **Severity:**
 
