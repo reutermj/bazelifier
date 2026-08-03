@@ -669,6 +669,21 @@ fn render_cc_rule(
     srcs.extend(
         config_headers
             .iter()
+            // ...except a SHADOWING one, where "unharmed by having it
+            // available" is false. A generated header lands in the same
+            // output directory as the compile, so `gl/stdio.h` in `srcs`
+            // makes `#include <stdio.h>` find gnulib's replacement whether or
+            // not the target was given `-I gl`. libidn2's examples then trip
+            // its `#error "Please include config.h first."` — correctly, as
+            // in the real build they never see a gnulib header at all.
+            //
+            // Scoped the same way the `_shadow_hdrs` dep is, and by the same
+            // evidence: the include path the build gave this target.
+            .filter(|h| {
+                h.shadow_dir
+                    .as_deref()
+                    .is_none_or(|dir| target.includes.iter().any(|inc| inc == dir))
+            })
             .map(|h| format!(":{}", config_header_name(h))),
     );
     // `includes` adds a search path; it does not make the staged files inputs
@@ -715,13 +730,27 @@ fn render_cc_rule(
     render_string_list(out, "local_defines", &target.local_defines);
     let mut deps: Vec<String> = target.dependencies.clone();
     deps.extend(textual_dep);
-    // Every target, when the project shadows a system header. The library is
-    // only useful if it is on the compile's include path, and a project that
-    // vendors gnulib expects the replacement everywhere it compiles — the
-    // build system puts `-I gl` in its global CPPFLAGS for exactly that
-    // reason. Emitted only when something shadows, so a project with an
-    // ordinary config.h gains no dep.
-    if config_headers.iter().any(|h| h.shadow_dir.is_some()) {
+    // Only the targets the BUILD gave the shadowing directory to. This was
+    // every target, on the reasoning that a project vendoring gnulib wants
+    // the replacements everywhere — and libidn2 disproves it. `AM_CPPFLAGS`
+    // is per-`Makefile.am`, and its measured include paths are:
+    //
+    //   lib/       -I. -I.. -I../gl -I../unistring/
+    //   src/       -I. -I.. -I../gl -I../unistring/ -I../lib
+    //   examples/  -I. -I.. -I../lib                  <- neither
+    //
+    // Handing the examples gnulib's headers made `<stdio.h>` resolve to the
+    // replacement, whose `#error "Please include config.h first."` then fired
+    // — correctly, since an example has no reason to include config.h and in
+    // the real build never sees a gnulib header at all.
+    //
+    // `target.includes` already carries this faithfully, straight from the
+    // command stream, so the build's own answer is what decides.
+    if config_headers
+        .iter()
+        .filter_map(|h| h.shadow_dir.as_deref())
+        .any(|dir| target.includes.iter().any(|inc| inc == dir))
+    {
         deps.push(SHADOW_HEADERS_TARGET.to_string());
     }
     render_deps(out, &deps);
@@ -2288,14 +2317,16 @@ mod tests {
         );
     }
 
+    // A shadow header helps only a target whose compiles actually get that
+    // directory, and the build says which. This used to be unconditional, on
+    // the reasoning that a project vendoring gnulib puts `-I gl` in its
+    // GLOBAL CPPFLAGS — libidn2 disproved it: AM_CPPFLAGS is per-Makefile.am,
+    // and its examples/ get neither `gl` nor `unistring`.
+    //
+    // Both directions, because either alone is satisfiable by a constant.
     #[test]
-    fn every_target_depends_on_the_shadow_library() {
-        // The library is inert unless targets actually depend on it: an
-        // include path only exists on a compile that has the dep. A project
-        // vendoring gnulib puts `-I gl` in its global CPPFLAGS, so every
-        // target expects the replacement.
-        let mut g = graph(None);
-        g.config_headers = vec![model::ConfigHeader {
+    fn only_targets_given_the_shadow_dir_depend_on_the_library() {
+        let header = model::ConfigHeader {
             output: "string.h".to_string(),
             template: "gl/string.in.h".to_string(),
             template_source: None,
@@ -2304,12 +2335,43 @@ mod tests {
             splices: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: Some("gl".to_string()),
-        }];
-        let rendered = render(&g).build_bazel;
+        };
+
+        let mut needs = graph(None);
+        needs.config_headers = vec![header.clone()];
+        needs.targets[0].includes = vec!["gl".to_string()];
+        let rendered = render(&needs).build_bazel;
         assert!(
             rendered.contains("\":_shadow_hdrs\""),
-            "a target with no dep on the shadow library never sees the \
+            "the build gave this target `-I gl`, so it expects the \
              replacement header:\n{rendered}"
+        );
+
+        let mut does_not = graph(None);
+        does_not.config_headers = vec![header];
+        does_not.targets[0].includes = vec!["examples".to_string()];
+        let rendered = render(&does_not).build_bazel;
+        assert!(
+            !rendered.contains("\":_shadow_hdrs\""),
+            "the build did NOT, and forcing gnulib's <stdio.h> on a source \
+             that never includes config.h trips its own #error:\n{rendered}"
+        );
+        // And not via `srcs` either. A generated header lands in the same
+        // output directory as the compile, so having it in `srcs` makes
+        // `#include <stdio.h>` find it whatever `includes` says — dropping
+        // the dep alone left libidn2's examples failing identically.
+        // Scoped to the cc_binary's own srcs, so this cannot be satisfied
+        // by the `config_header` rule's `name =` or its test's `header =`.
+        let srcs = rendered
+            .split("srcs = [")
+            .nth(1)
+            .and_then(|s| s.split(']').next())
+            .unwrap_or_default()
+            .to_string();
+        assert!(
+            !srcs.contains("gl_string_h"),
+            "a shadowing header in `srcs` is reachable regardless of the \
+             include path — srcs was:\n{srcs}"
         );
     }
 
