@@ -29,6 +29,7 @@ validation_workspace(
         "//translator/tests/fixtures/020-gnu-source-symbol:converted",
         "//translator/tests/fixtures/021-subdir-binary-shared-library:converted",
         "//translator/tests/fixtures/022-ctest-script-command:converted",
+        "//translator/tests/fixtures/023-option-flag:converted",
         "//translator/tests/fixtures/023-header-via-include-path:converted",
         "//translator/tests/fixtures/024-header-in-include-subdir:converted",
         "//translator/tests/fixtures/025-sibling-header-no-include-dir:converted",

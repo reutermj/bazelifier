@@ -1,0 +1,22 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_cmake_project")
+
+# The CMake counterpart to autotools/009-enable-flag (bzl-1p6): an option()
+# is a build CHOICE, and no probe can answer it.
+#
+# Converts GREEN today, which is the finding rather than a pass. The option
+# resolves from the cache into `values = {"ENABLE_GREETING": "ON"}`, so the
+# conversion silently decides for every consumer — unlike the Autotools side,
+# where the equivalent macro at least escalates and an agent sees it.
+#
+# Ground truth is captured at the default (ON). `-DENABLE_GREETING=OFF` is
+# reachable natively, so a conversion that freezes the wrong branch fails the
+# comparison instead of passing quietly. See the fixture's CMakeLists.txt.
+convert_cmake_project(
+    name = "converted",
+    srcs = ["CMakeLists.txt"] + glob([
+        "src/**",
+        "*.in",
+    ]),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+)
