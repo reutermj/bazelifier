@@ -24,6 +24,54 @@ cc_config_catalog(
     # (header, HAVE_ macro) — check_include_file.
     headers = [
         ("bsd/stdlib.h", "HAVE_BSD_STDLIB_H"),
+        # Headers the corpus checks that this host does NOT have — BSD,
+        # Solaris, Windows, VxWorks, macOS, and optional libraries. A probe
+        # for an absent header compiles, fails, and records `false`, which is
+        # the CORRECT answer for this platform and becomes `true` on one that
+        # has it. That is the whole point of probing rather than baking: see
+        # overview.md on replicating behaviour rather than this host's
+        # outcome.
+        #
+        # Paths harvested from each project's own `configure`, never guessed
+        # from the macro name. The forward direction is autoconf's own
+        # transform (uppercase, non-alphanumerics to `_`) and is exact; the
+        # reverse is ambiguous and would have gotten four of these wrong —
+        # `netinet/ip_icmp.h` reads equally as `netinet/ip/icmp.h`, and
+        # `inetLib.h`/`vxCpuLib.h`/`sys/_cpuset.h` are unrecoverable from
+        # `HAVE_INETLIB_H` at all.
+        ("CommonCrypto/CommonDigest.h", "HAVE_COMMONCRYPTO_COMMONDIGEST_H"),
+        ("features.h", "HAVE_FEATURES_H"),
+        ("gcrypt.h", "HAVE_GCRYPT_H"),
+        ("gnutls/gnutls.h", "HAVE_GNUTLS_GNUTLS_H"),
+        ("iconv.h", "HAVE_ICONV_H"),
+        ("inetLib.h", "HAVE_INETLIB_H"),
+        ("machine/endian.h", "HAVE_MACHINE_ENDIAN_H"),
+        ("machine/param.h", "HAVE_MACHINE_PARAM_H"),
+        ("minix/config.h", "HAVE_MINIX_CONFIG_H"),
+        ("netinet/icmp_var.h", "HAVE_NETINET_ICMP_VAR_H"),
+        ("netinet/in_systm.h", "HAVE_NETINET_IN_SYSTM_H"),
+        ("netinet/ip_icmp.h", "HAVE_NETINET_IP_ICMP_H"),
+        ("pthread_np.h", "HAVE_PTHREAD_NP_H"),
+        ("sanitizer/asan_interface.h", "HAVE_SANITIZER_ASAN_INTERFACE_H"),
+        ("sdkddkver.h", "HAVE_SDKDDKVER_H"),
+        ("sha2.h", "HAVE_SHA2_H"),
+        ("sha256.h", "HAVE_SHA256_H"),
+        ("sockLib.h", "HAVE_SOCKLIB_H"),
+        ("stdckdint.h", "HAVE_STDCKDINT_H"),
+        ("sys/_cpuset.h", "HAVE_SYS__CPUSET_H"),
+        ("sys/byteorder.h", "HAVE_SYS_BYTEORDER_H"),
+        ("sys/capsicum.h", "HAVE_SYS_CAPSICUM_H"),
+        ("sys/cpuset.h", "HAVE_SYS_CPUSET_H"),
+        ("sys/endian.h", "HAVE_SYS_ENDIAN_H"),
+        ("sys/isa_defs.h", "HAVE_SYS_ISA_DEFS_H"),
+        ("sys/machine.h", "HAVE_SYS_MACHINE_H"),
+        ("sys/pstat.h", "HAVE_SYS_PSTAT_H"),
+        ("sys/sysctl.h", "HAVE_SYS_SYSCTL_H"),
+        ("vxCpuLib.h", "HAVE_VXCPULIB_H"),
+        ("windows.h", "HAVE_WINDOWS_H"),
+        ("winsock2.h", "HAVE_WINSOCK2_H"),
+        ("ws2tcpip.h", "HAVE_WS2TCPIP_H"),
+        ("zlib.h", "HAVE_ZLIB_H"),
         ("byteswap.h", "HAVE_BYTESWAP_H"),
         ("cpuid.h", "HAVE_CPUID_H"),
         ("dlfcn.h", "HAVE_DLFCN_H"),
@@ -263,6 +311,11 @@ config_header(
         ":have_net_if_h",
         ":have_netinet_ip_h",
         ":have_netinet_tcp_h",
+        ":have_winsock2_h",
+        ":have_sys_endian_h",
+        ":have_sys_isa_defs_h",
+        ":have_vxcpulib_h",
+        ":have_netinet_ip_icmp_h",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -295,6 +348,22 @@ assert_config_header_test(
         "#define HAVE_SYS_MSG_H",
         "#define HAVE_NET_IF_H",
         "#define HAVE_NETINET_IP_H",
+        # Absent on this host BY DESIGN. A probe that answers `false`
+        # here answers `true` on the platform the header belongs to,
+        # which is why these are probed rather than left out. If one
+        # of these starts reading `#define`, the path is wrong — a
+        # typo also reports absent, indistinguishable from correct.
+        "/* #undef HAVE_WINSOCK2_H */",  # absent here — Windows
+        "/* #undef HAVE_SYS_ENDIAN_H */",  # absent here — BSD
+        "/* #undef HAVE_SYS_ISA_DEFS_H */",  # absent here — Solaris
+        "/* #undef HAVE_VXCPULIB_H */",  # absent here — VxWorks; camelCase is unrecoverable from the macro
+        # PRESENT on glibc, and the most valuable assertion of this group:
+        # it proves the harvested path is right. The reverse guess reads the
+        # macro as `netinet/ip/icmp.h`, which does not exist — that probe
+        # would report absent, and absent is indistinguishable from a correct
+        # answer for a header this host genuinely lacks. Only a header that
+        # IS here can catch a wrong path.
+        "#define HAVE_NETINET_IP_ICMP_H",
         "#define HAVE_NETINET_TCP_H",
     ],
     must_not_contain = [

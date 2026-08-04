@@ -23,3 +23,8 @@
 #cmakedefine HAVE_NET_IF_H
 #cmakedefine HAVE_NETINET_IP_H
 #cmakedefine HAVE_NETINET_TCP_H
+#cmakedefine HAVE_WINSOCK2_H
+#cmakedefine HAVE_SYS_ENDIAN_H
+#cmakedefine HAVE_SYS_ISA_DEFS_H
+#cmakedefine HAVE_VXCPULIB_H
+#cmakedefine HAVE_NETINET_IP_ICMP_H
