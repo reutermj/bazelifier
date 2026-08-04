@@ -160,8 +160,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     fs::write(args.out_module.join("BUILD.bazel"), generated.build_bazel)?;
     // The wrapper the generated sh_tests run — only when there are tests.
     if !graph.tests.is_empty() {
-        let script_path = args.out_module.join("run_cmake_test.sh");
-        fs::write(&script_path, codegen::render_run_cmake_test_sh())?;
+        let script_path = args.out_module.join("run_registered_test.sh");
+        fs::write(&script_path, codegen::render_run_registered_test_sh())?;
         make_executable(&script_path)?;
     }
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;

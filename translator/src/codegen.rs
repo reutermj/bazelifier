@@ -291,22 +291,43 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
         //
         // Emitted sorted, because a Starlark dict literal's order is not
         // meaningful to Bazel and an unsorted one would make the generated
-        // BUILD file differ run to run. sed's ORDER still matters, and is
-        // preserved where it is applied — the rule passes one `--splice` per
-        // entry and the expander applies them as given.
+        // BUILD file differ run to run.
         //
-        // A dict keyed by file cannot express ONE file spliced at TWO markers.
-        // Measured on libidn2, whose 42 splices across two gnulib trees use
-        // exactly four files at exactly one marker each — the mapping is 1:1,
-        // and gnulib generates these recipes, so it is 1:1 by construction
-        // rather than by luck. The expander handles the general case anyway
-        // (it takes an ordered list), so widening this is a codegen change
-        // alone if a project ever contradicts it.
+        // Sorting therefore DISCARDS sed's order, which the model
+        // deliberately preserves (`ConfigHeader::splices` is documented
+        // "Ordered, and NOT deduplicated", and `autotools.rs` has a test
+        // pinning it). That is sound only because a dict keyed by file makes
+        // order unobservable: each file appears once, so there is no second
+        // entry whose position could differ. The moment that stops holding,
+        // the assert below fires rather than the order silently mattering.
+        //
+        // A dict keyed by file cannot express ONE file spliced at TWO
+        // markers, so this asserts rather than dropping one. Measured on
+        // libidn2: 42 splices across two gnulib trees, four files at exactly
+        // one marker each. gnulib generates these recipes, so 1:1 is by
+        // construction rather than luck — but it is a claim about gnulib,
+        // not about sed, and a `dedup()` here would turn a project that
+        // contradicts it into a header quietly missing macros. The expander
+        // already takes an ordered list, so widening is codegen-only.
         out.push_str("    splices = {\n");
         let mut by_file: Vec<(&String, &String)> =
             header.splices.iter().map(|(m, f)| (f, m)).collect();
         by_file.sort();
         by_file.dedup();
+        // After dedup, a repeated FILE means two distinct markers — the case
+        // the dict cannot carry. Real, not `debug_assert!`: the release
+        // binary is what converts projects, and the failure it prevents is
+        // silent and lands in a consumer far from here.
+        for pair in by_file.windows(2) {
+            assert_ne!(
+                pair[0].0, pair[1].0,
+                "one file is spliced at two markers ({:?} at {:?} and {:?}), \
+                 which `splices` cannot express as a file-keyed dict. Widen \
+                 it to carry the ordered pairs — the expander already takes \
+                 them. See ConfigHeader::splices.",
+                pair[0].0, pair[0].1, pair[1].1
+            );
+        }
         for (file, marker) in by_file {
             out.push_str(&format!(
                 "        \"{}\": \"{}\",\n",
@@ -487,8 +508,8 @@ fn render_test_load(out: &mut String, has_tests: bool) {
     }
 }
 
-/// Renders one `sh_test` wrapping a CTest-registered test. It runs the
-/// module's own `run_cmake_test.sh` (see codegen::RUN_CMAKE_TEST_SH),
+/// Renders one `sh_test` wrapping a test the project registered. It runs the
+/// module's own `run_registered_test.sh` (see codegen::RUN_REGISTERED_TEST_SH),
 /// passing the binary, the working directory, and the pass regex; `data`
 /// carries the binary and the runtime files the test reads/writes under its
 /// working directory.
@@ -531,7 +552,7 @@ fn render_sh_test(out: &mut String, test: &model::Test) {
     out.push_str(&format!(
         "sh_test(\n\
          \x20   name = \"{test_name}\",\n\
-         \x20   srcs = [\"run_cmake_test.sh\"],\n\
+         \x20   srcs = [\"run_registered_test.sh\"],\n\
          \x20   args = [\n\
          \x20        \"{binary_rel}\",\n\
          \x20        \"{working_dir}\",\n\
@@ -1124,9 +1145,14 @@ pub fn render_ground_truth_build_bazel(
 /// dir and runs there. Args: $1 = binary runfiles-relative path, $2 =
 /// working directory relative to the module root ("" = module root), $3 =
 /// pass regex ("" = none, exit code alone decides).
-const RUN_CMAKE_TEST_SH: &str = r#"#!/usr/bin/env bash
-# Runs a CMake-registered test (see codegen::RUN_CMAKE_TEST_SH and
-# docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md). Not `set -e`:
+const RUN_REGISTERED_TEST_SH: &str = r#"#!/usr/bin/env bash
+# Runs a test the project registered — CMake's add_test() or automake's
+# TESTS; this wrapper cannot tell and does not need to, since by here a test
+# is a binary, a working directory and an optional pass regex. Named for what
+# it does rather than for one frontend: it shipped as `run_cmake_test.sh`
+# into five Autotools modules that have no CMake in them.
+# (See docs/lore/cmake-test-model-lives-in-ctest-not-file-api.md for where
+# the CMake half of that model comes from.) Not `set -e`:
 # the binary's own nonzero exit is data this script evaluates, not a reason
 # to abort before checking the pass regex.
 set -uo pipefail
@@ -1198,8 +1224,8 @@ exit "${exit_code}"
 
 /// Returns the wrapper test runner script the module ships when it has
 /// CTest-registered tests. `main` writes it into the module root.
-pub fn render_run_cmake_test_sh() -> String {
-    RUN_CMAKE_TEST_SH.to_string()
+pub fn render_run_registered_test_sh() -> String {
+    RUN_REGISTERED_TEST_SH.to_string()
 }
 
 #[cfg(test)]
@@ -1593,9 +1619,9 @@ mod tests {
     #[test]
     fn the_test_wrapper_tolerates_a_dropped_trailing_pass_regex() {
         assert!(
-            RUN_CMAKE_TEST_SH.contains("pass_regex=\"${3:-}\""),
+            RUN_REGISTERED_TEST_SH.contains("pass_regex=\"${3:-}\""),
             "the wrapper must default the pass-regex arg rather than read $3 \
-             bare, because Bazel drops the trailing empty arg:\n{RUN_CMAKE_TEST_SH}"
+             bare, because Bazel drops the trailing empty arg:\n{RUN_REGISTERED_TEST_SH}"
         );
     }
 
@@ -2249,6 +2275,62 @@ mod tests {
             rendered.contains("\"gl/c++defs.h\": \"definitions of _GL_FUNCDECL_RPL\","),
             "keyed by the FILE and valued by the MARKER, matching the rule's \
              label_keyed_string_dict:\n{rendered}"
+        );
+    }
+
+    // The dict cannot carry one file at two markers, and the model
+    // deliberately allows it (`splices` is documented ordered and
+    // un-deduplicated, with a frontend test pinning that). Codegen used to
+    // `dedup()` the pair and emit one entry, so the second marker's splice
+    // vanished into a duplicate Starlark key with no error — a header
+    // quietly missing macros, failing much later in a consumer.
+    //
+    // Loud instead. Not deterministic-and-wrong, not silent: the assert
+    // names the file and both markers, and says what to widen.
+    #[test]
+    #[should_panic(expected = "spliced at two markers")]
+    fn one_file_at_two_markers_is_refused_rather_than_silently_dropped() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "string.h".to_string(),
+            template: "gl/string.in.h".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            splices: vec![
+                ("first marker".to_string(), "gl/shared.h".to_string()),
+                ("second marker".to_string(), "gl/shared.h".to_string()),
+            ],
+            dialect: model::ConfigDialect::Substitution,
+            shadow_dir: Some("gl".to_string()),
+        }];
+        render(&g);
+    }
+
+    // The negative: two markers naming DIFFERENT files is the ordinary case
+    // and must still render. Without this the assert could be widened to
+    // "any two splices" and the test above would not notice.
+    #[test]
+    fn two_markers_naming_different_files_both_render() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "string.h".to_string(),
+            template: "gl/string.in.h".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            splices: vec![
+                ("cxx marker".to_string(), "gl/c++defs.h".to_string()),
+                ("nonnull marker".to_string(), "gl/arg-nonnull.h".to_string()),
+            ],
+            dialect: model::ConfigDialect::Substitution,
+            shadow_dir: Some("gl".to_string()),
+        }];
+        let rendered = render(&g).build_bazel;
+        assert!(
+            rendered.contains("\"gl/c++defs.h\": \"cxx marker\",")
+                && rendered.contains("\"gl/arg-nonnull.h\": \"nonnull marker\","),
+            "both splices must survive — this is libidn2's actual shape:\n{rendered}"
         );
     }
 

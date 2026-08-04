@@ -45,7 +45,7 @@ use crate::headers::{
 };
 use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind, Test};
 use crate::needs_attention::{
-    ConfigDialect, ctest_command_not_a_target_needs_attention,
+    ConfigDialect, TestDialect, ctest_command_not_a_target_needs_attention,
     shared_library_absorbs_static_needs_attention, sources_outside_deliverable_needs_attention,
     unmapped_config_macros_needs_attention,
 };
@@ -1737,6 +1737,7 @@ pub(crate) fn to_graph(
                 .iter()
                 .map(|t| t.command.clone())
                 .collect::<Vec<_>>(),
+            TestDialect::AutomakeTests,
         ));
     }
 

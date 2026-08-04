@@ -27,7 +27,9 @@ use std::process::Command;
 use serde::Deserialize;
 
 use crate::model::{Target, TargetKind, Test};
-use crate::needs_attention::{NeedsAttention, ctest_command_not_a_target_needs_attention};
+use crate::needs_attention::{
+    NeedsAttention, TestDialect, ctest_command_not_a_target_needs_attention,
+};
 use crate::paths::normalize_lexically;
 
 use crate::error::Error;
@@ -176,7 +178,8 @@ pub(crate) fn partition_tests_by_buildable_command(
 
     let names: Vec<String> = unbuildable.iter().map(|t| t.name.clone()).collect();
     let commands: Vec<String> = unbuildable.iter().map(|t| t.command.clone()).collect();
-    let escalation = ctest_command_not_a_target_needs_attention(&names, &commands);
+    let escalation =
+        ctest_command_not_a_target_needs_attention(&names, &commands, TestDialect::AddTest);
     // The unbuildable tests are RETURNED, not just named. Naming them was
     // enough while the escalation was the whole handoff; it is not enough now
     // that the module has to arrive resolvable — see

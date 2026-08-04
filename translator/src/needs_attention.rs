@@ -229,6 +229,59 @@ impl ConfigDialect {
     }
 }
 
+/// Which build system registered the tests an escalation is about.
+///
+/// Same reason `ConfigDialect` exists, for the other escalation two
+/// frontends share: `ctest_command_not_a_target_needs_attention` is called
+/// by BOTH `ctest.rs` and `autotools.rs`, and its text used to open "CMake
+/// registered these tests with `add_test()`" and close "do NOT edit the
+/// project's CMakeLists.txt" — shipped verbatim into six modules holding
+/// only `configure.ac` and `Makefile.am`. An agent in an unpacked workspace
+/// was told to look for a file that is not there.
+///
+/// Named for the REGISTRATION MECHANISM rather than the build system, so a
+/// third frontend picks the variant that describes what it read rather than
+/// the one named after it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TestDialect {
+    /// CMake's `add_test()`, read from `ctest --show-only=json-v1`.
+    AddTest,
+    /// automake's `TESTS`, read from make's variable database.
+    AutomakeTests,
+}
+
+impl TestDialect {
+    /// How the project registered these tests — the opening claim, and the
+    /// one that was false for every Autotools project.
+    fn registration(self) -> &'static str {
+        match self {
+            Self::AddTest => "CMake registered these tests with `add_test()`",
+            Self::AutomakeTests => "automake registered these tests in `TESTS`",
+        }
+    }
+
+    /// The project's own build files, which a resolution must never edit.
+    fn build_files(self) -> &'static str {
+        match self {
+            Self::AddTest => "`CMakeLists.txt`",
+            Self::AutomakeTests => "`Makefile.am` or `configure.ac`",
+        }
+    }
+
+    /// Where the test's working directory came from, which differs by
+    /// mechanism and decides what the agent has to reconstruct.
+    fn working_directory(self) -> &'static str {
+        match self {
+            Self::AddTest => {
+                "CTest's `WORKING_DIRECTORY` for these tests often points into the CMake                  BUILD tree, which has no counterpart in the converted module"
+            }
+            Self::AutomakeTests => {
+                "automake runs each test from the directory its `Makefile.am` lives in, and                  the scripts typically expect `$srcdir` to be set"
+            }
+        }
+    }
+}
+
 pub fn unmapped_config_macros_needs_attention(
     output: &str,
     template: &str,
@@ -577,9 +630,10 @@ pub fn inert_convenience_targets_needs_attention(target_names: &[String]) -> Nee
 pub fn ctest_command_not_a_target_needs_attention(
     test_names: &[String],
     commands: &[String],
+    dialect: TestDialect,
 ) -> NeedsAttention {
     let title = format!(
-        "{} CTest test(s) run a command the translator did not build",
+        "{} registered test(s) run a command the translator did not build",
         test_names.len()
     );
     let listing = test_names
@@ -589,10 +643,17 @@ pub fn ctest_command_not_a_target_needs_attention(
         .collect::<Vec<_>>()
         .join("\n");
     NeedsAttention {
+        // Still `ctest_`-prefixed although the item now speaks both
+        // dialects, and deliberately: `kind` is the ONE stable key a tool
+        // may group by (needs-attention-interface.md), and `tools/sweep`
+        // keys `escalations_by_kind` on it. Renaming would silently split
+        // every historical row in metrics/history.jsonl into two series
+        // that look like a regression. The prose an agent reads is what had
+        // to stop lying; the machine key is a name, not a claim.
         kind: "ctest_command_not_a_target",
         subject: test_names.join(", "),
         gap: format!(
-            "CMake registered these tests with `add_test()`, but each one's command is not \
+            "{registration}, but each one's command is not \
              an executable this module builds:\n\n{listing}\n\nThe translator emits an \
              `sh_test` for a registered test by wrapping the `cc_binary` the test runs — \
              that is the only shape it can express, because it knows how to point a label \
@@ -602,9 +663,11 @@ pub fn ctest_command_not_a_target_needs_attention(
              simply absent from the converted module.\n\nThe most common shape by far is a \
              shell script that lives in the project's SOURCE tree and drives a built binary \
              indirectly — comparing its output against a checked-in `.expected` file, \
-             looping over fixtures, or setting environment the binary needs."
+             looping over fixtures, or setting environment the binary needs.",
+            registration = dialect.registration()
         ),
-        context: "This is a translator capability gap, not a problem with the project. Driving a \
+        context: format!(
+            "This is a translator capability gap, not a problem with the project. Driving a \
              test suite through scripts is ordinary practice, and those scripts ship with the \
              sources, so nothing here is missing or unreproducible — what the translator \
              cannot yet do is express 'run this script' as a Bazel test.\n\nThree things are \
@@ -614,18 +677,22 @@ pub fn ctest_command_not_a_target_needs_attention(
                build, so the Bazel test should depend on that `cc_binary` target rather than \
                on whatever path the script hardcodes (typically a build-directory path that \
                does not exist here).\n\
-             - **Its working directory.** CTest's `WORKING_DIRECTORY` for these tests often \
-               points into the CMake BUILD tree, which has no counterpart in the converted \
-               module — so it could not be rebased and is not carried in the generated output. \
-               A script that locates its data relative to `$0`, `$srcdir`, or the current \
-               directory will not find it unless the test sets that up explicitly.\n\
+             - **Its working directory.** {working_directory} — so it could not be rebased \
+               and is not carried in the generated output. A script that locates its data \
+               relative to `$0`, `$srcdir`, or the current directory will not find it \
+               unless the test sets that up explicitly.\n\
              - **Files it reads.** Anything the script consumes — `.expected` files, JSON \
                fixtures, a sourced helper like `test-defs.sh` — has to be listed in the test's \
                `data`, or it will not be present when the test runs.\n\n\
              A test that is absent is invisible: unlike a build failure, nothing reports it. \
-             Whatever these tests were checking is currently unchecked in the converted module."
-            .to_string(),
-        expected_output:
+             Whatever these tests were checking is currently unchecked in the converted \
+             module.\n\nResolve this in the GENERATED output only. Do NOT edit the \
+             project's {build_files}.",
+            working_directory = dialect.working_directory(),
+            build_files = dialect.build_files()
+        )
+        .to_string(),
+        expected_output: format!(
             "For each test listed above, add a test to the generated `BUILD.bazel` that \
              reproduces what it checked — typically an `sh_test` whose `srcs` is the project's \
              own script, with the `cc_binary` it exercises and every data file it reads in \
@@ -635,8 +702,9 @@ pub fn ctest_command_not_a_target_needs_attention(
              equivalent, say so explicitly in the resolution rather than leaving it out \
              silently — a deliberate omission and an overlooked one are indistinguishable in \
              the output otherwise. Resolve this in the GENERATED output only — do NOT edit the \
-             project's CMakeLists.txt or its test scripts."
-                .to_string(),
+             project's {build_files} or its test scripts.",
+            build_files = dialect.build_files()
+        ),
         title,
     }
 }
@@ -1096,6 +1164,65 @@ mod tests {
         );
     }
 
+    // The test escalation is called by BOTH frontends, and its text used to
+    // be CMake's unconditionally: "CMake registered these tests with
+    // `add_test()`" and "do NOT edit the project's CMakeLists.txt", shipped
+    // into six modules that hold only `configure.ac` and `Makefile.am`. An
+    // agent reading it in an unpacked workspace was told to look for a file
+    // that does not exist, by an item that also misnamed how the tests were
+    // registered.
+    //
+    // Both directions, because either alone is satisfiable by a constant.
+    #[test]
+    fn an_automake_test_escalation_speaks_automake_not_ctest() {
+        let item = ctest_command_not_a_target_needs_attention(
+            &["check_direct".to_string()],
+            &["/build/check_direct".to_string()],
+            TestDialect::AutomakeTests,
+        );
+        // The WHOLE item, expected_output included. The morning's
+        // static_deps defect was a correction that reached `context` and
+        // not `expected_output`, and this constructor had the same shape:
+        // its expected_output said "do NOT edit the project's
+        // CMakeLists.txt" independently of the gap.
+        let whole = format!(
+            "{} {} {} {}",
+            item.title, item.gap, item.context, item.expected_output
+        );
+        assert!(
+            whole.contains("automake registered these tests in `TESTS`"),
+            "the item must name the mechanism the project actually used:\n{whole}"
+        );
+        assert!(
+            whole.contains("`Makefile.am`"),
+            "and the build files it must not edit are automake's:\n{whole}"
+        );
+        assert!(
+            !whole.contains("CMake") && !whole.contains("CTest") && !whole.contains("CMakeLists"),
+            "an Autotools project has no CMake anything — this item ships to \
+             a module with no CMakeLists.txt in it:\n{whole}"
+        );
+    }
+
+    #[test]
+    fn a_ctest_escalation_still_speaks_ctest() {
+        let item = ctest_command_not_a_target_needs_attention(
+            &["json_parse".to_string()],
+            &["tests/parse.test".to_string()],
+            TestDialect::AddTest,
+        );
+        let whole = format!(
+            "{} {} {} {}",
+            item.title, item.gap, item.context, item.expected_output
+        );
+        assert!(
+            whole.contains("CMake registered these tests with `add_test()`")
+                && whole.contains("`CMakeLists.txt`")
+                && whole.contains("CTest's `WORKING_DIRECTORY`"),
+            "the CMake half must keep its own vocabulary:\n{whole}"
+        );
+    }
+
     #[test]
     fn an_autoconf_config_header_escalation_speaks_autoconf_not_cmake() {
         let item = unmapped_config_macros_needs_attention(
@@ -1343,7 +1470,11 @@ mod tests {
             generated_sources_needs_attention("t", &["gen.c".to_string()]),
             unsupported_target_needs_attention("t", "OBJECT_LIBRARY", &["dep".to_string()]),
             inert_convenience_targets_needs_attention(&["t".to_string()]),
-            ctest_command_not_a_target_needs_attention(&["x".to_string()], &["cmd".to_string()]),
+            ctest_command_not_a_target_needs_attention(
+                &["x".to_string()],
+                &["cmd".to_string()],
+                TestDialect::AddTest,
+            ),
             header_visibility_needs_attention("t"),
         ];
         let mut kinds: Vec<&str> = items.iter().map(|i| i.kind).collect();
