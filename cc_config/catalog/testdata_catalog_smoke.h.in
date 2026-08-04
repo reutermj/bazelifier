@@ -28,3 +28,6 @@
 #cmakedefine HAVE_SYS_ISA_DEFS_H
 #cmakedefine HAVE_VXCPULIB_H
 #cmakedefine HAVE_NETINET_IP_ICMP_H
+#cmakedefine HAVE_UTIME
+#cmakedefine HAVE_FUTIMES
+#cmakedefine HAVE_PLEDGE

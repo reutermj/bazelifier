@@ -124,6 +124,56 @@ cc_config_catalog(
     ],
     # (symbol, [declaring headers], HAVE_ macro) — check_symbol_exists.
     symbols = [
+        # File-timestamp and option-parsing functions the corpus checks via
+        # AC_CHECK_FUNCS (xz, libidn2). Unlike the header entries above, the
+        # HEADER here is not stated by `configure` — AC_CHECK_FUNCS names only
+        # the symbol and compiles against autoconf's fixed default include
+        # set. So these seven were supplied by hand and each was verified by
+        # compiling a reference against the real toolchain: the five present
+        # on glibc declare cleanly, and `pledge`/`_futime` correctly do not.
+        #
+        # That hand-supplied header is why there is no harvester for this
+        # shape. A wrong header reports the symbol ABSENT, which is
+        # indistinguishable from a platform that genuinely lacks it — the
+        # same silent failure the header entries avoid by reading the path
+        # out of `configure`.
+        (
+            "futimes",
+            ["sys/time.h"],
+            "HAVE_FUTIMES",
+        ),
+        (
+            "futimesat",
+            ["sys/time.h"],
+            "HAVE_FUTIMESAT",
+        ),
+        (
+            "getopt_long_only",
+            ["getopt.h"],
+            "HAVE_GETOPT_LONG_ONLY",
+        ),
+        # OpenBSD only.
+        (
+            "pledge",
+            ["unistd.h"],
+            "HAVE_PLEDGE",
+        ),
+        (
+            "utime",
+            ["utime.h"],
+            "HAVE_UTIME",
+        ),
+        (
+            "utimes",
+            ["sys/time.h"],
+            "HAVE_UTIMES",
+        ),
+        # Windows CRT.
+        (
+            "_futime",
+            ["sys/utime.h"],
+            "HAVE__FUTIME",
+        ),
         (
             "clock_gettime",
             ["time.h"],
@@ -316,6 +366,9 @@ config_header(
         ":have_sys_isa_defs_h",
         ":have_vxcpulib_h",
         ":have_netinet_ip_icmp_h",
+        ":have_utime",
+        ":have_futimes",
+        ":have_pledge",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -364,6 +417,10 @@ assert_config_header_test(
         # answer for a header this host genuinely lacks. Only a header that
         # IS here can catch a wrong path.
         "#define HAVE_NETINET_IP_ICMP_H",
+        "#define HAVE_UTIME",  # present on glibc — this is the assertion that can catch a wrong header,
+        # since a bad path reports absent just like a missing symbol
+        "#define HAVE_FUTIMES",  # present on glibc
+        "/* #undef HAVE_PLEDGE */",  # OpenBSD only
         "#define HAVE_NETINET_TCP_H",
     ],
     must_not_contain = [

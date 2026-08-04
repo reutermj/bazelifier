@@ -180,6 +180,17 @@ struct TemplateMacros {
 const CATALOG_DEFINES: &[&str] = &[
     "HAVE_ARC4RANDOM",
     "HAVE_BSD_STDLIB_H",
+    // File-timestamp and option-parsing functions, checked via
+    // AC_CHECK_FUNCS by xz and libidn2. Their catalog headers are
+    // hand-supplied and compile-verified — AC_CHECK_FUNCS names the symbol
+    // but not the header (see the catalog's note).
+    "HAVE_FUTIMES",
+    "HAVE_FUTIMESAT",
+    "HAVE_GETOPT_LONG_ONLY",
+    "HAVE_PLEDGE",
+    "HAVE_UTIME",
+    "HAVE_UTIMES",
+    "HAVE__FUTIME",
     // Headers this host lacks — BSD, Solaris, Windows, VxWorks, macOS and
     // optional libraries. A probe for an absent header answers `false`, which
     // is correct here and `true` wherever the header exists; that is why they
