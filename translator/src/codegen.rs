@@ -17,6 +17,10 @@ use crate::model::{self, BuildGraph, Target, TargetKind};
 // depends on. Hardcoded for now since the translator has no per-project
 // toolchain-selection mechanism yet — see docs/architecture/bazel-codegen.md.
 const RULES_CC_VERSION: &str = "0.2.22";
+/// Only pulled in when a project actually exposes a build option — see
+/// `render_build_options`. A module with no options must not gain a
+/// dependency it never uses.
+const BAZEL_SKYLIB_VERSION: &str = "1.7.1";
 const LLVM_VERSION: &str = "0.8.14";
 // Only pulled in when the module has CTest-registered tests (the generated
 // sh_test wrapper needs it), so a plain library/binary module doesn't
@@ -114,12 +118,20 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
     } else {
         format!("bazel_dep(name = \"cc_config\", version = \"{CC_CONFIG_VERSION}\")\n")
     };
+    // `bool_flag` lives in bazel_skylib, so the dep appears only for a
+    // project that exposes an option. Emitted unconditionally it would be an
+    // unused dependency in most modules.
+    let skylib = if graph.config_headers.iter().all(|h| h.options.is_empty()) {
+        String::new()
+    } else {
+        format!("bazel_dep(name = \"bazel_skylib\", version = \"{BAZEL_SKYLIB_VERSION}\")\n")
+    };
 
     format!(
         "module(\n    name = \"{name}\",\n{version})\n\n\
          bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n\
          bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\
-         {rules_shell}{cc_config}\n\
+         {rules_shell}{cc_config}{skylib}\n\
          register_toolchains(\"@llvm//toolchain:all\")\n",
         name = module_name(&graph.module.name),
     )
@@ -174,9 +186,18 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
             "load(\"@cc_config//cc_config:config_header.bzl\", \"assert_config_header_test\", \"config_header\")\n",
         );
     }
+    // Sorted before the cc_config load by buildifier's own ordering, so it is
+    // emitted first rather than fixed up later.
+    let has_options = graph.config_headers.iter().any(|h| !h.options.is_empty());
+    if has_options {
+        out.push_str("load(\"@bazel_skylib//rules:common_settings.bzl\", \"bool_flag\")\n");
+    }
     if !rules.is_empty() || !graph.tests.is_empty() || !graph.config_headers.is_empty() {
         out.push('\n');
     }
+
+    // Flags before the config headers, which `select()` on them.
+    render_build_options(&mut out, &graph.config_headers);
 
     // Config headers first: the cc targets below reference them.
     for config_header in &graph.config_headers {
@@ -338,8 +359,38 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
         out.push_str("    },\n");
     }
     if !header.values.is_empty() {
-        out.push_str("    values = {\n");
+        // A value the project exposed as an OPTION becomes a `select()` on a
+        // flag rather than a frozen entry, so the choice survives conversion.
+        // The rest stay a plain dict; the two are concatenated with `|`,
+        // which Starlark allows between a select and a dict.
+        //
+        // Without this the conversion decides for every consumer and records
+        // nothing — `overview.md`'s replicate-behaviour rule is explicit that
+        // a decision is something to RECORD, and freezing an option is the
+        // quietest way to fail it.
+        let options: std::collections::HashMap<&str, &str> = header
+            .options
+            .iter()
+            .map(|(macro_name, option)| (macro_name.as_str(), option.as_str()))
+            .collect();
+        out.push_str("    values = ");
         for (name, value) in &header.values {
+            let Some(option) = options.get(name.as_str()) else {
+                continue;
+            };
+            out.push_str(&format!(
+                "select({{\n        \":{}\": {{\"{}\": \"{}\"}},\n        \
+                 \"//conditions:default\": {{}},\n    }}) | ",
+                option_setting_name(option),
+                escape_starlark(name),
+                escape_starlark(value)
+            ));
+        }
+        out.push_str("{\n");
+        for (name, value) in &header.values {
+            if options.contains_key(name.as_str()) {
+                continue;
+            }
             // Escaped for the same reason every other emitted string is: a
             // value comes from the project, not from us. The Autotools
             // frontend takes these verbatim out of make's variable database,
@@ -355,6 +406,81 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
     out.push_str(")\n");
 
     render_config_header_assertion(out, header);
+}
+
+/// The `bool_flag` target name for a build option — the flag a consumer sets.
+///
+/// Lowercased so it reads as a Bazel target rather than a C macro, and
+/// sanitised the same way every other emitted name is: an option name comes
+/// from the project and is not guaranteed label-legal.
+fn option_flag_name(option: &str) -> String {
+    let sanitised: String = option
+        .chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
+        .collect();
+    sanitised.to_ascii_lowercase()
+}
+
+/// The `config_setting` name that tests one option's flag.
+///
+/// Distinct from the flag itself because Bazel needs both: a `bool_flag` is
+/// the settable value, a `config_setting` is what a `select()` can key on.
+fn option_setting_name(option: &str) -> String {
+    format!("{}_on", option_flag_name(option))
+}
+
+/// Emits a `bool_flag` and its `config_setting` for every build option the
+/// project exposes.
+///
+/// The whole point is that the option stays an OPTION. `build_setting_default`
+/// carries the value the project's own configure/cmake defaulted to, so a
+/// converted module reproduces the original build out of the box, and a
+/// consumer can still flip it — which is what a frozen `values` entry takes
+/// away.
+///
+/// Only what the input STATES is an option reaches here: CMake marks these
+/// `BOOL`/`STRING` in `cache-v2`, while autoconf has no such marker and
+/// escalates instead. See `model::ConfigHeader::options`.
+fn render_build_options(out: &mut String, headers: &[model::ConfigHeader]) {
+    // Deduped across headers: two config headers in one project can reference
+    // the same option, and two targets of one name is a hard analysis error.
+    let mut seen = std::collections::HashSet::new();
+    for header in headers {
+        for (macro_name, option) in &header.options {
+            if !seen.insert(option.as_str()) {
+                continue;
+            }
+            let default = header
+                .values
+                .iter()
+                .find(|(n, _)| n == macro_name)
+                .map(|(_, v)| is_truthy_default(v))
+                .unwrap_or(false);
+            out.push_str(&format!(
+                "bool_flag(\n    name = \"{}\",\n    build_setting_default = {},\n)\n\n",
+                option_flag_name(option),
+                if default { "True" } else { "False" }
+            ));
+            out.push_str(&format!(
+                "config_setting(\n    name = \"{}\",\n    flag_values = {{\":{}\": \"True\"}},\n)\n\n",
+                option_setting_name(option),
+                option_flag_name(option)
+            ));
+        }
+    }
+}
+
+/// Whether an option's recorded value means ON.
+///
+/// CMake's own false constants, matching `expand_config_header.py`'s
+/// `_CMAKE_FALSE` — an option left `OFF` must default the flag to False, or
+/// the converted module turns on something the project's build did not.
+fn is_truthy_default(value: &str) -> bool {
+    let v = value.trim().to_ascii_lowercase();
+    !matches!(
+        v.as_str(),
+        "" | "0" | "off" | "false" | "n" | "no" | "ignore" | "notfound"
+    ) && !v.ends_with("-notfound")
 }
 
 /// Emits an `assert_config_header_test` for a generated config header.
@@ -2339,6 +2465,109 @@ mod tests {
             rendered.contains("\"gl/c++defs.h\": \"cxx marker\",")
                 && rendered.contains("\"gl/arg-nonnull.h\": \"nonnull marker\","),
             "both splices must survive — this is libidn2's actual shape:\n{rendered}"
+        );
+    }
+
+    // A build option must survive conversion AS an option. Frozen into
+    // `values` it decides for every consumer and records nothing — the
+    // replicate-behaviour rule's quietest failure (bzl-1p6).
+    #[test]
+    fn a_build_option_becomes_a_flag_and_a_select() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("ENABLE_GREETING".to_string(), "ON".to_string())],
+            options: vec![("ENABLE_GREETING".to_string(), "ENABLE_GREETING".to_string())],
+            splices: Vec::new(),
+            dialect: model::ConfigDialect::Cmakedefine,
+            shadow_dir: None,
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("bool_flag(")
+                && rendered.contains("name = \"enable_greeting\"")
+                && rendered.contains("build_setting_default = True"),
+            "the option needs a settable flag, defaulting to what the \
+             project's own build defaulted to:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("\":enable_greeting_on\": {\"ENABLE_GREETING\": \"ON\"}"),
+            "and the config header selects on it rather than freezing the \
+             value:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("load(\"@bazel_skylib//rules:common_settings.bzl\", \"bool_flag\")"),
+            "a rule emitted without its load makes the package unloadable:\n{rendered}"
+        );
+        assert!(
+            render(&g).module_bazel.contains("bazel_skylib"),
+            "...and the module has to depend on it:\n{}",
+            render(&g).module_bazel
+        );
+    }
+
+    // The negative, in two halves. A project with no options must gain
+    // neither the targets nor the dependency — otherwise every module carries
+    // an unused dep and the emission is untestable by absence.
+    #[test]
+    fn a_header_with_no_options_gains_no_flag_and_no_dependency() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("HAVE_STDIO_H".to_string(), "1".to_string())],
+            options: Vec::new(),
+            splices: Vec::new(),
+            dialect: model::ConfigDialect::Cmakedefine,
+            shadow_dir: None,
+        }];
+        let rendered = render(&g);
+
+        assert!(
+            !rendered.build_bazel.contains("bool_flag"),
+            "a probe result is not a knob a consumer should be flipping:\n{}",
+            rendered.build_bazel
+        );
+        assert!(
+            !rendered.module_bazel.contains("bazel_skylib"),
+            "and no unused dependency:\n{}",
+            rendered.module_bazel
+        );
+        assert!(
+            rendered.build_bazel.contains("\"HAVE_STDIO_H\": \"1\""),
+            "the value still renders, just not as an option:\n{}",
+            rendered.build_bazel
+        );
+    }
+
+    // An option left OFF must default the flag to False, or the converted
+    // module turns on something the project's build did not. Fixture
+    // 014-configure-file-false-option is the corpus case.
+    #[test]
+    fn an_option_left_off_defaults_the_flag_to_false() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![("ENABLE_RDRAND".to_string(), "OFF".to_string())],
+            options: vec![("ENABLE_RDRAND".to_string(), "ENABLE_RDRAND".to_string())],
+            splices: Vec::new(),
+            dialect: model::ConfigDialect::Cmakedefine,
+            shadow_dir: None,
+        }];
+        let rendered = render(&g).build_bazel;
+
+        assert!(
+            rendered.contains("build_setting_default = False"),
+            "OFF is one of CMake's false constants, not a truthy string:\n{rendered}"
         );
     }
 
