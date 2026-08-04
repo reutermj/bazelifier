@@ -63,6 +63,7 @@ pub(crate) fn build_config_headers(
     module_root: &Path,
     build_dir: &Path,
     cache: &HashMap<String, String>,
+    options: &HashMap<String, String>,
 ) -> (Vec<ConfigHeader>, Vec<NeedsAttention>) {
     let mut headers = Vec::new();
     let mut escalations = Vec::new();
@@ -122,7 +123,7 @@ pub(crate) fn build_config_headers(
 
         let template_rel = template_rel.to_string_lossy().into_owned();
         let (mut header, unmapped) =
-            resolve_config_header(&template_rel, &output_name, &macros, cache);
+            resolve_config_header(&template_rel, &output_name, &macros, cache, options);
         header.template_source = template_source;
         if !unmapped.is_empty() {
             // The header IS reproduced (the probing module and template
@@ -522,6 +523,7 @@ fn resolve_config_header(
     output_relative: &str,
     macros: &TemplateMacros,
     cache: &HashMap<String, String>,
+    options: &HashMap<String, String>,
 ) -> (ConfigHeader, Vec<String>) {
     // Catalog probes for every catalog fact the template names, by either
     // form, deduped. A var and a #cmakedefine of the same name share one probe.
@@ -559,6 +561,7 @@ fn resolve_config_header(
     // Cache values for non-catalog names present in the cache. Catalog facts
     // are excluded — their value comes from the probe, not the host cache.
     let mut values = Vec::new();
+    let mut option_names = Vec::new();
     let mut valued = HashSet::new();
     for name in macros.vars.iter().chain(macros.cmakedefines.iter()) {
         if catalog_label(name).is_some() || valued.contains(name) {
@@ -566,6 +569,12 @@ fn resolve_config_header(
         }
         if let Some(value) = cache_value(name, cache) {
             valued.insert(name.clone());
+            // A user-settable option keeps its provenance. CMake states it in
+            // the cache entry's `type`, so this is read rather than guessed —
+            // see `model::ConfigHeader::options`.
+            if options.contains_key(name) {
+                option_names.push((name.clone(), name.clone()));
+            }
             values.push((name.clone(), value));
         }
     }
@@ -576,6 +585,7 @@ fn resolve_config_header(
         template_source: None,
         catalog_probes,
         values,
+        options: option_names,
         // Read off the template rather than assumed from the frontend: a
         // CMake `configure_file` target may be pure `@VAR@` substitution with
         // no `#cmakedefine` in it, and asserting the absence of a construct
@@ -689,8 +699,13 @@ mod tests {
             template: template.clone(),
             output: build.join("zconf.h"),
         }];
-        let (headers, escalations) =
-            build_config_headers(&calls, &dir.join("src"), &build, &HashMap::new());
+        let (headers, escalations) = build_config_headers(
+            &calls,
+            &dir.join("src"),
+            &build,
+            &HashMap::new(),
+            &HashMap::new(),
+        );
 
         assert!(
             escalations.is_empty(),
@@ -762,8 +777,13 @@ mod tests {
         .into_iter()
         .collect();
 
-        let (header, unmapped) =
-            resolve_config_header("cmake/config.h.in", "config.h", &macros, &cache);
+        let (header, unmapped) = resolve_config_header(
+            "cmake/config.h.in",
+            "config.h",
+            &macros,
+            &cache,
+            &HashMap::new(),
+        );
 
         assert_eq!(header.output, "config.h");
         assert_eq!(header.template, "cmake/config.h.in");
@@ -808,7 +828,8 @@ mod tests {
             .into_iter()
             .collect();
 
-        let (header, unmapped) = resolve_config_header("json.h.cmakein", "json.h", &macros, &cache);
+        let (header, unmapped) =
+            resolve_config_header("json.h.cmakein", "json.h", &macros, &cache, &HashMap::new());
 
         assert_eq!(
             unmapped,
@@ -832,7 +853,8 @@ mod tests {
         };
         let cache: HashMap<String, String> = HashMap::new();
 
-        let (_header, unmapped) = resolve_config_header("t.h.in", "t.h", &macros, &cache);
+        let (_header, unmapped) =
+            resolve_config_header("t.h.in", "t.h", &macros, &cache, &HashMap::new());
 
         assert_eq!(
             unmapped,
@@ -858,7 +880,8 @@ mod tests {
             .into_iter()
             .collect();
 
-        let (header, unmapped) = resolve_config_header("config.h.in", "config.h", &macros, &cache);
+        let (header, unmapped) =
+            resolve_config_header("config.h.in", "config.h", &macros, &cache, &HashMap::new());
 
         assert!(
             unmapped.is_empty(),
@@ -892,5 +915,62 @@ mod tests {
             Some("3")
         );
         assert_eq!(cache_value("NOT_A_VAR", &cache), None);
+    }
+    // A build OPTION is not a probe result, and CMake says which is which:
+    // `option()` is a BOOL cache entry, `check_include_file` writes INTERNAL.
+    // Nothing in the name or value distinguishes them — ENABLE_GREETING=ON
+    // and HAVE_STDIO_H=1 are the same shape — so this is read from the reply,
+    // never inferred (bzl-1p6).
+    #[test]
+    fn a_cache_option_is_recorded_as_an_option_not_just_a_value() {
+        let macros = parse_template_macros("#cmakedefine ENABLE_GREETING\n");
+        let cache = HashMap::from([("ENABLE_GREETING".to_string(), "ON".to_string())]);
+        let options = HashMap::from([("ENABLE_GREETING".to_string(), "ON".to_string())]);
+
+        let (header, unmapped) =
+            resolve_config_header("config.h.in", "config.h", &macros, &cache, &options);
+
+        assert!(unmapped.is_empty(), "the cache resolves it: {unmapped:?}");
+        assert_eq!(
+            header.values,
+            vec![("ENABLE_GREETING".to_string(), "ON".to_string())],
+            "the value is still needed — it is the option's DEFAULT"
+        );
+        assert_eq!(
+            header.options,
+            vec![("ENABLE_GREETING".to_string(), "ENABLE_GREETING".to_string())],
+            "and its provenance is recorded, so codegen can keep it settable"
+        );
+    }
+
+    // The negative, and the one that keeps this honest: a probe result has a
+    // value in the cache too, and must NOT become a user-facing flag. Turning
+    // HAVE_STDIO_H into a knob would invite a consumer to assert a fact about
+    // their toolchain rather than let it be measured.
+    #[test]
+    fn a_probe_result_in_the_cache_is_not_an_option() {
+        let macros = parse_template_macros("#cmakedefine HAVE_SOMETHING\n");
+        let cache = HashMap::from([("HAVE_SOMETHING".to_string(), "1".to_string())]);
+
+        let (header, _) = resolve_config_header(
+            "config.h.in",
+            "config.h",
+            &macros,
+            &cache,
+            // INTERNAL entries never reach `read_cache_options`, so an empty
+            // map is exactly what a probe-only project produces.
+            &HashMap::new(),
+        );
+
+        assert_eq!(
+            header.values,
+            vec![("HAVE_SOMETHING".to_string(), "1".to_string())],
+            "still resolved from the cache"
+        );
+        assert!(
+            header.options.is_empty(),
+            "but not settable: {:?}",
+            header.options
+        );
     }
 }

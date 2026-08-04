@@ -128,6 +128,11 @@ pub(crate) fn plan_config_header(
             catalog_probes: probes,
             values,
             // autoconf assembles a config header by substitution alone.
+            // autoconf has no marker distinguishing a user option from a
+            // probe result — `configure` is a shell script — so this stays
+            // empty and such macros escalate instead. See
+            // `model::ConfigHeader::options` and bzl-1p6.
+            options: Vec::new(),
             splices: Vec::new(),
             // AC_CONFIG_HEADERS: the template declares with `#undef`.
             dialect: crate::model::ConfigDialect::Undef,
@@ -221,6 +226,11 @@ pub(crate) fn plan_substitution_header(
             catalog_probes: Vec::new(),
             values,
             // autoconf assembles a config header by substitution alone.
+            // autoconf has no marker distinguishing a user option from a
+            // probe result — `configure` is a shell script — so this stays
+            // empty and such macros escalate instead. See
+            // `model::ConfigHeader::options` and bzl-1p6.
+            options: Vec::new(),
             splices: Vec::new(),
             // AC_CONFIG_FILES: `@VAR@` substitution, no declarations.
             dialect: crate::model::ConfigDialect::Substitution,

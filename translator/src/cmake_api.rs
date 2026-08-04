@@ -235,6 +235,17 @@ struct CacheReply {
 struct CacheEntry {
     name: String,
     value: String,
+    /// CMake's own classification of the entry, and the ONE place the File
+    /// API states whether a name is a user-settable choice or a probe
+    /// result. `option()` produces `BOOL`; `set(... CACHE STRING ...)`
+    /// produces `STRING`; `check_include_file` and friends produce
+    /// `INTERNAL`. Nothing in the name or the value distinguishes them —
+    /// `ENABLE_GREETING=ON` and `HAVE_STDIO_H=1` are the same shape.
+    ///
+    /// Deserialized as part of the schema mirror, not as our choice; see the
+    /// module doc on serde structs describing the File API rather than us.
+    #[serde(rename = "type")]
+    entry_type: String,
 }
 
 /// What one codemodel reply yields. Named rather than returned as a tuple:
@@ -312,11 +323,16 @@ pub fn discover(
         ctest::partition_tests_by_buildable_command(tests, &codemodel.targets);
 
     let cache = read_cache_values(&reply_dir)?;
+    // Which of those the project exposed as a user choice. Kept separate
+    // from `cache` rather than filtered out of it: a value is still needed
+    // for the option's DEFAULT, and only its provenance differs.
+    let options = read_cache_options(&reply_dir)?;
     let (config_headers, config_escalations) = build_config_headers(
         &configure_files,
         &codemodel.module_root,
         &abs_build_dir,
         &cache,
+        &options,
     );
     let mut needs_attention = codemodel.needs_attention;
     needs_attention.extend(config_escalations);
@@ -789,6 +805,29 @@ fn read_cache_values(reply_dir: &Path) -> Result<HashMap<String, String>, Error>
     Ok(cache
         .entries
         .into_iter()
+        .map(|e| (e.name, e.value))
+        .collect())
+}
+
+/// The cache entries CMake marks as user-settable BUILD OPTIONS, as
+/// `name -> value`.
+///
+/// `BOOL` is `option()`; `STRING` is a `set(... CACHE STRING ...)` choice.
+/// Everything else — `INTERNAL` for probe results, `FILEPATH`/`PATH` for
+/// discovered tool locations, `STATIC` — is not something a consumer of the
+/// converted module should be flipping.
+///
+/// The distinction matters because a build option is a DECISION the
+/// conversion would otherwise make silently on every consumer's behalf; see
+/// `model::ConfigHeader::options`. autoconf has no equivalent marker, which
+/// is why this is CMake-only and the Autotools frontend escalates instead.
+fn read_cache_options(reply_dir: &Path) -> Result<HashMap<String, String>, Error> {
+    let cache_path = find_reply_file(reply_dir, "cache-v2-")?;
+    let cache: CacheReply = serde_json::from_str(&fs::read_to_string(cache_path)?)?;
+    Ok(cache
+        .entries
+        .into_iter()
+        .filter(|e| e.entry_type == "BOOL" || e.entry_type == "STRING")
         .map(|e| (e.name, e.value))
         .collect())
 }

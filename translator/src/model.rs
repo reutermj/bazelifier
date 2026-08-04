@@ -332,6 +332,26 @@ pub struct ConfigHeader {
     /// may legitimately generate its own `string.h` that shadows nothing.
     /// The frontend knows, because it saw the recipe.
     pub shadow_dir: Option<String>,
+    /// Which of `values` came from a user-settable BUILD OPTION rather than
+    /// a toolchain probe, as `(name, option_name)`.
+    ///
+    /// The distinction is not visible in the value. `ENABLE_GREETING=ON` and
+    /// `HAVE_STDIO_H=1` are both "a name with a value", but the first is a
+    /// CHOICE the project deliberately exposed and the second is a fact about
+    /// the machine. Baking the choice in decides for every consumer and
+    /// records nothing — the failure `overview.md`'s replicate-behaviour rule
+    /// is about.
+    ///
+    /// Populated only where the input STATES it. CMake's `cache-v2` marks
+    /// user-facing entries `BOOL`/`STRING` and probe results `INTERNAL`, so
+    /// the CMake frontend can fill this deterministically. autoconf has no
+    /// equivalent marker — `configure` is a shell script — so the Autotools
+    /// frontend leaves it empty and escalates instead, per CLAUDE.md's
+    /// escalate-don't-guess rule.
+    ///
+    /// Codegen renders these as a `bazel_skylib` flag plus a `select()`, so
+    /// the option survives conversion as an option.
+    pub options: Vec<(String, String)>,
     /// Whole files the recipe splices into the template, as
     /// `(marker, path)` — sed's `r` command, in the order the recipe gives
     /// them.

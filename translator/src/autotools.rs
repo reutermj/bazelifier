@@ -256,6 +256,11 @@ pub fn discover(
             // recipe, so there is nothing for a catalog probe to answer.
             values: replacement.values.clone(),
             dialect: crate::model::ConfigDialect::Substitution,
+            // autoconf has no marker distinguishing a user option from a
+            // probe result — `configure` is a shell script — so this stays
+            // empty and such macros escalate instead. See
+            // `model::ConfigHeader::options` and bzl-1p6.
+            options: Vec::new(),
             splices: rebase_splices(&replacement.splices, &shadow_dir, &module_root),
             shadow_dir: Some(shadow_dir),
         });
