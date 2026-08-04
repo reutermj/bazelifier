@@ -57,6 +57,22 @@ import sys
 # patterns below.
 _AC_UNDEF = re.compile(r"^#undef[ \t]+(\S+)\s*$")
 
+# autoconf's one TERNARY macro family. AC_CHECK_DECLS writes "Define to 1 if
+# you have the declaration of `X', and to 0 if you don't" — so the macro is
+# ALWAYS defined, and its absence means something different from its being 0.
+# Projects rely on both readings in the same file:
+#
+#     #ifdef HAVE_DECL_CPU_SETSIZE      <- presence
+#     #  if 0 == HAVE_DECL_CPU_SETSIZE  <- value
+#
+# Rendering a false result as `/* #undef ... */` fails the outer test where
+# autoconf passes it. libmicrohttpd happens to survive that (its inner branch
+# undefs anyway), but a project writing `#if HAVE_DECL_X` under an `#ifdef`
+# guard would take the wrong branch in silence.
+#
+# Anchored at the start, so a project's own `MHD_HAVE_DECL_*` is not caught.
+_AC_TERNARY = re.compile(r"^HAVE_DECL_")
+
 # The SPACED form, which is ambiguous and so is resolved by evidence rather
 # than by shape. Two dialects write it and this expander sees both:
 #
@@ -164,6 +180,14 @@ def expand(template, is_set, values):
             name = mspaced.group(1)
             if is_set(name):
                 out.append("#define %s %s%s" % (name, values.get(name, "1"), eol))
+            elif _AC_TERNARY.match(name):
+                # This pattern's `[ \t]*` also matches the UNSPACED form, so
+                # it reaches here before `_AC_UNDEF` below and has to honour
+                # the ternary contract too. It did not, and the unspaced
+                # `#undef HAVE_DECL_X` that every autoheader template writes
+                # took the plain-undef path — the branch under `_AC_UNDEF`
+                # was unreachable for exactly the names it was written for.
+                out.append("#define %s 0%s" % (name, eol))
             else:
                 out.append("/* #undef %s */%s" % (name, eol))
             continue
@@ -177,6 +201,9 @@ def expand(template, is_set, values):
             if is_set(name):
                 value = values.get(name, "1")
                 out.append("#define %s %s%s" % (name, value, eol))
+            elif _AC_TERNARY.match(name):
+                # Defined to 0, not undefined — see _AC_TERNARY.
+                out.append("#define %s 0%s" % (name, eol))
             else:
                 out.append("/* #undef %s */%s" % (name, eol))
             continue

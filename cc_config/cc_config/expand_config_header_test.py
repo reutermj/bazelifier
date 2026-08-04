@@ -117,5 +117,55 @@ class SpacedUndefTest(unittest.TestCase):
         self.assertEqual(out, "/* #undef WORDS_BIGENDIAN */\n")
 
 
+class TernaryUndefTest(unittest.TestCase):
+    """`HAVE_DECL_*` is autoconf's one TERNARY config macro.
+
+    Its template says so: "Define to 1 if you have the declaration of `X',
+    and to 0 if you don't." autoconf ALWAYS defines it — there is no undefined
+    state — because projects test it two ways in the same file:
+
+        #ifdef HAVE_DECL_CPU_SETSIZE     <- presence
+        #  if 0 == HAVE_DECL_CPU_SETSIZE <- value
+
+    Rendering a false probe as `/* #undef ... */` makes the outer test fail
+    where autoconf makes it succeed. libmicrohttpd survives that by luck (its
+    inner branch undefs anyway); a project writing `#if HAVE_DECL_X` after an
+    `#ifdef` guard would silently take the wrong branch.
+    """
+
+    def test_a_false_decl_is_defined_to_zero(self):
+        # `values` carries the EMPTY STRING, which is what main() writes for a
+        # probe that answered false. An earlier version of this test passed
+        # `{}` — a state the pipeline never produces — and so stayed green
+        # while the real path still emitted `/* #undef ... */`.
+        values = {"HAVE_DECL_CPU_SETSIZE": ""}
+        out = expand("#undef HAVE_DECL_CPU_SETSIZE\n", lambda n: False, values)
+        self.assertEqual(out, "#define HAVE_DECL_CPU_SETSIZE 0\n")
+
+    def test_a_decl_with_no_probe_at_all_is_also_zero(self):
+        # And the name absent from `values` entirely — an unresolved decl.
+        # Same answer: autoconf always defines this family.
+        out = expand("#undef HAVE_DECL_CPU_SETSIZE\n", lambda n: False, {})
+        self.assertEqual(out, "#define HAVE_DECL_CPU_SETSIZE 0\n")
+
+    def test_a_true_decl_is_defined_to_one(self):
+        values = {"HAVE_DECL_CPU_SETSIZE": "1"}
+        out = expand("#undef HAVE_DECL_CPU_SETSIZE\n", lambda n: True, values)
+        self.assertEqual(out, "#define HAVE_DECL_CPU_SETSIZE 1\n")
+
+    def test_an_ordinary_macro_still_undefs(self):
+        # The negative, and the one that keeps this narrow: only HAVE_DECL_*
+        # is ternary. Everything else must keep the comment form, or every
+        # `#ifdef HAVE_FOO` in every project starts taking the true branch.
+        out = expand("#undef HAVE_UNISTD_H\n", lambda n: False, {})
+        self.assertEqual(out, "/* #undef HAVE_UNISTD_H */\n")
+
+    def test_a_name_merely_containing_have_decl_is_not_ternary(self):
+        # Anchored at the start: `MHD_HAVE_DECL_X` is a project's own macro,
+        # not autoconf's AC_CHECK_DECLS output.
+        out = expand("#undef MHD_HAVE_DECL_THING\n", lambda n: False, {})
+        self.assertEqual(out, "/* #undef MHD_HAVE_DECL_THING */\n")
+
+
 if __name__ == "__main__":
     unittest.main()

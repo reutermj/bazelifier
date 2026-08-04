@@ -31,3 +31,5 @@
 #cmakedefine HAVE_UTIME
 #cmakedefine HAVE_FUTIMES
 #cmakedefine HAVE_PLEDGE
+#undef HAVE_DECL_CPU_SETSIZE
+#undef HAVE_DECL_HW_NCPU

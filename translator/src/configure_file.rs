@@ -180,6 +180,24 @@ struct TemplateMacros {
 const CATALOG_DEFINES: &[&str] = &[
     "HAVE_ARC4RANDOM",
     "HAVE_BSD_STDLIB_H",
+    // AC_CHECK_DECLS results — autoconf's ternary family (always defined, to
+    // 1 or 0). Catalog headers come from `configure`'s own ac_fn_check_decl
+    // calls, not by hand.
+    "HAVE_DECL_CPU_SETSIZE",
+    "HAVE_DECL_CTL_HW",
+    "HAVE_DECL_CTL_NET",
+    "HAVE_DECL_HW_AVAILCPU",
+    "HAVE_DECL_HW_NCPU",
+    "HAVE_DECL_HW_NCPUONLINE",
+    "HAVE_DECL_ICMPCTL_ICMPLIM",
+    "HAVE_DECL_IPPROTO_ICMP",
+    "HAVE_DECL_PF_INET",
+    "HAVE_DECL_PROGRAM_INVOCATION_SHORT_NAME",
+    "HAVE_DECL__SC_CRAY_NCPU",
+    "HAVE_DECL__SC_NPROCESSORS_CONF",
+    "HAVE_DECL__SC_NPROCESSORS_ONLN",
+    "HAVE_DECL__SC_NPROC_ONLN",
+    "HAVE_DECL___ARGV",
     // File-timestamp and option-parsing functions, checked via
     // AC_CHECK_FUNCS by xz and libidn2. Their catalog headers are
     // hand-supplied and compile-verified — AC_CHECK_FUNCS names the symbol

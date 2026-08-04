@@ -174,6 +174,170 @@ cc_config_catalog(
             ["sys/utime.h"],
             "HAVE__FUTIME",
         ),
+        # AC_CHECK_DECLS results, harvested from `ac_fn_check_decl` calls in
+        # each project's `configure` — which state the symbol, the macro AND
+        # the includes in one call, so unlike the AC_CHECK_FUNCS entries above
+        # nothing here is hand-supplied.
+        #
+        # Most are BSD/Solaris sysctl and CPU-affinity names. Several include
+        # headers this host lacks (`sys/sysctl.h`), which makes the probe
+        # compile fail and record `false` — the correct answer, since the
+        # symbol is not declared here either.
+        #
+        # These are autoconf's one TERNARY family: always defined, to 1 or 0,
+        # never left undefined. `expand_config_header.py`'s _AC_TERNARY is
+        # what renders the false case as `#define ... 0`.
+        (
+            "CPU_SETSIZE",
+            ["sched.h"],
+            "HAVE_DECL_CPU_SETSIZE",
+        ),
+        (
+            "CTL_HW",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL_CTL_HW",
+        ),
+        (
+            "CTL_NET",
+            [
+                "sys/types.h",
+                "sys/sysctl.h",
+                "sys/socket.h",
+                "netinet/in_systm.h",
+                "netinet/in.h",
+                "netinet/ip.h",
+                "netinet/ip_icmp.h",
+                "netinet/icmp_var.h",
+            ],
+            "HAVE_DECL_CTL_NET",
+        ),
+        (
+            "HW_AVAILCPU",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL_HW_AVAILCPU",
+        ),
+        (
+            "HW_NCPU",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL_HW_NCPU",
+        ),
+        (
+            "HW_NCPUONLINE",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL_HW_NCPUONLINE",
+        ),
+        (
+            "ICMPCTL_ICMPLIM",
+            [
+                "sys/types.h",
+                "sys/sysctl.h",
+                "sys/socket.h",
+                "netinet/in_systm.h",
+                "netinet/in.h",
+                "netinet/ip.h",
+                "netinet/ip_icmp.h",
+                "netinet/icmp_var.h",
+            ],
+            "HAVE_DECL_ICMPCTL_ICMPLIM",
+        ),
+        (
+            "IPPROTO_ICMP",
+            [
+                "sys/types.h",
+                "sys/sysctl.h",
+                "sys/socket.h",
+                "netinet/in_systm.h",
+                "netinet/in.h",
+                "netinet/ip.h",
+                "netinet/ip_icmp.h",
+                "netinet/icmp_var.h",
+            ],
+            "HAVE_DECL_IPPROTO_ICMP",
+        ),
+        (
+            "PF_INET",
+            [
+                "sys/types.h",
+                "sys/sysctl.h",
+                "sys/socket.h",
+                "netinet/in_systm.h",
+                "netinet/in.h",
+                "netinet/ip.h",
+                "netinet/ip_icmp.h",
+                "netinet/icmp_var.h",
+            ],
+            "HAVE_DECL_PF_INET",
+        ),
+        (
+            "program_invocation_short_name",
+            ["errno.h"],
+            "HAVE_DECL_PROGRAM_INVOCATION_SHORT_NAME",
+        ),
+        (
+            "_SC_CRAY_NCPU",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL__SC_CRAY_NCPU",
+        ),
+        (
+            "_SC_NPROCESSORS_CONF",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL__SC_NPROCESSORS_CONF",
+        ),
+        (
+            "_SC_NPROCESSORS_ONLN",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL__SC_NPROCESSORS_ONLN",
+        ),
+        (
+            "_SC_NPROC_ONLN",
+            [
+                "sys/types.h",
+                "sys/param.h",
+                "sys/sysctl.h",
+                "unistd.h",
+            ],
+            "HAVE_DECL__SC_NPROC_ONLN",
+        ),
+        (
+            "__argv",
+            ["stdlib.h"],
+            "HAVE_DECL___ARGV",
+        ),
         (
             "clock_gettime",
             ["time.h"],
@@ -369,6 +533,8 @@ config_header(
         ":have_utime",
         ":have_futimes",
         ":have_pledge",
+        ":have_decl_cpu_setsize",
+        ":have_decl_hw_ncpu",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -420,7 +586,10 @@ assert_config_header_test(
         "#define HAVE_UTIME",  # present on glibc — this is the assertion that can catch a wrong header,
         # since a bad path reports absent just like a missing symbol
         "#define HAVE_FUTIMES",  # present on glibc
-        "/* #undef HAVE_PLEDGE */",  # OpenBSD only
+        "/* #undef HAVE_PLEDGE */",
+        "#define HAVE_DECL_CPU_SETSIZE 1",  # declared on glibc — the assertion with teeth, since a wrong header
+        # reports 0 exactly like a genuinely-absent declaration
+        "#define HAVE_DECL_HW_NCPU 0",  # BSD only. DEFINED to 0, not undefined — autoconf's ternary contract  # OpenBSD only
         "#define HAVE_NETINET_TCP_H",
     ],
     must_not_contain = [
