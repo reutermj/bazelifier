@@ -1,0 +1,28 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# A build OPTION rather than a toolchain probe — the distinction the
+# translator cannot currently make (bzl-1p6). `--disable-greeting` decides
+# whether HAVE_GREETING is defined, and nothing about the host is involved,
+# so no `cc_config` probe can answer it: there is no program whose success
+# reveals whether someone passed the flag.
+#
+# Deliberately the smallest shape that shows the problem: ONE option, ONE
+# macro, and a program whose output changes with it. The real corpus cases
+# are the same shape at scale — xz has 38 flag-derived macros, libmicrohttpd
+# 8, libidn2 3.
+#
+# Ground truth is captured with the flag at its DEFAULT (on), because that
+# is what a conversion reproducing the project's own build must produce.
+# The value of the fixture is that "greeting off" is reachable natively, so
+# a conversion that hardcodes the wrong branch fails the comparison rather
+# than passing quietly.
+#
+# Currently escalates as an unmapped config macro. The intended resolution
+# is a `bazel_skylib` `bool_flag` + `config_setting` + `select()` on the
+# config header's `values`, which keeps the option an option; that chain is
+# proven to work end to end but is not yet emitted.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

@@ -52,6 +52,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/006-automake-tests:converted",
         "//translator/tests/fixtures/autotools/007-silent-rules:converted",
         "//translator/tests/fixtures/autotools/008-spliced-replacement-header:converted",
+        "//translator/tests/fixtures/autotools/009-enable-flag:converted",
     ],
 )
 
