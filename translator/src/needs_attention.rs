@@ -11,6 +11,8 @@
 //! giving substantive guidance carry a test asserting on that guidance. See
 //! docs/architecture/needs-attention-interface.md.
 
+use std::collections::HashMap;
+
 /// A gap the translator could not confidently resolve for a specific
 /// conversion — written into the output tree's `needs_attention/` for
 /// whoever picks up this converted project to address. See
@@ -287,6 +289,11 @@ pub fn unmapped_config_macros_needs_attention(
     template: &str,
     macros: &[String],
     dialect: ConfigDialect,
+    // What `configure` resolved each name to ON THE CONVERSION HOST, where
+    // it recorded one. EVIDENCE for the agent's decision, never the decision
+    // — see the note rendered beside the list. Empty for the CMake frontend,
+    // which has no `config.status` to read.
+    resolved: &HashMap<String, String>,
 ) -> NeedsAttention {
     let title = format!("Config header '{output}' references names not in the shared catalog");
     NeedsAttention {
@@ -305,13 +312,25 @@ pub fn unmapped_config_macros_needs_attention(
              deliberately NOT matched to the lookalike catalog entry.",
             macros
                 .iter()
-                .map(|m| format!("- `{m}`"))
+                .map(|m| match resolved.get(m) {
+                    Some(value) => format!("- `{m}` — configure resolved this to `{value}`"),
+                    None => format!("- `{m}`"),
+                })
                 .collect::<Vec<_>>()
                 .join("\n"),
             dialect.unresolved_forms()
         ),
         context: format!(
-            "Decide, for each name, what it should resolve to under the CONSUMER's toolchain \
+            "Some names above carry what `configure` resolved them to. That is EVIDENCE from \
+             the conversion host, not the answer: it says what THIS machine decided, and the \
+             question is whether that holds for whoever builds the converted module. A project \
+             option (a feature switch the project chose, a version) carries over as a `values` \
+             entry; a TOOLCHAIN FACT does not, however project-specific its name looks — \
+             `BYTEORDER` resolved to `1234` here and is wrong on a big-endian consumer, and a \
+             `<PROJECT>_CPUCORES_SCHED_GETAFFINITY` is Linux-only. The name does not tell you \
+             which kind it is, which is exactly why this escalates rather than being resolved \
+             for you.\n\n\
+             Decide, for each name, what it should resolve to under the CONSUMER's toolchain \
              (not this conversion host's). Each will be one of:\n\n\
              - a common toolchain fact the catalog should simply carry — add it to \
              `cc_config/catalog/BUILD.bazel` (a one-line `check_include_file` / \
@@ -1018,6 +1037,7 @@ mod tests {
             "cmake/json_config.h.in",
             &["JSON_C_HAVE_INTTYPES_H".to_string()],
             ConfigDialect::CMake,
+            &HashMap::new(),
         );
 
         assert!(
@@ -1067,6 +1087,7 @@ mod tests {
             "json.h.cmakein",
             &["JSON_H_JSON_PATCH".to_string()],
             ConfigDialect::CMake,
+            &HashMap::new(),
         );
 
         assert!(
@@ -1173,6 +1194,68 @@ mod tests {
     // registered.
     //
     // Both directions, because either alone is satisfiable by a constant.
+    // The value configure resolved is quoted as EVIDENCE beside each name.
+    // Without it the agent has to re-run configure by hand to learn what the
+    // translator already read — 151 escalated names across four projects
+    // have a definitive value sitting unused (bzl-yjn.10).
+    #[test]
+    fn a_resolved_value_is_quoted_as_evidence_beside_its_name() {
+        let resolved = HashMap::from([
+            ("GNULIB_TEST_U8_MBTOUC".to_string(), "1".to_string()),
+            ("BYTEORDER".to_string(), "1234".to_string()),
+        ]);
+        let item = unmapped_config_macros_needs_attention(
+            "config.h",
+            "config.h.in",
+            &[
+                "GNULIB_TEST_U8_MBTOUC".to_string(),
+                "BYTEORDER".to_string(),
+                "SOMETHING_UNRESOLVED".to_string(),
+            ],
+            ConfigDialect::Autoconf,
+            &resolved,
+        );
+
+        assert!(
+            item.gap
+                .contains("`GNULIB_TEST_U8_MBTOUC` — configure resolved this to `1`"),
+            "the value belongs beside the name, not in a separate list:\n{}",
+            item.gap
+        );
+        // A name with no recorded value still ships, bare. Otherwise the
+        // evidence pass would silently shorten the list it is annotating.
+        assert!(
+            item.gap.contains("- `SOMETHING_UNRESOLVED`"),
+            "a name configure did not record must still be escalated:\n{}",
+            item.gap
+        );
+        // The load-bearing half: the value must NOT read as the answer. It
+        // is this host's, and `BYTEORDER 1234` is wrong on a big-endian
+        // consumer — the failure this whole escalation exists to prevent.
+        assert!(
+            item.context.contains("EVIDENCE") && item.context.contains("BYTEORDER"),
+            "the item must say what the value is and is not, with the case \
+             that shows why:\n{}",
+            item.context
+        );
+    }
+
+    #[test]
+    fn a_frontend_with_no_resolved_values_ships_the_bare_list() {
+        let item = unmapped_config_macros_needs_attention(
+            "config.h",
+            "config.h.in",
+            &["HAVE_THING".to_string()],
+            ConfigDialect::CMake,
+            &HashMap::new(),
+        );
+        assert!(
+            item.gap.contains("- `HAVE_THING`") && !item.gap.contains("configure resolved"),
+            "the CMake frontend has no config.status, so nothing is quoted:\n{}",
+            item.gap
+        );
+    }
+
     #[test]
     fn an_automake_test_escalation_speaks_automake_not_ctest() {
         let item = ctest_command_not_a_target_needs_attention(
@@ -1230,6 +1313,7 @@ mod tests {
             "config.h.in",
             &["HAVE_IMMINTRIN_H".to_string()],
             ConfigDialect::Autoconf,
+            &HashMap::new(),
         );
         let whole = format!("{}\n{}\n{}", item.gap, item.context, item.expected_output);
 
@@ -1265,6 +1349,7 @@ mod tests {
             "config.h.cmakein",
             &["HAVE_UNISTD_H".to_string()],
             ConfigDialect::CMake,
+            &HashMap::new(),
         );
         let whole = format!("{}\n{}\n{}", item.gap, item.context, item.expected_output);
 
@@ -1465,6 +1550,7 @@ mod tests {
                 "config.h.in",
                 &["X".to_string()],
                 ConfigDialect::CMake,
+                &HashMap::new(),
             ),
             generated_config_header_needs_attention("t", &["gen.h".to_string()]),
             generated_sources_needs_attention("t", &["gen.c".to_string()]),

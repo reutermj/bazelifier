@@ -37,7 +37,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::config_header::{
-    parse_config_file_headers, parse_config_headers, plan_config_header, plan_substitution_header,
+    parse_config_file_headers, parse_config_headers, parse_resolved_macro_values,
+    plan_config_header, plan_substitution_header,
 };
 use crate::error::Error;
 use crate::headers::{
@@ -150,6 +151,9 @@ pub fn discover(
     let mut config_headers = Vec::new();
     let mut needs_attention = Vec::new();
     let status = std::fs::read_to_string(build_dir.join("config.status")).unwrap_or_default();
+    // What configure resolved each macro to, quoted into the escalations as
+    // evidence for the agent's decision. Read once; both loops below use it.
+    let resolved = parse_resolved_macro_values(&status);
     for (output, template) in parse_config_headers(&status) {
         let template_path = source_dir.join(&template);
         let Ok(text) = std::fs::read_to_string(&template_path) else {
@@ -162,6 +166,7 @@ pub fn discover(
                 &template,
                 &unmapped,
                 ConfigDialect::Autoconf,
+                &resolved,
             ));
         }
         config_headers.push(header);
@@ -188,6 +193,7 @@ pub fn discover(
                 &template,
                 &unmapped,
                 ConfigDialect::Autoconf,
+                &resolved,
             ));
         }
         config_headers.push(header);

@@ -133,6 +133,9 @@ pub(crate) fn build_config_headers(
                 &template_rel,
                 &unmapped,
                 ConfigDialect::CMake,
+                // No `config.status` on this side, so no resolved values to
+                // quote — the CMake frontend reads the cache, not a shell script.
+                &HashMap::new(),
             ));
         }
         headers.push(header);

@@ -313,6 +313,41 @@ pub(crate) fn parse_config_headers(config_status: &str) -> Vec<(String, String)>
         .collect()
 }
 
+/// The values `configure` resolved for each config-header macro, read from
+/// `config.status`'s own `D[]` table — the table it uses to write the header.
+///
+/// EVIDENCE, never an answer. These are the CONVERSION HOST's results, and
+/// baking them is the anti-pattern the architecture forbids: `BYTEORDER` is
+/// `1234` here and wrong on a big-endian consumer,
+/// `TUKLIB_CPUCORES_SCHED_GETAFFINITY` is Linux-only. They are quoted into
+/// the escalation so the agent can see what configure decided and judge
+/// whether it holds for the consumer's toolchain — which is exactly the
+/// judgement the escalation exists to ask for.
+///
+/// Deliberately NOT used to resolve anything. Measured across five projects:
+/// no prefix rule separates a project option (`XML_DTD`) from a host fact
+/// wearing a project-specific name (`BYTEORDER`), because the point of such
+/// a name is that it hides which kind it is. See bzl-yjn.10.
+pub(crate) fn parse_resolved_macro_values(config_status: &str) -> HashMap<String, String> {
+    let mut values = HashMap::new();
+    for line in config_status.lines() {
+        // `D["NAME"]=" value"`. The leading space is autoconf's, separating
+        // the macro from its value in the `#define` it will write, so it is
+        // stripped rather than being part of the value.
+        let Some(rest) = line.trim().strip_prefix("D[\"") else {
+            continue;
+        };
+        let Some((name, rest)) = rest.split_once("\"]=") else {
+            continue;
+        };
+        let value = rest.trim().trim_matches('"').trim();
+        if !name.is_empty() && !value.is_empty() {
+            values.insert(name.to_string(), value.to_string());
+        }
+    }
+    values
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -398,6 +433,54 @@ mod tests {
     // AC_CONFIG_HEADERS names BOTH sides, and the template is not always
     // `<output>.in` — GNU hello declares config.h:config.in to keep the name
     // 8.3-safe, so assuming would find nothing.
+    #[test]
+    // config.status writes the resolved value of every macro it will define
+    // into a `D[]` table. The frontend already opens this file for the
+    // header/template names; these values are quoted into the escalation as
+    // EVIDENCE so the agent can see what configure decided.
+    #[test]
+    fn resolved_macro_values_are_read_from_the_d_table() {
+        let status = "\
+D[\"PACKAGE_NAME\"]=\" \\\"Libidn2\\\"\"\n\
+D[\"GNULIB_UNISTR_U32_MBTOUC_UNSAFE\"]=\" 1\"\n\
+D[\"BYTEORDER\"]=\" 1234\"\n\
+ac_cs_usage=\"whatever\"\n";
+        let values = parse_resolved_macro_values(status);
+
+        assert_eq!(
+            values
+                .get("GNULIB_UNISTR_U32_MBTOUC_UNSAFE")
+                .map(String::as_str),
+            Some("1"),
+            "autoconf writes a leading space separating the macro from its \
+             value; it is not part of the value: {values:?}"
+        );
+        assert_eq!(
+            values.get("BYTEORDER").map(String::as_str),
+            Some("1234"),
+            "{values:?}"
+        );
+        assert!(
+            values
+                .get("PACKAGE_NAME")
+                .is_some_and(|v| v.contains("Libidn2")),
+            "a C string literal keeps its own quotes: {values:?}"
+        );
+        assert!(
+            !values.contains_key("ac_cs_usage"),
+            "only the D[] table, not every shell assignment in the file: \
+             {values:?}"
+        );
+    }
+
+    // The negative. A config.status with no D[] table is not an error — the
+    // escalation simply carries no evidence — and an empty map must not be
+    // confused with "every macro resolved to nothing".
+    #[test]
+    fn a_config_status_without_a_d_table_yields_nothing() {
+        assert!(parse_resolved_macro_values("config_headers=\" config.h\"\n").is_empty());
+    }
+
     #[test]
     fn parse_config_headers_reads_both_sides_of_the_declaration() {
         assert_eq!(
