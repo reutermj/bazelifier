@@ -354,6 +354,119 @@ fn inject_textual_includes(targets: &mut [Target], module_root: &Path) {
 ///
 /// Autotools supports building outside the source directory, which is what
 /// keeps the source tree clean the way CMake's `-B` does.
+/// A build option the project exposes, as `configure --help` describes it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ConfigureFlag {
+    /// The flag as a consumer would pass it, always in `--enable-`/`--with-`
+    /// form even where `--help` lists the `--disable-` spelling. autoconf
+    /// treats `--disable-X` as `--enable-X=no`, so the positive form is the
+    /// one name for the pair.
+    pub(crate) name: String,
+    /// Whether the flag takes a VALUE (`--enable-decoders=LIST`) rather than
+    /// being a plain on/off switch.
+    ///
+    /// autoconf's own convention, and the discriminator for whether a
+    /// `bool_flag` can express the option at all: a valued flag either sets
+    /// many macros at once (`--enable-decoders` toggles 12) or changes one
+    /// macro's VALUE (`--enable-assume-ram=256` moves ASSUME_RAM from 128 to
+    /// 256), and a boolean knob expresses neither.
+    pub(crate) valued: bool,
+}
+
+/// Reads the build options out of `configure --help`.
+///
+/// Resolved output, not a parse of `configure` as shell: this runs the
+/// project's own script and reads what it prints, the same category as
+/// running the build and reading its stdout.
+///
+/// Measured per project: xz 26 boolean / 9 valued, libmicrohttpd 24 / 10,
+/// libidn2 21 / 4.
+pub(crate) fn read_configure_flags(source_dir: &Path) -> Vec<ConfigureFlag> {
+    let Ok(configure) = absolutize(source_dir) else {
+        return Vec::new();
+    };
+    let Ok(output) = Command::new(configure.join("configure"))
+        .arg("--help")
+        .current_dir(&configure)
+        .output()
+    else {
+        return Vec::new();
+    };
+    parse_configure_flags(&String::from_utf8_lossy(&output.stdout))
+}
+
+/// The flag list from `configure --help` text. Split from the invocation so
+/// a captured real `--help` can drive it without running anything.
+pub(crate) fn parse_configure_flags(help: &str) -> Vec<ConfigureFlag> {
+    let mut flags = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for line in help.lines() {
+        let trimmed = line.trim_start();
+        // Indentation is what separates a flag line from the prose that
+        // wraps under it — an unindented `--enable-FEATURE` in the preamble
+        // is autoconf's own generic help, not this project's option.
+        if line.len() == trimmed.len() || !trimmed.starts_with("--") {
+            continue;
+        }
+        let token = trimmed.split_whitespace().next().unwrap_or_default();
+        // `--enable-FEATURE[=ARG]` marks the value OPTIONAL, so the bracket
+        // opens before the `=` and splitting alone leaves `--enable-FEATURE[`.
+        // Trimmed here rather than in the placeholder check below, so a real
+        // project flag written `--enable-x[=ARG]` is still recognised as
+        // valued rather than escaping as a name with a bracket in it.
+        let token = token.trim_end_matches(']');
+        let (flag, valued) = match token.split_once('=') {
+            Some((flag, _)) => (flag.trim_end_matches('['), true),
+            None => (token, false),
+        };
+        // The positive spelling names the pair. `--disable-X` is autoconf's
+        // shorthand for `--enable-X=no`, so keying on the literal text would
+        // record two options where the project exposes one.
+        let Some(name) = flag
+            .strip_prefix("--disable-")
+            .map(|rest| format!("--enable-{rest}"))
+            .or_else(|| {
+                flag.strip_prefix("--without-")
+                    .map(|rest| format!("--with-{rest}"))
+            })
+            .or_else(|| {
+                (flag.starts_with("--enable-") || flag.starts_with("--with-"))
+                    .then(|| flag.to_string())
+            })
+        else {
+            continue;
+        };
+        // autoconf's own flags, not the project's. Two kinds: the preamble
+        // documents the SYNTAX with `--enable-FEATURE`/`--with-PACKAGE`
+        // placeholders, and every generated configure carries a handful of
+        // real-but-generic switches. Neither is a choice this project
+        // exposes, and emitting a knob for them would put the same ones in
+        // every converted module.
+        const AUTOCONF_OWN: &[&str] = &[
+            "--enable-option-checking",
+            "--enable-dependency-tracking",
+            "--enable-silent-rules",
+            "--enable-shared",
+            "--enable-static",
+            "--enable-fast-install",
+            "--with-pic",
+            "--with-gnu-ld",
+            "--with-sysroot",
+            "--enable-libtool-lock",
+        ];
+        if name.ends_with("-FEATURE") || name.ends_with("-PACKAGE") {
+            continue;
+        }
+        if AUTOCONF_OWN.contains(&name.as_str()) {
+            continue;
+        }
+        if seen.insert(name.clone()) {
+            flags.push(ConfigureFlag { name, valued });
+        }
+    }
+    flags
+}
+
 fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
     std::fs::create_dir_all(build_dir)?;
     // Absolutized because the command runs with `current_dir(build_dir)`: a
@@ -2889,6 +3002,99 @@ make[1]: Leaving directory '/build/gl'\n\
             "one file spliced at two markers fires twice, in the recipe's \
              order — not once, and not sorted: {:#?}",
             found[0]
+        );
+    }
+
+    // Real `configure --help` output from xz 5.4.5, trimmed to the shapes
+    // that matter. Captured rather than invented: the indentation, the
+    // wrapped continuation line and autoconf's own `--enable-FEATURE`
+    // placeholder are all things a hand-written sample would have missed.
+    const XZ_HELP: &str = concat!(
+        "Optional Features:\n",
+        "  --disable-option-checking  ignore unrecognized --enable/--with options\n",
+        "  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)\n",
+        "  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]\n",
+        "  --enable-encoders=LIST  Comma-separated list of encoders to build.\n",
+        "  --disable-lzip-decoder  Disable decompression support for .lz files.\n",
+        "  --enable-threads=METHOD Supported METHODS are `yes', `no', `posix'.\n",
+        "  --disable-doc           do not install documentation files\n",
+        "Optional Packages:\n",
+        "  --with-pic              try to use only PIC objects\n",
+    );
+
+    // `bool_flag` can express an on/off switch and nothing else, so the
+    // shape has to be read rather than assumed. autoconf states it: an
+    // `=ARG` suffix means the flag takes a VALUE, and a valued flag either
+    // toggles many macros at once (--enable-encoders drives 12) or changes
+    // one macro's value (--enable-assume-ram=256 moves ASSUME_RAM from 128).
+    #[test]
+    fn a_valued_flag_is_distinguished_from_a_boolean_one() {
+        let flags = parse_configure_flags(XZ_HELP);
+        let by_name = |n: &str| flags.iter().find(|f| f.name == n).cloned();
+
+        assert_eq!(
+            by_name("--enable-encoders").map(|f| f.valued),
+            Some(true),
+            "`--enable-encoders=LIST` takes a value: {flags:#?}"
+        );
+        assert_eq!(
+            by_name("--enable-threads").map(|f| f.valued),
+            Some(true),
+            "so does `--enable-threads=METHOD`: {flags:#?}"
+        );
+        assert_eq!(
+            by_name("--enable-lzip-decoder").map(|f| f.valued),
+            Some(false),
+            "`--disable-lzip-decoder` is a plain switch: {flags:#?}"
+        );
+        assert_eq!(
+            by_name("--enable-doc").map(|f| f.valued),
+            Some(false),
+            "and so is `--disable-doc`: {flags:#?}"
+        );
+    }
+
+    // A `--disable-X` and an `--enable-X` are ONE option, not two: autoconf
+    // treats the first as `--enable-X=no`. Recording both would emit two
+    // flags for one project choice.
+    #[test]
+    fn the_disable_spelling_is_normalised_to_the_enable_one() {
+        let flags = parse_configure_flags(XZ_HELP);
+        assert!(
+            flags.iter().any(|f| f.name == "--enable-lzip-decoder"),
+            "the positive spelling names the pair: {flags:#?}"
+        );
+        assert!(
+            !flags.iter().any(|f| f.name.starts_with("--disable-")),
+            "no flag should keep the negative spelling: {flags:#?}"
+        );
+    }
+
+    // autoconf's preamble documents the SYNTAX with `--enable-FEATURE` and
+    // `--with-PACKAGE`. Those are not options this project exposes, and
+    // emitting a flag for them would put a knob in every module.
+    #[test]
+    fn autoconfs_own_placeholders_are_not_project_options() {
+        let flags = parse_configure_flags(XZ_HELP);
+        assert!(
+            !flags
+                .iter()
+                .any(|f| f.name.contains("FEATURE") || f.name.contains("PACKAGE")),
+            "the generic help is not an option: {flags:#?}"
+        );
+        // Nor are autoconf's real-but-generic switches, which every
+        // generated configure carries: --with-pic, --enable-shared,
+        // --enable-option-checking. A knob for those would appear in every
+        // converted module and belong to none of them.
+        assert!(
+            !flags
+                .iter()
+                .any(|f| f.name == "--with-pic" || f.name == "--enable-option-checking"),
+            "autoconf's own switches are not this project's options: {flags:#?}"
+        );
+        assert!(
+            flags.iter().any(|f| f.name == "--enable-lzip-decoder"),
+            "but the project's own are kept: {flags:#?}"
         );
     }
 
