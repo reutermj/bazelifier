@@ -17,10 +17,25 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # a conversion that hardcodes the wrong branch fails the comparison rather
 # than passing quietly.
 #
-# Currently escalates as an unmapped config macro. The intended resolution
-# is a `bazel_skylib` `bool_flag` + `config_setting` + `select()` on the
-# config header's `values`, which keeps the option an option; that chain is
-# proven to work end to end but is not yet emitted.
+# Escalates, and STAYS escalated — unlike the CMake counterpart
+# (023-option-flag), which the translator now resolves deterministically.
+#
+# The asymmetry is evidence, not effort. CMake's `cache-v2` marks an
+# `option()` as BOOL and a probe result as INTERNAL, so that side can
+# classify from the reply. autoconf states the flag-to-macro mapping
+# NOWHERE that is resolved output: `ac_cs_config` is empty for a default
+# build, `make -p` carries one empty `enable_*`, the V=1 stream never
+# mentions it, `configure --help` names flags but not the macros they
+# define, and config.log records only the invocation line. It exists solely
+# in `configure` as shell, and parsing that misattributed 3 of 52 macros on
+# the corpus (a real ac_cv_header_* probe inside an --enable- block). So
+# guessing here would tell the agent a toolchain fact is a project choice,
+# which is worse than saying nothing.
+#
+# What the item does instead is quote configure's resolved value as
+# EVIDENCE and name the three branches. Verified sufficient: resolving it
+# by hand with a bazel_skylib bool_flag reaches green — 1 comparison,
+# 1 module test, both flag states working. See bzl-1p6.
 convert_autotools_project(
     name = "converted",
     srcs = glob(["**"]),
