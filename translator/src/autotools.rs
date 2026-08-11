@@ -157,6 +157,9 @@ pub fn discover(
     // Which of those a BOOLEAN build option controls. Elicited by
     // re-configuring per flag; see `resolve_flag_macros` for why it cannot
     // simply be read, and why valued flags are left out.
+    // Explicit AC_DEFINEs this build selected, from the m4 expansion
+    // intersected with config.status. Read once per conversion.
+    let traced = resolve_traced_defines(source_dir, build_dir, &resolved);
     let flag_macros = resolve_flag_macros(
         source_dir,
         build_dir,
@@ -168,7 +171,8 @@ pub fn discover(
         let Ok(text) = std::fs::read_to_string(&template_path) else {
             continue;
         };
-        let (header, unmapped) = plan_config_header(&output, &template, &text, &vars, &flag_macros);
+        let (header, unmapped) =
+            plan_config_header(&output, &template, &text, &vars, &flag_macros, &traced);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
                 &output,
@@ -392,6 +396,129 @@ fn inject_textual_includes(targets: &mut [Target], module_root: &Path) {
 ///
 /// Autotools supports building outside the source directory, which is what
 /// keeps the source tree clean the way CMake's `-B` does.
+/// Macros the project defines with an explicit literal AND that this build
+/// actually defined — `name -> value`.
+///
+/// TWO SOURCES, INTERSECTED, because neither answers alone:
+///
+/// - `autoconf --trace` runs autoconf's own m4 expansion and reports every
+///   `AC_DEFINE` with its literal value. It supplies the VALUE and the
+///   PROVENANCE (an explicit define, not a probe result) — but it reports
+///   every branch, so it says what CAN be defined, not what IS.
+/// - `config.status`'s `D[]` table says which macros this configure run
+///   actually defined. It supplies the SELECTION — but not the provenance,
+///   so on its own it cannot tell a project literal from a host probe
+///   answer, which is why bzl-yjn.10 only quotes it as evidence.
+///
+/// Using the trace alone shipped and was reverted: xz picks ONE cpucores
+/// backend in a shell `case` with a separate `AC_DEFINE` per branch, and
+/// the trace emitted all five. The module then compiled `sys/systemcfg.h`,
+/// an AIX-only header, and xz stopped building. Each of those five names is
+/// defined exactly once, so a per-name ambiguity filter cannot see it —
+/// only `D[]` knows which branch ran.
+///
+/// Still excluded after intersecting:
+///
+/// - An EMPTY trace value. `AC_CHECK_HEADERS`, `AC_CHECK_FUNCS` and
+///   `AC_USE_SYSTEM_EXTENSIONS` all trace with no `$2` because autoconf
+///   supplies the answer from a probe; those stay probes, resolved against
+///   the CONSUMER's toolchain rather than this host's.
+/// - A macro whose trace carries several DIFFERENT values. libmicrohttpd's
+///   `_MHD_EXTERN` has three, one per platform.
+fn resolve_traced_defines(
+    source_dir: &Path,
+    scratch_root: &Path,
+    resolved: &HashMap<String, String>,
+) -> HashMap<String, String> {
+    read_traced_defines(source_dir, scratch_root)
+        .into_iter()
+        // The intersection. A name the trace knows but `config.status` did
+        // not define belongs to a branch this build did not take.
+        .filter(|(name, _)| resolved.contains_key(name))
+        .collect()
+}
+
+/// Every `AC_DEFINE` autoconf's m4 expansion reports, with its literal
+/// value — `name -> value`, before intersecting with what was selected.
+///
+/// Not a parse of `configure.ac`, which could not answer this: xz builds its
+/// macro names with `AC_DEFINE(HAVE_DECODER_[]m4_toupper(NAME), ...)` inside
+/// an `m4_foreach`, so the literal `HAVE_DECODER_LZMA2` appears in the
+/// source exactly zero times. The trace prints it, resolved.
+///
+/// Runs against a COPY of the source tree. autom4te always creates
+/// `autom4te.cache` in its working directory and honours no flag to move it
+/// (`-C` adds a location; `--no-cache` is an autom4te option that
+/// `autoconf` REJECTS, and passing it makes every trace fail silently),
+/// while the sandbox source is read-only. A WHOLE copy, because
+/// `configure.ac` can reference anything — xz's `AC_INIT` shells out to
+/// `build-aux/version.sh`, and a partial copy fails with "AC_INIT should be
+/// called with package and version arguments". Measured ~1 MB and under
+/// 60ms per corpus project.
+///
+/// Tracing in the source tree itself is also wrong: it touches
+/// `aclocal.m4`, and the later `make` then believes `Makefile.in` is stale.
+/// A read of the inputs must not change what the build does.
+fn read_traced_defines(source_dir: &Path, scratch_root: &Path) -> HashMap<String, String> {
+    let Ok(source) = absolutize(source_dir) else {
+        return HashMap::new();
+    };
+    let scratch = scratch_root.join("_autoconf_trace");
+    let _ = std::fs::remove_dir_all(&scratch);
+    if copy_tree(&source, &scratch).is_err() {
+        return HashMap::new();
+    }
+    let traced = Command::new("autoconf")
+        .arg("--trace=AC_DEFINE:$1|$2")
+        .current_dir(&scratch)
+        .output()
+        .ok()
+        .filter(|o| o.status.success())
+        .map(|o| parse_traced_defines(&String::from_utf8_lossy(&o.stdout)))
+        .unwrap_or_default();
+    let _ = std::fs::remove_dir_all(&scratch);
+    traced
+}
+
+/// Recursive directory copy, for staging the tree the trace reads.
+fn copy_tree(from: &Path, to: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(to)?;
+    for entry in std::fs::read_dir(from)? {
+        let entry = entry?;
+        let dest = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_tree(&entry.path(), &dest)?;
+        } else if entry.path().is_file() {
+            std::fs::copy(entry.path(), dest)?;
+        }
+    }
+    Ok(())
+}
+
+/// The `name -> value` map from `autoconf --trace=AC_DEFINE:$1|$2` output.
+/// Split from the invocation so a captured real trace can drive it.
+fn parse_traced_defines(trace: &str) -> HashMap<String, String> {
+    let mut values: HashMap<&str, std::collections::HashSet<&str>> = HashMap::new();
+    for line in trace.lines() {
+        let Some((name, value)) = line.split_once('|') else {
+            continue;
+        };
+        if !name.is_empty() {
+            values.entry(name).or_default().insert(value);
+        }
+    }
+    values
+        .into_iter()
+        .filter_map(|(name, vs)| {
+            let mut it = vs.into_iter();
+            let (Some(value), None) = (it.next(), it.next()) else {
+                return None; // several distinct definitions: conditional
+            };
+            (!value.is_empty()).then(|| (name.to_string(), value.to_string()))
+        })
+        .collect()
+}
+
 /// A build option the project exposes, as `configure --help` describes it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ConfigureFlag {
@@ -3172,6 +3299,81 @@ make[1]: Leaving directory '/build/gl'\n\
             "one file spliced at two markers fires twice, in the recipe's \
              order — not once, and not sorted: {:#?}",
             found[0]
+        );
+    }
+
+    // Real `autoconf --trace=AC_DEFINE:$1|$2` shapes, from xz and
+    // libmicrohttpd. Captured rather than invented: the five mutually
+    // exclusive cpucores backends and the duplicate _MHD_EXTERN records are
+    // both things a hand-written sample would have got wrong.
+    const TRACE: &str = concat!(
+        "SPEC___THREAD|__thread\n",
+        // xz picks ONE of these in a shell `case`. Each is defined exactly
+        // once, so no per-name filter can tell them apart.
+        "TUKLIB_CPUCORES_SCHED_GETAFFINITY|1\n",
+        "TUKLIB_CPUCORES_CPUSET|1\n",
+        "TUKLIB_CPUCORES_SYSCTL|1\n",
+        // Three platform spellings of one name.
+        "_MHD_EXTERN|__declspec(dllexport)\n",
+        "_MHD_EXTERN|extern\n",
+        // A probe supplies the value, so `$2` is empty.
+        "HAVE_CPUID_H|\n",
+    );
+
+    // THE REGRESSION THIS EXISTS FOR. Using the trace alone shipped and was
+    // reverted: it emitted all five of xz's TUKLIB_CPUCORES_* variants when
+    // configure picked one, and the module then compiled sys/systemcfg.h —
+    // an AIX-only header — and xz stopped building.
+    //
+    // `config.status`'s D[] table is the only source that knows which branch
+    // ran, which is why the two are intersected rather than either used
+    // alone.
+    #[test]
+    fn a_branch_this_build_did_not_take_is_not_resolved() {
+        let traced = parse_traced_defines(TRACE);
+        // What configure actually decided.
+        let selected = HashMap::from([
+            (
+                "TUKLIB_CPUCORES_SCHED_GETAFFINITY".to_string(),
+                "1".to_string(),
+            ),
+            ("SPEC___THREAD".to_string(), "__thread".to_string()),
+        ]);
+        let resolved: HashMap<String, String> = traced
+            .into_iter()
+            .filter(|(name, _)| selected.contains_key(name))
+            .collect();
+
+        assert!(
+            resolved.contains_key("TUKLIB_CPUCORES_SCHED_GETAFFINITY"),
+            "the branch configure took resolves: {resolved:#?}"
+        );
+        assert!(
+            !resolved.contains_key("TUKLIB_CPUCORES_CPUSET")
+                && !resolved.contains_key("TUKLIB_CPUCORES_SYSCTL"),
+            "the branches it did NOT take must not — each is defined once, \
+             so only D[] can distinguish them: {resolved:#?}"
+        );
+        assert_eq!(
+            resolved.get("SPEC___THREAD").map(String::as_str),
+            Some("__thread"),
+            "a project literal still carries its value: {resolved:#?}"
+        );
+    }
+
+    // Still excluded after intersecting, for reasons D[] cannot supply: a
+    // macro defined differently per platform has no single answer, and an
+    // empty `$2` means a probe supplies the value.
+    #[test]
+    fn conditional_and_probe_supplied_defines_stay_out_of_the_trace_map() {
+        let traced = parse_traced_defines(TRACE);
+        assert!(
+            !traced.contains_key("_MHD_EXTERN"),
+            "two platform spellings, no single answer: {traced:#?}"
+        );
+        assert!(
+            !traced.contains_key("HAVE_CPUID_H"),
+            "an empty value means AC_CHECK_HEADERS supplies it: {traced:#?}"
         );
     }
 

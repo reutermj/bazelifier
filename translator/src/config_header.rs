@@ -52,6 +52,7 @@ pub(crate) fn plan_config_header(
     template_text: &str,
     vars: &HashMap<String, String>,
     flag_macros: &HashMap<String, String>,
+    traced: &HashMap<String, String>,
 ) -> (ConfigHeader, Vec<String>) {
     let mut probes = Vec::new();
     let mut values = Vec::new();
@@ -74,6 +75,18 @@ pub(crate) fn plan_config_header(
             // a bool_flag plus a select(), so the option stays settable.
             options.push((name.clone(), flag.clone()));
             values.push((name, "1".to_string()));
+        } else if let Some(value) = traced.get(&name) {
+            // An explicit `AC_DEFINE([NAME], [value])` that THIS build
+            // selected — see `autotools::resolve_traced_defines`, which
+            // intersects autoconf's m4 expansion with config.status's D[]
+            // table. Neither source suffices alone.
+            //
+            // Ranked below the catalog, because a name the catalog carries
+            // is a toolchain fact the CONSUMER must re-probe. Ranked above
+            // make's variable database, which is a flat namespace seeded
+            // with every macro configure knows and where a lookalike can
+            // collide.
+            values.push((name, value.clone()));
         } else if let Some(value) = vars.get(&name).filter(|v| !v.is_empty()) {
             // A value configure substituted — PACKAGE, VERSION and friends.
             //
@@ -540,6 +553,7 @@ ac_cs_usage=\"whatever\"\n";
             "#undef PACKAGE_NAME\n#undef ASSUME_RAM\n",
             &vars,
             &HashMap::new(),
+            &HashMap::new(),
         );
 
         assert_eq!(
@@ -629,6 +643,7 @@ ac_cs_usage=\"whatever\"\n";
             "#undef HAVE_LIBUNISTRING\n",
             &vars,
             &HashMap::new(),
+            &HashMap::new(),
         );
         assert!(
             header.values.is_empty(),
@@ -656,6 +671,7 @@ ac_cs_usage=\"whatever\"\n";
             "#undef HAVE_THING\n",
             &vars,
             &HashMap::new(),
+            &HashMap::new(),
         );
         assert_eq!(
             header.values,
@@ -679,6 +695,7 @@ ac_cs_usage=\"whatever\"\n";
             "config.h.in",
             "#undef PACKAGE_NAME\n#undef NOTE\n",
             &vars,
+            &HashMap::new(),
             &HashMap::new(),
         );
         assert_eq!(
@@ -710,6 +727,7 @@ ac_cs_usage=\"whatever\"\n";
             "config.in",
             "#undef PACKAGE\n#undef BITSIZEOF_PTRDIFF_T\n#undef HAVE_UNISTD_H\n",
             &vars,
+            &HashMap::new(),
             &HashMap::new(),
         );
 
@@ -746,6 +764,7 @@ ac_cs_usage=\"whatever\"\n";
             "#undef HAVE_GREETING\n",
             &HashMap::new(),
             &flags,
+            &HashMap::new(),
         );
 
         assert!(unmapped.is_empty(), "the flag resolves it: {unmapped:?}");
@@ -771,6 +790,7 @@ ac_cs_usage=\"whatever\"\n";
             "config.h",
             "config.h.in",
             "#undef HAVE_SOMETHING\n",
+            &HashMap::new(),
             &HashMap::new(),
             &HashMap::new(),
         );
