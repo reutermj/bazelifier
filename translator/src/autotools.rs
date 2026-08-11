@@ -231,7 +231,7 @@ pub fn discover(
     let (mut graph, graph_needs_attention, module_root) = to_graph(
         &parse_commands(&stream, build_dir),
         &declared,
-        &vars,
+        &database,
         &project_name,
         &source_dir_abs,
         &deliverable_root,
@@ -430,7 +430,20 @@ fn resolve_traced_defines(
     scratch_root: &Path,
     resolved: &HashMap<String, String>,
 ) -> HashMap<String, String> {
-    read_traced_defines(source_dir, scratch_root)
+    intersect_traced_with_selected(read_traced_defines(source_dir, scratch_root), resolved)
+}
+
+/// Keeps only the traced macros `config.status` actually selected.
+///
+/// Split from the `autoconf` invocation above so a test can drive the
+/// decision without running autoconf — the invocation is what made the
+/// earlier version of this untestable, and the reverted `375b058` bug lived
+/// entirely in this filter.
+fn intersect_traced_with_selected(
+    traced: HashMap<String, String>,
+    resolved: &HashMap<String, String>,
+) -> HashMap<String, String> {
+    traced
         .into_iter()
         // The intersection. A name the trace knows but `config.status` did
         // not define belongs to a branch this build did not take.
@@ -926,6 +939,9 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
         // other. Which names are NOT harmless, and why, is
         // [`accumulates_across_directories`]; merging them here is not make's
         // own semantics, because make never sees the definitions together.
+        // `am__*` is scoped to its declaring directory, so a later directory
+        // REPLACES it rather than adding to it. Within one directory automake
+        // can still restate a name, and there the last word is make's own.
         if accumulates_across_directories(name) {
             match vars.entry(name.to_string()) {
                 Entry::Occupied(mut slot) => {
@@ -981,6 +997,51 @@ pub(crate) enum TestEntry {
 /// `$(am__EXEEXT_1)`. The bound is what keeps this from becoming make's own
 /// expander: a reference that has already been followed is not followed
 /// again, so a cycle terminates as `Unresolved` rather than looping.
+/// Every directory's `TESTS`, each resolved against ITS OWN variables.
+///
+/// automake's `am__*` indirection is directory-scoped, so a `TESTS` must not
+/// be resolved against the flattened database: libmicrohttpd defines
+/// `am__EXEEXT_1` in six directories, and resolving `src/testcurl`'s
+/// `TESTS = $(check_PROGRAMS) = $(am__EXEEXT_1)` against the union produced
+/// 102 "tests" — including `doc/examples`' example programs, from a
+/// directory that declares no `TESTS`. See
+/// [`accumulates_across_directories`] for the two kinds of variable and why
+/// only one of them merges.
+fn classify_tests_per_directory(database: &str) -> Vec<TestEntry> {
+    let mut entries = Vec::new();
+    for scope in directory_scopes(database) {
+        for entry in classify_tests(&scope) {
+            if !entries.contains(&entry) {
+                entries.push(entry);
+            }
+        }
+    }
+    entries
+}
+
+/// Splits `make -p` output at its `Entering directory` announcements.
+///
+/// Each scope still gets the flattening [`parse_variables`] does, because a
+/// primary genuinely does span directories (xz declares `bin_PROGRAMS` in
+/// four). What must not span them is the `am__*` indirection, and keeping
+/// one map per directory is what stops it.
+fn directory_scopes(database: &str) -> Vec<HashMap<String, String>> {
+    let mut scopes = Vec::new();
+    let mut current = String::new();
+    for line in database.lines() {
+        if entering_directory(line).is_some() && !current.is_empty() {
+            scopes.push(parse_variables(&current));
+            current.clear();
+        }
+        current.push_str(line);
+        current.push('\n');
+    }
+    if !current.is_empty() {
+        scopes.push(parse_variables(&current));
+    }
+    scopes
+}
+
 fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
     let Some(raw) = vars.get("TESTS") else {
         return Vec::new();
@@ -1125,10 +1186,20 @@ fn expand_exeext(token: &str, vars: &HashMap<String, String>) -> String {
 ///   dropped the project's namesake `xz` binary, and reported success.
 /// - **`TESTS`** — jansson declares `run-suites` in `test/` and
 ///   `scripts/clang-format-check` at the root; last-wins kept one.
-/// - **`am__*`** — automake's own per-conditional indirection. libmicrohttpd
-///   defines `am__EXEEXT_1` five times, one of them EMPTY, so last-wins lost
-///   four definitions and its tests escalated as the literal text
-///   `$(am__EXEEXT_1)`.
+///
+/// `am__*` is deliberately NOT here, and was: automake's per-conditional
+/// indirection is scoped to its declaring directory, so merging it is wrong
+/// in the same way last-wins is wrong for a primary. libmicrohttpd defines
+/// `am__EXEEXT_1` in six directories meaning `test_md5`, `perf_replies`,
+/// `basicauthentication` and three more; merging dragged `doc/examples`'s
+/// example programs into `src/testcurl`'s `TESTS`, which is where 102 of its
+/// escalated "tests" came from — from a directory declaring no `TESTS` at
+/// all. xz shows it through `am__append_1`, defined nine times.
+///
+/// The merge was originally added because last-wins picked `src/testcurl`'s
+/// EMPTY definition and the tests escalated as the literal `$(am__EXEEXT_1)`.
+/// Empty was that directory's CORRECT answer; the real bug was resolving one
+/// directory's `TESTS` against another directory's variables.
 ///
 /// Deliberately NOT the same predicate as [`declared_targets`]'s, which
 /// accepts only the three primary suffixes: that one answers "is this a
@@ -1636,7 +1707,11 @@ fn tokenize(line: &str) -> Vec<String> {
 pub(crate) fn to_graph(
     commands: &[BuildCommand],
     declared: &[DeclaredTarget],
-    vars: &HashMap<String, String>,
+    // The raw `make -p` output. `vars` is derived from it here rather than
+    // passed alongside, because automake's `TESTS` must resolve within ONE
+    // directory's variables — see [`classify_tests_per_directory`] — so a
+    // caller holding only the flattened map cannot answer that question.
+    database: &str,
     project_name: &str,
     source_dir: &Path,
     deliverable_root: &Path,
@@ -1646,6 +1721,7 @@ pub(crate) fn to_graph(
     Vec<crate::needs_attention::NeedsAttention>,
     PathBuf,
 ) {
+    let vars = &parse_variables(database);
     // artifact basename -> the link/archive command that produced it, so a
     // declared target can find the step that built it. Needed before the
     // module root can be chosen, because the root depends on where each
@@ -2076,7 +2152,7 @@ pub(crate) fn to_graph(
     // where the built binary already sits, so there is no CTest-style
     // WORKING_DIRECTORY to rebase.
     let (mut tests, mut unexpressed_tests) = (Vec::new(), Vec::new());
-    for entry in classify_tests(vars) {
+    for entry in classify_tests_per_directory(database) {
         match entry {
             TestEntry::Binary(name) => {
                 let label = target_label(&name);
@@ -2445,7 +2521,7 @@ libshout_la_SOURCES = src/shout.c\n\
         graph_only(to_graph(
             &parse_commands(STREAM, Path::new(ROOT)),
             &declared,
-            &vars,
+            DATABASE,
             "greeter",
             Path::new(ROOT),
             Path::new(ROOT),
@@ -2493,7 +2569,7 @@ make[1]: Leaving directory '/src/app'\n\
         let graph = graph_only(to_graph(
             &commands,
             &declared,
-            &vars,
+            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n",
             "sibling",
             Path::new("/src"),
             Path::new("/src"),
@@ -2545,7 +2621,7 @@ make[1]: Leaving directory '/src/app'\n\
         let (graph, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../outside/evil.c\n",
             "escaper",
             Path::new("/src"),
             Path::new("/src"),
@@ -2619,7 +2695,7 @@ make[1]: Leaving directory '/deliv/proj/app'\n\
         to_graph(
             &parse_commands(ESCAPING_STREAM, Path::new("/deliv/proj")),
             &declared_targets(&vars),
-            &vars,
+            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../shared/helper.c\n",
             "widening",
             Path::new("/deliv/proj"),
             Path::new(deliverable_root),
@@ -2664,15 +2740,14 @@ gcc -c -o main.o main.c\n\
 gcc -o tool main.o\n\
 make[1]: Leaving directory '/deliv/proj'\n\
 ";
-        let vars = parse_variables(
-            "bin_PROGRAMS = tool\n\
+        let db = "bin_PROGRAMS = tool\n\
              tool_SOURCES = main.c\n\
-             include_HEADERS = ../shared/api.h\n",
-        );
+             include_HEADERS = ../shared/api.h\n";
+        let vars = parse_variables(db);
         let (_, _, module_root) = to_graph(
             &parse_commands(STREAM, Path::new("/deliv/proj")),
             &declared_targets(&vars),
-            &vars,
+            db,
             "hdr",
             Path::new("/deliv/proj"),
             Path::new("/deliv"),
@@ -2724,7 +2799,7 @@ make[1]: Leaving directory '/deliv/proj'\n\
         let (graph, _, module_root) = to_graph(
             &parse_commands(STREAM, Path::new("/deliv/proj")),
             &declared_targets(&vars),
-            &vars,
+            "bin_PROGRAMS = tool\ntool_SOURCES = src/main.c\n",
             "narrow",
             Path::new("/deliv/proj"),
             // Deliberately WIDE: widening is driven by what the build
@@ -2757,7 +2832,7 @@ make[1]: Leaving directory '/src/app'\n\
         let (_, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n",
             "sibling",
             Path::new("/src"),
             Path::new("/src"),
@@ -2829,13 +2904,12 @@ make[1]: Leaving directory '/src/lib'\n\
 ";
         // Exactly the shape make reports: the base list, plus an unexpanded
         // reference standing for everything the conditionals added.
-        let vars = parse_variables(
-            "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c $(am__append_1)\n",
-        );
+        let db = "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c $(am__append_1)\n";
+        let vars = parse_variables(db);
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            db,
             "conditional",
             Path::new("/src"),
             Path::new("/src"),
@@ -2872,7 +2946,7 @@ make[1]: Leaving directory '/src/lib'\n\
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c base.h\n",
             "expanded",
             Path::new("/src"),
             Path::new("/src"),
@@ -2912,15 +2986,14 @@ gcc -c -o greet.o greet.c\n\
 ar cru libgreet.a greet.o\n\
 make[1]: Leaving directory '/src/lib'\n\
 ";
-        let vars = parse_variables(
-            "noinst_LIBRARIES = libgreet.a\n\
+        let db = "noinst_LIBRARIES = libgreet.a\n\
              libgreet_a_SOURCES = greet.c greet.h\n\
-             include_HEADERS = greet.h\n",
-        );
+             include_HEADERS = greet.h\n";
+        let vars = parse_variables(db);
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            db,
             "sub",
             Path::new("/src"),
             Path::new("/src"),
@@ -2959,13 +3032,12 @@ gcc -c -o c.o c.CPP\n\
 ar cru libmix.a a.o b.o c.o\n\
 make[1]: Leaving directory '/src'\n\
 ";
-        let vars = parse_variables(
-            "noinst_LIBRARIES = libmix.a\nlibmix_a_SOURCES = a.C b.c++ c.CPP README\n",
-        );
+        let db = "noinst_LIBRARIES = libmix.a\nlibmix_a_SOURCES = a.C b.c++ c.CPP README\n";
+        let vars = parse_variables(db);
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            db,
             "mixed",
             Path::new("/src"),
             Path::new("/src"),
@@ -3013,7 +3085,7 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         let graph = graph_only(to_graph(
             &parse_commands(STREAM_WITH_RESOLVED_LINK, Path::new(ROOT)),
             &declared,
-            &vars,
+            DB,
             "hello",
             Path::new(ROOT),
             Path::new(ROOT),
@@ -3081,10 +3153,9 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
     fn tests_naming_check_programs_are_classified_as_binaries() {
         // Exactly what `make -p` reports for libmicrohttpd: TESTS carries an
         // unexpanded reference while check_PROGRAMS beside it is expanded.
-        let vars = parse_variables(
-            "check_PROGRAMS = test_str_compare$(EXEEXT) test_str_token$(EXEEXT)\n\
-             TESTS = $(check_PROGRAMS)\n",
-        );
+        let db = "check_PROGRAMS = test_str_compare$(EXEEXT) test_str_token$(EXEEXT)\n\
+             TESTS = $(check_PROGRAMS)\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![
@@ -3099,9 +3170,8 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
 
     #[test]
     fn tests_naming_a_script_are_classified_as_scripts() {
-        let vars = parse_variables(
-            "check_PROGRAMS = test_array$(EXEEXT)\nTESTS = run-suites scripts/format-check\n",
-        );
+        let db = "check_PROGRAMS = test_array$(EXEEXT)\nTESTS = run-suites scripts/format-check\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![
@@ -3129,11 +3199,10 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         // target became `prog.exe` while the test entry became `prog`, the
         // membership check missed, and EVERY test escalated as inexpressible.
         // Nothing failed; the project just converted with tests: 0.
-        let vars = parse_variables(
-            "EXEEXT = .exe\n\
+        let db = "EXEEXT = .exe\n\
              check_PROGRAMS = check_one$(EXEEXT)\n\
-             TESTS = $(check_PROGRAMS)\n",
-        );
+             TESTS = $(check_PROGRAMS)\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Binary("check_one.exe".to_string())],
@@ -3151,14 +3220,73 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         );
     }
 
+    // Real `make -p` bytes from libmicrohttpd 1.0.1, trimmed to the three
+    // directories that collide on one name. The markers are `# make[N]:`
+    // COMMENT lines, which is why the directory has to be read before the
+    // comment filter rather than after it.
+    const COLLIDING_EXEEXT: &str = "\
+# make[3]: Entering directory '/b/libmicrohttpd-1.0.1/src/microhttpd'\n\
+am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+# make[4]: Entering directory '/b/libmicrohttpd-1.0.1/src/testcurl'\n\
+am__EXEEXT_1 = \n\
+check_PROGRAMS = $(am__EXEEXT_1)\n\
+TESTS = $(check_PROGRAMS)\n\
+# make[2]: Entering directory '/b/libmicrohttpd-1.0.1/doc/examples'\n\
+am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
+";
+
+    // `am__*` is DIRECTORY-SCOPED, not accumulating — the opposite of what
+    // this code assumed. libmicrohttpd defines `am__EXEEXT_1` in six
+    // directories with unrelated meanings (`test_md5`, `perf_replies`,
+    // `basicauthentication`, ...), and merging them dragged
+    // `doc/examples`'s example programs into `src/testcurl`'s TESTS — 102
+    // spurious names in one escalation, from a directory declaring no TESTS
+    // at all. xz shows the same bug through `am__append_1`, defined nine
+    // times.
+    //
+    // The merge was added because last-wins picked `src/testcurl`'s EMPTY
+    // definition and lost the others. Empty was that directory's correct
+    // answer; the bug was resolving one directory's TESTS against another's
+    // variables.
+    #[test]
+    fn a_directory_scoped_am_variable_does_not_leak_into_another_directory() {
+        assert!(
+            classify_tests_per_directory(COLLIDING_EXEEXT).is_empty(),
+            "src/testcurl declares TESTS = $(check_PROGRAMS) = $(am__EXEEXT_1), \
+             and ITS am__EXEEXT_1 is empty. test_md5 belongs to src/microhttpd \
+             and basicauthentication to doc/examples, which declares no TESTS \
+             at all: {:#?}",
+            classify_tests_per_directory(COLLIDING_EXEEXT)
+        );
+    }
+
+    // The other direction: a directory that DOES declare tests still gets
+    // them. Without this, emptying the result would pass the test above.
+    #[test]
+    fn a_directory_that_declares_tests_still_reports_them() {
+        const DB: &str = "\
+# make[3]: Entering directory '/b/proj/src/microhttpd'\n\
+am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+check_PROGRAMS = $(am__EXEEXT_1)\n\
+TESTS = $(check_PROGRAMS)\n\
+# make[2]: Entering directory '/b/proj/doc/examples'\n\
+am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
+";
+        assert_eq!(
+            classify_tests_per_directory(DB),
+            vec![TestEntry::Binary("test_md5".to_string())],
+            "src/microhttpd's own TESTS resolves against its own \
+             am__EXEEXT_1, and doc/examples contributes nothing"
+        );
+    }
+
     // The brace form is the same variable. Only one of the two implementations
     // handled it, so a project writing ${EXEEXT} got a target literally named
     // `greeter${EXEEXT}`.
     #[test]
     fn the_brace_form_of_exeext_expands_too() {
-        let vars = parse_variables(
-            "EXEEXT = .exe\ncheck_PROGRAMS = tool${EXEEXT}\nTESTS = $(check_PROGRAMS)\n",
-        );
+        let db = "EXEEXT = .exe\ncheck_PROGRAMS = tool${EXEEXT}\nTESTS = $(check_PROGRAMS)\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Binary("tool.exe".to_string())],
@@ -3339,10 +3467,7 @@ make[1]: Leaving directory '/build/gl'\n\
             ),
             ("SPEC___THREAD".to_string(), "__thread".to_string()),
         ]);
-        let resolved: HashMap<String, String> = traced
-            .into_iter()
-            .filter(|(name, _)| selected.contains_key(name))
-            .collect();
+        let resolved = intersect_traced_with_selected(traced, &selected);
 
         assert!(
             resolved.contains_key("TUKLIB_CPUCORES_SCHED_GETAFFINITY"),
@@ -3605,12 +3730,11 @@ make[1]: Leaving directory '/build/gl'\n\
 
     #[test]
     fn a_conditional_test_variable_resolves_through_its_indirection() {
-        let vars = parse_variables(
-            "am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+        let db = "am__EXEEXT_1 = test_md5$(EXEEXT)\n\
              am__EXEEXT_2 = test_sha1$(EXEEXT) test_sha256$(EXEEXT)\n\
              check_PROGRAMS = test_base$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2)\n\
-             TESTS = $(check_PROGRAMS)\n",
-        );
+             TESTS = $(check_PROGRAMS)\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![
@@ -3685,14 +3809,13 @@ gcc -c -o main.o main.c\n\
 libtool --tag=CC --mode=link gcc main.o ../gl/libgnu.la -o libthing.la\n\
 make[1]: Leaving directory '/src/lib'\n\
 ";
-        let vars = parse_variables(
-            "noinst_LTLIBRARIES = gl/libgnu.la\nlibgnu_la_SOURCES = helper.c\n\
-             lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n",
-        );
+        let db = "noinst_LTLIBRARIES = gl/libgnu.la\nlibgnu_la_SOURCES = helper.c\n\
+             lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n";
+        let vars = parse_variables(db);
         let (_, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            db,
             "conv",
             Path::new("/src"),
             Path::new("/src"),
@@ -3728,7 +3851,7 @@ make[1]: Leaving directory '/src/lib'\n\
         let (_, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            "lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n",
             "conv",
             Path::new("/src"),
             Path::new("/src"),
@@ -3766,7 +3889,7 @@ make[1]: Leaving directory '/src/gl'\n\
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            "noinst_LTLIBRARIES = libgnu.la\nlibgnu_la_SOURCES = helper.c\n",
             "conv",
             Path::new("/src"),
             Path::new("/src"),
@@ -3799,7 +3922,7 @@ make[1]: Leaving directory '/src/lib'\n\
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
             &declared_targets(&vars),
-            &vars,
+            "lib_LTLIBRARIES = libthing.la\nlibthing_la_SOURCES = a.c\n",
             "conv",
             Path::new("/src"),
             Path::new("/src"),
@@ -3815,13 +3938,12 @@ make[1]: Leaving directory '/src/lib'\n\
 
     #[test]
     fn a_conditional_variable_defined_per_directory_keeps_every_definition() {
-        let vars = parse_variables(
-            "am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+        let db = "am__EXEEXT_1 = test_md5$(EXEEXT)\n\
              am__EXEEXT_1 = \n\
              am__EXEEXT_1 = perf_replies$(EXEEXT)\n\
              check_PROGRAMS = $(am__EXEEXT_1)\n\
-             TESTS = $(check_PROGRAMS)\n",
-        );
+             TESTS = $(check_PROGRAMS)\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![
@@ -3842,11 +3964,10 @@ make[1]: Leaving directory '/src/lib'\n\
     // alongside the very tests it expands to.
     #[test]
     fn a_reference_repeated_by_accumulation_still_expands() {
-        let vars = parse_variables(
-            "am__EXEEXT_2 = test_a$(EXEEXT)\n\
+        let db = "am__EXEEXT_2 = test_a$(EXEEXT)\n\
              check_PROGRAMS = $(am__EXEEXT_2)\n\
-             TESTS = $(am__EXEEXT_2) $(am__EXEEXT_2)\n",
-        );
+             TESTS = $(am__EXEEXT_2) $(am__EXEEXT_2)\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Binary("test_a".to_string())],
@@ -3911,10 +4032,9 @@ make[1]: Leaving directory '/src/lib'\n\
     // problems to whoever has to resolve it.
     #[test]
     fn a_test_declared_once_is_not_reported_several_times() {
-        let vars = parse_variables(
-            "TESTS = run-suites\nTESTS = scripts/format-check\n\
-             TESTS = run-suites\nTESTS = scripts/format-check\n",
-        );
+        let db = "TESTS = run-suites\nTESTS = scripts/format-check\n\
+             TESTS = run-suites\nTESTS = scripts/format-check\n";
+        let vars = parse_variables(db);
         assert_eq!(
             classify_tests(&vars),
             vec![

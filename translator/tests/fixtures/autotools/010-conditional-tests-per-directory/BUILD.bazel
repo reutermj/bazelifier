@@ -1,0 +1,34 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# automake's per-conditional indirection is scoped to the directory that
+# declares it, and the translator used to merge it across directories.
+#
+# Two directories here define `am__EXEEXT_1`, the same name with different
+# values, because automake numbers that variable per directory:
+#
+#   tests/     am__EXEEXT_1 = check_real     and declares TESTS
+#   examples/  am__EXEEXT_1 = demo_example   and declares NO TESTS
+#
+# Merging them resolved `tests/`'s `TESTS = $(check_PROGRAMS)` against the
+# union, so `demo_example` was reported as a registered test of this module.
+# On the corpus that shape produced 102 spurious "tests" for libmicrohttpd
+# (its `doc/examples/` programs, from a directory declaring no TESTS) and 10
+# for xz via `am__append_1` -- including xz's own `xz` binary, escalated as
+# "not an executable this module builds" while the same BUILD.bazel built it.
+#
+# What this pins is a NEGATIVE: `demo_extra` and `demo_example` must not
+# appear as tests of this module, while `check_real` must. Measured on the
+# generated output -- one `sh_test` (`check_real_test`), and no `demo_*`
+# test at all.
+#
+# Starts RED for an unrelated, known reason: `check_extra` is a
+# `check_PROGRAMS` binary, which plain `make` does not build, so the
+# translator escalates it as a command it did not produce. That is the same
+# gap libmicrohttpd's remaining items describe and is not what this fixture
+# is about -- it is a conditional entry, so removing it would delete the
+# collision this fixture exists to reproduce.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)
