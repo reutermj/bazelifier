@@ -154,12 +154,21 @@ pub fn discover(
     // What configure resolved each macro to, quoted into the escalations as
     // evidence for the agent's decision. Read once; both loops below use it.
     let resolved = parse_resolved_macro_values(&status);
+    // Which of those a BOOLEAN build option controls. Elicited by
+    // re-configuring per flag; see `resolve_flag_macros` for why it cannot
+    // simply be read, and why valued flags are left out.
+    let flag_macros = resolve_flag_macros(
+        source_dir,
+        build_dir,
+        &read_configure_flags(source_dir),
+        &resolved,
+    );
     for (output, template) in parse_config_headers(&status) {
         let template_path = source_dir.join(&template);
         let Ok(text) = std::fs::read_to_string(&template_path) else {
             continue;
         };
-        let (header, unmapped) = plan_config_header(&output, &template, &text, &vars);
+        let (header, unmapped) = plan_config_header(&output, &template, &text, &vars, &flag_macros);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
                 &output,
@@ -186,7 +195,8 @@ pub fn discover(
         let Ok(text) = std::fs::read_to_string(source_dir.join(&template)) else {
             continue;
         };
-        let (header, unmapped) = plan_substitution_header(&output, &template, &text, &vars);
+        let (mut header, unmapped) = plan_substitution_header(&output, &template, &text, &vars);
+        header.options = flag_options(&header, &flag_macros);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
                 &output,
@@ -256,10 +266,8 @@ pub fn discover(
             // recipe, so there is nothing for a catalog probe to answer.
             values: replacement.values.clone(),
             dialect: crate::model::ConfigDialect::Substitution,
-            // autoconf has no marker distinguishing a user option from a
-            // probe result — `configure` is a shell script — so this stays
-            // empty and such macros escalate instead. See
-            // `model::ConfigHeader::options` and bzl-1p6.
+            // A shadowing header is a gnulib replacement; its `values` come
+            // from the generation recipe, not from an option.
             options: Vec::new(),
             splices: rebase_splices(&replacement.splices, &shadow_dir, &module_root),
             shadow_dir: Some(shadow_dir),
@@ -467,6 +475,123 @@ pub(crate) fn parse_configure_flags(help: &str) -> Vec<ConfigureFlag> {
     flags
 }
 
+/// Which config macros each BOOLEAN build option controls, as
+/// `macro -> flag`.
+///
+/// Determined by configuring again with the flag disabled and diffing
+/// `config.status`'s `D[]` table against the baseline: a macro present in
+/// the default build and absent with the flag off is one that flag controls.
+/// autoconf records the mapping nowhere readable — `ac_cs_config` is empty
+/// for a default build, `make -p` carries no `enable_*`, the command stream
+/// never mentions it — so it is ELICITED rather than read (bzl-1p6.1).
+///
+/// Only boolean flags, because only they map onto a `bool_flag`. A valued
+/// one either toggles many macros at once or changes a macro's VALUE rather
+/// than its presence, and this diff would report the first as a pile of
+/// unrelated booleans and miss the second entirely.
+///
+/// A macro the flag merely GATES A PROBE FOR is excluded: `--disable-poll`
+/// removes both `HAVE_POLL` and `HAVE_POLL_H` from libmicrohttpd's table,
+/// but the second is a `check_include_file` result the flag only skips
+/// running. `config.log` records which names were probed, so the two are
+/// separable — and baking a probe result in as a project choice is exactly
+/// the failure the escalation exists to prevent.
+///
+/// Costs one configure per flag (~3s measured on xz, 24 boolean flags), on a
+/// pipeline that already configures and builds. Returns an empty map rather
+/// than failing: an option nobody could classify escalates, which is the
+/// status quo.
+fn resolve_flag_macros(
+    source_dir: &Path,
+    build_dir: &Path,
+    flags: &[ConfigureFlag],
+    baseline: &HashMap<String, String>,
+) -> HashMap<String, String> {
+    let mut owned = HashMap::new();
+    let Ok(source) = absolutize(source_dir) else {
+        return owned;
+    };
+    let probed = probed_names(build_dir);
+    for flag in flags.iter().filter(|f| !f.valued) {
+        let off = build_dir.with_file_name(format!(
+            "{}_flagprobe",
+            build_dir.file_name().unwrap_or_default().to_string_lossy()
+        ));
+        let _ = std::fs::remove_dir_all(&off);
+        if std::fs::create_dir_all(&off).is_err() {
+            continue;
+        }
+        let disabled = flag.name.replacen("--enable-", "--disable-", 1);
+        let disabled = disabled.replacen("--with-", "--without-", 1);
+        let ran = Command::new(source.join("configure"))
+            .arg("-q")
+            .arg(&disabled)
+            .current_dir(&off)
+            .output();
+        if ran.is_ok_and(|o| o.status.success()) {
+            let status = std::fs::read_to_string(off.join("config.status")).unwrap_or_default();
+            let without = crate::config_header::parse_resolved_macro_values(&status);
+            for name in baseline.keys() {
+                // Present by default, gone with the flag off — and not a
+                // probe the flag merely skipped.
+                if !without.contains_key(name) && !probed.contains(name) {
+                    owned.insert(name.clone(), flag.name.clone());
+                }
+            }
+        }
+        let _ = std::fs::remove_dir_all(&off);
+    }
+    owned
+}
+
+/// The `(macro, flag)` pairs for values on this header that a build option
+/// controls, in the shape `model::ConfigHeader::options` takes.
+///
+/// The flag name is carried rather than derived, because codegen turns it
+/// into a `bool_flag` target name and a `--enable-x` does not map to a
+/// label by any rule codegen could apply without knowing autoconf.
+fn flag_options(
+    header: &crate::model::ConfigHeader,
+    flag_macros: &HashMap<String, String>,
+) -> Vec<(String, String)> {
+    header
+        .values
+        .iter()
+        .filter_map(|(name, _)| {
+            flag_macros
+                .get(name)
+                .map(|flag| (name.clone(), flag.clone()))
+        })
+        .collect()
+}
+
+/// The macro names `configure` answered with a PROBE, from `config.log`'s
+/// `ac_cv_*` cache lines.
+///
+/// The discriminator between a macro a flag defines and one it merely gates
+/// a probe for. Without it, `--disable-poll` looks like it owns
+/// `HAVE_POLL_H`, which is a `check_include_file` result.
+fn probed_names(build_dir: &Path) -> std::collections::HashSet<String> {
+    let log = std::fs::read_to_string(build_dir.join("config.log")).unwrap_or_default();
+    let mut names = std::collections::HashSet::new();
+    for line in log.lines() {
+        let line = line.trim();
+        for prefix in [
+            "ac_cv_header_",
+            "ac_cv_func_",
+            "ac_cv_type_",
+            "ac_cv_have_decl_",
+        ] {
+            if let Some(rest) = line.strip_prefix(prefix)
+                && let Some((var, _)) = rest.split_once('=')
+            {
+                names.insert(format!("HAVE_{}", var.to_ascii_uppercase()));
+            }
+        }
+    }
+    names
+}
+
 fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
     std::fs::create_dir_all(build_dir)?;
     // Absolutized because the command runs with `current_dir(build_dir)`: a
@@ -509,10 +634,25 @@ fn build(build_dir: &Path, extra_args: &[&str]) -> Result<String, Error> {
     // Parallel: the build is the ground-truth capture, and nothing about it
     // needs to be serial. Measured 14s -> 2s on xz. `-j` with no argument
     // would be unbounded, which on a large project starves the machine, so
-    // the core count is passed explicitly.
-    let jobs = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(1);
+    // the job count is passed explicitly.
+    //
+    // HALF the cores, not all of them, because this runs INSIDE a Bazel
+    // action and the two schedulers multiply. Bazel may run several
+    // conversions at once, each spawning its own `make -j`, so the machine
+    // sees jobs x actions concurrent compiles — and on a 32-core, 30 GB
+    // container that is what kills it. The .bazelrc caps Bazel's half; this
+    // caps the inner half. Neither alone bounds the product.
+    //
+    // Honoured from MAKEFLAGS when Bazel sets it (the jobserver), so a
+    // future --local_cpu_resources change does not need this line updated.
+    let jobs = std::env::var("BAZELIFIER_BUILD_JOBS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or_else(|| {
+            std::thread::available_parallelism()
+                .map(|n| (n.get() / 2).max(1))
+                .unwrap_or(1)
+        });
     let output = Command::new("make")
         .arg(format!("-j{jobs}"))
         // automake's escape hatch from AM_SILENT_RULES. A project that

@@ -51,14 +51,29 @@ pub(crate) fn plan_config_header(
     template: &str,
     template_text: &str,
     vars: &HashMap<String, String>,
+    flag_macros: &HashMap<String, String>,
 ) -> (ConfigHeader, Vec<String>) {
     let mut probes = Vec::new();
     let mut values = Vec::new();
+    let mut options = Vec::new();
     let mut unmapped = Vec::new();
 
     for name in undef_names(template_text) {
         if let Some(label) = catalog_label(&name) {
             probes.push(label);
+        } else if let Some(flag) = flag_macros.get(&name) {
+            // A macro a BOOLEAN build option controls. Resolved rather than
+            // escalated because the input states it — `configure` itself
+            // shows the macro appearing and vanishing with the flag — and
+            // resolved BEFORE the variable-database branch because these
+            // names are usually absent from make's database entirely:
+            // HAVE_GREETING lives only in config.status's D[] table.
+            //
+            // The value is `1`, matching what config.status writes for an
+            // AC_DEFINE with no explicit value. Codegen turns the pair into
+            // a bool_flag plus a select(), so the option stays settable.
+            options.push((name.clone(), flag.clone()));
+            values.push((name, "1".to_string()));
         } else if let Some(value) = vars.get(&name).filter(|v| !v.is_empty()) {
             // A value configure substituted — PACKAGE, VERSION and friends.
             //
@@ -127,12 +142,11 @@ pub(crate) fn plan_config_header(
             template_source: None,
             catalog_probes: probes,
             values,
+            // Macros a boolean build option controls, elicited by
+            // differential configure rather than read — autoconf states the
+            // mapping nowhere. See `autotools::resolve_flag_macros`.
+            options,
             // autoconf assembles a config header by substitution alone.
-            // autoconf has no marker distinguishing a user option from a
-            // probe result — `configure` is a shell script — so this stays
-            // empty and such macros escalate instead. See
-            // `model::ConfigHeader::options` and bzl-1p6.
-            options: Vec::new(),
             splices: Vec::new(),
             // AC_CONFIG_HEADERS: the template declares with `#undef`.
             dialect: crate::model::ConfigDialect::Undef,
@@ -525,6 +539,7 @@ ac_cs_usage=\"whatever\"\n";
             "config.in",
             "#undef PACKAGE_NAME\n#undef ASSUME_RAM\n",
             &vars,
+            &HashMap::new(),
         );
 
         assert_eq!(
@@ -613,6 +628,7 @@ ac_cs_usage=\"whatever\"\n";
             "config.h.in",
             "#undef HAVE_LIBUNISTRING\n",
             &vars,
+            &HashMap::new(),
         );
         assert!(
             header.values.is_empty(),
@@ -634,8 +650,13 @@ ac_cs_usage=\"whatever\"\n";
     #[test]
     fn a_shell_yes_is_the_fact_not_the_word() {
         let vars = HashMap::from([("HAVE_THING".to_string(), "yes".to_string())]);
-        let (header, unmapped) =
-            plan_config_header("config.h", "config.h.in", "#undef HAVE_THING\n", &vars);
+        let (header, unmapped) = plan_config_header(
+            "config.h",
+            "config.h.in",
+            "#undef HAVE_THING\n",
+            &vars,
+            &HashMap::new(),
+        );
         assert_eq!(
             header.values,
             vec![("HAVE_THING".to_string(), "1".to_string())],
@@ -658,6 +679,7 @@ ac_cs_usage=\"whatever\"\n";
             "config.h.in",
             "#undef PACKAGE_NAME\n#undef NOTE\n",
             &vars,
+            &HashMap::new(),
         );
         assert_eq!(
             header.values,
@@ -688,6 +710,7 @@ ac_cs_usage=\"whatever\"\n";
             "config.in",
             "#undef PACKAGE\n#undef BITSIZEOF_PTRDIFF_T\n#undef HAVE_UNISTD_H\n",
             &vars,
+            &HashMap::new(),
         );
 
         assert_eq!(
@@ -708,5 +731,51 @@ ac_cs_usage=\"whatever\"\n";
             "an empty variable is the ABSENCE of a value, so the macro is \
              escalated rather than emitted as an empty string"
         );
+    }
+    // A macro a boolean build option controls is RESOLVED, not escalated:
+    // the input states it (configure shows the macro appearing and vanishing
+    // with the flag), and codegen turns the pair into a bool_flag so the
+    // option stays settable. Before this, HAVE_GREETING escalated as
+    // unmapped and the agent had to decide.
+    #[test]
+    fn a_flag_controlled_macro_resolves_as_an_option() {
+        let flags = HashMap::from([("HAVE_GREETING".to_string(), "--enable-greeting".to_string())]);
+        let (header, unmapped) = plan_config_header(
+            "config.h",
+            "config.h.in",
+            "#undef HAVE_GREETING\n",
+            &HashMap::new(),
+            &flags,
+        );
+
+        assert!(unmapped.is_empty(), "the flag resolves it: {unmapped:?}");
+        assert_eq!(
+            header.options,
+            vec![("HAVE_GREETING".to_string(), "--enable-greeting".to_string())],
+            "and its provenance is the FLAG, which codegen needs to name the \
+             bool_flag target"
+        );
+        assert_eq!(
+            header.values,
+            vec![("HAVE_GREETING".to_string(), "1".to_string())],
+            "with the value config.status writes for an AC_DEFINE"
+        );
+    }
+
+    // The negative: a name no flag controls still escalates. Resolving one
+    // wrongly would bake a toolchain fact in as a project choice, which is
+    // the direction that fails silently.
+    #[test]
+    fn a_macro_no_flag_controls_still_escalates() {
+        let (header, unmapped) = plan_config_header(
+            "config.h",
+            "config.h.in",
+            "#undef HAVE_SOMETHING\n",
+            &HashMap::new(),
+            &HashMap::new(),
+        );
+
+        assert_eq!(unmapped, vec!["HAVE_SOMETHING".to_string()]);
+        assert!(header.options.is_empty(), "{:?}", header.options);
     }
 }

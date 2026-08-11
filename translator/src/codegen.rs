@@ -414,6 +414,11 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
 /// sanitised the same way every other emitted name is: an option name comes
 /// from the project and is not guaranteed label-legal.
 fn option_flag_name(option: &str) -> String {
+    // The Autotools frontend names an option by the flag a consumer types
+    // (`--enable-greeting`); the CMake one by a cache entry
+    // (`ENABLE_GREETING`). Stripping the dashes first keeps the two from
+    // rendering as `__enable_greeting` and `enable_greeting`.
+    let option = option.trim_start_matches('-');
     let sanitised: String = option
         .chars()
         .map(|c| if c.is_ascii_alphanumeric() { c } else { '_' })
