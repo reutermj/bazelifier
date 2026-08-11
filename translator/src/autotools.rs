@@ -655,6 +655,29 @@ fn build(build_dir: &Path, extra_args: &[&str]) -> Result<String, Error> {
         });
     let output = Command::new("make")
         .arg(format!("-j{jobs}"))
+        // Disable automake's REGENERATION rules, which try to re-run
+        // automake/autoconf when a prerequisite of `Makefile.in` looks
+        // newer than it. That is never what a conversion wants — the
+        // shipped `Makefile.in` is the input — and it FAILS here, because
+        // the source tree is read-only in the Bazel sandbox:
+        //
+        //   autom4te: error: cannot open autom4te.cache/requests:
+        //   Read-only file system
+        //
+        // libidn2 triggers it without being a stale checkout. Its
+        // configure runs AX_AM_MACROS_STATIC, which WRITES
+        // `aminclude_static.am` into the source tree at configure time —
+        // and that file is a prerequisite of `Makefile.in`, so it is
+        // always newer than the 2024 tarball. Nothing about the project
+        // is wrong; the rule simply cannot be satisfied here.
+        //
+        // `:` is the shell no-op, and overriding these four variables is
+        // automake's own documented way to say "do not regenerate".
+        // Measured: 3 regeneration attempts before, 0 after.
+        .arg("AUTOMAKE=:")
+        .arg("AUTOCONF=:")
+        .arg("ACLOCAL=:")
+        .arg("AUTOHEADER=:")
         // automake's escape hatch from AM_SILENT_RULES. A project that
         // enables it prints "  CC foo.o" instead of the command, and this
         // frontend's ENTIRE input is the command stream — so such a project
