@@ -13,6 +13,8 @@ The layering being measured against:
 ```
 cmake_api.rs / autotools.rs   frontends: read a build system, produce a model::BuildGraph
 ctest.rs, configure_file.rs   CMake-side, called BY cmake_api; they import nothing from it
+                              (as of 2026-08-11 config_header.rs — Autotools — imports
+                              `catalog_label` FROM configure_file.rs, against this line)
 ninja_deps.rs                 CMake-side, reads `ninja -t deps`
 headers.rs                    header classification, shared by both frontends
 paths.rs                      pure path geometry, knows nothing about either
@@ -43,9 +45,14 @@ found something real:
 
    To find candidates rather than just judge them: **list every distinct
    input each frontend reads, and check each is read from exactly one
-   module.** Doing that surfaces `main.rs` parsing libtool `.la` files and
-   wrapper scripts — a third Autotools input, read from the driver rather
-   than the frontend.
+   module.** The count grows faster than the docs do: the Autotools frontend
+   read two inputs when this file was written and reads seven now. Derive the
+   list rather than trusting any written one.
+
+   *(The `main.rs`-parses-libtool instance this question used to cite was
+   fixed by `libtool.rs`; an agent re-verified the fix in the 2026-08-11 run
+   and spent budget doing it. The live instance that run found instead:
+   `config_header.rs` importing `catalog_label` from `configure_file.rs`.)*
 3. **Where could the two frontends silently disagree?** The highest-value
    question, because the answer is invisible by construction — nothing fails,
    two equivalent projects just convert differently.

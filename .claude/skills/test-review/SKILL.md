@@ -85,23 +85,24 @@ comparison suite and hides every other result; see 015's `main.c`.
 
 ## Run what actually runs here
 
-**`bazel test //...` and `bazel query //...` do not work from the repo
-root** — name every tier explicitly. There is no `.bazelignore`, so the
-wildcard walks `cc_config/`, which is a nested module, and dies loading its
-packages:
+**`bazel test //...` works, and reaches FEWER tiers than it looks.** It was
+broken until 2026-08-11 — no `.bazelignore`, so the wildcard walked
+`cc_config/`, a nested module, and died loading its packages. Fixed; do not
+re-report it.
 
-```
-ERROR: error loading package 'cc_config/catalog': cannot load
-'//cc_config:config_header.bzl': no such file
+What it still does not reach is the point. Run it and read the count:
+
+```sh
+bazel test //...                              # 4 tests at the root
+cd cc_config && bazel test //cc_config:all    # 11 more, invisible above
 ```
 
-Two consequences worth knowing before you start. There is no CI here (no
-`.github/`, empty `.bazelrc`), so the "run everything" invocation *is* the
-workflow and it errors instead of running. And `cc_config`'s own tests —
-the Python expander tier, `spliced_test`, the probe assertions — are
-reachable only by `cd cc_config && bazel test //cc_config:all`. Nothing at
-the root reaches them, which makes them orphaned in practice however sound
-they are.
+`cc_config`'s own tests — the Python expander tier, `spliced_test`, the
+probe assertions — live in a nested module the root wildcard is now
+explicitly told to skip. They are sound and nothing at the root runs them,
+so a change that breaks the config-header expander passes a root-level
+green. There is also no CI (no `.github/`), so whatever a person types IS
+the gate.
 
 ```sh
 # Tests ALWAYS run through Bazel — never `cargo test` (see CLAUDE.md: cargo's
