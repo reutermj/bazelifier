@@ -1007,10 +1007,27 @@ pub(crate) enum TestEntry {
 /// directory that declares no `TESTS`. See
 /// [`accumulates_across_directories`] for the two kinds of variable and why
 /// only one of them merges.
-fn classify_tests_per_directory(database: &str) -> Vec<TestEntry> {
+fn classify_tests_per_directory(database: &str, build_root: &Path) -> Vec<TestEntry> {
     let mut entries = Vec::new();
-    for scope in directory_scopes(database) {
+    for (directory, scope) in directory_scopes(database) {
+        // Where the declaring `Makefile.am` sits, relative to the module.
+        // A `TESTS` entry names a file relative to ITS directory, so xz's
+        // `tests/Makefile.am` saying `test_files.sh` means
+        // `tests/test_files.sh` — and a bare name is what reaches the
+        // escalation and the copier, both of which resolve from the module
+        // root. Unqualified, both looked for it at the top level and found
+        // nothing.
+        let prefix = directory
+            .as_ref()
+            .and_then(|d| d.strip_prefix(build_root).ok())
+            .filter(|rel| !rel.as_os_str().is_empty());
         for entry in classify_tests(&scope) {
+            let entry = match (&prefix, entry) {
+                (Some(rel), TestEntry::Script(name)) if !name.contains('/') => {
+                    TestEntry::Script(rel.join(&name).to_string_lossy().into_owned())
+                }
+                (_, other) => other,
+            };
             if !entries.contains(&entry) {
                 entries.push(entry);
             }
@@ -1025,19 +1042,25 @@ fn classify_tests_per_directory(database: &str) -> Vec<TestEntry> {
 /// primary genuinely does span directories (xz declares `bin_PROGRAMS` in
 /// four). What must not span them is the `am__*` indirection, and keeping
 /// one map per directory is what stops it.
-fn directory_scopes(database: &str) -> Vec<HashMap<String, String>> {
+fn directory_scopes(database: &str) -> Vec<(Option<PathBuf>, HashMap<String, String>)> {
     let mut scopes = Vec::new();
     let mut current = String::new();
+    // `None` for whatever precedes the first announcement — make's own
+    // built-in database, which declares no tests.
+    let mut directory: Option<PathBuf> = None;
     for line in database.lines() {
-        if entering_directory(line).is_some() && !current.is_empty() {
-            scopes.push(parse_variables(&current));
-            current.clear();
+        if let Some(entered) = entering_directory(line) {
+            if !current.is_empty() {
+                scopes.push((directory.take(), parse_variables(&current)));
+                current.clear();
+            }
+            directory = Some(entered);
         }
         current.push_str(line);
         current.push('\n');
     }
     if !current.is_empty() {
-        scopes.push(parse_variables(&current));
+        scopes.push((directory, parse_variables(&current)));
     }
     scopes
 }
@@ -2152,7 +2175,7 @@ pub(crate) fn to_graph(
     // where the built binary already sits, so there is no CTest-style
     // WORKING_DIRECTORY to rebase.
     let (mut tests, mut unexpressed_tests) = (Vec::new(), Vec::new());
-    for entry in classify_tests_per_directory(database) {
+    for entry in classify_tests_per_directory(database, build_root) {
         match entry {
             TestEntry::Binary(name) => {
                 let label = target_label(&name);
@@ -2233,6 +2256,15 @@ pub(crate) fn to_graph(
             &unexpressed_tests
                 .iter()
                 .map(|t| t.command.clone())
+                .collect::<Vec<_>>(),
+            // Resolved against the SOURCE tree, which is what decides
+            // whether the file can be copied into the module at all. A
+            // `.test` wrapper automake generates into the build tree is
+            // absent here, and that is the case the item must not describe
+            // as "ships with the sources".
+            &unexpressed_tests
+                .iter()
+                .map(|t| source_dir.join(&t.command).is_file())
                 .collect::<Vec<_>>(),
             TestDialect::AutomakeTests,
         ));
@@ -3251,12 +3283,13 @@ am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
     #[test]
     fn a_directory_scoped_am_variable_does_not_leak_into_another_directory() {
         assert!(
-            classify_tests_per_directory(COLLIDING_EXEEXT).is_empty(),
+            classify_tests_per_directory(COLLIDING_EXEEXT, Path::new("/b/libmicrohttpd-1.0.1"))
+                .is_empty(),
             "src/testcurl declares TESTS = $(check_PROGRAMS) = $(am__EXEEXT_1), \
              and ITS am__EXEEXT_1 is empty. test_md5 belongs to src/microhttpd \
              and basicauthentication to doc/examples, which declares no TESTS \
              at all: {:#?}",
-            classify_tests_per_directory(COLLIDING_EXEEXT)
+            classify_tests_per_directory(COLLIDING_EXEEXT, Path::new("/b/libmicrohttpd-1.0.1"))
         );
     }
 
@@ -3273,7 +3306,7 @@ TESTS = $(check_PROGRAMS)\n\
 am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
 ";
         assert_eq!(
-            classify_tests_per_directory(DB),
+            classify_tests_per_directory(DB, Path::new("/b/proj")),
             vec![TestEntry::Binary("test_md5".to_string())],
             "src/microhttpd's own TESTS resolves against its own \
              am__EXEEXT_1, and doc/examples contributes nothing"

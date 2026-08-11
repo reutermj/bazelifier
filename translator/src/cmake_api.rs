@@ -337,7 +337,11 @@ pub fn discover(
     let mut tests = ctest::read_tests(build_dir)?;
     ctest::rebase_tests_to_module_root(&mut tests, &codemodel.module_root);
     let (tests, unexpressed_tests, test_escalation) =
-        ctest::partition_tests_by_buildable_command(tests, &codemodel.targets);
+        // The SOURCE tree, deliberately not `module_root`: commands were
+        // rebased against the module root, which at conversion time is the
+        // live BUILD tree, so a `.test` wrapper CMake generated there would
+        // answer "present" for a file no module ever carries.
+        ctest::partition_tests_by_buildable_command(tests, &codemodel.targets, source_dir);
 
     let cache = read_cache_values(&reply_dir)?;
     // Which of those the project exposed as a user choice. Kept separate

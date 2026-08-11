@@ -158,9 +158,17 @@ pub(crate) fn ctest_reply_to_tests(reply: CtestReply) -> Vec<Test> {
 /// Emitting a broken label instead would fail at analysis time in the
 /// unpacked workspace with `missing input file`, which says nothing about
 /// the construct that wasn't understood.
+///
+/// Separately from the split, this reports which unbuildable commands the
+/// module will CARRY, because the escalation used to assert that all of
+/// them do — see the `staged` argument.
 pub(crate) fn partition_tests_by_buildable_command(
     tests: Vec<Test>,
     targets: &[Target],
+    // The project's SOURCE tree, not the build tree and not the module root.
+    // Only a checked-in file is copied into the module, so this is the only
+    // base that answers whether a command will be there — see `staged`.
+    source_dir: &Path,
 ) -> (Vec<Test>, Vec<Test>, Option<NeedsAttention>) {
     let executables: HashSet<&str> = targets
         .iter()
@@ -178,8 +186,31 @@ pub(crate) fn partition_tests_by_buildable_command(
 
     let names: Vec<String> = unbuildable.iter().map(|t| t.name.clone()).collect();
     let commands: Vec<String> = unbuildable.iter().map(|t| t.command.clone()).collect();
-    let escalation =
-        ctest_command_not_a_target_needs_attention(&names, &commands, TestDialect::AddTest);
+    // Whether the module will CARRY this command, which is not the same as
+    // whether it exists on the conversion machine — and answering the
+    // easier question is how this first shipped backwards. At conversion
+    // time `source_dir` is the live build tree, so json-c's
+    // `tests/test1.test`, which CMake GENERATES there, answered `is_file()`
+    // and was reported as shipping. Nothing copies it, so the agent was
+    // pointed at a file that reaches no module.
+    //
+    // Only a checked-in file is copied, so the question is whether the
+    // command is one. `rebase_tests_to_module_root` already separated the
+    // candidates: a command inside the module root became RELATIVE, and one
+    // outside stayed absolute (zlib's `/usr/bin/cmake`, `/bin/gcov`).
+    let staged: Vec<bool> = commands
+        .iter()
+        .map(|command| {
+            let path = Path::new(command);
+            path.is_relative() && source_dir.join(path).is_file()
+        })
+        .collect();
+    let escalation = ctest_command_not_a_target_needs_attention(
+        &names,
+        &commands,
+        &staged,
+        TestDialect::AddTest,
+    );
     // The unbuildable tests are RETURNED, not just named. Naming them was
     // enough while the escalation was the whole handoff; it is not enough now
     // that the module has to arrive resolvable — see
@@ -345,7 +376,8 @@ mod tests {
         let tests = vec![test_running("xmltest", "xmltest", "/abs/build/xmltest")];
         let targets = vec![executable_target("xmltest")];
 
-        let (kept, unexpressed, escalation) = partition_tests_by_buildable_command(tests, &targets);
+        let (kept, unexpressed, escalation) =
+            partition_tests_by_buildable_command(tests, &targets, Path::new("/src"));
 
         assert_eq!(kept.len(), 1, "the test must still be emitted");
         assert!(
@@ -372,7 +404,8 @@ mod tests {
         // so an empty target list isn't what makes this fire.
         let targets = vec![executable_target("json_parse")];
 
-        let (kept, unexpressed, escalation) = partition_tests_by_buildable_command(tests, &targets);
+        let (kept, unexpressed, escalation) =
+            partition_tests_by_buildable_command(tests, &targets, Path::new("/src"));
 
         assert!(
             kept.is_empty(),
@@ -415,7 +448,8 @@ mod tests {
         ];
         let targets = vec![executable_target("xmltest")];
 
-        let (kept, unexpressed, escalation) = partition_tests_by_buildable_command(tests, &targets);
+        let (kept, unexpressed, escalation) =
+            partition_tests_by_buildable_command(tests, &targets, Path::new("/src"));
 
         assert_eq!(
             kept.iter().map(|t| t.name.as_str()).collect::<Vec<_>>(),

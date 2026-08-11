@@ -568,6 +568,29 @@ fn copy_referenced_sources(
         }
     }
 
+    // An UNEXPRESSED test's command, when it is a checked-in file. These
+    // reach no target — that is what makes them unexpressed — so the loop
+    // above never sees them, and the module shipped without them: json-c's
+    // 29 `.test` wrappers and xz's 4 `test_*.sh` are all checked in
+    // upstream and none arrived. The escalation then told an agent to point
+    // an `sh_test` at a file that was not there.
+    //
+    // Copying is not the same as expressing it: no rule runs these, and the
+    // escalation stays open. It makes the item's instruction followable
+    // rather than resolving it.
+    for test in &graph.unexpressed_tests {
+        if test.command.is_empty() || !copied.insert(test.command.as_str()) {
+            continue;
+        }
+        let from = module_root.join(&test.command);
+        // Only what the project ships. An absolute command is a system tool
+        // (zlib's `/usr/bin/cmake`), and a relative one that does not exist
+        // was generated into a build tree this module does not have.
+        if Path::new(&test.command).is_relative() && from.is_file() {
+            copy_into(&from, &out_dir.join(&test.command))?;
+        }
+    }
+
     Ok(())
 }
 

@@ -12,6 +12,17 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 #   src/run-suite.sh    -> escalates      (jansson's and xz's shape)
 #   $(UNDEFINED_TESTS)  -> escalates      (the database cannot answer it)
 #
+# It also covers, in one conversion, both sides of whether an escalated
+# command is STAGED into the module -- the claim the item makes about each:
+#
+#   src/run-suite.sh    -> copied in, and marked "present in this module"
+#   $(NOT_A_REAL_VAR)   -> nothing to copy, marked "NOT in this module"
+#
+# Both directions matter because the item's instruction (point an sh_test's
+# srcs at the script) is followable in the first case and fails at analysis
+# in the second. The item asserted the first unconditionally until 2026-08-11,
+# and was wrong for 178 of the corpus's 181 escalated commands.
+#
 # Deliberately RED: two of the three branches escalate by design, so this
 # fixture starts with an open needs_attention item and the agent stage closes
 # it. That is the cycle escalation-firing fixtures exist to exercise — see
