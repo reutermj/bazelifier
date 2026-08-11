@@ -26,11 +26,29 @@ local_resources: RAM=31220MB, CPU=32.0
 ```
 
 Bazel sizes its scheduler from the host. This container is 32 cores and
-30 GB — a ratio that is fine for ordinary code and wrong for this workload,
-because **every generated module builds libc++ and libunwind from source**
-via the llvm toolchain. That is a hard hermeticity requirement (CLAUDE.md),
-and it means a large share of the action graph is C++ compiles rather than
-cheap file operations.
+30 GB — a ratio that is fine for ordinary code and wrong for this workload.
+
+The reason is the llvm toolchain, but NOT in the way it first looks. Bazel
+resolves `@llvm` to a single canonical repo across the whole build, so
+libc++ and compiler-rt are built ONCE, not once per module — measured:
+
+```
+342  @@llvm++llvm+llvm-project//compiler-rt:builtins
+212  @@llvm++llvm+llvm-project//libcxx:libcxx
+ 72  @@llvm++llvm+llvm-project//libcxxabi:libcxxabi
+ 36  @@llvm++llvm+llvm-project//libunwind:libunwind
+```
+
+`bazel aquery` over the validation workspace finds exactly one
+`llvm-project` instance. The problem is the SHAPE of that one build: 775 of
+the 778 C++ compile actions in the graph belong to the toolchain, and they
+are all schedulable at once because they have no dependency on each other.
+So a single cold toolchain build is what saturates the machine — the corpus
+contributes 3 compile actions to that total.
+
+That also means the exposure is worst on a COLD cache and near zero
+afterwards, which is why this crashes intermittently rather than every
+time.
 
 There was no `.bazelrc` at all, so nothing capped it.
 

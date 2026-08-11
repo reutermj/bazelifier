@@ -2,10 +2,17 @@
 #
 # Bazel derives its scheduler budget from the host and reports
 # `RAM=31220MB, CPU=32.0`, so with no limits it will run up to 32 concurrent
-# actions. The workload here is unusually memory-heavy for its action count:
-# every generated module builds libc++ and libunwind FROM SOURCE via the llvm
-# toolchain (a hard requirement — see CLAUDE.md on hermeticity), so a large
-# share of those actions are C++ compiles rather than cheap file operations.
+# actions.
+#
+# What makes that expensive here is the llvm toolchain, which builds libc++,
+# libunwind and compiler-rt FROM SOURCE (a hard hermeticity requirement — see
+# CLAUDE.md). It is built ONCE, not once per module: Bazel resolves @llvm to a
+# single canonical repo. But that one build is 775 of the 778 C++ compile
+# actions in the validation workspace's graph, and they are mutually
+# independent, so all of them are schedulable at once.
+#
+# So the pressure is a COLD-cache phenomenon, which is why the container died
+# intermittently rather than every time.
 #
 # The failure mode is a container death rather than a Bazel error, which is
 # why it reads as a crash: the kernel kills the process group, so there is no
