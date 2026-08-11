@@ -317,6 +317,23 @@ pub fn discover(
     // Tests come from ctest, not the File API (see read_tests), and their
     // working directories are rebased against the same module root the
     // targets' paths were.
+    // Same invariant the Autotools frontend enforces: a module with no
+    // targets builds, compares and tests vacuously, so every downstream tier
+    // reports success against nothing. Checked here rather than in codegen
+    // because the frontend knows WHY it found none — a codemodel reply that
+    // reported only INTERFACE/UTILITY targets reads very differently from
+    // one that reported none at all.
+    if codemodel.targets.is_empty() {
+        return Err(Error::BuildFailed {
+            stderr: format!(
+                "the CMake codemodel reported NO buildable targets for {}. A \
+                 module with no targets passes every downstream check \
+                 vacuously, so this fails here instead.",
+                source_dir.display()
+            ),
+        });
+    }
+
     let mut tests = ctest::read_tests(build_dir)?;
     ctest::rebase_tests_to_module_root(&mut tests, &codemodel.module_root);
     let (tests, unexpressed_tests, test_escalation) =

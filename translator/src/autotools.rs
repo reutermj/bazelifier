@@ -284,6 +284,36 @@ pub fn discover(
     inject_headers_on_include_dirs(&mut graph.targets, &module_root);
     inject_textual_includes(&mut graph.targets, &module_root);
 
+    // A module with no targets cannot be built, compared or tested, so every
+    // downstream tier reports vacuous success — the repo's named recurring
+    // failure, one level below where the empty-stream guard above looks.
+    //
+    // Those two guards are not redundant. The stream guard catches "make did
+    // nothing"; this catches "make did something and none of it became a
+    // target", which is what a wrong `make` invocation produces. Measured:
+    // passing AUTOMAKE=: to suppress automake's regeneration rules made
+    // libidn2 convert to 29 config headers and ZERO targets, exit 0, module
+    // written. Nothing objected until a sweep delta was read by hand.
+    //
+    // Config headers and tests are named in the message because they are
+    // what a zero-target conversion usually DOES produce, and seeing "29
+    // config headers, 0 targets" points at the build invocation rather than
+    // at the project.
+    if graph.targets.is_empty() {
+        return Err(Error::BuildFailed {
+            stderr: format!(
+                "the conversion produced NO build targets (but {} config \
+                 header(s) and {} test(s)). `make` ran and its command stream \
+                 was not empty, so the loss is between the stream and target \
+                 extraction — check the `make` invocation before suspecting \
+                 the project. A module with no targets builds, compares and \
+                 tests vacuously, so this fails here rather than downstream.",
+                graph.config_headers.len(),
+                graph.tests.len(),
+            ),
+        });
+    }
+
     Ok(Discovery {
         graph,
         // Unmapped config macros, and sources that escaped the module. Two
