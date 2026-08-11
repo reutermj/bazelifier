@@ -1,0 +1,35 @@
+# Resource limits, because this container has 32 cores and only 30 GB of RAM.
+#
+# Bazel derives its scheduler budget from the host and reports
+# `RAM=31220MB, CPU=32.0`, so with no limits it will run up to 32 concurrent
+# actions. The workload here is unusually memory-heavy for its action count:
+# every generated module builds libc++ and libunwind FROM SOURCE via the llvm
+# toolchain (a hard requirement — see CLAUDE.md on hermeticity), so a large
+# share of those actions are C++ compiles rather than cheap file operations.
+#
+# The failure mode is a container death rather than a Bazel error, which is
+# why it reads as a crash: the kernel kills the process group, so there is no
+# "out of memory" in Bazel's log and `memory.events` shows oom_kill 0 because
+# the counter dies with the cgroup.
+#
+# --local_resources=memory caps what the SCHEDULER believes it has, which is
+# the only knob that limits concurrency by memory rather than by count.
+# 24000 leaves ~6 GB for the JVM server, the language servers, and the
+# ground-truth builds that run inside actions (see below).
+build --local_resources=memory=24000
+
+# Half the cores. Not a throughput choice — it is the other half of the
+# memory cap: an action here can itself be a `make -j`, so Bazel's job count
+# and the inner build's job count multiply. Capping both is what bounds the
+# product.
+build --jobs=16
+
+# Applies to test actions too, which is where the validation workspace's
+# comparisons and the fixture conversions run.
+test --local_resources=memory=24000
+test --jobs=16
+
+# The JVM server holds the analysis graph for ~47 projects. Left unbounded it
+# grows until the container is under pressure from the server ALONE, before a
+# single action runs.
+startup --host_jvm_args=-Xmx4g
