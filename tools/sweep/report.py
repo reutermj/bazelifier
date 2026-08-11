@@ -179,6 +179,11 @@ STYLE = f"""<style>
   td.n, th.n {{ text-align: right; font-variant-numeric: tabular-nums; }}
   .up {{ color: #a03e52; }} .down {{ color: #4a7c59; }}
   .flat, .new {{ color: {MUTED}; }}
+  /* Neither good nor bad — the count is unchanged and the text is not, and
+     only a human can say which. Deliberately not the red/green pair. */
+  .drifted {{ color: #8a5a9e; }}
+  ul.drift {{ margin: 0.4rem 0 0 1.1rem; padding: 0; }}
+  ul.drift li {{ margin: 0.15rem 0; color: {MUTED}; }}
   .cards {{ display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 0 0 2rem; }}
   .card b {{ display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }}
   .card span {{ color: {MUTED}; font-size: .8rem; }}
@@ -228,6 +233,33 @@ def series_for(rows: list[dict], project: str) -> list[tuple[dict, dict]]:
         if rec is not None:
             out.append((sweep, rec))
     return out
+
+
+def content_drift(pairs: list[tuple[dict, dict]]) -> list[dict]:
+    """Sweeps where this project's escalation TEXT changed but its count did
+    not — the class of regression every count on this page is blind to.
+
+    An escalation's digest covers what the item SAYS (see
+    `needs_attention::digest`), so this catches a change in which names are
+    escalated when the number of items is identical: xz reports
+    `{unmapped_config_macros: 1}` whether that item names 70 macros or 77.
+
+    Only reported when the count held steady. A project that gained or lost
+    an escalation already moves the chart above, and marking it here too
+    would bury the case this exists for.
+
+    Silent across the boundary where digests were introduced (2026-08-11):
+    a row without one cannot be compared, and treating its absence as a
+    change would mark every project on that one commit.
+    """
+    marks = []
+    for (_, before), (sweep, after) in zip(pairs, pairs[1:]):
+        old, new = before.get("escalation_digest"), after.get("escalation_digest")
+        if not old or not new:
+            continue
+        if old != new and before["escalations"] == after["escalations"]:
+            marks.append(sweep)
+    return marks
 
 
 def render_project(rows: list[dict], project: str, post: dict | None) -> str:
@@ -288,6 +320,24 @@ def render_project(rows: list[dict], project: str, post: dict | None) -> str:
         for k, n in sorted(latest["escalations_by_kind"].items(), key=lambda kv: -kv[1])
     ) or '<tr><td colspan="2" class="flat">none open</td></tr>'
 
+    drift = content_drift(pairs)
+    drift_section = ""
+    if drift:
+        when = "".join(
+            f"<li><code>{html.escape(s['commit'][:7])}</code> "
+            f"({html.escape(s.get('date', '?'))})</li>"
+            for s in drift
+        )
+        drift_section = f"""
+<section><h2>Escalation content changed</h2>
+<p class="sub">At these commits this project's escalation TEXT changed while
+the count above stayed the same — so nothing else on this page moved. That
+is either a translator change reaching the item, or a regression: the
+counts cannot tell those apart, which is why the change is marked rather
+than judged.</p>
+<ul class="drift">{when}</ul>
+</section>"""
+
     return f"""<title>{html.escape(project)} — bazelifier metrics</title>
 {STYLE}
 <p class="sub"><a href="index.html">← all projects</a></p>
@@ -320,6 +370,7 @@ shows what the translator alone achieves, which is the half that should be
 reproducible.</p>
 {post_section}
 </section>
+{drift_section}
 """
 
 
@@ -373,10 +424,19 @@ def render(rows: list[dict], post: dict[str, dict]) -> str:
     body_rows = []
     for p in per_project:
         was = prev.get(p["project"], {}).get("escalations")
+        old_digest = prev.get(p["project"], {}).get("escalation_digest")
+        new_digest = p.get("escalation_digest")
         if was is None:
             delta = '<span class="new">new</span>'
         elif was == p["escalations"]:
-            delta = '<span class="flat">—</span>'
+            # The count held. That used to render as a flat dash whether the
+            # escalation's TEXT was identical or completely rewritten, which
+            # is the blindness this column most needed fixing: two real
+            # regressions shipped with every count on this page unchanged.
+            if old_digest and new_digest and old_digest != new_digest:
+                delta = '<span class="drifted">≠ text changed</span>'
+            else:
+                delta = '<span class="flat">—</span>'
         else:
             arrow = "▲" if p["escalations"] > was else "▼"
             css = "up" if p["escalations"] > was else "down"

@@ -19,6 +19,11 @@
   td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
   .up { color: #a03e52; } .down { color: #4a7c59; }
   .flat, .new { color: #7b8794; }
+  /* Neither good nor bad — the count is unchanged and the text is not, and
+     only a human can say which. Deliberately not the red/green pair. */
+  .drifted { color: #8a5a9e; }
+  ul.drift { margin: 0.4rem 0 0 1.1rem; padding: 0; }
+  ul.drift li { margin: 0.15rem 0; color: #7b8794; }
   .cards { display: flex; flex-wrap: wrap; gap: 1.5rem; margin: 0 0 2rem; }
   .card b { display: block; font-size: 1.6rem; font-variant-numeric: tabular-nums; }
   .card span { color: #7b8794; font-size: .8rem; }
@@ -59,3 +64,4 @@ shows what the translator alone achieves, which is the half that should be
 reproducible.</p>
 <p class="sub">Whether it is currently GREEN is a separate question, and the agent stage has never been run for it — so this page says "not measured" rather than implying "not green". Run <code>python3 tools/sweep/sweep.py --post-agent 001-programs-and-libraries --append metrics/history.jsonl</code>.</p>
 </section>
+
