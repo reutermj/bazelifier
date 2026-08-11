@@ -377,7 +377,21 @@ pub(crate) fn parse_resolved_macro_values(config_status: &str) -> HashMap<String
         let Some((name, rest)) = rest.split_once("\"]=") else {
             continue;
         };
-        let value = rest.trim().trim_matches('"').trim();
+        // `D["NAME"]=" \"str\""` for a C string, `D["NAME"]=" 1"` for a
+        // number. The OUTER quotes are the shell's, wrapping the whole
+        // assignment; the `\"` pairs inside are the value's own, escaped so
+        // the shell passes them through. Unescaping is what makes the two
+        // cases agree — an earlier `trim_matches('"')` stripped
+        // symmetrically and ate a string's closing quote, shipping
+        // `\".libs/\` as evidence.
+        let value = rest
+            .trim()
+            .strip_prefix('"')
+            .and_then(|v| v.strip_suffix('"'))
+            .unwrap_or_else(|| rest.trim())
+            .trim()
+            .replace("\\\"", "\"");
+        let value = value.as_str();
         if !name.is_empty() && !value.is_empty() {
             values.insert(name.to_string(), value.to_string());
         }
@@ -497,16 +511,47 @@ ac_cs_usage=\"whatever\"\n";
             Some("1234"),
             "{values:?}"
         );
-        assert!(
-            values
-                .get("PACKAGE_NAME")
-                .is_some_and(|v| v.contains("Libidn2")),
-            "a C string literal keeps its own quotes: {values:?}"
+        // `contains("Libidn2")` was the assertion here, and it passed on the
+        // mangled `\"Libidn2\` just as readily as on the real value — the
+        // whole defect sits in the characters either side of the name.
+        assert_eq!(
+            values.get("PACKAGE_NAME").map(String::as_str),
+            Some("\"Libidn2\""),
+            "a C string literal keeps its own quotes, and autoconf's shell \
+             escaping of them is not part of the value: {values:?}"
         );
         assert!(
             !values.contains_key("ac_cs_usage"),
             "only the D[] table, not every shell assignment in the file: \
              {values:?}"
+        );
+    }
+
+    // Real bytes from libmicrohttpd's config.status. autoconf writes a C
+    // string literal as ` \"...\"` — a leading space, then the quotes
+    // ESCAPED for the shell — so the value ends in a quote character.
+    // `trim_matches('"')` strips symmetrically and took the closing one,
+    // shipping `\".libs/\` to the agent as "what configure resolved this
+    // to". A value that does not parse is worse than no evidence, because
+    // the agent cannot tell it from the real thing.
+    #[test]
+    fn a_shell_escaped_string_value_keeps_both_of_its_quotes() {
+        let status = "\
+D[\"LT_OBJDIR\"]=\" \\\".libs/\\\"\"\n\
+D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
+        let values = parse_resolved_macro_values(status);
+
+        assert_eq!(
+            values.get("LT_OBJDIR").map(String::as_str),
+            Some("\".libs/\""),
+            "both quotes survive: the value IS a quoted C string, and \
+             `\\\".libs/\\` is not one: {values:?}"
+        );
+        // An empty C string is a real resolved value, not an absent one.
+        assert_eq!(
+            values.get("PACKAGE_URL").map(String::as_str),
+            Some("\"\""),
+            "an empty string literal is still two quotes: {values:?}"
         );
     }
 
