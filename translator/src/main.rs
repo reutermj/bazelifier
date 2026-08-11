@@ -245,7 +245,16 @@ fn write_conversion_summary(
 ) -> std::io::Result<()> {
     let mut escalations: Vec<serde_json::Value> = needs_attention
         .iter()
-        .map(|item| serde_json::json!({ "kind": item.kind, "subject": item.subject }))
+        .map(|item| {
+            serde_json::json!({
+                "kind": item.kind,
+                "subject": item.subject,
+                // What the item SAYS, not just that it exists — see
+                // `needs_attention::digest`. Without this the sweep cannot
+                // tell 70 escalated macros from 77.
+                "digest": needs_attention::digest(item),
+            })
+        })
         .collect();
     // Sorted so two runs of the same input produce the same bytes; the sweep
     // diffs these, and an ordering difference would read as a change.

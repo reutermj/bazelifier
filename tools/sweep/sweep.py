@@ -38,11 +38,15 @@ bugs from this repo's history:
   caught    a conversion that silently drops a target (xz.targets 3 -> 2, the
             recursive-primaries bug: the namesake binary vanished and the
             conversion still reported success)
-  MISSED    a change WITHIN an escalation (removing a catalog probe moved xz
-            from 137 to 141 unmapped macros; the item count stayed at 1, so
-            nothing moved) -- bzl-ccv.8
-  MISSED    a regression that changes neither counts nor kinds (header staging
-            resolving against the wrong base)
+  caught    a change WITHIN an escalation, since 2026-08-11: each item
+            carries a digest of its RENDERED text, and a project whose
+            digest moved while its count did not is reported separately.
+            Verified by reintroducing the am__ merge bug -- xz's fabricated
+            test names went 8 -> 18 with the item count unchanged, and the
+            sweep named five affected projects (bzl-ccv.8).
+  MISSED    a regression that changes neither counts nor kinds NOR any
+            escalation text (header staging resolving against the wrong
+            base changed only which files were copied)
 
 So this is a coarse net, not a safety net. It sees the shape of a conversion
 change; it does not see the conversion get subtly wrong. The post-agent half
@@ -51,6 +55,7 @@ is not a matter of counting.
 """
 
 import argparse
+import hashlib
 import json
 import pathlib
 import re
@@ -93,9 +98,36 @@ def collect(unpacked: pathlib.Path) -> list[dict]:
                 "config_headers": data["config_headers"],
                 "escalations": sum(data["escalations_by_kind"].values()),
                 "escalations_by_kind": data["escalations_by_kind"],
+                # What the escalations SAY, not just how many there are.
+                # Every count above is blind to an item whose content moved:
+                # xz reports `{unmapped_config_macros: 1}` whether that item
+                # names 70 macros or 77, so two real regressions shipped with
+                # every field here byte-identical. See bzl-ccv.8.
+                #
+                # One value per project rather than per item: the sweep's
+                # question is "did this project's escalations change", and a
+                # list would grow the row without answering it any better.
+                "escalation_digest": escalation_digest(data.get("escalations", [])),
             }
         )
     return records
+
+
+def escalation_digest(escalations: list[dict]) -> str:
+    """Combines a project's per-item digests into one comparable value.
+
+    Sorted, so two runs that emit the same items in a different order agree
+    — the sweep would otherwise report drift on every run and the signal
+    would be ignored, which is worse than not having it.
+
+    Empty for a project with no escalations, which reads better in a diff
+    than a hash of nothing and is exactly as comparable.
+    """
+    digests = sorted(e.get("digest", "") for e in escalations)
+    if not digests:
+        return ""
+    combined = hashlib.sha256("\n".join(digests).encode()).hexdigest()
+    return combined[:16]
 
 
 def unpack_workspace(dest: pathlib.Path) -> pathlib.Path:
@@ -347,7 +379,7 @@ def run_pre_agent() -> dict:
     }
 
 
-def report(sweep: dict) -> str:
+def report(sweep: dict, history: pathlib.Path | None = None) -> str:
     rows = sorted(sweep["projects"], key=lambda r: (-r["escalations"], r["project"]))
     width = max(len(r["project"]) for r in rows)
     out = [
@@ -377,8 +409,59 @@ def report(sweep: dict) -> str:
     ]
     for kind, n in sorted(by_kind.items(), key=lambda kv: (-kv[1], kv[0])):
         out.append(f"  {n:>3}  {kind}")
+
+    changed = escalation_content_drift(rows, history)
+    if changed:
+        # The whole point of the digest: these projects' counts did not
+        # move, so nothing else in this report mentions them.
+        out += [
+            "",
+            "escalation CONTENT changed (same count, different text):",
+        ]
+        out += [f"  {p}" for p in changed]
+
     out.append(f"\npre-agent sweep in {sweep['seconds']}s at {sweep['commit']}")
     return "\n".join(out)
+
+
+def escalation_content_drift(
+    rows: list[dict], history: pathlib.Path | None
+) -> list[str]:
+    """Projects whose escalation TEXT differs from the last recorded sweep.
+
+    Compared against the most recent history row rather than a frozen
+    expectation, because the corpus legitimately moves and a frozen list
+    would need updating on every intentional change — the way to make a
+    check get ignored. Drift here is a prompt to look, not a failure.
+
+    Silent when there is no history to compare against, which is also the
+    first-run case. A project absent from the previous sweep is new, and new
+    is reported by the count columns already.
+    """
+    if history is None or not history.exists():
+        return []
+    rows_by_project = {r["project"]: r for r in rows}
+    previous = [
+        json.loads(line) for line in history.read_text().splitlines() if line.strip()
+    ]
+    if not previous:
+        return []
+    last = previous[-1]
+
+    changed = []
+    for old in last.get("projects", []):
+        new = rows_by_project.get(old["project"])
+        if new is None or "escalation_digest" not in old:
+            continue
+        # Only when the COUNT is unchanged. A project that gained or lost an
+        # escalation already shows up in the table above, and reporting it
+        # twice would bury the case this exists for.
+        if (
+            old["escalation_digest"] != new["escalation_digest"]
+            and old["escalations"] == new["escalations"]
+        ):
+            changed.append(old["project"])
+    return sorted(changed)
 
 
 def append_history(path: pathlib.Path, sweep: dict) -> None:
@@ -551,7 +634,11 @@ def main() -> int:
         return 0 if green else 1
 
     sweep = run_pre_agent()
-    print(report(sweep))
+    # Compared against the committed history even without `--append`, because
+    # `python3 tools/sweep/sweep.py` with no flags is the invocation CLAUDE.md
+    # prescribes after a change — and a drift check that only runs when you
+    # remember a flag is one that reports nothing on the run that mattered.
+    print(report(sweep, args.append or REPO / "metrics" / "history.jsonl"))
     if args.json:
         args.json.write_text(json.dumps(sweep, indent=2, sort_keys=True) + "\n")
     if args.append:

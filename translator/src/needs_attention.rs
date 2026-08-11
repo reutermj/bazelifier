@@ -51,6 +51,31 @@ pub struct NeedsAttention {
 /// Renders one escalation as the fixed section structure every
 /// `needs_attention/<NNN>-<slug>.md` follows. See
 /// docs/architecture/needs-attention-interface.md.
+/// A digest of everything this item says to the agent.
+///
+/// Exists because the sweep could not see an escalation CHANGE, only appear
+/// or disappear: `escalations_by_kind` is `{unmapped_config_macros: 1}`
+/// whether that item names 70 macros or 77, and `subject` for that kind is
+/// the header FILENAME, so 351 escalated names across the corpus hid behind
+/// 14 items. Two regressions in one day moved names between resolved and
+/// escalated with every sweep field byte-identical.
+///
+/// Over the RENDERED text rather than a per-kind field, because that is
+/// exactly what ships: any change an agent would read changes it, and no
+/// kind has to opt in. The cost is that rewording an escalation moves it
+/// too — correct, if noisy, since the item's text IS output (CLAUDE.md).
+///
+/// Not cryptographic and not stable across Rust releases: it detects
+/// same-version drift, which is what a sweep comparing two commits needs.
+/// A digest that must survive a toolchain upgrade would need a real hash
+/// function, and that is a dependency this crate does not have.
+pub fn digest(item: &NeedsAttention) -> String {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    render(item).hash(&mut hasher);
+    format!("{:016x}", hasher.finish())
+}
+
 pub fn render(item: &NeedsAttention) -> String {
     let NeedsAttention {
         kind,
@@ -1525,6 +1550,39 @@ mod tests {
         assert!(
             rendered.contains("## Expected output\n\nexpected text\n"),
             "{rendered}"
+        );
+    }
+
+    // The gap this closes, stated as the case that used to be invisible:
+    // xz's config-header item names 77 macros and reports as
+    // `{unmapped_config_macros: 1}`, so dropping one moved no sweep field.
+    // Both directions, because a digest that never changes and a digest
+    // that always changes are equally useless.
+    #[test]
+    fn the_digest_follows_what_the_item_says_not_how_many_items_there_are() {
+        let item = |names: &[&str]| {
+            unmapped_config_macros_needs_attention(
+                "config.h",
+                "config.h.in",
+                &names.iter().map(|n| n.to_string()).collect::<Vec<_>>(),
+                ConfigDialect::Autoconf,
+                &HashMap::new(),
+            )
+        };
+        let seventy = item(&["HAVE_A", "HAVE_B", "HAVE_C"]);
+        let seventy_seven = item(&["HAVE_A", "HAVE_B", "HAVE_C", "HAVE_D"]);
+
+        assert_ne!(
+            digest(&seventy),
+            digest(&seventy_seven),
+            "one more escalated macro is a different item — this is the \
+             regression that shipped twice with every sweep field identical"
+        );
+        assert_eq!(
+            digest(&seventy),
+            digest(&item(&["HAVE_A", "HAVE_B", "HAVE_C"])),
+            "and the same input must give the same digest, or every sweep \
+             reports drift and the signal is worthless"
         );
     }
 
