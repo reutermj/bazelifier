@@ -157,9 +157,6 @@ pub fn discover(
     // Which of those a BOOLEAN build option controls. Elicited by
     // re-configuring per flag; see `resolve_flag_macros` for why it cannot
     // simply be read, and why valued flags are left out.
-    // Macros the project defines with an explicit literal. Read once per
-    // conversion; see `read_traced_defines`.
-    let traced = read_traced_defines(source_dir, build_dir);
     let flag_macros = resolve_flag_macros(
         source_dir,
         build_dir,
@@ -171,8 +168,7 @@ pub fn discover(
         let Ok(text) = std::fs::read_to_string(&template_path) else {
             continue;
         };
-        let (header, unmapped) =
-            plan_config_header(&output, &template, &text, &vars, &flag_macros, &traced);
+        let (header, unmapped) = plan_config_header(&output, &template, &text, &vars, &flag_macros);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
                 &output,
@@ -366,108 +362,6 @@ fn inject_textual_includes(targets: &mut [Target], module_root: &Path) {
 ///
 /// Autotools supports building outside the source directory, which is what
 /// keeps the source tree clean the way CMake's `-B` does.
-/// The macros a project defines with an explicit literal, from
-/// `autoconf --trace` — `name -> value`.
-///
-/// autoconf's OWN m4 expansion, invoked as a tool. Not a parse of
-/// `configure.ac`, which could not answer this: xz builds its macro names
-/// with `AC_DEFINE(HAVE_DECODER_[]m4_toupper(NAME), ...)` inside an
-/// `m4_foreach`, so the literal `HAVE_DECODER_LZMA2` appears in the source
-/// exactly zero times. The trace prints it, resolved.
-///
-/// The VALUE is the project's own literal — `AC_DEFINE([SPEC___THREAD],
-/// [__thread])` is a compiler-dialect choice the project made — so carrying
-/// it over reproduces the project's build rather than the conversion host's.
-///
-/// TWO CASES ARE DELIBERATELY EXCLUDED, and both are what separate this
-/// from guessing:
-///
-/// - An EMPTY value. `AC_CHECK_HEADERS`, `AC_CHECK_FUNCS` and
-///   `AC_USE_SYSTEM_EXTENSIONS` all trace with no `$2`, because autoconf
-///   supplies the answer from a probe. Those must stay probes.
-/// - A macro with MORE THAN ONE distinct value. libmicrohttpd's
-///   `_MHD_EXTERN` has three — `visibility("default")`,
-///   `__declspec(dllexport)`, `extern` — one per platform, and picking any
-///   bakes this host's in.
-///
-/// Runs against a COPY of the source tree: autom4te always creates
-/// `autom4te.cache` in its working directory and honours no flag to move it
-/// (`-C` adds a location, `--no-cache` is an autom4te option `autoconf`
-/// rejects), and the sandbox source is read-only. A WHOLE copy, because
-/// `configure.ac` can reference anything — xz's `AC_INIT` shells out to
-/// `build-aux/version.sh`, and a partial copy fails with "AC_INIT should be
-/// called with package and version arguments". Measured ~1 MB and under
-/// 60ms per corpus project.
-///
-/// Empty when the trace cannot run, so an unresolvable name escalates —
-/// the status quo rather than a regression.
-pub(crate) fn read_traced_defines(
-    source_dir: &Path,
-    scratch_root: &Path,
-) -> HashMap<String, String> {
-    let Ok(source) = absolutize(source_dir) else {
-        return HashMap::new();
-    };
-    let scratch = scratch_root.join("_autoconf_trace");
-    let _ = std::fs::remove_dir_all(&scratch);
-    if copy_tree(&source, &scratch).is_err() {
-        return HashMap::new();
-    }
-    let traced = Command::new("autoconf")
-        .arg("--trace=AC_DEFINE:$1|$2")
-        .current_dir(&scratch)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map(|o| parse_traced_defines(&String::from_utf8_lossy(&o.stdout)))
-        .unwrap_or_default();
-    let _ = std::fs::remove_dir_all(&scratch);
-    traced
-}
-
-/// Recursive directory copy, for staging the tree the trace reads.
-fn copy_tree(from: &Path, to: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(to)?;
-    for entry in std::fs::read_dir(from)? {
-        let entry = entry?;
-        let dest = to.join(entry.file_name());
-        // `file_type` does not follow symlinks, which is what we want: the
-        // external repo IS a symlink into Bazel's content cache.
-        if entry.file_type()?.is_dir() {
-            copy_tree(&entry.path(), &dest)?;
-        } else if entry.path().is_file() {
-            std::fs::copy(entry.path(), dest)?;
-        }
-    }
-    Ok(())
-}
-
-/// The `name -> value` map from `autoconf --trace=AC_DEFINE:$1|$2` output.
-/// Split from the invocation so a captured real trace can drive it.
-pub(crate) fn parse_traced_defines(trace: &str) -> HashMap<String, String> {
-    // Counted first: a name defined in several conditional branches has no
-    // single answer and must not be resolved at all.
-    let mut values: HashMap<&str, std::collections::HashSet<&str>> = HashMap::new();
-    for line in trace.lines() {
-        let Some((name, value)) = line.split_once('|') else {
-            continue;
-        };
-        if !name.is_empty() {
-            values.entry(name).or_default().insert(value);
-        }
-    }
-    values
-        .into_iter()
-        .filter_map(|(name, vs)| {
-            let mut it = vs.into_iter();
-            let (Some(value), None) = (it.next(), it.next()) else {
-                return None; // several distinct definitions: conditional
-            };
-            (!value.is_empty()).then(|| (name.to_string(), value.to_string()))
-        })
-        .collect()
-}
-
 /// A build option the project exposes, as `configure --help` describes it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ConfigureFlag {
