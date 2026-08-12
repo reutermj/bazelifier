@@ -184,6 +184,10 @@ const CATALOG_DEFINES: &[&str] = &[
     // AC_CHECK_DECLS results — autoconf's ternary family (always defined, to
     // 1 or 0). Catalog headers come from `configure`'s own ac_fn_check_decl
     // calls, not by hand.
+    // Probe-decided facts the Autotools frontend was freezing as literals;
+    // each is an AC_LINK_IFELSE in the project's m4, so the consumer can
+    // re-run it. See bzl-7jy and the catalog's note.
+    "HAVE_DCGETTEXT",
     "HAVE_DECL_CPU_SETSIZE",
     "HAVE_DECL_CTL_HW",
     "HAVE_DECL_CTL_NET",
@@ -205,8 +209,11 @@ const CATALOG_DEFINES: &[&str] = &[
     // but not the header (see the catalog's note).
     "HAVE_FUTIMES",
     "HAVE_FUTIMESAT",
+    "HAVE_GETTEXT",
     "HAVE_GETOPT_LONG_ONLY",
+    "HAVE_LINUX_SENDFILE",
     "HAVE_PLEDGE",
+    "HAVE_PTHREAD_SETNAME_NP_GNU",
     "HAVE_UTIME",
     "HAVE_UTIMES",
     "HAVE__FUTIME",

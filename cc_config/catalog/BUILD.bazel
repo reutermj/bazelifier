@@ -137,6 +137,42 @@ cc_config_catalog(
         # indistinguishable from a platform that genuinely lacks it — the
         # same silent failure the header entries avoid by reading the path
         # out of `configure`.
+        # Facts the AUTOTOOLS frontend was freezing as project literals. Each
+        # is decided by an AC_LINK_IFELSE in the project's m4 — a compile
+        # test, so the consumer can re-run it — but the macro name and the
+        # probe's cache key are unrelated (xz defines HAVE_DCGETTEXT off
+        # `gt_cv_func_gnugettext1_libc`), so nothing downstream could tell
+        # the answer came from a probe. Carried here, they resolve at the
+        # catalog branch and never reach the trace. See bzl-7jy.
+        #
+        # Headers hand-supplied and verified both directions against the real
+        # toolchain, per the note above: all four declare cleanly on glibc,
+        # and dcgettext against <stdio.h> correctly fails to declare.
+        (
+            "dcgettext",
+            ["libintl.h"],
+            "HAVE_DCGETTEXT",
+        ),
+        (
+            "gettext",
+            ["libintl.h"],
+            "HAVE_GETTEXT",
+        ),
+        # Linux-style four-argument sendfile(2). The BSD/macOS form has a
+        # different signature, so a platform lacking THIS one must report
+        # absent rather than falling back.
+        (
+            "sendfile",
+            ["sys/sendfile.h"],
+            "HAVE_LINUX_SENDFILE",
+        ),
+        # GNU/Linux form: two arguments. FreeBSD and Darwin spell it
+        # differently, which is why libmicrohttpd probes for each separately.
+        (
+            "pthread_setname_np",
+            ["pthread.h"],
+            "HAVE_PTHREAD_SETNAME_NP_GNU",
+        ),
         (
             "futimes",
             ["sys/time.h"],
