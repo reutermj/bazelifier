@@ -671,18 +671,23 @@ fn copy_runtime_tree(src: &Path, dst: &Path) -> std::io::Result<()> {
         }
         let child_src = entry.path();
         let child_dst = dst.join(&name);
-        // Never a symlink. A project's `configure` can create one in the
-        // BUILD directory pointing back into the source tree — libidn2 does,
-        // for the GNUmakefile maintainer wrapper — and under Bazel that
-        // target is a sandbox path that stops existing when the action ends.
-        // Copying it makes the whole tree artifact invalid ("child
-        // GNUmakefile is a dangling symbolic link"), which fails the
-        // conversion rather than losing one file.
+        // A symlink whose target does not resolve. A project's `configure`
+        // can leave one in the BUILD directory — libidn2 does, for the
+        // GNUmakefile maintainer wrapper — pointing at a path that stops
+        // existing when the action ends. Copying it makes the whole tree
+        // artifact invalid ("child GNUmakefile is a dangling symbolic
+        // link"), which fails the conversion rather than losing one file.
         //
-        // Checked with `symlink_metadata`, not `is_dir`/`exists`: those
-        // follow the link, so a dangling one reads as absent and a live one
-        // reads as whatever it points at.
-        if entry.file_type().is_ok_and(|t| t.is_symlink()) {
+        // The test is whether it RESOLVES, not whether it is a link, and
+        // that distinction is the whole point: Bazel stages an action's
+        // inputs AS symlinks, so skipping every link made this function a
+        // silent no-op under Bazel for every corpus project — json-c lost
+        // 38 `.expected` files and `test-defs.sh`, while direct runs over a
+        // real checkout staged them and looked correct.
+        //
+        // `exists()` follows the link, which is exactly what is wanted here;
+        // `symlink_metadata` below is what distinguishes the two cases.
+        if entry.file_type().is_ok_and(|t| t.is_symlink()) && !child_src.exists() {
             continue;
         }
         if child_src.is_dir() {
@@ -716,6 +721,52 @@ fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    // Bazel stages an action's inputs as symlinks, so under Bazel EVERY
+    // entry is one and the dangling-link guard discarded all of them:
+    // `copy_test_runtime_data` was a silent no-op for every corpus project,
+    // while direct runs over a real checkout staged everything and looked
+    // correct. json-c lost 38 `.expected` files and `test-defs.sh` that way.
+    //
+    // The distinction that matters is whether the target RESOLVES, not
+    // whether the entry is a link.
+    #[test]
+    fn copy_runtime_tree_follows_a_live_symlink() {
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_livelink_{}_{}", std::process::id(), line!()));
+        let real = dir.join("real");
+        let src = dir.join("src");
+        let dst = dir.join("dst");
+        std::fs::create_dir_all(&real).unwrap();
+        std::fs::create_dir_all(src.join("sub")).unwrap();
+        std::fs::write(real.join("data.expected"), "expected output\n").unwrap();
+        // Exactly Bazel's shape: the input is a link to a file that exists.
+        std::os::unix::fs::symlink(real.join("data.expected"), src.join("data.expected")).unwrap();
+        std::os::unix::fs::symlink(real.join("data.expected"), src.join("sub/nested.expected"))
+            .unwrap();
+
+        super::copy_runtime_tree(&src, &dst).unwrap();
+
+        assert_eq!(
+            std::fs::read_to_string(dst.join("data.expected")).unwrap(),
+            "expected output\n",
+            "a live symlink's CONTENT must be copied — under Bazel this is \
+             every input file there is"
+        );
+        assert!(
+            dst.join("sub/nested.expected").is_file(),
+            "and through a subdirectory too"
+        );
+        assert!(
+            !std::fs::symlink_metadata(dst.join("data.expected"))
+                .unwrap()
+                .file_type()
+                .is_symlink(),
+            "copied as a regular file, not reproduced as a link: the target \
+             is a sandbox path that stops existing when the action ends"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn copy_runtime_tree_skips_a_symlink() {
         // A project's configure can create a symlink in the BUILD directory
