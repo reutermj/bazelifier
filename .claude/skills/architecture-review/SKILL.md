@@ -21,7 +21,9 @@ paths.rs                      pure path geometry, knows nothing about either
 model.rs                      build-system-neutral
 codegen.rs                    imports only model; must not learn which frontend ran
 error.rs, needs_attention.rs  shared
-resolutions.rs                static recipe text shipped into each module
+project_notes.rs              per-project notes shipped into the module they
+                              describe; include_str! of markdown under
+                              translator/project_notes/<project>/
 main.rs                       driver: consumes a Discovery WITHOUT knowing which
                               frontend produced it
 ```

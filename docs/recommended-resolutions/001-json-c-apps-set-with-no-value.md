@@ -87,5 +87,14 @@ smaller change.
 reproduces what the project's build system does, not what it intended. If
 json-c fixes this and we re-pin, the converted module follows automatically.
 
+The agent-facing half of this finding ships inside the converted module as
+`project_notes/001-set-with-no-value-defeats-a-feature-assertion.md`
+(source: `translator/project_notes/json-c/`). Same fact, different audience:
+this file asks json-c to fix it, that one stops an agent "fixing" it in the
+module — where the wrong answer compiles, runs, and passes the runtime
+comparison because the fallback computes the same value.
+
+If json-c takes the fix, retire both together.
+
 The CMake footgun behind it is recorded in
 [docs/lore/cmake-set-with-no-value-is-undefined.md](../lore/cmake-set-with-no-value-is-undefined.md).

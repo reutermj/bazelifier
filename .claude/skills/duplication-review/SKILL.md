@@ -90,8 +90,8 @@ absence rather than independent of it.
 Do not report these:
 
 - **Any text that ships to an agent with no access to this repo** —
-  `needs_attention.rs` escalation strings, `resolutions/` recipes, *and* the
-  comments codegen emits into a generated `BUILD.bazel`. CLAUDE.md:
+  `needs_attention.rs` escalation strings, `project_notes.rs` notes, *and*
+  the comments codegen emits into a generated `BUILD.bazel`. CLAUDE.md:
   repetition across items is a *feature*, and a dedup pass must leave them
   alone. **The exemption is about audience, not about two filenames** — read
   literally it would wave through the emitted `genrule` comment, which is the

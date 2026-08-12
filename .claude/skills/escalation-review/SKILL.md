@@ -103,11 +103,15 @@ enough** (7).
    `autotools.rs` actually calls, since anything both frontends emit is
    suspect by default.
 
-   `resolutions/README.md`'s build-file list was the instance here and is
-   FIXED — it now names `CMakeLists.txt`, `Makefile.am` and `configure.ac`.
-   Do not go hunting for it. What is still live is one layer down: the
-   *recipe bodies* are CMake-flavoured throughout (`header-visibility.md`
-   explains only CMake's two mechanisms; `generated-config-header.md` is
+   The `resolutions/` recipes were the standing instance here — CMake-flavoured
+   bodies shipped into every Autotools module — and they are GONE as of
+   2026-08-12, folded into the escalations themselves. Do not go hunting for
+   that directory. What the fold means for this pass: the per-dialect wording
+   now lives in `TestDialect`/`ConfigDialect` methods, so a leak shows up as a
+   MISSING dialect branch rather than as a stale file. Check that a
+   dialect-aware string really has both arms (`tests_the_build_itself` is the
+   newest) and that neither arm reads like the other's build system. What was
+   CMake-flavoured throughout (
    entirely `configure_file()` and `#cmakedefine`) and ship unchanged into
    every Autotools module.
 2. **Can the agent actually DO this?** The resolution must be reachable from
@@ -116,23 +120,23 @@ enough** (7).
    bead that only exists in this repo is not.
 3. **Does every name in it exist THERE?** Every path, target, flag and file
    the item mentions, checked against the unpacked WORKSPACE — the module,
-   its `resolutions/`, and the workspace root, not this checkout. The root
-   `MODULE.bazel` is where several answers live.
+   its `project_notes/` if it has one, and the workspace root, not this
+   checkout. The root `MODULE.bazel` is where several answers live.
 
-   **Read `resolutions/` as part of this pass, not as context.** It ships
-   beside every item, it is byte-identical across all modules, and it is
-   where the widest-blast-radius defect was found: its README told all 35
-   projects never to edit `CMakeLists.txt`, including the Autotools ones that
-   have none — while the recipe one file over named `configure.ac` and
-   `Makefile.am` correctly.
+   **Read `project_notes/` as part of this pass, not as context.** It ships
+   only for projects that have one, and it is where a fact the item cannot
+   derive is recorded — json-c's `set(VAR)`-with-no-value trap, where the
+   obvious resolution is wrong and passes every gate. A note that contradicts
+   its item, or names something the module does not contain, is the same
+   class of defect as a false item.
 4. **Has a capability landed that this text still calls impossible?**
    `CLAUDE.md` requires this after every translator capability and nothing
    enforces it. Diff the escalation's claims against what the frontend now
    does.
 
    **And after a CORRECTION, verify it landed in every copy** — the item's
-   `context`, its `expected_output`, the `resolutions/` recipe, and every
-   branch of the item's own prose. This is the opposite direction from a
+   `context`, its `expected_output`, both arms of any dialect method it
+   uses, and every branch of the item's own prose. This is the opposite direction from a
    capability landing, and the question above does not point at it. Live
    instance: `039ac2a` corrected `static_deps`→`deps` in the context and
    the recipe, and left `expected_output` naming `static_deps` as the
@@ -258,8 +262,9 @@ stays. A placeholder where a known fact belongs does not.
   *supposed* to escalate; that is the agent-loop test, not a bug. But a
   fixture being red by design says nothing about whether its item's TEXT is
   right — 015's item is a designed escalation and still carried a P1.
-- **Do not edit `resolutions/` recipes to match a specific project.** They
-  are shapes to adapt, deliberately generic.
+- **Do not make an escalation's shared guidance project-specific.** It is
+  emitted for every project that hits that shape. A fact true of one project
+  belongs in its `project_notes/`, which is what that directory is for.
 
 The defect classes are **inaccuracy** and **unactionability**. Nothing else.
 
@@ -296,11 +301,11 @@ absences do not exist.
   resolution cannot be carried out from inside the module; a real gap is passed
   over silently so the user learns nothing; its central instruction cannot
   be followed without a fact the translator had and withheld; or **the item
-  and the `resolutions/` recipe beside it give opposite instructions.** That
+  and the `project_notes/` entry beside it give opposite instructions.** That
   last one is incoherence in the shipment rather than an error in either
-  document, so it survives reading either alone — and because
-  `resolutions/README.md` says the item wins a tie, the interface resolves it
-  toward whichever one is wrong.
+  document, so it survives reading either alone. Nothing declares a winner
+  between them, which is deliberate — they answer different questions — so
+  an agent hitting a real contradiction has no rule to fall back on.
 - **P2** — accurate but names something the agent cannot reach, describes a
   limitation the translator no longer has, or escalates something the
   translator has the evidence to resolve itself.

@@ -72,9 +72,11 @@ alongside `shared/helper.cpp`). Everything below is relative to that root.
                        Present ONLY when a project declared its module root as
                        an include directory — a rules_cc workaround, not
                        project layout. See "_include/: a staging workaround"
-  resolutions/        markdown recipes for the shapes of gap that appear in
-    README.md          needs_attention/, shipped with every module because
-    <shape>.md         the resolving agent has no access to this repo — see
+  project_notes/      oddities of THIS project where the obvious answer is
+    <NNN>-<slug>.md    wrong — knowledge no general guidance reaches, shipped
+                       because the resolving agent has no access to this repo.
+                       ABSENT when the project has none, rather than empty:
+                       an empty directory reads as "someone looked". See
                        needs-attention-interface.md
   ground_truth/
     BUILD.bazel        exports_files(...) only — NOT part of the

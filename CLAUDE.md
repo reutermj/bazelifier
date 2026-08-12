@@ -122,11 +122,16 @@ source in every fixture build.
     from Rust, it goes here.
   - `src/needs_attention.rs` — the translator → agent handoff: the text of
     every escalation, plus its markdown rendering.
-  - `src/resolutions.rs` — the recipes shipped into each module's
-    `resolutions/`: how a *shape* of gap is usually closed, as opposed to
-    what went wrong in this project (which is `needs_attention/`'s job).
-    Sketches to adapt, never patches to apply, and deliberately duplicated
-    per module because a module is meant to be lifted out on its own.
+  - `src/project_notes.rs` — the notes shipped into a module's
+    `project_notes/`: an oddity of THIS project where the obvious answer is
+    wrong and the input actively misleads, which no general guidance
+    reaches. Held as `include_str!` of real markdown under
+    `translator/project_notes/<project>/`, declared to Bazel with
+    `compile_data`, so nothing is read at runtime. A project with no notes
+    ships no directory. There was a `resolutions.rs` shipping per-SHAPE
+    recipes here; it was deleted because guidance about a shape belongs in
+    that shape's escalation, where an agent already reads and where it
+    cannot drift from a second copy.
   - `src/model.rs` — shared internal build-graph model.
   - `src/main.rs` — CLI: writes the standalone module (sources +
     generated files + `ground_truth/`) to an output directory.

@@ -147,27 +147,62 @@ grep the escalation text for the limitation it just removed.
   [build-verification.md](build-verification.md#header-visibility-is-not-enforced-by-default)
   and bzl-ned.
 
-## `resolutions/`: the other half of the handoff
+## `project_notes/`: the other half of the handoff
 
-Each converted module also carries a `resolutions/` directory (from
-`translator/src/resolutions.rs`) holding one markdown recipe per *shape* of
-gap. The split is by lifetime and scope:
+Guidance about a **shape** of gap lives in that shape's escalation — in
+`needs_attention.rs`, in the constructor that emits it. There is no separate
+per-shape artifact, and the absence is deliberate.
 
-- a `needs_attention/` item is about **this project** and disappears when
-  resolved;
-- a `resolutions/` recipe is about **the shape of the gap** and evolves with
-  the translator's capabilities.
+There used to be: a `resolutions/` directory of one markdown recipe per
+shape, shipped identically into every module. It was removed in favour of
+folding each recipe into its escalation, for reasons worth recording so the
+split is not reinvented:
 
-Both ship inside the module rather than in this repo, for the same reason:
-the resolving agent works in an unpacked module with no access to
-bazelifier's checkout, and the module is meant to be liftable out of the
-tarball entirely. Duplication across modules is the accepted cost.
+- **Two homes for one piece of guidance drift, and both instances did.** The
+  test recipe shipped CMake prose (`add_test()`, an install-and-`find_package`
+  check) into fourteen Autotools modules, and it still named `ENABLE_NLS` as
+  a macro the agent must hand-resolve months after the translator began
+  emitting it as a `bool_flag`.
+- **Uniform shipping is mostly noise.** Measured across the corpus: 45 recipe
+  files shipped, 15 relevant to their module. tinyxml2 had zero open items
+  and shipped all five.
+- **Coverage followed the wrong axis.** Four of nine emittable kinds had no
+  recipe at all, and all four had live items. Guidance held in the
+  constructor is complete by construction.
+- **The item had already overtaken the recipe.** Cross-project knowledge
+  accretes in the escalation because that is what an agent reads. json-c's
+  test item carried everything its recipe did *plus* which commands the
+  module actually has, the working-directory trap, and the data-file
+  requirement.
 
-There is deliberately **no machine-readable mapping** from an item to its
-recipe. Filenames are descriptive and `resolutions/README.md` explains the
-directory; an agent that can read an escalation can find the matching
-recipe. Threading a `kind` slug through the item schema would be two things
-to keep in sync, one of them emitted text, to save a directory listing.
+What a module carries instead is `project_notes/` (from
+`translator/src/project_notes.rs`, whose content is real markdown under
+`translator/project_notes/<project>/`). The split is now by **axis**, not by
+lifetime:
+
+- a `needs_attention/` item is what the translator **could not resolve**
+  here, generated per conversion, and disappears when resolved;
+- a `project_notes/` note is a **fact about this project** that no general
+  guidance reaches — an oddity where the obvious answer is wrong and the
+  input actively misleads. Written by a human, true until the project
+  changes.
+
+The worked example is json-c's `HAVE_JSON_TOKENER_GET_PARSE_END`. Its
+`apps/CMakeLists.txt` writes `set(VAR)` with no value under the comment
+"We know we have this in our current sources", which reads as an assertion
+and *unsets* the variable, so the macro must stay undefined. No amount of
+advice about config headers in general gets an agent there, and the wrong
+answer passes every gate — the module compiles and the fallback computes the
+same value, so the runtime comparison cannot tell.
+
+A note supplies the fact and leaves the decision where the escalation put
+it; it is not a resolution. A project with no notes ships **no directory**
+rather than an empty one, because an empty directory reads as "someone
+looked and found nothing" — a claim nobody has made.
+
+Notes ship inside the module for the same reason items do: the resolving
+agent works in an unpacked module with no access to bazelifier's checkout,
+and the module is meant to be liftable out of the tarball entirely.
 
 ## Not to be confused with `docs/runbooks/`
 

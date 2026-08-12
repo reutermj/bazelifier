@@ -155,7 +155,7 @@ is inert *by design* or merely on this platform.
   `.claude/skills/resolve-escalations/`; `tools/sweep/sweep.py --post-agent`
   sets the run up and measures it, and deliberately does not resolve
   anything itself. The module carries what an agent needs that it could not
-  know otherwise — the items, the recipes in `resolutions/`, and the
+  know otherwise — the items, any `project_notes/` for that project, and the
   constraints a resolution must not break — so a module lifted out of the
   corpus is still resolvable.
 - **Verification:** how we confirm a conversion is actually correct, and the
