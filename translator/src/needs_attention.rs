@@ -295,6 +295,25 @@ impl TestDialect {
         }
     }
 
+    /// The shape of test that tests the BUILD SYSTEM rather than the
+    /// project, named in this dialect's own vocabulary.
+    ///
+    /// Its own method because the examples do not transfer: an Autotools
+    /// project has no `find_package` check to drop, and telling one to look
+    /// for `cmake --build` is the defect `TestDialect` exists to prevent.
+    fn tests_the_build_itself(self) -> &'static str {
+        match self {
+            Self::AddTest => {
+                "`cmake --build` of a sample project, an install-and-`find_package` check, \
+                 a coverage report via `gcov`"
+            }
+            Self::AutomakeTests => {
+                "a `make distcheck` run, an install-and-`pkg-config` check, a coverage \
+                 report via `gcov`"
+            }
+        }
+    }
+
     /// Where the test's working directory came from, which differs by
     /// mechanism and decides what the agent has to reconstruct.
     fn working_directory(self) -> &'static str {
@@ -777,9 +796,21 @@ pub fn ctest_command_not_a_target_needs_attention(
                `data`, or it will not be present when the test runs.\n\n\
              A test that is absent is invisible: unlike a build failure, nothing reports it. \
              Whatever these tests were checking is currently unchecked in the converted \
-             module.\n\nResolve this in the GENERATED output only. Do NOT edit the \
+             module.\n\n\
+             Two shapes are correctly DROPPED rather than reproduced, and saying so \
+             explicitly is part of the resolution — a deliberate omission and an overlooked \
+             one look identical in the output:\n\n\
+             - **It tests the build system itself** — {tests_the_build_itself}. These check \
+               the packaging, which the converted module does not have and is not trying to \
+               reproduce.\n\
+             - **It runs a system tool on build output.** Judge whether the property \
+               survives conversion at all. A test asserting a `.so` exports a particular \
+               symbol set is meaningful and reproducible; one asserting a file landed at a \
+               particular install prefix is not.\n\n\
+             Resolve this in the GENERATED output only. Do NOT edit the \
              project's {build_files}.",
             working_directory = dialect.working_directory(),
+            tests_the_build_itself = dialect.tests_the_build_itself(),
             build_files = dialect.build_files()
         )
         .to_string(),
@@ -1357,6 +1388,50 @@ mod tests {
             !whole.contains("CMake") && !whole.contains("CTest") && !whole.contains("CMakeLists"),
             "an Autotools project has no CMake anything — this item ships to \
              a module with no CMakeLists.txt in it:\n{whole}"
+        );
+    }
+
+    #[test]
+    // zlib's 13 commands are all `/usr/bin/cmake`, `/usr/bin/ctest` and
+    // `/bin/gcov` — none is a project script — yet the item led with "a
+    // shell script that lives in the project's SOURCE tree" and left the
+    // drop case to a recipe next door (bzl-ing). Folded in, per dialect,
+    // because the examples do not transfer: an Autotools project has no
+    // `find_package` check to drop.
+    #[test]
+    fn the_test_item_names_the_shapes_that_should_be_dropped() {
+        let cmake = ctest_command_not_a_target_needs_attention(
+            &["cmake_build".to_string()],
+            &["/usr/bin/cmake".to_string()],
+            &[false],
+            TestDialect::AddTest,
+        );
+        let autotools = ctest_command_not_a_target_needs_attention(
+            &["distcheck".to_string()],
+            &["distcheck".to_string()],
+            &[false],
+            TestDialect::AutomakeTests,
+        );
+
+        for item in [&cmake, &autotools] {
+            assert!(
+                item.context.contains("tests the build system itself"),
+                "dropping a build-system test is a legitimate resolution and \
+                 has to be named, or it reads as an oversight:\n{}",
+                item.context
+            );
+        }
+        assert!(
+            cmake.context.contains("find_package"),
+            "the CMake dialect keeps CMake examples:\n{}",
+            cmake.context
+        );
+        assert!(
+            autotools.context.contains("make distcheck")
+                && !autotools.context.contains("find_package"),
+            "and the Autotools dialect must NOT inherit them — that is the \
+             defect TestDialect exists to prevent:\n{}",
+            autotools.context
         );
     }
 
