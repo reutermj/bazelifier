@@ -49,9 +49,7 @@ resolve the module by hand meanwhile.
 
 Each `needs_attention/<NNN>-<slug>.md` describes one gap in **this** project
 and carries its own guidance — how that shape of gap is usually closed is
-written into the item, not kept in a separate file. (It used to be: a
-`resolutions/<shape>.md` recipe shipped into every module. Two homes for one
-piece of guidance drifted, so it was folded into the escalation.)
+written into the item, not kept in a separate file.
 
 `project_notes/` is different, and is the first thing to read when an item
 looks obvious. A note records an oddity of **this project** where the

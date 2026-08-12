@@ -128,10 +128,11 @@ source in every fixture build.
     reaches. Held as `include_str!` of real markdown under
     `translator/project_notes/<project>/`, declared to Bazel with
     `compile_data`, so nothing is read at runtime. A project with no notes
-    ships no directory. There was a `resolutions.rs` shipping per-SHAPE
-    recipes here; it was deleted because guidance about a shape belongs in
-    that shape's escalation, where an agent already reads and where it
-    cannot drift from a second copy.
+    ships no directory.
+    *(History: a `resolutions.rs` shipped per-SHAPE recipes here until
+    2026-08-12. Removed — guidance about a shape belongs in that shape's
+    escalation, where an agent already reads and where it cannot drift from
+    a second copy. See needs-attention-interface.md's footnote.)*
   - `src/model.rs` — shared internal build-graph model.
   - `src/main.rs` — CLI: writes the standalone module (sources +
     generated files + `ground_truth/`) to an output directory.
@@ -296,6 +297,18 @@ source in every fixture build.
     rationale is how `copy_referenced_sources` came to carry three
     paragraphs of `cmake-frontend.md` that only one of the two would ever
     get updated.
+  - **History goes in a footnote, not in the prose.** An approach that was
+    tried and abandoned is worth keeping — it stops the next person
+    reinventing it, and this repo has already re-litigated decisions whose
+    reasoning had been deleted. But it is not what a reader came for.
+    Describe what the code or interface does NOW, then section the history
+    off: a markdown footnote (`[^slug]`) in a doc, a trailing
+    *(History: ...)* parenthetical in a bullet or a comment. Date it, say
+    what was removed and on what evidence, and keep it out of the sentence
+    that explains the current thing. A section that opens with twenty lines
+    on a deleted design makes a reader learn the wrong interface first.
+    Operational text — a skill an agent follows step by step — usually
+    wants no history at all; point at the doc that carries it.
   - **"Why" goes stale too.** When it's assertable, pin it with a test —
     see `needs_attention.rs`'s
     `sources_outside_deliverable_escalation_points_at_the_deliverable_root`.
