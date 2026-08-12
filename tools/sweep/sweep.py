@@ -546,8 +546,19 @@ def report_post_agent(r: dict) -> str:
         for i in r["open_items"]:
             out.append(f"  {i['kind']:<28} {i['subject']}")
         out.append("")
-        out.append("Recipes for each shape are shipped alongside them, in")
-        out.append(f"  {r['workspace']}/fixtures/{r['project']}/resolutions/")
+        # Each item carries its own guidance; there is no separate recipe
+        # directory to point at. `project_notes/` is different and only
+        # exists for some projects, so it is named only when present —
+        # pointing at a directory that is not there is what this line used
+        # to do.
+        notes = (
+            pathlib.Path(r["workspace"]) / "fixtures" / r["project"] / "project_notes"
+        )
+        if notes.is_dir():
+            out.append("This project has NOTES — read them before resolving, they")
+            out.append("record where the obvious answer is wrong:")
+            for note in sorted(notes.glob("*.md")):
+                out.append(f"  {note}")
     else:
         out.append("no open escalations")
     out.append("")
