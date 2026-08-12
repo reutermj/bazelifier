@@ -12,3 +12,5 @@ See the [repository](https://github.com/reutermj/bazelifier) for the code and
 - [Architecture](architecture/) — one document per component or decision area
 - [Lore](lore/) — non-obvious things that cost real effort to work out
 - [Runbooks](runbooks/) — recurring repo-maintenance procedures
+- [Recommended resolutions](recommended-resolutions/) — bugs found in the
+  projects we convert, written for their maintainers

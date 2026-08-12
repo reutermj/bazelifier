@@ -160,6 +160,13 @@ source in every fixture build.
   cost real effort to figure out (a CMake quirk, a Bazel toolchain gotcha, a
   reason an approach was abandoned). This is tribal knowledge that isn't
   derivable by re-reading the code.
+- `docs/recommended-resolutions/` — a bug found in a project we CONVERT,
+  written for that project's maintainers. Converting reads a build system
+  more literally than its authors ever do, so real upstream defects surface
+  as a side effect. Distinct from `needs_attention/` (a gap in our
+  translation, addressed to an agent) and from a bead (our work). The
+  conversion still reproduces the bug: it replicates what the project's
+  build DOES, not what it meant to do.
 - `tools/sweep/` — measures the pipeline across ALL projects, which no
   per-conversion check does: `sweep.py` reports escalations by kind, targets
   and tests per project (`--post-agent <project>` for the after-the-agent
