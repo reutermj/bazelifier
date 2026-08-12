@@ -484,7 +484,7 @@ pub fn generated_config_header_needs_attention(
              reproducing CMake's `check_include_file` / `check_symbol_exists` / \
              `check_type_size` as rules that resolve the consumer's toolchain, and its \
              `config_header` rule expands a template against them. See this module's \
-             `MODULE.bazel` for the `bazel_dep`, and `resolutions/` for a worked recipe.\n\n\
+             `MODULE.bazel` for the `bazel_dep`.\n\n\
              Either way '{target_name}' will not compile until the header it includes is \
              available."
         ),
@@ -494,10 +494,20 @@ pub fn generated_config_header_needs_attention(
              That means a `@cc_config//cc_config:config_header.bzl` `config_header` rule in the \
              generated `BUILD.bazel`: it expands the project's template against catalog probes \
              resolved by the build's own toolchain. Wire its output into '{target_name}'s \
-             `srcs`. `resolutions/generated-config-header.md` in this module carries a worked \
-             example, including what to do when the template itself is not in the source tree. \
-             Do NOT edit the project's CMakeLists.txt, and do NOT vendor the host-generated \
-             header."
+             `srcs`.\n\n\
+             Two things make this easy to get wrong and hard to notice:\n\n\
+             - **A missing macro can be silent.** A project's own header may write \
+               `#if HAVE_UNISTD_H-0`, where an UNDEFINED macro evaluates to `0` with no \
+               error and no warning. A header that is nearly right then compiles, links, \
+               runs, and quietly takes a different code path — so a green build is not \
+               evidence the header is correct.\n\
+               \n\
+             - **Do NOT vendor the host-generated header.** It is tempting once you see how \
+               small the diff is. Those values are the conversion HOST's answers; a consumer \
+               on another platform needs their own, which is the entire reason \
+               `config_header` resolves probes at build time. Vendoring passes the runtime \
+               comparison here and is wrong everywhere else.\n\n\
+             Do NOT edit the project's CMakeLists.txt."
         ),
         title,
     }
@@ -928,7 +938,11 @@ pub fn shared_library_absorbs_static_needs_attention(
              If you folded an archive in, its separate rule is gone rather than left \
              orphaned; if you named it in `deps`, every target that links the archive \
              agrees. A resolution that merely deletes the archive's rule and drops its \
-             sources is wrong — the symbols would go missing at link, far from here."
+             sources is wrong — the symbols would go missing at link, far from here.\n\n\
+             Follow the `deps` chain before folding anything in: the archive can be \
+             reached TRANSITIVELY, through another library rather than named directly by \
+             '{shared}', so the target that actually references the symbols may not be the \
+             one you started from."
         ),
         title,
     }
@@ -970,7 +984,17 @@ pub fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
         expected_output: format!(
             "Determine which of '{target_name}''s header files are actually part of its \
              public interface (consumed by dependents via #include) and move those from \
-             `srcs` to `hdrs` in the generated `BUILD.bazel`. Resolve this in the GENERATED \
+             `srcs` to `hdrs` in the generated `BUILD.bazel`.\n\n\
+             Evidence worth using, strongest first: which headers the project's own \
+             `install()` rules ship, even when the destination is not an include directory; \
+             which headers other targets in THIS module actually #include; and last the \
+             project's own directory layout (`include/` versus `src/`), which is a \
+             convention rather than a declaration.\n\n\
+             Where the answer is genuinely unclear, leave the header in `srcs`. That keeps \
+             the build working and leaves the question open, whereas promoting a private \
+             header to `hdrs` silently widens the library's contract — and the wrong \
+             direction is the one nothing will report.\n\n\
+             Resolve this in the GENERATED \
              output only — do NOT edit the project's CMakeLists.txt. The source build files \
              are the input being translated: adding a `FILE_SET` upstream would make this \
              particular project convert cleanly while leaving the translator just as unable \
@@ -1568,8 +1592,7 @@ mod tests {
             assert!(
                 !whole.contains(cmake_only),
                 "an autoconf item must not mention `{cmake_only}` — the project contains no \
-                 such construct, so the instruction is unfollowable and contradicts the \
-                 `resolutions/` recipe shipped beside it:\n{whole}"
+                 such construct, so the instruction is unfollowable:\n{whole}"
             );
         }
     }

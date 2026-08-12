@@ -11,7 +11,7 @@ mod model;
 mod needs_attention;
 mod ninja_deps;
 mod paths;
-mod resolutions;
+mod project_notes;
 
 use std::collections::HashSet;
 use std::fs;
@@ -166,7 +166,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
     write_needs_attention(&args.out_module, &discovery.needs_attention)?;
-    write_resolutions(&args.out_module)?;
+    write_project_notes(&args.out_module, &graph.module.name)?;
     write_targets_manifest(&args.out_module, graph)?;
     write_conversion_summary(&args.out_module, graph, &discovery.needs_attention)?;
 
@@ -303,6 +303,24 @@ fn write_conversion_summary(
     )
 }
 
+/// Writes `project_notes/`, the notes for THIS project, when there are any.
+///
+/// No directory at all when the project has none, rather than an empty one:
+/// an empty directory reads as "someone looked and found nothing", which is
+/// a claim nobody has made.
+fn write_project_notes(out_module: &Path, module_name: &str) -> std::io::Result<()> {
+    let notes = project_notes::for_project(module_name);
+    if notes.is_empty() {
+        return Ok(());
+    }
+    let dir = out_module.join("project_notes");
+    fs::create_dir_all(&dir)?;
+    for note in notes {
+        fs::write(dir.join(note.filename), note.body)?;
+    }
+    Ok(())
+}
+
 /// Writes `TARGETS`, a machine-readable list of what this module emitted, for
 /// the validation harness to read instead of regexing `BUILD.bazel`.
 ///
@@ -356,24 +374,6 @@ fn write_targets_manifest(out_module: &Path, graph: &model::BuildGraph) -> std::
         out_module.join("TARGETS"),
         format!("{}\n", lines.join("\n")),
     )
-}
-
-/// Writes the recommended-resolution recipes into `<out_module>/resolutions/`.
-///
-/// Always, not only when something escalated: a module whose items were
-/// resolved and deleted still benefits if a later re-conversion reopens one,
-/// and a complete directory cannot be mistaken for a truncated one.
-///
-/// Not a Bazel package — unlike `needs_attention/`, nothing depends on these
-/// as build inputs, so there is no `BUILD.bazel` and no glob to keep
-/// non-empty. They are documentation that travels with the module.
-fn write_resolutions(out_module: &Path) -> std::io::Result<()> {
-    let dir = out_module.join("resolutions");
-    fs::create_dir_all(&dir)?;
-    for recipe in resolutions::all() {
-        fs::write(dir.join(recipe.filename), recipe.body)?;
-    }
-    Ok(())
 }
 
 /// Copies the artifacts the project's OWN build system produced (each
