@@ -376,7 +376,29 @@ pub fn unmapped_config_macros_needs_attention(
              project computes itself (e.g. an umbrella-include guard that gates whether one \
              header pulls in another): supply it as a `values` entry on the \
              `config_header` (a Bazel config knob or a fixed default), since it does not depend \
-             on the consumer's toolchain.\n\n\
+             on the consumer's toolchain. Match what the ORIGINAL build was configured with: \
+             the ground-truth artifacts came from that configuration, so a different answer \
+             fails the equivalence comparison for a reason that looks like a miscompile;\n\
+             - a fact that is true or false for the toolchain the converted module builds \
+             against but is NOT portable enough for the catalog — a compiler builtin \
+             (`HAVE___BUILTIN_BSWAPXX`), a glibc extension \
+             (`HAVE_PROGRAM_INVOCATION_NAME`), `WORDS_BIGENDIAN`, `_FILE_OFFSET_BITS`, or any \
+             macro naming a platform this module does not target (BSD, Apple, Windows, AIX). \
+             A `values` entry of `0`, which the expander treats as unset — the same as \
+             omitting the name, but it records that the name was considered;\n\
+             - a FALLBACK TYPEDEF (`int32_t`, `uint64_t`, `_UINT8_T`, `uintptr_t` and \
+             friends): `0`, always. autoconf defines these only when the real type is \
+             MISSING, so on any toolchain with `stdint.h` they must stay undefined — \
+             defining one typedefs over the real type and the error surfaces far away.\n\n\
+             **Be strict about what reaches the catalog.** Anything whose honest answer is \
+             \"depends on the libc\" does not belong there however `HAVE_`-shaped it looks: \
+             putting it in hands every LATER project a non-portable answer it never asked \
+             for and cannot see.\n\n\
+             The header is not the finish line — build the module afterwards. Two failures \
+             land far from their cause: undefined symbols at link usually mean a source \
+             file was dropped rather than a macro being wrong, and `undefined version` from \
+             the linker means the project uses symbol versioning whose `.map` file was not \
+             carried over.\n\n\
              Do NOT copy this host's generated header, and do NOT edit the project's {}.",
             dialect.build_files()
         ),
@@ -1394,6 +1416,54 @@ mod tests {
             !whole.contains("those scripts ship with the sources"),
             "the unconditional claim is what made the item false:\n{whole}"
         );
+    }
+
+    #[test]
+    // The classifier used to live in `resolutions/unmapped-config-macros.md`
+    // as four groups, while the item carried a thinner three-branch version
+    // of the same thing. Two copies of one classifier is how they drifted —
+    // the recipe still named `ENABLE_NLS` as hand-resolvable months after
+    // the translator began emitting it as a `bool_flag`. Folded into the
+    // item, which is what an agent actually reads; pinned here so the move
+    // cannot quietly lose the parts that took projects to learn.
+    #[test]
+    fn the_config_macro_item_carries_the_whole_classifier() {
+        let item = unmapped_config_macros_needs_attention(
+            "config.h",
+            "config.h.in",
+            &["HAVE_IMMINTRIN_H".to_string()],
+            ConfigDialect::Autoconf,
+            &HashMap::new(),
+        );
+        let whole = format!("{} {} {}", item.gap, item.context, item.expected_output);
+
+        for (needle, why) in [
+            (
+                "uintptr_t",
+                "fallback typedefs must be named: defining one typedefs over \
+                 the real type and the error surfaces far away",
+            ),
+            (
+                "WORDS_BIGENDIAN",
+                "the non-portable-but-real group is the one an agent most \
+                 often mistakes for a catalog fact",
+            ),
+            (
+                "depends on the libc",
+                "the strictness warning is the single most valuable sentence \
+                 the recipe had — it protects every LATER project",
+            ),
+            (
+                "undefined version",
+                "symbol versioning is a post-build failure that lands far \
+                 from its cause",
+            ),
+        ] {
+            assert!(
+                whole.contains(needle),
+                "missing {needle:?} — {why}:\n{whole}"
+            );
+        }
     }
 
     #[test]
