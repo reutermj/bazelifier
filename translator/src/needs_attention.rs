@@ -319,10 +319,10 @@ impl TestDialect {
     fn working_directory(self) -> &'static str {
         match self {
             Self::AddTest => {
-                "CTest's `WORKING_DIRECTORY` for these tests often points into the CMake                  BUILD tree, which has no counterpart in the converted module"
+                "CTest's `WORKING_DIRECTORY` for these tests often points into the CMake BUILD tree, which has no counterpart in the converted module"
             }
             Self::AutomakeTests => {
-                "automake runs each test from the directory its `Makefile.am` lives in, and                  the scripts typically expect `$srcdir` to be set"
+                "automake runs each test from the directory its `Makefile.am` lives in, and the scripts typically expect `$srcdir` to be set"
             }
         }
     }
