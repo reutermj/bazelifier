@@ -358,6 +358,17 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
         }
         out.push_str("    },\n");
     }
+    if !header.unresolved.is_empty() {
+        // Each becomes an `#error` naming the macro, rather than the
+        // `#undef` that would assert the feature is absent. See
+        // `ConfigHeader::unresolved` — the failure this prevents surfaces
+        // several files away from the macro that caused it.
+        out.push_str("    unresolved = [\n");
+        for name in &header.unresolved {
+            out.push_str(&format!("        \"{}\",\n", escape_starlark(name)));
+        }
+        out.push_str("    ],\n");
+    }
     if !header.values.is_empty() {
         // A value the project exposed as an OPTION becomes a `select()` on a
         // flag rather than a frozen entry, so the choice survives conversion.
@@ -1417,6 +1428,7 @@ mod tests {
                 values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
                 options: Vec::new(),
                 splices: Vec::new(),
+                unresolved: Vec::new(),
                 dialect: model::ConfigDialect::Cmakedefine,
                 shadow_dir: None,
             },
@@ -2254,6 +2266,7 @@ mod tests {
                 ],
                 options: Vec::new(),
                 splices: Vec::new(),
+                unresolved: Vec::new(),
                 dialect: model::ConfigDialect::Cmakedefine,
                 shadow_dir: None,
             },
@@ -2284,6 +2297,7 @@ mod tests {
             values: vec![("PACKAGE".to_string(), "\"jansson\"".to_string())],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
@@ -2312,6 +2326,7 @@ mod tests {
             values: vec![("PACKAGE_NAME".to_string(), "\"xz\"".to_string())],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
@@ -2353,6 +2368,7 @@ mod tests {
             values: vec![("NEXT_STRING_H".to_string(), "<string.h>".to_string())],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: Some("gl".to_string()),
         }];
@@ -2394,6 +2410,7 @@ mod tests {
             catalog_probes: vec![],
             values: vec![],
             options: Vec::new(),
+            unresolved: Vec::new(),
             splices: vec![(
                 "definitions of _GL_FUNCDECL_RPL".to_string(),
                 "gl/c++defs.h".to_string(),
@@ -2435,6 +2452,7 @@ mod tests {
             catalog_probes: vec![],
             values: vec![],
             options: Vec::new(),
+            unresolved: Vec::new(),
             splices: vec![
                 ("first marker".to_string(), "gl/shared.h".to_string()),
                 ("second marker".to_string(), "gl/shared.h".to_string()),
@@ -2458,6 +2476,7 @@ mod tests {
             catalog_probes: vec![],
             values: vec![],
             options: Vec::new(),
+            unresolved: Vec::new(),
             splices: vec![
                 ("cxx marker".to_string(), "gl/c++defs.h".to_string()),
                 ("nonnull marker".to_string(), "gl/arg-nonnull.h".to_string()),
@@ -2487,6 +2506,7 @@ mod tests {
             values: vec![("ENABLE_GREETING".to_string(), "ON".to_string())],
             options: vec![("ENABLE_GREETING".to_string(), "ENABLE_GREETING".to_string())],
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];
@@ -2529,6 +2549,7 @@ mod tests {
             values: vec![("HAVE_STDIO_H".to_string(), "1".to_string())],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];
@@ -2565,6 +2586,7 @@ mod tests {
             values: vec![("ENABLE_RDRAND".to_string(), "OFF".to_string())],
             options: vec![("ENABLE_RDRAND".to_string(), "ENABLE_RDRAND".to_string())],
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];
@@ -2590,6 +2612,7 @@ mod tests {
             values: vec![],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
@@ -2622,6 +2645,7 @@ mod tests {
             values: vec![],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: None,
         }];
@@ -2658,6 +2682,7 @@ mod tests {
             values: vec![],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: Some(dir.to_string()),
         };
@@ -2693,6 +2718,7 @@ mod tests {
             values: vec![],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Substitution,
             shadow_dir: Some("gl".to_string()),
         };
@@ -2767,6 +2793,7 @@ mod tests {
             values: vec![("PACKAGE".to_string(), "\"x\"".to_string())],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
@@ -2794,6 +2821,7 @@ mod tests {
             values: vec![("PACKAGE_NAME".to_string(), "zlib".to_string())],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];
@@ -2831,6 +2859,7 @@ mod tests {
             ],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];
@@ -2977,6 +3006,7 @@ mod tests {
             values: vec![("PROJECT_VERSION".to_string(), "3.7.0".to_string())],
             options: Vec::new(),
             splices: Vec::new(),
+            unresolved: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
             shadow_dir: None,
         }];

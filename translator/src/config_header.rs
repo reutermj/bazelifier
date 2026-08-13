@@ -161,6 +161,10 @@ pub(crate) fn plan_config_header(
             options,
             // autoconf assembles a config header by substitution alone.
             splices: Vec::new(),
+            // The same names the escalation lists — see
+            // `ConfigHeader::unresolved`. Cloned rather than moved: the
+            // caller still returns `unmapped` as the escalation.
+            unresolved: unmapped.clone(),
             // AC_CONFIG_HEADERS: the template declares with `#undef`.
             dialect: crate::model::ConfigDialect::Undef,
             // Not a shadowing header: these come from AC_CONFIG_HEADERS /
@@ -259,6 +263,10 @@ pub(crate) fn plan_substitution_header(
             // `model::ConfigHeader::options` and bzl-1p6.
             options: Vec::new(),
             splices: Vec::new(),
+            // The same names the escalation lists — see
+            // `ConfigHeader::unresolved`. Cloned rather than moved: the
+            // caller still returns `unmapped` as the escalation.
+            unresolved: unmapped.clone(),
             // AC_CONFIG_FILES: `@VAR@` substitution, no declarations.
             dialect: crate::model::ConfigDialect::Substitution,
             // Not a shadowing header: these come from AC_CONFIG_HEADERS /

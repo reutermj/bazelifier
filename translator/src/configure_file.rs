@@ -599,6 +599,8 @@ fn resolve_config_header(
         // the template never had is a gate that cannot fail.
         // `configure_file` substitutes; CMake has no splice mechanism.
         splices: Vec::new(),
+        // The same names the escalation lists — see `ConfigHeader::unresolved`.
+        unresolved: unmapped.clone(),
         dialect: if macros.cmakedefines.is_empty() {
             crate::model::ConfigDialect::Substitution
         } else {

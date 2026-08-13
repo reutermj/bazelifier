@@ -19,6 +19,8 @@ def _config_header_impl(ctx):
     args.add("--template", ctx.file.template)
     args.add("--output", output)
     args.add("--values", values_file)
+    for name in ctx.attr.unresolved:
+        args.add("--unresolved", name)
 
     result_files = []
     for probe in ctx.attr.probes:
@@ -68,6 +70,14 @@ config_header = rule(
         ),
         "values": attr.string_dict(
             doc = "Plain @VAR@ substitutions (e.g. version strings), name -> value.",
+        ),
+        "unresolved": attr.string_list(
+            doc = "Names the template references that nothing here answers — " +
+                  "no probe, no value, and an open needs_attention item. Each " +
+                  "becomes an `#error` in the generated header rather than an " +
+                  "`#undef`, because `#undef` ASSERTS the feature is absent " +
+                  "while these are merely unknown. Without it the module " +
+                  "compiles against a header that silently decided.",
         ),
         "splices": attr.label_keyed_string_dict(
             allow_files = True,

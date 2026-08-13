@@ -159,11 +159,49 @@ def splice_files(template, splices):
     return template
 
 
-def expand(template, is_set, values):
+def expand(template, is_set, values, unresolved=()):
+    """Expands `template`. `unresolved` names become `#error`, not `#undef`.
+
+    The distinction `is_set` cannot make: it answers false both for "the
+    probe ran and said no" and for "nobody asked". Rendering the second as
+    `/* #undef FOO */` ASSERTS the feature is absent, committing the header
+    to a decision nobody made — and the consequence lands far away. json-c's
+    two unresolved aliases produced a header of pure `#undef`s, so
+    `json_inttypes.h` took its "old MS compilers" branch and every source
+    failed with `unknown type name '__int32'` on a Linux build.
+
+    Same treatment `_substitute_vars` already gives an unknown `@VAR@`: turn
+    it into a visible compile error rather than a silent answer. `#error`
+    rather than failing the rule so only the targets that actually include
+    the header fail, and they fail naming the macro.
+    """
+    unresolved = frozenset(unresolved)
     out = []
     for line in template.splitlines(keepends=True):
         eol = "\n" if line.endswith("\n") else ""
         body = line[:-1] if eol else line
+
+        # Before every other branch: whichever syntax references the name,
+        # the answer is the same and it is not "absent".
+        named = (
+            _CMAKEDEFINE01.match(body)
+            or _AC_UNDEF_SPACED.match(body)
+            or _AC_UNDEF.match(body)
+            or _CMAKEDEFINE.match(body)
+        )
+        if named:
+            # group(2) for the two patterns carrying a prefix, group(1) for
+            # the bare `#undef` forms.
+            groups = named.groups()
+            name = groups[1] if len(groups) > 1 and groups[1] else groups[0]
+            if name in unresolved:
+                out.append(
+                    '#error "%s is unresolved: the conversion could not '
+                    'determine it and left a needs_attention item. It is '
+                    'UNKNOWN, not absent — resolve the item rather than '
+                    'defining it here."%s' % (name, eol)
+                )
+                continue
 
         m01 = _CMAKEDEFINE01.match(body)
         if m01:
@@ -249,6 +287,13 @@ def main():
         help="MARKER=/path/to/file, repeatable and ORDER-SIGNIFICANT: the "
         "file is inserted after each line containing MARKER (sed's `r`).",
     )
+    parser.add_argument(
+        "--unresolved",
+        action="append",
+        default=[],
+        help="A name nothing answers: no probe, no value, an open escalation. "
+        "Rendered as `#error` rather than `#undef`, repeatable.",
+    )
     args = parser.parse_args()
 
     with open(args.template) as fh:
@@ -305,7 +350,9 @@ def main():
     # would be actively misleading). Splicing first would substitute them and
     # produce a header the project's own build never generates.
     with open(args.output, "w") as fh:
-        fh.write(splice_files(expand(template, is_set, values), splices))
+        fh.write(
+            splice_files(expand(template, is_set, values, args.unresolved), splices)
+        )
     return 0
 
 

@@ -372,6 +372,20 @@ pub struct ConfigHeader {
     /// two markers matching the same file both fire, and the order decides
     /// what lands where.
     pub splices: Vec<(String, String)>,
+    /// Names the template references that nothing here answers — no catalog
+    /// probe, no build option, no resolved value — and which therefore have
+    /// an open `needs_attention` item.
+    ///
+    /// Carried into the generated rule so the header says `#error` for each
+    /// rather than `#undef`. The two are not the same claim: `#undef`
+    /// asserts the feature is ABSENT, while these are merely unknown, and a
+    /// header that decides silently fails far from the cause — json-c's two
+    /// unresolved aliases made every source fail with `unknown type name
+    /// '__int32'` three files away.
+    ///
+    /// The same set the escalation lists, by construction: both come from
+    /// `plan_config_header`'s unmapped names.
+    pub unresolved: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -167,5 +167,50 @@ class TernaryUndefTest(unittest.TestCase):
         self.assertEqual(out, "/* #undef MHD_HAVE_DECL_THING */\n")
 
 
+class UnresolvedNames(unittest.TestCase):
+    """`#error`, not `#undef`, for a name nothing answered.
+
+    `#undef` asserts the feature is ABSENT. A name with no probe, no value
+    and an open escalation is UNKNOWN, and rendering it as a negative
+    commits the header to a decision nobody made — json-c's two unresolved
+    aliases made `json_inttypes.h` take its "old MS compilers" branch, so
+    every source failed with `unknown type name '__int32'` on a Linux
+    build, three files from the cause.
+    """
+
+    def test_an_unresolved_cmakedefine_errors(self):
+        out = expand(
+            "#cmakedefine JSON_C_HAVE_STDINT_H @JSON_C_HAVE_STDINT_H@\n",
+            lambda n: False,
+            {},
+            ["JSON_C_HAVE_STDINT_H"],
+        )
+        self.assertIn("#error", out)
+        self.assertIn("JSON_C_HAVE_STDINT_H", out)
+        self.assertNotIn(
+            "#undef",
+            out,
+            "an unresolved name must not render as a negative probe result",
+        )
+
+    def test_an_unresolved_ac_undef_errors_too(self):
+        # Both dialects reference names the same way; the answer cannot
+        # depend on which syntax the project happens to write.
+        out = expand("#undef HAVE_THING\n", lambda n: False, {}, ["HAVE_THING"])
+        self.assertIn("#error", out)
+        self.assertNotIn("#undef HAVE_THING", out)
+
+    def test_a_genuinely_false_probe_still_undefs(self):
+        # The direction that must NOT change. A probe that ran and answered
+        # no is absent, and `#undef` is the correct rendering — if this
+        # regressed, every real negative would become a build failure.
+        out = expand("#undef HAVE_UNISTD_H\n", lambda n: False, {}, ["SOMETHING_ELSE"])
+        self.assertEqual(out, "/* #undef HAVE_UNISTD_H */\n")
+
+    def test_a_resolved_name_is_unaffected(self):
+        out = expand("#cmakedefine HAVE_IT\n", lambda n: True, {"HAVE_IT": "1"}, [])
+        self.assertEqual(out, "#define HAVE_IT\n")
+
+
 if __name__ == "__main__":
     unittest.main()

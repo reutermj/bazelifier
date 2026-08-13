@@ -265,6 +265,9 @@ pub fn discover(
             template,
             template_source: None,
             catalog_probes: Vec::new(),
+            // Nothing escalates for a replacement header: every name it
+            // references is a gnulib substitution the recipe supplies.
+            unresolved: Vec::new(),
             // Plain `@VAR@` throughout — gnulib templates declare nothing
             // with `#undef`, and every value is already resolved in the
             // recipe, so there is nothing for a catalog probe to answer.
