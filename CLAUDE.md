@@ -406,6 +406,30 @@ source in every fixture build.
   answer is usually the same. And resolutions are ephemeral on purpose:
   don't build a cache that replays them, since a re-conversion would then
   look green without the agent stage having engaged with what changed.
+- **One project is not a shape. Write the note, not the feature.** The
+  corpus exists to contradict us, so a finding from a single project is
+  evidence about that project until another one shows it. Before generalising
+  — a translator change, a new escalation branch, a rule in a skill — grep
+  the other projects. It takes a minute and the answer is usually no.
+
+  The default home for a single finding is
+  `translator/project_notes/<project>/`, which ships to the agent who needs
+  it and costs nothing to write. Promote it to a translator feature when a
+  SECOND project shows the same shape *and* you can name the mechanism they
+  share — n=2 with a reason, not n=1 with a plausible story.
+
+  Measured instance, and the reason this is a rule: json-c's tests locate
+  data through `$srcdir`, so it was proposed that the test escalation
+  mention `$srcdir` whenever the command is a shell script. The corpus
+  refutes it — zlib and fmt each ship a shell script and neither uses
+  `$srcdir`, because it is an autoconf variable and CMake has no such
+  concept. json-c uses it only because it kept an autotools harness through
+  a migration. That is biography, not a property of shell scripts, and the
+  rule would have shipped noise to three projects to help one.
+
+  The tell is a rule whose evidence is one project and whose mechanism is
+  "projects like this usually…". A real shape has a stated cause that
+  predicts which other projects have it.
 - **Replicate the build's BEHAVIOUR, not this host's outcome.** The platform
   analogue of the rule above, and it fails the same way: silently, on the
   platform you have not tried. A conversion reproduces what the project's

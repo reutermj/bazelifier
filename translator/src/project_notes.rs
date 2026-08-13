@@ -39,6 +39,9 @@ pub struct Note {
 const JSON_C_SET_WITH_NO_VALUE: &str =
     include_str!("../project_notes/json-c/001-set-with-no-value-defeats-a-feature-assertion.md");
 
+const JSON_C_AUTOTOOLS_HARNESS: &str =
+    include_str!("../project_notes/json-c/002-tests-use-an-autotools-era-shell-harness.md");
+
 /// Notes for `module_name`, empty when there are none.
 ///
 /// Matched on the module name rather than the directory the sources came
@@ -47,10 +50,16 @@ const JSON_C_SET_WITH_NO_VALUE: &str =
 /// what the project calls itself.
 pub fn for_project(module_name: &str) -> Vec<Note> {
     match module_name {
-        "json-c" => vec![Note {
-            filename: "001-set-with-no-value-defeats-a-feature-assertion.md",
-            body: JSON_C_SET_WITH_NO_VALUE,
-        }],
+        "json-c" => vec![
+            Note {
+                filename: "001-set-with-no-value-defeats-a-feature-assertion.md",
+                body: JSON_C_SET_WITH_NO_VALUE,
+            },
+            Note {
+                filename: "002-tests-use-an-autotools-era-shell-harness.md",
+                body: JSON_C_AUTOTOOLS_HARNESS,
+            },
+        ],
         _ => Vec::new(),
     }
 }
@@ -66,7 +75,7 @@ mod tests {
     #[test]
     fn a_note_reaches_only_the_project_it_describes() {
         let notes = for_project("json-c");
-        assert_eq!(notes.len(), 1, "json-c has exactly one note today");
+        assert_eq!(notes.len(), 2, "json-c has two notes today");
         assert!(
             notes[0]
                 .body
