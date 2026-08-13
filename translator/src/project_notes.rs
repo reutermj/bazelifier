@@ -1,10 +1,18 @@
 //! Per-project notes shipped into a converted module's `project_notes/`.
 //!
-//! What general guidance cannot reach: an oddity of THIS project where the
-//! obvious answer is wrong and the input actively misleads. json-c's
-//! `apps/CMakeLists.txt` writes `set(VAR)` under a comment saying "we know
-//! we have this", which reads as an assertion and unsets the variable — no
-//! amount of advice about config headers in general gets an agent there.
+//! Anything project-specific the agent stage needs and cannot derive. What
+//! general guidance cannot reach, because it is true of ONE project:
+//!
+//! - an oddity where the obvious answer is wrong and the input actively
+//!   misleads — json-c's `apps/CMakeLists.txt` writes `set(VAR)` under a
+//!   comment saying "we know we have this", which reads as an assertion and
+//!   unsets the variable;
+//! - a convention the project inherited that its build system does not
+//!   explain — a CMake project carrying an autotools-era shell harness;
+//! - a bug in the project's OWN build, as an `## Upstream` section of the
+//!   same note. The maintainer's fix and the agent's instruction are about
+//!   one line and are usually opposite (a conversion reproduces what the
+//!   build DOES), so keeping them in one file is what stops them drifting.
 //!
 //! Distinct from an escalation, which says what the translator could not
 //! resolve and is generated per conversion. A note is human knowledge about

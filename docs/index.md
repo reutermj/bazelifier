@@ -12,5 +12,9 @@ See the [repository](https://github.com/reutermj/bazelifier) for the code and
 - [Architecture](architecture/) — one document per component or decision area
 - [Lore](lore/) — non-obvious things that cost real effort to work out
 - [Runbooks](runbooks/) — recurring repo-maintenance procedures
-- [Recommended resolutions](recommended-resolutions/) — bugs found in the
-  projects we convert, written for their maintainers
+
+Project-specific findings do not live here: a note about a project we convert
+ships INTO that project's module, under `translator/project_notes/<project>/`,
+so it reaches the agent resolving it. That includes bugs found in the
+project's own build — the report and the conversion fact are two halves of
+one note.

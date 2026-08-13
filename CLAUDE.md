@@ -166,13 +166,23 @@ source in every fixture build.
   cost real effort to figure out (a CMake quirk, a Bazel toolchain gotcha, a
   reason an approach was abandoned). This is tribal knowledge that isn't
   derivable by re-reading the code.
-- `docs/recommended-resolutions/` — a bug found in a project we CONVERT,
-  written for that project's maintainers. Converting reads a build system
-  more literally than its authors ever do, so real upstream defects surface
-  as a side effect. Distinct from `needs_attention/` (a gap in our
-  translation, addressed to an agent) and from a bead (our work). The
-  conversion still reproduces the bug: it replicates what the project's
-  build DOES, not what it meant to do.
+- `translator/project_notes/<project>/` — anything project-specific the
+  AGENT STAGE needs and cannot derive: an oddity where the obvious answer is
+  wrong, a convention the project inherited, a bug in the project's own
+  build. Ships into that project's converted module, so it reaches the agent
+  in an unpacked workspace with no access to this repo. Distinct from
+  `needs_attention/` (what the translator could not resolve, generated per
+  conversion) and from a bead (our work).
+
+  A bug found in a project we CONVERT goes here too, as an `## Upstream`
+  section of the same note rather than a separate report: the maintainer's
+  fix and the agent's instruction are about one line and are usually
+  OPPOSITE — the conversion reproduces what the build DOES, not what it
+  meant to do — so splitting them is how they drift.
+  *(History: these lived in `docs/recommended-resolutions/` for a few hours
+  on 2026-08-13, scoped to upstream bugs only. Folded in on the same day —
+  a repo-only file never reached the agent, and one finding was being
+  written twice.)*
 - `tools/sweep/` — measures the pipeline across ALL projects, which no
   per-conversion check does: `sweep.py` reports escalations by kind, targets
   and tests per project (`--post-agent <project>` for the after-the-agent

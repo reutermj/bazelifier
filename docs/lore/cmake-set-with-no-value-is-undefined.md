@@ -67,7 +67,9 @@ reaching into the struct directly — which `json_tokener.h:110` marks
 **deprecated**, pointing at `json_tokener_get_parse_end()`, the very function
 at `json_tokener.h:137` that is present the whole time.
 
-Filed upstream-facing as a recommended resolution; see
-`docs/recommended-resolutions/`. For the CONVERSION the correct answer is
-still `#undef`, because a conversion reproduces what the project's build
-does, not what it meant to do.
+Recorded as a project note that ships into json-c's converted module —
+`translator/project_notes/json-c/001-set-with-no-value-defeats-a-feature-assertion.md`
+— which carries both halves: what the agent must do here (leave it
+undefined) and the fix json-c should take upstream. For the CONVERSION the
+correct answer is still `#undef`, because a conversion reproduces what the
+project's build does, not what it meant to do.

@@ -52,10 +52,17 @@ and carries its own guidance — how that shape of gap is usually closed is
 written into the item, not kept in a separate file.
 
 `project_notes/` is different, and is the first thing to read when an item
-looks obvious. A note records an oddity of **this project** where the
-obvious answer is wrong — json-c's `apps/CMakeLists.txt` writes `set(VAR)`
-with no value under a comment claiming the feature is present, so the macro
-must stay undefined. A module ships the directory only when it has notes.
+looks obvious. A note records anything about **this project** that you
+cannot derive from the item — an oddity where the obvious answer is wrong
+(json-c's `apps/CMakeLists.txt` writes `set(VAR)` with no value under a
+comment claiming the feature is present, so the macro must stay undefined),
+a convention it inherited, or a bug in its own build. A module ships the
+directory only when it has notes.
+
+A note may carry an `## Upstream` section — the fix the project's
+maintainers should make. That is context, not your instruction: the
+conversion reproduces what the build DOES, so where the two differ, follow
+the note's guidance for the module and leave the upstream fix alone.
 
 A note supplies a fact; it does not make the decision. Where a note and an
 item seem to disagree, they are usually answering different questions —
