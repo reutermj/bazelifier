@@ -66,6 +66,10 @@ express.
 contain; without it every affected test differs by one line, which reads
 like a real output mismatch rather than a missing environment variable.
 
+`strerror_override.c:74` tests it with `getenv(...) == NULL`, so what
+matters is that the variable is SET, not what it is set to — `0` enables
+the override just as `1` does. To turn it off, do not define it at all.
+
 ## Scope
 
 This is json-c, not CMake. `$srcdir` is an autoconf variable — CMake has no
