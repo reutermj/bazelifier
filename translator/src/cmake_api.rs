@@ -369,6 +369,9 @@ pub fn discover(
             tests,
             unexpressed_tests,
             config_headers,
+            // Filled by the driver, which applies the one graph-level rule
+            // both frontends share; see main.rs.
+            displaced_sources: Vec::new(),
         },
         needs_attention,
         module_root: codemodel.module_root,

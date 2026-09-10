@@ -143,7 +143,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             }));
         }
     };
-    let discovery = match frontend {
+    let mut discovery = match frontend {
         Frontend::Cmake => {
             cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?
         }
@@ -151,11 +151,21 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             autotools::discover(&args.source_dir, &args.build_dir, deliverable_root)?
         }
     };
+    // Here rather than in either frontend: the rule keys on a value both
+    // produce (a source path equal to a config header's output path) and has
+    // to run before BOTH consumers below — codegen must not list the file and
+    // copy_referenced_sources must not ship it. Shipping it unlisted is not
+    // harmless either: outside a sandbox the compiler still finds it.
+    let module_root = discovery.module_root.clone();
+    discovery
+        .graph
+        .displace_sources_shadowed_by_config_headers(|path| module_root.join(path).is_file());
     let graph = &discovery.graph;
     let generated = codegen::render(graph);
 
     copy_referenced_sources(&discovery.module_root, &args.out_module, graph)?;
     copy_test_runtime_data(&discovery.module_root, &args.out_module, graph)?;
+    remove_displaced_sources(&args.out_module, graph)?;
     fs::write(args.out_module.join("MODULE.bazel"), generated.module_bazel)?;
     fs::write(args.out_module.join("BUILD.bazel"), generated.build_bazel)?;
     // The wrapper the generated sh_tests run — only when there are tests.
@@ -529,6 +539,27 @@ fn stage_shared_library_chain(
 ///
 /// Full rationale: docs/architecture/cmake-frontend.md's "only referenced
 /// files enter the module".
+/// Deletes from the module any file at a config header's output path that a
+/// copy pass brought along anyway.
+///
+/// `copy_referenced_sources` cannot ship one — the graph no longer references
+/// it — but `copy_test_runtime_data` copies a test's working directory
+/// wholesale, and expat's tests run from the top directory, so the whole
+/// tree arrives, checked-in `expat_config.h` included. One guard after every
+/// pass rather than a skip-set threaded through each: a pass that puts a
+/// file at a generated header's path is wrong in the same way whichever pass
+/// it is, and outside a sandbox that file wins the include search even when
+/// no rule names it. See `model::BuildGraph::displace_sources_shadowed_by_config_headers`.
+fn remove_displaced_sources(out_dir: &Path, graph: &model::BuildGraph) -> std::io::Result<()> {
+    for path in &graph.displaced_sources {
+        let staged = out_dir.join(path);
+        if staged.is_file() {
+            fs::remove_file(&staged)?;
+        }
+    }
+    Ok(())
+}
+
 fn copy_referenced_sources(
     module_root: &Path,
     out_dir: &Path,
@@ -812,6 +843,31 @@ mod tests {
         serde_json::from_str(&text).unwrap()
     }
 
+    // The runtime-tree copy ships a test's whole working directory, so a
+    // displaced file can arrive that way after copy_referenced_sources
+    // correctly left it out. The guard has to catch that, and only that.
+    #[test]
+    fn remove_displaced_sources_deletes_only_the_recorded_paths() {
+        let out = unique_temp_dir("displaced");
+        fs::create_dir_all(out.join("lib")).unwrap();
+        fs::write(out.join("zconf.h"), "checked in").unwrap();
+        fs::write(out.join("lib/idn2.h"), "checked in").unwrap();
+        fs::write(out.join("zlib.h"), "keep").unwrap();
+        let mut graph = two_target_graph();
+        graph.displaced_sources = vec![
+            "lib/idn2.h".to_string(),
+            "zconf.h".to_string(),
+            "absent.h".to_string(),
+        ];
+
+        super::remove_displaced_sources(&out, &graph).unwrap();
+
+        assert!(!out.join("zconf.h").exists(), "a displaced copy must go");
+        assert!(!out.join("lib/idn2.h").exists(), "in a subdirectory too");
+        assert!(out.join("zlib.h").exists(), "an unrelated file stays");
+        fs::remove_dir_all(&out).unwrap();
+    }
+
     fn two_target_graph() -> model::BuildGraph {
         model::BuildGraph {
             module: model::ModuleInfo {
@@ -836,6 +892,7 @@ mod tests {
             tests: vec![],
             unexpressed_tests: Vec::new(),
             config_headers: vec![],
+            displaced_sources: Vec::new(),
         }
     }
 

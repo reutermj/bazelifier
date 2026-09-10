@@ -148,6 +148,24 @@ over shell/awk for legibility as the directive set grows; the cost, weighed
 and accepted, is that a hermetic Python interpreter becomes a build-time
 dependency every converted module using `config_header` inherits.
 
+### A checked-in file at the output path is displaced
+
+A project can ship a file at the same path the config header is generated
+to — zlib's checked-in `zconf.h` beside the one generated from
+`zconf.h.cmakein`, or expat's and libidn2's headers left behind by an
+in-tree configure. The module must not carry it: Bazel puts the source
+root's `-I` ahead of the generated root's, so a checked-in file at that
+path wins every include search and the generated header (its `#error` for
+an unresolved macro included) is never read. The driver drops such source
+references from every target before codegen and the copy pass
+(`BuildGraph::displace_sources_shadowed_by_config_headers`), records them,
+and the generated `BUILD.bazel` says beside the rule that the omission was
+deliberate; a copy that still arrives through a test's working directory is
+removed afterwards (`remove_displaced_sources`). Deterministic, because the
+output path is stated by the input.
+See `docs/lore/a-checked-in-file-at-a-generated-headers-path-wins-the-include-search.md`
+for how it was found.
+
 ## What a template references (from json-c's ~48 macros + its `@VAR@`s)
 
 Three kinds, by where the value comes from — see "Non-probe substitutions":

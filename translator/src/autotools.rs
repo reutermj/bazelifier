@@ -2015,10 +2015,10 @@ pub(crate) fn to_graph(
             }
             if let Some((inc, def)) = flags_of.get(object) {
                 // An include dir is likewise relative to the compiling
-                // directory. One that resolves TO the module root cannot be
-                // an `includes` entry (Bazel rejects "."), so it is recorded
-                // the way the CMake frontend records it and codegen stages
-                // headers into _include/.
+                // directory. One that resolves TO the module root is recorded
+                // as `needs_root_include`, the way the CMake frontend records
+                // it, rather than as an `includes` entry of "." — see that
+                // field's doc for why the two are kept apart.
                 for i in inc {
                     match rebase(i, dir) {
                         Some(rel) if rel.is_empty() => needs_root_include = true,
@@ -2293,6 +2293,9 @@ pub(crate) fn to_graph(
             // against — the same role these play on the CMake side.
             unexpressed_tests,
             config_headers: Vec::new(),
+            // Filled by the driver, which applies the one graph-level rule
+            // both frontends share; see main.rs.
+            displaced_sources: Vec::new(),
         },
         needs_attention,
         module_root.clone(),
@@ -4218,10 +4221,10 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
             "both libraries are link inputs"
         );
 
-        // `-I.` resolves TO the module root, which Bazel cannot express as an
-        // includes entry — it is recorded as needs_root_include instead, and
-        // codegen stages the public headers into _include/. Same decision the
-        // CMake frontend makes, for the same reason.
+        // `-I.` resolves TO the module root, which is recorded as
+        // needs_root_include rather than as an includes entry; codegen turns
+        // it into `includes = ["."]`. Same decision the CMake frontend makes,
+        // for the same reason.
         //
         // `-I.` is the ONLY include this fixture's compiles carry, so both
         // lists are empty. An earlier version of this capture invented an

@@ -16,7 +16,26 @@ use crate::model::{self, BuildGraph, Target, TargetKind};
 // Pinned versions for the toolchain/rules every generated module currently
 // depends on. Hardcoded for now since the translator has no per-project
 // toolchain-selection mechanism yet — see docs/architecture/bazel-codegen.md.
-const RULES_CC_VERSION: &str = "0.2.22";
+//
+// 0.2.23 is the first rules_cc release that accepts `includes = ["."]` at a
+// module root (rules_cc commit 0d150d5, PR #625), which is how a header at
+// the module root becomes reachable by `#include <angled>` — zlib's `zlib.h`
+// does that for `zconf.h`. It is not on the Bazel Central Registry yet, so
+// every generated MODULE.bazel also pins the release's commit with a
+// `git_override`; see RULES_CC_OVERRIDE_COMMIT. *(History: until 2026-09-06
+// codegen worked around the rejection by copying public and generated
+// headers into an `_include/` directory, bzl-i4i.6. Removed in bzl-ti9 once
+// the fix was verified against the tag.)*
+const RULES_CC_VERSION: &str = "0.2.23";
+/// The commit the rules_cc `0.2.23` tag points at, rendered as a
+/// `git_override` because the registry has no 0.2.23 for the `bazel_dep` to
+/// resolve against. Delete this, the override in `render_module_bazel`, and
+/// the copy `validation_workspace.bzl` makes in the root MODULE.bazel (Bazel
+/// honours overrides only from the ROOT module) once
+/// `modules/rules_cc/metadata.json` in the bazel-central-registry repo lists
+/// 0.2.23 — the `bazel_dep` alone is then enough. Tracked as bzl-ti9.
+const RULES_CC_OVERRIDE_COMMIT: &str = "b1771c16fd98676eb719fd9c234bf17ee6d33067";
+const RULES_CC_OVERRIDE_REMOTE: &str = "https://github.com/bazelbuild/rules_cc.git";
 /// Only pulled in when a project actually exposes a build option — see
 /// `render_build_options`. A module with no options must not gain a
 /// dependency it never uses.
@@ -132,6 +151,14 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
          bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n\
          bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\
          {rules_shell}{cc_config}{skylib}\n\
+         # rules_cc {RULES_CC_VERSION} is not on the Bazel Central Registry yet. It is the\n\
+         # first release that accepts `includes = [\".\"]` at a module root, which\n\
+         # this module relies on wherever a header at its root is reached by\n\
+         # `#include <angled>`. Remove this override once the registry lists\n\
+         # {RULES_CC_VERSION}; the bazel_dep above is then sufficient. Bazel honours\n\
+         # overrides only from the ROOT module, so a workspace consuming this\n\
+         # module as a dependency has to repeat it.\n\
+         git_override(\n    module_name = \"rules_cc\",\n    commit = \"{RULES_CC_OVERRIDE_COMMIT}\",\n    remote = \"{RULES_CC_OVERRIDE_REMOTE}\",\n)\n\n\
          register_toolchains(\"@llvm//toolchain:all\")\n",
         name = module_name(&graph.module.name),
     )
@@ -201,7 +228,10 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
 
     // Config headers first: the cc targets below reference them.
     for config_header in &graph.config_headers {
-        render_config_header(&mut out, config_header);
+        let displaced = graph
+            .displaced_sources
+            .contains(&config_header.output_path());
+        render_config_header(&mut out, config_header, displaced);
         out.push('\n');
     }
     render_shadow_headers(&mut out, &graph.config_headers);
@@ -216,10 +246,8 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         .map(|t| t.name.as_str())
         .collect();
 
-    let staged = render_staged_headers(&mut out, graph);
-
     for (i, target) in graph.targets.iter().enumerate() {
-        if i > 0 || staged {
+        if i > 0 {
             out.push('\n');
         }
         render_cc_rule(&mut out, target, &graph.config_headers, &shared);
@@ -290,7 +318,22 @@ fn render_shadow_headers(out: &mut String, headers: &[model::ConfigHeader]) {
 /// The library name every target depends on to get the shadowing headers.
 const SHADOW_HEADERS_TARGET: &str = "_shadow_hdrs";
 
-fn render_config_header(out: &mut String, header: &model::ConfigHeader) {
+fn render_config_header(out: &mut String, header: &model::ConfigHeader, displaced_source: bool) {
+    if displaced_source {
+        // Said here, beside the rule, because the missing file is the first
+        // thing a reader who diffs the module against upstream will notice,
+        // and restoring it is the natural wrong move: it would win the include
+        // search and this rule would never be read again. See
+        // model::BuildGraph::displace_sources_shadowed_by_config_headers.
+        out.push_str(&format!(
+            "# The project also ships a checked-in `{path}`. It is deliberately NOT in\n\
+             # this module: the build reads the GENERATED one, and a source file at the\n\
+             # same path wins the include search and would hide it, an unresolved\n\
+             # macro's #error included. Resolve values on this rule; do not restore\n\
+             # that file.\n",
+            path = header.output_path()
+        ));
+    }
     out.push_str(&format!(
         "config_header(\n    name = \"{}\",\n",
         config_header_name(header)
@@ -612,17 +655,10 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
 /// The rule name for a config header's target — its output with non-identifier
 /// characters replaced, so `config.h` becomes a valid target `config_h` that
 /// won't collide with the output file of the same base name.
-/// Where a config header is written, which is its own directory when it
-/// shadows a system header and the plain output path otherwise.
-///
-/// One place, because the `output` attribute, the `includes` entry and the
-/// `hdrs` reference all have to agree about it — three uses that drifted
-/// apart once already for `_include/` staging (`staged_for`).
+/// Where a config header is written; see `model::ConfigHeader::output_path`
+/// for why that is decided in one place.
 fn config_header_output(header: &model::ConfigHeader) -> String {
-    match &header.shadow_dir {
-        Some(dir) => format!("{dir}/{}", header.output),
-        None => header.output.clone(),
-    }
+    header.output_path()
 }
 
 pub fn config_header_name(header: &model::ConfigHeader) -> String {
@@ -858,39 +894,12 @@ fn render_cc_rule(
             })
             .map(|h| format!(":{}", config_header_name(h))),
     );
-    // `includes` adds a search path; it does not make the staged files inputs
-    // to the compile. Targets with public headers get that for free via `hdrs`
-    // below, but a target with none — xz's liblzma — was handed `-I_include`
-    // pointing into a directory it had never been given, so `<config.h>` stayed
-    // unresolvable while the staged copy sat there unreferenced.
-    if staged_for(target, config_headers) && target.public_headers.is_empty() {
-        srcs.push(format!(":{STAGED_HEADERS_TARGET}"));
-    }
     render_string_list(out, "srcs", &srcs);
 
     // `hdrs` is a `cc_library`-only attribute; `cc_binary` has none, and
     // Bazel rejects it as an unknown attribute rather than ignoring it.
     if target.kind == TargetKind::Library {
-        let mut hdrs = target.public_headers.clone();
-        if staged_for(target, config_headers) && !target.public_headers.is_empty() {
-            // The staged copies are ADDED, not substituted. They exist so an
-            // angled `#include <foo.h>` can reach a module-root header, which
-            // is the rules_cc limitation `render_staged_headers` documents —
-            // but a project that includes its own header the ordinary way,
-            // `#include "greet.h"` from the file beside it, still needs the
-            // original where it actually sits.
-            //
-            // Substituting broke exactly that: automake fixture 001 declares
-            // greet.h public AND includes it with quotes from src/greet.c, so
-            // the module compiled with the header reachable only as
-            // _include/greet.h and the quoted include resolved to nothing.
-            //
-            // Two labels for one file is fine — Bazel de-duplicates the
-            // inputs, and the alternative is picking one include style and
-            // being wrong for projects that use the other.
-            hdrs.push(format!(":{STAGED_HEADERS_TARGET}"));
-        }
-        render_path_list(out, "hdrs", &hdrs);
+        render_path_list(out, "hdrs", &target.public_headers);
     }
     // A shadowing directory goes in `local_includes`, not `includes`, because
     // Bazel's `includes` is TRANSITIVE and `AM_CPPFLAGS` is not. Left in
@@ -915,8 +924,16 @@ fn render_cc_rule(
         .iter()
         .cloned()
         .partition(|inc| shadow_dirs.contains(&inc.as_str()));
-    if staged_for(target, config_headers) {
-        includes.push(STAGED_INCLUDE_DIR.to_string());
+    // A project that put its own module root on the include path gets it
+    // back as `"."`. rules_cc accepts that since RULES_CC_VERSION and renders
+    // it as `-I.` plus the matching `bazel-out/.../bin` entry, so a GENERATED
+    // header at the root (zlib's zconf.h) is reachable by `#include <angled>`
+    // as well as a checked-in one. Emitted whether or not the target has
+    // public headers, because it reproduces a flag the build passed, not a
+    // property of the headers. Transitive like every other `includes` entry —
+    // the same claim `target.includes` already makes.
+    if target.needs_root_include {
+        includes.push(".".to_string());
     }
     render_path_list(out, "includes", &includes);
     render_path_list(out, "local_includes", &local_includes);
@@ -974,157 +991,6 @@ fn render_cc_rule(
     out.push_str(")\n");
 
     render_shared_library(out, target);
-}
-
-/// Where staged public headers land inside the module. Leading underscore so
-/// it cannot collide with a directory the project authored (`include/` is
-/// common), and so it reads as generated rather than as project layout.
-const STAGED_INCLUDE_DIR: &str = "_include";
-
-/// Whether `target` reaches its headers through [`STAGED_INCLUDE_DIR`].
-///
-/// One predicate rather than a condition repeated at each use, because the
-/// three uses — making the genrule an input, replacing `hdrs`, and adding the
-/// `includes` entry — have to agree with what [`render_staged_headers`]
-/// actually stages: public headers AND every generated config header. They did
-/// not agree. Gating on public headers alone gave xz's liblzma, which declares
-/// none, an `-I_include` for a directory holding only a config header it could
-/// not reach.
-fn staged_for(target: &Target, config_headers: &[model::ConfigHeader]) -> bool {
-    target.needs_root_include && !(target.public_headers.is_empty() && config_headers.is_empty())
-}
-
-/// The single module-wide genrule staging public headers.
-///
-/// Module-wide rather than per-target because two targets can legitimately
-/// export the SAME header — zlib builds `zlib` and `zlibstatic` from one set
-/// of sources — and two genrules writing `_include/zlib.h` is a hard analysis
-/// error ("generated file ... conflicts with existing generated file").
-const STAGED_HEADERS_TARGET: &str = "_staged_hdrs";
-
-/// Emits the module-wide genrule copying public headers into
-/// [`STAGED_INCLUDE_DIR`], so an `includes` entry can name the directory they
-/// are in. Returns whether it emitted anything.
-///
-/// **This is a workaround for a rules_cc limitation and is meant to be
-/// removed.** A header at the module ROOT cannot be reached by
-/// `#include <angled>`: Bazel passes only `-iquote .` for a root package and
-/// rejects `includes = ["."]` outright ("resolves to the workspace root, which
-/// would allow this rule and all of its transitive dependents to include any
-/// file in your workspace"). zlib's `zlib.h` does `#include <zconf.h>`, so
-/// without this the module does not compile. When rules_cc supports reaching a
-/// module-root header from an angled include, delete this and emit the headers
-/// in place — see bzl-i4i.6 for the revert criteria.
-///
-/// Fires only when the project actually asked for its root on the include
-/// path (`Target::needs_root_include`), so a project that names real
-/// subdirectories is untouched. The trigger is deliberately broader than
-/// necessary — a project can ask for its root and still use only quoted
-/// includes, which need no staging — see bzl-i4i.7.
-///
-/// Of the headers a target enumerates, only the PUBLIC ones are staged:
-/// staging everything would recreate the exact objection Bazel raises when it
-/// rejects `"."`, exposing the whole tree to dependents. Generated config
-/// headers are staged unconditionally alongside them, because a source header
-/// that includes one with angle brackets (zlib's `zlib.h` does) cannot resolve
-/// it otherwise.
-fn render_staged_headers(out: &mut String, graph: &BuildGraph) -> bool {
-    if !graph.targets.iter().any(|t| t.needs_root_include) {
-        return false;
-    }
-
-    let mut headers: Vec<String> = graph
-        .targets
-        .iter()
-        .filter(|t| t.needs_root_include)
-        .flat_map(|t| t.public_headers.iter().cloned())
-        .collect();
-    headers.sort_unstable();
-    headers.dedup();
-
-    // A config header is generated, so it is a LABEL rather than a file — but
-    // it is just as public (zlib installs zconf.h to its include destination)
-    // and `zlib.h` includes it with angle brackets. Left out, the staged
-    // `zlib.h` resolves and then fails on `#include <zconf.h>`, which reads as
-    // the staging not working at all rather than as one missing header.
-
-    // (source label or path, staged output path). Built as pairs so `outs`
-    // and `cmd` cannot disagree — they did, and Bazel reports it only as a
-    // missing declared output far from the cause (bzl-5yv).
-    let mut staged: Vec<(String, String)> = headers
-        .iter()
-        .map(|h| (h.clone(), format!("{STAGED_INCLUDE_DIR}/{h}")))
-        .collect();
-    // A SHADOWING header is excluded: it is already reachable through its own
-    // directory, which is the whole mechanism (`render_shadow_headers` puts
-    // that directory on the include path so `#include <string.h>` finds the
-    // replacement). Staging it too copies it to `_include/gl/string.h`, where
-    // nothing looks, and the copy shadows nothing — the source then fails to
-    // find the header at all. libidn2 never showed this because it has no
-    // `needs_root_include` target, so the staging pass does not run for it.
-    staged.extend(
-        graph
-            .config_headers
-            .iter()
-            .filter(|h| h.shadow_dir.is_none())
-            .map(|h| {
-                (
-                    format!(":{}", config_header_name(h)),
-                    format!("{STAGED_INCLUDE_DIR}/{}", h.output),
-                )
-            }),
-    );
-    // Deduped on the OUTPUT path, after the merge. Each list is unique on its
-    // own, but a header can be in both — libidn2's lib/idn2.h is a public
-    // header AND generated from idn2.h.in — and two genrule outputs of one
-    // name is a hard analysis error ("more than one generated file named").
-    //
-    // First wins, so a generated header does not displace the copy of itself
-    // that the public-header pass already staged from a real source file.
-    let mut seen = std::collections::HashSet::new();
-    staged.retain(|(_, out)| seen.insert(out.clone()));
-    let outs: Vec<String> = staged.iter().map(|(_, o)| o.clone()).collect();
-
-    if staged.is_empty() {
-        return false;
-    }
-    let srcs: Vec<String> = staged.iter().map(|(s, _)| s.clone()).collect();
-
-    out.push_str(
-        "# Staged so `includes` can name the directory these headers are in.\n\
-         # Bazel rejects `includes = [\".\"]` and passes only `-iquote .` for a\n\
-         # root package, so a header at the module root is unreachable by\n\
-         # `#include <angled>`. Workaround for a rules_cc limitation; remove it\n\
-         # and emit the headers in place once upstream supports this.\n",
-    );
-    out.push_str(&format!(
-        "genrule(\n    name = \"{STAGED_HEADERS_TARGET}\",\n"
-    ));
-    render_path_list(out, "srcs", &srcs);
-    render_path_list(out, "outs", &outs);
-    // One explicit `cp` per header, with both paths written out by codegen.
-    //
-    // A single loop over `$(SRCS)` cannot work: the destination has to be the
-    // header's path RELATIVE TO THE MODULE, and deriving that in shell means
-    // stripping a prefix that differs between a module built directly and the
-    // same module consumed as an external repo (where `$(RULEDIR)` carries an
-    // `external/<module>+/` segment). Both dirname- and RULEDIR-stripping
-    // attempts failed exactly there, passing in-tree and failing as a
-    // dependency (bzl-5yv).
-    //
-    // `$(location <src>)` and `$(RULEDIR)/<out>` are both resolved by Bazel,
-    // so the command carries no path arithmetic of its own.
-    out.push_str("    cmd = \"");
-    for (src, out_path) in &staged {
-        out.push_str(&format!(
-            "mkdir -p $$(dirname $(RULEDIR)/{out_path}) && \
-             cp $(location {src}) $(RULEDIR)/{out_path} && "
-        ));
-    }
-    out.push_str("true\",\n");
-    out.push_str(PUBLIC_VISIBILITY);
-    out.push_str(")\n");
-    true
 }
 
 /// The `cc_shared_library` name for a library target.
@@ -1432,10 +1298,48 @@ mod tests {
                 dialect: model::ConfigDialect::Cmakedefine,
                 shadow_dir: None,
             },
+            false,
         );
         assert!(
             out.contains(r#""PACKAGE_NAME": "\"xz\"""#),
             "the values dict must escape like every other emitted string; got:\n{out}"
+        );
+    }
+
+    // The omission has to be visible beside the rule, or a reader diffing
+    // the module against upstream restores the file and silently re-hides
+    // the generated header.
+    #[test]
+    fn a_displaced_source_is_explained_beside_its_config_header() {
+        let mut g = graph(None);
+        g.config_headers = vec![model::ConfigHeader {
+            output: "zconf.h".to_string(),
+            template: "zconf.h.cmakein".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            options: Vec::new(),
+            splices: Vec::new(),
+            unresolved: Vec::new(),
+            dialect: model::ConfigDialect::Cmakedefine,
+            shadow_dir: None,
+        }];
+        g.targets[0].sources.push("zconf.h".to_string());
+        g.displace_sources_shadowed_by_config_headers(|_| false);
+        let rendered = render(&g).build_bazel;
+        assert!(
+            rendered.contains("checked-in `zconf.h`. It is deliberately NOT in"),
+            "the deliberate omission must be stated in the BUILD file:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("        \"zconf.h\",\n"),
+            "and the checked-in path must be gone from every rule:\n{rendered}"
+        );
+
+        let untouched = render(&graph(None)).build_bazel;
+        assert!(
+            !untouched.contains("deliberately NOT in"),
+            "no displacement, no note:\n{untouched}"
         );
     }
 
@@ -1447,6 +1351,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            displaced_sources: Vec::new(),
             config_headers: vec![],
             targets: vec![Target {
                 name: "hello".to_string(),
@@ -1481,6 +1386,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            displaced_sources: Vec::new(),
             config_headers: vec![],
             targets: vec![
                 Target {
@@ -1547,6 +1453,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            displaced_sources: Vec::new(),
             config_headers: vec![],
             targets: vec![Target {
                 name: "app".to_string(),
@@ -1585,6 +1492,7 @@ mod tests {
                 },
                 tests: vec![],
                 unexpressed_tests: Vec::new(),
+                displaced_sources: Vec::new(),
                 config_headers: vec![],
                 targets: vec![Target {
                     name: "t".to_string(),
@@ -1684,6 +1592,7 @@ mod tests {
             }],
             tests: vec![test],
             unexpressed_tests: Vec::new(),
+            displaced_sources: Vec::new(),
             config_headers: vec![],
         }
     }
@@ -1846,6 +1755,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            displaced_sources: Vec::new(),
             config_headers: vec![],
             targets: vec![target],
         }
@@ -1900,6 +1810,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            displaced_sources: Vec::new(),
             config_headers: vec![],
             targets: vec![
                 Target {
@@ -2052,6 +1963,36 @@ mod tests {
         );
     }
 
+    // The override exists only because the registry has no 0.2.23; when it
+    // does, this test is the one to delete along with the constants. Until
+    // then it pins two things the build cannot check for us: that the
+    // override names the same module as the bazel_dep (a mismatch is a
+    // silently ignored override, and the registry lookup then fails far from
+    // here), and that the removal condition ships in the module, since the
+    // agent resolving it has no access to this repo.
+    #[test]
+    fn module_bazel_pins_rules_cc_by_git_override_until_the_registry_has_it() {
+        let rendered = render(&graph(None)).module_bazel;
+        let expected = format!(
+            "git_override(\n    module_name = \"rules_cc\",\n    commit = \
+             \"{RULES_CC_OVERRIDE_COMMIT}\",\n    remote = \"{RULES_CC_OVERRIDE_REMOTE}\",\n)\n"
+        );
+        assert!(
+            rendered.contains(&expected),
+            "expected the override block verbatim:\n{expected}\nin:\n{rendered}"
+        );
+        assert!(
+            rendered.contains(&format!(
+                "bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")"
+            )),
+            "{rendered}"
+        );
+        assert!(
+            rendered.contains("Remove this override once the registry lists"),
+            "the removal condition must ship with the module:\n{rendered}"
+        );
+    }
+
     // bzl-2wi.1: Bazel's module-name grammar is stricter than CMake's project
     // name. fmt declares project(FMT), and an unnormalized name fails at
     // module RESOLUTION in the validation root — taking down every fixture,
@@ -2126,14 +2067,13 @@ mod tests {
         );
     }
 
-    // bzl-5yv: `outs` kept a header's subdirectory while the copy flattened
-    // it, so Bazel failed with "declared output ... was not created". zlib hid
-    // it because its public headers sit at the module root, where the two
-    // spellings coincide. Also pins the negative bzl-41q found missing: a
-    // project that never asked for its root on the include path gets nothing.
+    // A project that asked for its module root on the include path gets
+    // `includes = ["."]`, which rules_cc accepts since 0.2.23. Also pins the
+    // negative bzl-41q found missing once: a project that never asked gets
+    // nothing, so the search path is not widened for every module.
     #[test]
-    fn staged_headers_keep_their_subdirectory_and_only_fire_when_needed() {
-        let staged_target = |root: bool| {
+    fn root_include_renders_as_dot_and_only_when_asked() {
+        let root_target = |root: bool| {
             let mut g = graph(None);
             g.targets = vec![Target {
                 name: "lib".to_string(),
@@ -2146,25 +2086,29 @@ mod tests {
             render(&g).build_bazel
         };
 
-        let rendered = staged_target(true);
+        let rendered = root_target(true);
         assert!(
-            rendered.contains("\"_include/proj/api.h\","),
-            "the staged output must keep the header's directory, or an angled \
+            rendered.contains("    includes = [\n        \".\",\n    ],\n"),
+            "the module root must be on the include path, or an angled \
              #include <proj/api.h> cannot resolve:\n{rendered}"
         );
         assert!(
-            rendered.contains("cp $(location proj/api.h) $(RULEDIR)/_include/proj/api.h"),
-            "and the copy must write exactly the path `outs` declares — when \
-             they disagree Bazel reports only a missing output, far from the \
-             cause:\n{rendered}"
+            rendered.contains("        \"proj/api.h\",\n"),
+            "and the header stays where the project put it, so a quoted \
+             include from the file beside it still resolves:\n{rendered}"
+        );
+        assert!(
+            !rendered.contains("genrule(") && !rendered.contains("_include/"),
+            "no staging copy: rules_cc {RULES_CC_VERSION} reaches the root \
+             directly, and a copy would be a second home for every header:\n{rendered}"
         );
 
-        let without = staged_target(false);
+        let without = root_target(false);
         assert!(
-            !without.contains("_staged_hdrs"),
+            !without.contains("    includes = ["),
             "a project that never asked for its module root on the include \
-             path must not get a staging genrule — the workaround exists only \
-             for the case Bazel cannot express:\n{without}"
+             path must not get one — `includes` is transitive and widens \
+             every consumer's search path:\n{without}"
         );
     }
 
@@ -2172,34 +2116,6 @@ mod tests {
     // so the assertion passed whether or not the substitution ran. Short
     // values ("1", "OFF") are unanchored substrings a real header hits by
     // accident. Both read as coverage while checking nothing.
-    // Staging exists so an angled include can reach a module-root header. It
-    // must not cost the ordinary case: a project that includes its own header
-    // with quotes, from the file beside it, still needs the original where it
-    // sits. Substituting broke automake fixture 001, which does both.
-    #[test]
-    fn staging_adds_headers_rather_than_replacing_the_originals() {
-        let mut out = String::new();
-        render_cc_rule(
-            &mut out,
-            &Target {
-                name: "greet".to_string(),
-                kind: TargetKind::Library,
-                sources: vec!["src/greet.c".to_string()],
-                public_headers: vec!["src/greet.h".to_string()],
-                needs_root_include: true,
-                ..Default::default()
-            },
-            &[],
-            &HashSet::new(),
-        );
-        assert!(
-            out.contains("\"src/greet.h\"") && out.contains(":_staged_hdrs"),
-            "both labels are needed — the staged copy for `#include <greet.h>` \
-             and the original for `#include \"greet.h\"` beside the source. \
-             Two labels for one file is fine; Bazel de-duplicates:\n{out}"
-        );
-    }
-
     // Without shared_lib_name Bazel names the output after the TARGET, and
     // an automake target is `liblzma.la` — so the library ships as
     // `libliblzma.la_shared.so`, embedding a control-file extension and
@@ -2622,49 +2538,6 @@ mod tests {
             !rendered.contains("splices"),
             "no splices, no attribute:\n{rendered}"
         );
-    }
-
-    #[test]
-    fn the_staging_genrule_declares_each_output_once() {
-        // Bazel rejects a genrule with two outputs of one name outright:
-        // "rule '_staged_hdrs' has more than one generated file named ...".
-        //
-        // libidn2 hit it because lib/idn2.h is BOTH a public header and a
-        // generated config header — it is produced from idn2.h.in — so it
-        // reached the staging list from each side. The public-header list is
-        // deduped on its own and the config-header list is too; nothing
-        // deduped the MERGE.
-        let mut g = graph(None);
-        g.targets[0].public_headers = vec!["lib/idn2.h".to_string()];
-        g.targets[0].needs_root_include = true;
-        g.config_headers = vec![model::ConfigHeader {
-            output: "lib/idn2.h".to_string(),
-            template: "lib/idn2.h.in".to_string(),
-            template_source: None,
-            catalog_probes: vec![],
-            values: vec![],
-            options: Vec::new(),
-            splices: Vec::new(),
-            unresolved: Vec::new(),
-            dialect: model::ConfigDialect::Substitution,
-            shadow_dir: None,
-        }];
-        let rendered = render(&g).build_bazel;
-
-        let outs = rendered
-            .split("outs = [")
-            .nth(1)
-            .and_then(|r| r.split(']').next())
-            .expect("the staging genrule must render an outs list");
-        let paths: Vec<&str> = outs.split('"').skip(1).step_by(2).collect();
-        let mut seen = std::collections::HashSet::new();
-        for p in &paths {
-            assert!(
-                seen.insert(*p),
-                "`{p}` declared twice in one genrule is an analysis error, \
-                 not a warning:\n{outs}"
-            );
-        }
     }
 
     #[test]

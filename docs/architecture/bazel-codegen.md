@@ -67,11 +67,6 @@ alongside `shared/helper.cpp`). Everything below is relative to that root.
                        and the project's own CMakeLists.txt is not among
                        them — see cmake-frontend.md's "only referenced files
                        enter the module"
-  _include/           copies of headers that must be reachable by an angled
-                       include — public headers AND generated config headers.
-                       Present ONLY when a project declared its module root as
-                       an include directory — a rules_cc workaround, not
-                       project layout. See "_include/: a staging workaround"
   project_notes/      oddities of THIS project where the obvious answer is
     <NNN>-<slug>.md    wrong — knowledge no general guidance reaches, shipped
                        because the resolving agent has no access to this repo.
@@ -175,27 +170,52 @@ A generated `sh_test` wrapping a dynamically linked binary needs
 `RUNPATH`, and `RUN_CMAKE_TEST_SH` stages runfiles into a writable tree (the
 binary writes into its working directory), which breaks those relative paths.
 
-## `_include/`: a staging workaround
+## rules_cc is pinned by `git_override` until the registry catches up
 
-A converted module may carry an `_include/` directory holding copies of its
-public headers, with `includes = ["_include"]` on the targets that own them.
-**This is a workaround for a rules_cc limitation, not project layout**, and it
-is meant to be removed.
+Every generated `MODULE.bazel` carries, beside its `bazel_dep` on rules_cc, a
+`git_override` pinning the commit behind the release codegen depends on
+(`RULES_CC_VERSION` / `RULES_CC_OVERRIDE_COMMIT` in `translator/src/codegen.rs`).
+The release is the first that accepts `includes = ["."]` at a module root,
+which is what lets a header at the root be reached by `#include <angled>` —
+zlib's `zlib.h` does that for `zconf.h`, and a project that put its own root
+on the include path (`Target::needs_root_include`) gets exactly that
+entry.[^staging]
+Bazel already passes `-iquote .` for a root package, so quoted includes never
+needed it; `"."` adds the `-I.` (and the matching `bazel-out/.../bin`) that
+angled ones do, which also reaches a GENERATED header at the root.
 
-A header at a module's ROOT cannot be reached by `#include <angled>`: Bazel
-passes only `-iquote .` for a root package and rejects `includes = ["."]`
-outright ("resolves to the workspace root, which would allow this rule and all
-of its transitive dependents to include any file in your workspace"). zlib's
-`zlib.h` does `#include <zconf.h>`, so without the staging the module does not
-compile.
+The override exists only because that release is not on the Bazel Central
+Registry. **It is meant to be removed**, and the removal has three homes that
+must go together: the two constants and the block `render_module_bazel`
+emits; the copy `validation_workspace.bzl` makes in the root `MODULE.bazel`,
+which it reads back out of the first fixture rather than pinning a second
+time; and `root_module_rules_cc_override_test`, which asserts the two agree.
+That copy is the override alone — the root must not gain a direct
+`bazel_dep` on rules_cc, because that reorders toolchain registration and
+selects the host gcc for every fixture (see
+`docs/lore/a-direct-bazel-dep-on-rules-cc-in-the-root-selects-the-host-gcc.md`);
+the same test pins that.
+Bazel honours overrides only from the root module, so a fixture's own
+override is inert once the fixture is consumed as a dependency — that is why
+the validation root repeats it, and why a standalone consumer of a generated
+module has to as well (the module says so in a comment). Tracked as bzl-ti9;
+the re-check is whether `modules/rules_cc/metadata.json` in the
+bazel-central-registry repo lists the version.
 
-It fires only when a project declared its own module root as an include
-directory. What it stages is a decision that has already changed once — see
-`render_staged_headers` and `staged_for` in `translator/src/codegen.rs`,
-which own the trigger and record why gating it on public headers alone left
-xz's liblzma with an `-I_include` for a directory it could not reach. When
-rules_cc supports reaching a module-root header from an angled include,
-delete the staging and emit the headers in place.
+The independence claim is unchanged: the override names a public git remote,
+not a path, so the tarball is still portable — unlike the cc_config override,
+which is deliberately supplied by flag (see build-verification.md).
+
+[^staging]: History: from 2026-07-31 to 2026-09-06 rules_cc rejected
+    `includes = ["."]` outright ("resolves to the workspace root, which would
+    allow this rule and all of its transitive dependents to include any file
+    in your workspace"), and codegen worked around it by copying public
+    headers and generated config headers into an `_include/` directory the
+    module could name (bzl-i4i.6). Upstream removed the rejection in rules_cc
+    commit 0d150d5 (PR #625), released in 0.2.23; the staging was deleted in
+    bzl-ti9 after verifying in a zlib-shaped scratch module that 0.2.22
+    rejects `"."`, 0.2.23 builds it, and 0.2.23 without `includes` fails on
+    the angled include — so the pass is the fix and not some other change.
 
 ## Formatting and linting
 

@@ -125,23 +125,20 @@ pub struct Target {
     /// for Autotools.
     pub dependencies: Vec<String>,
     /// Whether this target declared its own module root as an include
-    /// directory, which Bazel cannot express.
+    /// directory — CMake's `target_include_directories(${CMAKE_SOURCE_DIR})`
+    /// or an Autotools `-I.` from the top directory.
     ///
-    /// `includes = ["."]` is a hard analysis error ("resolves to the workspace
-    /// root, which would allow this rule and all of its transitive dependents
-    /// to include any file in your workspace"), and Bazel passes only
-    /// `-iquote .` for a root package — never `-I`. So a header at the module
-    /// root is unreachable by `#include <angled>`, which zlib's `zlib.h` does
-    /// for `zconf.h`. Codegen works around it by staging the target's PUBLIC
-    /// headers AND every generated config header into a private subdirectory
-    /// it can name; see `codegen::render_staged_headers`. Both halves matter:
-    /// treating public headers as the whole set left xz's liblzma, which
-    /// declares none, with an include path into a directory it was never
-    /// given.
-    ///
-    /// Recorded rather than acted on here because it is a fact about the
-    /// project (it asked for its root on the include path), while the
-    /// workaround is a fact about Bazel.
+    /// Kept apart from `includes` rather than stored there as `"."` because
+    /// the two have different failure directions: a wrong entry in `includes`
+    /// is a directory that does not exist, while `"."` widens every
+    /// consumer's search path to the whole module. Codegen renders it as
+    /// `includes = ["."]`, which rules_cc accepts from 0.2.23 (see
+    /// `codegen::RULES_CC_VERSION`); without it a header at the module root
+    /// is unreachable by `#include <angled>`, which zlib's `zlib.h` does for
+    /// `zconf.h`, since Bazel passes only `-iquote .` for a root package.
+    /// *(History: until 2026-09-06 rules_cc rejected `"."` outright and
+    /// codegen staged the headers into an `_include/` copy instead —
+    /// bzl-i4i.6, removed in bzl-ti9.)*
     pub needs_root_include: bool,
     /// Include directories the target compiles with — CMake's
     /// `target_include_directories`, or the `-I` flags on an Autotools
@@ -317,8 +314,8 @@ pub struct ConfigHeader {
     ///
     /// `None` for an ordinary config header: `config.h` is included as
     /// `"config.h"` by sources that carry it in `srcs`, and giving it an
-    /// include path would put the module root on the search path — which
-    /// Bazel rejects outright (`includes = ["."]`).
+    /// include path would put the module root on every consumer's search
+    /// path for nothing.
     ///
     /// `Some("gl")` for a gnulib replacement. Its whole mechanism is that
     /// `#include <string.h>` finds the GENERATED header, whose
@@ -388,6 +385,22 @@ pub struct ConfigHeader {
     pub unresolved: Vec<String>,
 }
 
+impl ConfigHeader {
+    /// Where the header is written inside the module: its own directory when
+    /// it shadows a system header, the plain output path otherwise. One
+    /// place, because the rule's `output` attribute, the include path, the
+    /// `hdrs` reference and the source-displacement check all have to agree
+    /// about it — three of them drifted apart once already, when a
+    /// since-removed header-staging step handed xz's liblzma an include path
+    /// into a directory it had never been given.
+    pub fn output_path(&self) -> String {
+        match &self.shadow_dir {
+            Some(dir) => format!("{dir}/{}", self.output),
+            None => self.output.clone(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BuildGraph {
     pub module: ModuleInfo,
@@ -412,11 +425,209 @@ pub struct BuildGraph {
     /// So this is not a second list of tests to render. Nothing emits a rule
     /// for these; they exist so the module arrives RESOLVABLE.
     pub unexpressed_tests: Vec<Test>,
+    /// Module-relative paths of checked-in files the module deliberately
+    /// OMITS because a config header generates a file at the same path; see
+    /// [`BuildGraph::displace_sources_shadowed_by_config_headers`].
+    ///
+    /// Recorded rather than silently dropped so codegen can say so beside the
+    /// rule: a deliberate omission and an overlooked one are otherwise
+    /// indistinguishable in the output, and the obvious "fix" — restoring the
+    /// file — is exactly the wrong one.
+    pub displaced_sources: Vec<String>,
+}
+
+impl BuildGraph {
+    /// Removes every source reference whose path a config header's output
+    /// occupies, recording each in `displaced_sources`.
+    ///
+    /// The build produced the GENERATED file at that path, and that is what
+    /// its compiles read; a checked-in file there is either upstream's
+    /// fallback (zlib ships a `zconf.h` that CMake renames out of the way
+    /// before generating its own) or the output of an in-tree configure
+    /// (expat, libidn2) — a host-resolved header, the thing the probes exist
+    /// to replace. Carried into the module it wins: Bazel passes the source
+    /// root's `-I` before the generated root's, and a quoted include finds
+    /// the sibling first, so the generated header — an unresolved macro's
+    /// `#error` included — is never read, and the module builds against
+    /// whatever upstream happened to check in. Measured 2026-09-10 on zlib:
+    /// every one of 37 compiles opened the checked-in `zconf.h`.
+    ///
+    /// Deterministic, not a guess: the config header's output path is stated
+    /// by the input (`configure_file` / `AC_CONFIG_HEADERS`), so the collision
+    /// is a fact, not a heuristic about what the project meant.
+    ///
+    /// `exists_in_source_tree` covers the file no target references: expat's
+    /// checked-in `expat_config.h` is in no rule, yet reaches the module
+    /// because a test's working directory is copied wholesale. Recording it
+    /// lets the driver remove that copy and codegen explain the absence; the
+    /// graph cannot see the source tree itself, so the driver supplies the
+    /// question.
+    pub fn displace_sources_shadowed_by_config_headers(
+        &mut self,
+        exists_in_source_tree: impl Fn(&str) -> bool,
+    ) {
+        let generated: Vec<String> = self
+            .config_headers
+            .iter()
+            .map(ConfigHeader::output_path)
+            .collect();
+        let mut displaced: Vec<String> = generated
+            .iter()
+            .filter(|path| exists_in_source_tree(path))
+            .cloned()
+            .collect();
+        for target in &mut self.targets {
+            for list in [
+                &mut target.sources,
+                &mut target.public_headers,
+                &mut target.textual_sources,
+            ] {
+                list.retain(|path| {
+                    let shadowed = generated.contains(path);
+                    if shadowed && !displaced.contains(path) {
+                        displaced.push(path.clone());
+                    }
+                    !shadowed
+                });
+            }
+        }
+        displaced.sort_unstable();
+        self.displaced_sources = displaced;
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn header(output: &str, shadow_dir: Option<&str>) -> ConfigHeader {
+        ConfigHeader {
+            output: output.to_string(),
+            template: format!("{output}.in"),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            options: Vec::new(),
+            splices: Vec::new(),
+            unresolved: Vec::new(),
+            dialect: ConfigDialect::Cmakedefine,
+            shadow_dir: shadow_dir.map(str::to_string),
+        }
+    }
+
+    // zlib ships a checked-in zconf.h AND generates one at the same path.
+    // Carried into the module, the checked-in copy wins the include search
+    // and the generated header is never read — an unresolved macro's #error
+    // included, so the module built against upstream's fallback and passed.
+    #[test]
+    fn a_source_at_a_config_headers_output_path_is_displaced_everywhere_it_appears() {
+        let mut g = BuildGraph {
+            module: ModuleInfo {
+                name: "zlib".to_string(),
+                version: None,
+            },
+            targets: vec![
+                Target {
+                    name: "zlib".to_string(),
+                    sources: vec!["adler32.c".to_string(), "zconf.h".to_string()],
+                    public_headers: vec!["zlib.h".to_string(), "zconf.h".to_string()],
+                    ..Default::default()
+                },
+                Target {
+                    name: "minigzip".to_string(),
+                    sources: vec!["test/minigzip.c".to_string(), "zconf.h".to_string()],
+                    textual_sources: vec!["zconf.h".to_string()],
+                    ..Default::default()
+                },
+            ],
+            tests: vec![],
+            unexpressed_tests: Vec::new(),
+            config_headers: vec![header("zconf.h", None), header("gl/string.h", Some("gl"))],
+            displaced_sources: Vec::new(),
+        };
+        g.displace_sources_shadowed_by_config_headers(|_| false);
+
+        for t in &g.targets {
+            for list in [&t.sources, &t.public_headers, &t.textual_sources] {
+                assert!(
+                    !list.contains(&"zconf.h".to_string()),
+                    "{}: the checked-in copy must not be referenced, or it shadows \
+                     the generated one: {list:?}",
+                    t.name
+                );
+            }
+        }
+        assert_eq!(
+            g.targets[0].sources,
+            vec!["adler32.c"],
+            "other sources stay"
+        );
+        assert_eq!(g.targets[0].public_headers, vec!["zlib.h"]);
+        assert_eq!(
+            g.displaced_sources,
+            vec!["zconf.h"],
+            "recorded once, however many targets carried it, so codegen can say \
+             the omission was deliberate"
+        );
+    }
+
+    // The negative: a header that shadows a SYSTEM header is generated into
+    // its own directory, so a source at the bare name is a different file.
+    #[test]
+    fn displacement_compares_against_the_shadow_directory_path() {
+        let mut g = BuildGraph {
+            module: ModuleInfo {
+                name: "libidn2".to_string(),
+                version: None,
+            },
+            targets: vec![Target {
+                name: "gnu".to_string(),
+                sources: vec!["string.h".to_string(), "gl/string.h".to_string()],
+                ..Default::default()
+            }],
+            tests: vec![],
+            unexpressed_tests: Vec::new(),
+            config_headers: vec![header("string.h", Some("gl"))],
+            displaced_sources: Vec::new(),
+        };
+        g.displace_sources_shadowed_by_config_headers(|_| false);
+        assert_eq!(
+            g.targets[0].sources,
+            vec!["string.h"],
+            "only gl/string.h is where the generated file lands; a root string.h is \
+             unrelated to it"
+        );
+        assert_eq!(g.displaced_sources, vec!["gl/string.h"]);
+    }
+
+    // expat: the checked-in expat_config.h is referenced by no rule, but it
+    // sits in the source tree and a test's working-directory copy ships it.
+    // It has to be recorded from the tree alone, or the copy is silent.
+    #[test]
+    fn a_source_tree_file_at_the_output_path_is_recorded_even_when_unreferenced() {
+        let mut g = BuildGraph {
+            module: ModuleInfo {
+                name: "expat".to_string(),
+                version: None,
+            },
+            targets: vec![Target {
+                name: "expat".to_string(),
+                sources: vec!["lib/xmlparse.c".to_string()],
+                ..Default::default()
+            }],
+            tests: vec![],
+            unexpressed_tests: Vec::new(),
+            config_headers: vec![header("expat_config.h", None), header("other.h", None)],
+            displaced_sources: Vec::new(),
+        };
+        g.displace_sources_shadowed_by_config_headers(|p| p == "expat_config.h");
+        assert_eq!(g.displaced_sources, vec!["expat_config.h"]);
+        assert_eq!(
+            g.targets[0].sources,
+            vec!["lib/xmlparse.c"],
+            "nothing else moves"
+        );
+    }
 
     #[test]
     fn is_module_relative_accepts_paths_inside_the_module() {
