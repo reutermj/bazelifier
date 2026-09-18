@@ -338,6 +338,36 @@ check_type_size = rule(
     fragments = ["cpp"],
 )
 
+def _check_type_exists_impl(ctx):
+    includes = "".join(["#include <%s>\n" % h for h in ctx.attr.headers])
+    source = includes + "int main(void) { return (int) sizeof(%s) ? 0 : 0; }\n" % ctx.attr.type
+    info = _run_probe(ctx, source, ctx.attr.define, link = False)
+    return [
+        info,
+        DefaultInfo(files = depset([info.result])),
+    ]
+
+check_type_exists = rule(
+    implementation = _check_type_exists_impl,
+    doc = "Sets `define` to 1 when `type` (a typedef or a `struct` tag) is declared by `headers` under the resolved toolchain, and leaves it undefined otherwise — the Bazel equivalent of autoconf's AC_CHECK_TYPES, which answers presence, where check_type_size answers size. libevent's HAVE_UINT16_T / HAVE_STRUCT_ADDRINFO family is the case; compile-only, like check_include_file, because a type either parses or it does not.",
+    attrs = {
+        "type": attr.string(
+            mandatory = True,
+            doc = "The type to look for (e.g. \"uint16_t\", \"struct addrinfo\").",
+        ),
+        "headers": attr.string_list(
+            default = [],
+            doc = "Headers that would declare it, in #include <...> form.",
+        ),
+        "define": attr.string(
+            mandatory = True,
+            doc = "The macro to define to 1 when the type exists (e.g. \"HAVE_UINT16_T\").",
+        ),
+    },
+    toolchains = use_cc_toolchain(),
+    fragments = ["cpp"],
+)
+
 def _check_include_file_impl(ctx):
     info = _run_probe(
         ctx,

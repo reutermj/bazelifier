@@ -50,8 +50,9 @@ use crate::model::{
 };
 use crate::needs_attention::{
     ConfigDialect, TestDialect, ctest_command_not_a_target_needs_attention,
-    shared_library_absorbs_static_needs_attention, sources_outside_deliverable_needs_attention,
-    unconverted_dependency_needs_attention, unmapped_config_macros_needs_attention,
+    generated_headers_needs_attention, shared_library_absorbs_static_needs_attention,
+    sources_outside_deliverable_needs_attention, unconverted_dependency_needs_attention,
+    unmapped_config_macros_needs_attention,
 };
 use crate::paths::{absolutize, anchor_for_display, common_ancestor, normalize_lexically};
 
@@ -107,8 +108,9 @@ pub fn discover(
     deliverable_root: &Path,
     deps: &Dependencies,
     install_dir: Option<&Path>,
+    configure_args: &[String],
 ) -> Result<Discovery, Error> {
-    configure(source_dir, build_dir, &deps.configure_env())?;
+    configure(source_dir, build_dir, &deps.configure_env(), configure_args)?;
     // The build IS the interrogation: make echoes every command as it runs
     // them, so its stdout is the resolved command stream.
     let stream = build(build_dir, &[])?;
@@ -154,7 +156,7 @@ pub fn discover(
     }
 
     let vars = parse_variables(&database);
-    let declared = declared_targets(&vars);
+    let declared = declared_targets_expanding(&vars, &ambiguous_variables(&database));
 
     // AC_CONFIG_HEADERS, from config.status — see parse_config_headers on why
     // not configure.ac. The template lives in the SOURCE tree (autoconf's
@@ -294,6 +296,23 @@ pub fn discover(
         });
     }
     needs_attention.extend(graph_needs_attention);
+
+    // A header the build wrote into its own tree that no rule above
+    // reproduces. Compiles reach it through a `-I` into the build tree, which
+    // the include rebase drops (rightly: it is not a module path), so
+    // without this the module compiles against nothing and fails on a
+    // missing header far from the cause — libevent's event-config.h, made
+    // by `sed` from config.h at make time.
+    let generated = generated_headers_in_build_tree(
+        &parse_commands(&stream, build_dir),
+        &absolutize(build_dir)?,
+        &source_dir_abs,
+        &graph.config_headers,
+        &stream,
+    );
+    if !generated.is_empty() {
+        needs_attention.push(generated_headers_needs_attention(&generated));
+    }
 
     // The same header-staging passes the CMake frontend runs, and for the
     // same reasons: a header reachable on the include path is an input Bazel
@@ -786,7 +805,12 @@ fn probed_names(build_dir: &Path) -> std::collections::HashSet<String> {
     names
 }
 
-fn configure(source_dir: &Path, build_dir: &Path, env: &[(String, String)]) -> Result<(), Error> {
+fn configure(
+    source_dir: &Path,
+    build_dir: &Path,
+    env: &[(String, String)],
+    args: &[String],
+) -> Result<(), Error> {
     std::fs::create_dir_all(build_dir)?;
     // Absolutized because the command runs with `current_dir(build_dir)`: a
     // caller-supplied source_dir is usually relative (Bazel passes an
@@ -800,6 +824,7 @@ fn configure(source_dir: &Path, build_dir: &Path, env: &[(String, String)]) -> R
         // sysroot. Explicit rather than autoconf's default, which is the
         // same value, so the two halves cannot drift.
         .arg(format!("--prefix={}", crate::dependencies::INSTALL_PREFIX))
+        .args(args)
         .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
         .current_dir(build_dir)
         .output()
@@ -1299,7 +1324,117 @@ fn accumulates_across_directories(name: &str) -> bool {
 /// Inferring identity from artifact paths instead breaks on a binary whose
 /// name differs from its target's, on libtool's `.libs/libfoo.so.1.0.0`
 /// versus `libfoo.la`, and on a non-empty `EXEEXT`.
+/// [`declared_targets_expanding`] with nothing marked ambiguous: the
+/// single-directory case, and every frozen capture the tests drive.
 pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTarget> {
+    declared_targets_expanding(vars, &HashSet::new())
+}
+
+/// Variable names the raw database defines MORE THAN ONCE with different
+/// values — one per directory of a recursive project, which the flattened
+/// map cannot tell apart. A primary or `TESTS` defined in four directories
+/// is four declarations, not a conflict, so those are exempt; everything
+/// else, automake's `am__*` internals included, is ambiguous when it is
+/// defined two ways, whatever [`parse_variables`] then does with it.
+pub(crate) fn ambiguous_variables(database: &str) -> HashSet<String> {
+    let mut first: HashMap<&str, &str> = HashMap::new();
+    let mut ambiguous = HashSet::new();
+    for line in database.lines() {
+        if line.starts_with('\t') || line.starts_with('#') {
+            continue;
+        }
+        let Some((name, value)) = line.split_once(" = ") else {
+            continue;
+        };
+        let is_declaration = name == "TESTS"
+            || name
+                .rsplit_once('_')
+                .is_some_and(|(_, p)| matches!(p, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"));
+        if is_declaration {
+            continue;
+        }
+        match first.entry(name) {
+            Entry::Vacant(slot) => {
+                slot.insert(value.trim());
+            }
+            Entry::Occupied(slot) if *slot.get() != value.trim() => {
+                ambiguous.insert(name.to_string());
+            }
+            Entry::Occupied(_) => {}
+        }
+    }
+    ambiguous
+}
+
+/// Expands `$(NAME)` / `${NAME}` references in a primary's value the way
+/// make would, from the variable database, recursively.
+///
+/// libevent declares every library through one: `lib_LTLIBRARIES =
+/// $(LIBEVENT_LIBS_LA)`, itself `libevent.la ... $(am__append_1)`, and its
+/// programs through automake's `$(am__EXEEXT_N)` chain — so without this the
+/// project declares nothing and converts to zero targets.
+///
+/// A reference is left as written, and the caller then drops it, when it
+/// names a variable the database defines differently in more than one
+/// directory (`ambiguous`): libmicrohttpd's `am__EXEEXT_1` means `test_md5`
+/// in one directory and `basicauthentication` in another, and the flattened
+/// map holds only the last. Expanding that would declare a target automake
+/// never declared there — bzl-oek — so an ambiguous reference is not a
+/// target. Substitution references (`$(V:.c=.o)`) are likewise left alone;
+/// no primary has needed one. Depth-capped against a self-referencing
+/// definition, which make would reject and this must not loop on.
+fn expand_references(
+    value: &str,
+    vars: &HashMap<String, String>,
+    ambiguous: &HashSet<String>,
+) -> String {
+    fn go(
+        value: &str,
+        vars: &HashMap<String, String>,
+        ambiguous: &HashSet<String>,
+        depth: u8,
+    ) -> String {
+        if depth == 0 || !value.contains('$') {
+            return value.to_string();
+        }
+        let mut out = String::with_capacity(value.len());
+        let mut rest = value;
+        while let Some(start) = rest.find('$') {
+            out.push_str(&rest[..start]);
+            let after = &rest[start + 1..];
+            let (close, body_start) = match after.chars().next() {
+                Some('(') => (')', 1),
+                Some('{') => ('}', 1),
+                _ => {
+                    out.push('$');
+                    rest = after;
+                    continue;
+                }
+            };
+            let Some(end) = after.find(close) else {
+                out.push_str(rest);
+                return out;
+            };
+            let name = &after[body_start..end];
+            let simple = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
+            match vars.get(name) {
+                Some(replacement) if simple && !ambiguous.contains(name) => {
+                    out.push_str(&go(replacement, vars, ambiguous, depth - 1));
+                }
+                _ => out.push_str(&rest[start..start + 1 + end + 1]),
+            }
+            rest = &after[end + 1..];
+        }
+        out.push_str(rest);
+        out
+    }
+    go(value, vars, ambiguous, 8)
+}
+
+pub(crate) fn declared_targets_expanding(
+    vars: &HashMap<String, String>,
+    ambiguous: &HashSet<String>,
+) -> Vec<DeclaredTarget> {
     let mut targets = Vec::new();
     for (var, value) in vars {
         let Some((destination, primary)) = var.rsplit_once('_') else {
@@ -1311,6 +1446,9 @@ pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTa
         // `dist_`, `nodist_` and `nobase_` are modifiers automake allows in
         // front of the destination; the destination is the last segment.
         let destination = destination.rsplit('_').next().unwrap_or(destination);
+        // Expanded as a whole before splitting: one reference can stand for
+        // several names.
+        let value = expand_references(value, vars, ambiguous);
         for name in value.split_whitespace() {
             // Through the shared helper, not inline: a target's name and the
             // test entry naming it have to expand identically or the two
@@ -1335,9 +1473,33 @@ pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTa
             });
         }
     }
-    targets.sort_by(|a, b| a.name.cmp(&b.name));
-    targets.dedup();
+    // One declaration per NAME. automake lets a program appear under two
+    // primaries — `EXTRA_PROGRAMS = foo` beside a conditional
+    // `noinst_PROGRAMS += foo`, or `check_` beside `noinst_` — and it is one
+    // target either way; libmicrohttpd's authorization_example rendered
+    // twice, and two rules of one name is a load error. The destination
+    // that says most about the target wins: an install destination over
+    // `noinst` (never installed) over `check` (built by `make check` only)
+    // over `EXTRA` (may be built), which is what automake itself does when
+    // the same name is built by plain `make`.
+    targets.sort_by(|a, b| {
+        a.name
+            .cmp(&b.name)
+            .then(destination_rank(&a.destination).cmp(&destination_rank(&b.destination)))
+    });
+    targets.dedup_by(|a, b| a.name == b.name);
     targets
+}
+
+/// How much a primary's destination says about a target, lowest first: an
+/// install directory, `noinst`, `check`, `EXTRA`. See `declared_targets_expanding`.
+fn destination_rank(destination: &str) -> u8 {
+    match destination {
+        "EXTRA" => 3,
+        "check" => 2,
+        "noinst" => 1,
+        _ => 0,
+    }
 }
 
 /// The variable prefix automake derives from a target name.
@@ -2590,6 +2752,78 @@ fn flag_value(args: &[String], flag: &str) -> Option<String> {
         .position(|a| a == flag)
         .and_then(|i| args.get(i + 1))
         .cloned()
+}
+
+/// Headers the build generated into its own tree that no config header or
+/// replacement header reproduces, as `(build-relative path, the stream lines
+/// that mention it)`.
+///
+/// Found through the compile lines' `-I` directories: one that resolves
+/// into the build tree and not into the source tree exists only because
+/// the build put something there. Every header under it is generated; the
+/// ones a `config_header` rule already produces (by the same build-relative
+/// path) are accounted for and the rest are not. The recipe lines are
+/// evidence, not parsed: `parse_commands` keeps only compilers and
+/// archivers, so the `sed` that made the file is invisible to the graph but
+/// still in the stream, and it is the one thing an agent needs.
+fn generated_headers_in_build_tree(
+    commands: &[BuildCommand],
+    build_root: &Path,
+    source_dir: &Path,
+    config_headers: &[crate::model::ConfigHeader],
+    stream: &str,
+) -> Vec<(String, Vec<String>)> {
+    let build_root = normalize_lexically(build_root);
+    let source_dir = normalize_lexically(source_dir);
+    let mut dirs: Vec<PathBuf> = commands
+        .iter()
+        .flat_map(|cmd| {
+            includes_of(&cmd.args)
+                .into_iter()
+                .map(move |d| cmd.dir.join(d))
+        })
+        .map(|d| normalize_lexically(&d))
+        .filter(|d| d.starts_with(&build_root) && !d.starts_with(&source_dir))
+        .collect();
+    dirs.sort();
+    dirs.dedup();
+
+    let reproduced: HashSet<String> = config_headers.iter().map(|h| h.output_path()).collect();
+    let mut found: Vec<String> = Vec::new();
+    for dir in &dirs {
+        let mut stack = vec![dir.clone()];
+        while let Some(current) = stack.pop() {
+            let Ok(entries) = std::fs::read_dir(&current) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                } else if is_header_file(&path)
+                    && let Ok(rel) = path.strip_prefix(&build_root)
+                {
+                    let rel = rel.to_string_lossy().into_owned();
+                    if !reproduced.contains(&rel) && !found.contains(&rel) {
+                        found.push(rel);
+                    }
+                }
+            }
+        }
+    }
+    found.sort();
+    found
+        .into_iter()
+        .map(|rel| {
+            let name = basename(&rel);
+            let recipe: Vec<String> = stream
+                .lines()
+                .filter(|l| l.contains(&name) && !l.contains(" -c ") && !l.contains(" -o "))
+                .map(|l| l.trim().to_string())
+                .collect();
+            (rel, recipe)
+        })
+        .collect()
 }
 
 /// `-I` directories, with the flag stripped and `.`-relative paths kept.
@@ -4327,6 +4561,74 @@ make[1]: Leaving directory '/src/lib'\n\
     // destination prefix is carried because it is where the public/private
     // signal lives — noinst_ means built but never installed.
     #[test]
+    // libevent's shape, verbatim in structure from its `make -p`: every
+    // library behind one variable, every program behind automake's
+    // `$(am__EXEEXT_N)` chain. And the guard: a reference the database
+    // defines two ways is not a target (bzl-oek's libmicrohttpd case).
+    #[test]
+    fn primaries_declared_through_variables_expand_unless_ambiguous() {
+        const DATABASE: &str = "\
+EXEEXT = \n\
+am__append_1 = libevent_pthreads.la\n\
+LIBEVENT_LIBS_LA = libevent.la libevent_core.la $(am__append_1) $(am__append_3)\n\
+lib_LTLIBRARIES = $(LIBEVENT_LIBS_LA)\n\
+am__EXEEXT_3 = sample/hello-world$(EXEEXT) $(am__EXEEXT_2)\n\
+am__EXEEXT_4 = $(am__EXEEXT_3)\n\
+noinst_PROGRAMS = $(am__EXEEXT_4)\n\
+am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+check_PROGRAMS = $(am__EXEEXT_1)\n\
+am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
+";
+        let vars = parse_variables(DATABASE);
+        let ambiguous = ambiguous_variables(DATABASE);
+        assert!(ambiguous.contains("am__EXEEXT_1"), "{ambiguous:?}");
+        let names: Vec<String> = declared_targets_expanding(&vars, &ambiguous)
+            .into_iter()
+            .map(|d| format!("{}:{}", d.destination, d.name))
+            .collect();
+        assert_eq!(
+            names,
+            vec![
+                "lib:libevent.la",
+                "lib:libevent_core.la",
+                "lib:libevent_pthreads.la",
+                "noinst:sample/hello-world",
+            ],
+            "three names through two levels of reference, an undefined \
+             $(am__append_3) dropped, and NOTHING from check_PROGRAMS, whose \
+             only reference is defined two ways"
+        );
+
+        // A program under two primaries is ONE target — libmicrohttpd declares
+        // authorization_example as noinst_ and EXTRA_ — and the one that says
+        // more wins, so it renders once, as the noinst binary it is.
+        let vars = parse_variables(
+            "noinst_PROGRAMS = authorization_example\nEXTRA_PROGRAMS = authorization_example demo\ncheck_PROGRAMS = demo\n",
+        );
+        let declared = declared_targets_expanding(&vars, &HashSet::new());
+        let names: Vec<String> = declared
+            .iter()
+            .map(|d| format!("{}:{}", d.destination, d.name))
+            .collect();
+        assert_eq!(
+            names,
+            vec!["noinst:authorization_example", "check:demo"],
+            "one declaration per name, the more specific destination kept"
+        );
+
+        // The same database with the conflict removed declares the check program.
+        let unambiguous = DATABASE.replace("am__EXEEXT_1 = basicauthentication$(EXEEXT)\n", "");
+        let vars = parse_variables(&unambiguous);
+        let declared = declared_targets_expanding(&vars, &ambiguous_variables(&unambiguous));
+        assert!(
+            declared
+                .iter()
+                .any(|d| d.name == "test_md5" && d.destination == "check"),
+            "{declared:#?}"
+        );
+    }
+
+    #[test]
     fn declared_targets_recovers_names_destinations_and_primaries() {
         let declared = declared_targets(&parse_variables(DATABASE));
         assert_eq!(
@@ -4715,5 +5017,63 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
             strip_include_prefix(&["a/x.h".to_string()], &flat).as_deref(),
             Some("a")
         );
+    }
+
+    // libevent: `sed -f make-event-config.sed < config.h > include/event2/
+    // event-config.hT` at make time, reached by `-I./include`. Nothing in
+    // the graph produces it, so the module would compile against nothing;
+    // the item has to name it and carry the recipe. config.h in the same
+    // build tree IS produced (a config_header) and must not be listed.
+    #[test]
+    fn a_header_the_build_generated_and_nothing_reproduces_is_escalated_with_its_recipe() {
+        let root = std::env::temp_dir().join(format!("bzlf_genhdr_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let build = root.join("build");
+        let src = root.join("src");
+        std::fs::create_dir_all(build.join("include/event2")).unwrap();
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(build.join("include/event2/event-config.h"), "").unwrap();
+        std::fs::write(build.join("config.h"), "").unwrap();
+        std::fs::write(build.join("event.o"), "").unwrap();
+        let stream = format!(
+            "/usr/bin/sed -f {src}/make-event-config.sed < config.h > include/event2/event-config.hT\n\
+             mv include/event2/event-config.hT include/event2/event-config.h\n\
+             gcc -I. -I./include -I{src} -c -o event.o {src}/event.c\n",
+            src = src.display()
+        );
+        let config_h = crate::model::ConfigHeader {
+            output: "config.h".to_string(),
+            template: "config.h.in".to_string(),
+            template_source: None,
+            catalog_probes: vec![],
+            values: vec![],
+            options: Vec::new(),
+            splices: Vec::new(),
+            unresolved: Vec::new(),
+            dialect: crate::model::ConfigDialect::Undef,
+            shadow_dir: None,
+        };
+        let generated = generated_headers_in_build_tree(
+            &parse_commands(&stream, &build),
+            &build,
+            &src,
+            std::slice::from_ref(&config_h),
+            &stream,
+        );
+        assert_eq!(generated.len(), 1, "{generated:#?}");
+        assert_eq!(generated[0].0, "include/event2/event-config.h");
+        assert!(
+            generated[0].1.iter().any(|l| l.contains("sed -f")),
+            "the recipe is the evidence an agent needs: {:#?}",
+            generated[0].1
+        );
+        let item = generated_headers_needs_attention(&generated);
+        assert_eq!(item.kind, "generated_headers");
+        assert!(
+            item.gap.contains("include/event2/event-config.h") && item.gap.contains("sed -f"),
+            "{}",
+            item.gap
+        );
+        std::fs::remove_dir_all(&root).unwrap();
     }
 }

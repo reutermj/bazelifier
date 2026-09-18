@@ -1,0 +1,27 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# libevent 2.1.12-stable, the leaf of the Open MPI chain (bzl-7r9.3), pinned
+# in MODULE.bazel as @libevent.
+#
+# configure_args are the flags Open MPI passes when it configures its
+# bundled copy (config/opal_config_libevent.m4), minus the four this release
+# does not define (--disable-dns/http/rpc/evport, which Open MPI's nested
+# configure swallows with --disable-option-checking). They are the build
+# DECISIONS a consumer of this library made, and the conversion replicates
+# those: without --disable-openssl this host's OpenSSL headers would make
+# configure build libevent_openssl and link a library no converted module
+# provides. Samples are built because Open MPI's build builds them.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@libevent//:all_srcs"],
+    configure_args = [
+        "--disable-openssl",
+        "--enable-thread-support",
+        "--disable-gcc-warnings",
+        "--disable-libevent-regress",
+    ],
+    visibility = [
+        "//translator/tests:__pkg__",
+        "//translator/tests/corpus:__subpackages__",
+    ],
+)

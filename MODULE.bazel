@@ -323,3 +323,33 @@ http_archive(
     strip_prefix = "libidn2-2.3.7",
     url = "https://ftp.gnu.org/gnu/libidn/libidn2-2.3.7.tar.gz",
 )
+
+# First node of the Open MPI chain (bzl-7r9): libevent 2.1.12-stable, the
+# leaf every other piece links. Open MPI bundles a fork tagged
+# `2.1.12-stable-ompi`; diffed against this stock release on 2026-09-18 the
+# only difference outside regenerated autotools scaffolding and
+# `test/regress.gen.*` is the version string in AC_INIT, so the stock
+# release is what gets converted and Open MPI's build is what it must
+# satisfy. The configure flags Open MPI passes it are recorded on the
+# conversion (translator/tests/corpus/libevent/BUILD.bazel).
+#
+# What it brings that the corpus lacks: a public header generated at MAKE
+# time by `sed` from config.h (include/event2/event-config.h, every macro
+# renamed with an EVENT__ prefix) rather than by configure; four libtool
+# libraries from one Makefile.am of which a consumer links two; and the
+# first library whose install tree another conversion configures against.
+#
+# Release TARBALL, for the reason xz's entry gives. INPUT to the translator
+# only.
+http_archive(
+    name = "libevent",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-kubeG+nsF2Qo/SNnZ35hzv/C7hyxGQNQN6J9NGsEA7s=",
+    strip_prefix = "libevent-2.1.12-stable",
+    url = "https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz",
+)

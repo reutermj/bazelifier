@@ -106,6 +106,11 @@ def _convert_cmake_project_impl(ctx):
     args.add("--frontend", ctx.attr.frontend)
     args.add("--install-dir", install_dir.path)
 
+    # `--configure-arg=<value>` as one token: the values are themselves
+    # flags (`--disable-openssl`), and as a separate token clap reads one as
+    # the next option.
+    args.add_all(ctx.attr.configure_args, format_each = "--configure-arg=%s")
+
     # Each converted dependency arrives as both of its trees: the module
     # (for its name, version and library targets) and the install tree (for
     # the headers and libraries this project's configure has to find). The
@@ -164,6 +169,9 @@ convert_cmake_project = rule(
         "deps": attr.label_list(
             providers = [ConvertedProjectInfo],
             doc = "Other conversions this project links libraries from. Each is given to the translator as a converted module plus its install tree, the project's configure is pointed at them, and a library the link line names from inside one becomes a bazel_dep + `@module//:target` edge in the generated output. A library the link line names that resolves into none of them is escalated (unconverted_dependency), never linked from the host.",
+        ),
+        "configure_args": attr.string_list(
+            doc = "Arguments for the project's configure step (Autotools frontend), e.g. [\"--disable-openssl\"]. These are the build DECISIONS a consumer of this project makes — Open MPI configures its bundled libevent with eight of them — and the conversion replicates those rather than whatever the host's installed packages would make configure choose on its own. Recording them here is what makes the choice visible; see docs/architecture/overview.md on replicating the build's behaviour, not this host's outcome.",
         ),
         "deliverable_root": attr.string(
             default = "",

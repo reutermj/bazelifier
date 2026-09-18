@@ -197,6 +197,22 @@ Linkage comes from the primary, not from a filename: `LTLIBRARIES` is libtool's
 form, `LIBRARIES` a plain archive. Guessing from a `.la` suffix would be
 inference where a declaration is available.
 
+### Primaries declared through variables are expanded, unless ambiguous
+
+libevent declares every library as `lib_LTLIBRARIES = $(LIBEVENT_LIBS_LA)`
+and every program through automake's `$(am__EXEEXT_N)` chain, so a reader
+that takes a primary's value literally sees no targets at all. The value is
+expanded the way make expands it — recursively, from the same database —
+before it is split into names (`expand_references`).
+
+The one refusal: a reference to a variable the database defines two
+different ways is left as written and dropped. Recursive make defines
+`am__EXEEXT_1` once per directory (libmicrohttpd: `test_md5` in one,
+`basicauthentication` in another) and the flattened database keeps only
+one; expanding it would declare a target automake never declared in that
+directory, which is the bzl-oek failure. `ambiguous_variables` computes the
+set from the raw database, before flattening.
+
 ### Target names are kept, not prettified
 
 `lib/libhello.a` becomes `lib_libhello.a`, not `hello`. An earlier version
@@ -370,6 +386,15 @@ already decided by the time the graph is built.
     live case and are now built by a second pass — see the target table
     above. What remains under this heading is anything else `make` declares
     and never produces, for which there is still no escalation.
+- **A header the build generates by a rule that is not a compile** is
+  escalated (`generated_headers`), not reproduced: compiles reach it through
+  a `-I` into the build tree, so every header under such a directory that
+  no `config_header` produces is listed, with the build-output lines that
+  mention it quoted as the recipe. libevent's `event-config.h`, made by
+  `sed` over config.h at make time, is the case; the agent reproduces the
+  recipe as a `genrule` over the `config_header` rule's output. *(History:
+  until 2026-09-18 such a header was dropped with the include directory and
+  the module failed on a missing header far from the cause.)*
 - **An already-configured source tree fails**, because `configure` refuses to
   run twice. Converting a tree someone has built in place is a normal thing to
   attempt.

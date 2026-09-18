@@ -948,6 +948,87 @@ pub fn shared_library_absorbs_static_needs_attention(
     }
 }
 
+/// Escalates headers the build wrote into its own tree that no generated
+/// rule reproduces — every compile reaches them through a `-I` into the
+/// build tree, so the module cannot compile until each has a producer.
+///
+/// One item for all of them: they usually share a recipe (libevent's `sed`
+/// over config.h) and an agent resolves them together. The recipe lines
+/// from the build's own output ride along because they are the whole
+/// answer: the translator did not parse them, but it can show them.
+pub fn generated_headers_needs_attention(headers: &[(String, Vec<String>)]) -> NeedsAttention {
+    let title = format!(
+        "{} header(s) the build generates have no rule that reproduces them",
+        headers.len()
+    );
+    let subject = headers
+        .iter()
+        .map(|(h, _)| h.as_str())
+        .collect::<Vec<_>>()
+        .join(", ");
+    let list = headers
+        .iter()
+        .map(|(h, recipe)| {
+            if recipe.is_empty() {
+                format!("- `{h}` — no line of the build's output mentions it; look for the rule in the project's Makefile.am")
+            } else {
+                format!(
+                    "- `{h}`, produced by:\n{}",
+                    recipe
+                        .iter()
+                        .map(|l| format!("      {l}"))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                )
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    NeedsAttention {
+        kind: "generated_headers",
+        subject,
+        gap: format!(
+            "The build wrote these headers into its BUILD tree (paths relative to it), and \
+             the translator emitted no rule that produces them:\n\n{list}\n\n\
+             Sources reach them through a `-I` into the build tree, which the generated \
+             module cannot carry (it is not a module path), so every compile that includes \
+             one fails with 'file not found' until it has a producer. The build's own \
+             recipe lines are quoted verbatim, with the conversion machine's absolute \
+             paths where the build printed them."
+        ),
+        context: format!(
+            "A generated header is a legitimate build input: the recipe that makes it ships \
+             with the sources, so it is reproducible. What the translator cannot yet do is \
+             translate a make rule that is not a compile, so it has nothing to point at. \
+             This is a translator gap, not a problem with the project.\n\n\
+             The common shape is a header DERIVED FROM A CONFIG HEADER by a script: libevent \
+             runs `sed -f make-event-config.sed < config.h > include/event2/event-config.h` \
+             so that every macro in config.h reappears under an `EVENT__` prefix. The \
+             config header itself IS reproduced — it is a `config_header` rule in this \
+             module, resolved against the consumer's toolchain — so the right reproduction \
+             runs the project's own script over THAT rule's output at Bazel build time, \
+             which keeps every probe answer the consumer's rather than this machine's.\n\n\
+             Do NOT vendor the file out of the build tree. It holds the conversion host's \
+             probe answers (`EVENT__HAVE_EPOLL 1`), and a consumer on another platform \
+             needs its own; vendoring passes the runtime comparison here and is wrong \
+             everywhere else — the same objection that keeps generated config headers out \
+             of the module."
+        ),
+        expected_output: format!(
+            "For each header, a rule in the generated BUILD.bazel that produces it at the \
+             same relative path — typically a `genrule` whose `srcs` are the script and the \
+             `config_header` rule's label (`:config_h`) and whose `outs` is the header, \
+             running the quoted recipe with `$(location ...)` for its inputs — plus the \
+             header added to the `srcs`/`hdrs` of every rule that includes it and its \
+             directory (`include`) added to that rule's `includes` so `<event2/event-config.h>` \
+             resolves. The header is PUBLIC if the project installs it (libevent installs \
+             event-config.h), so the library that exports it carries it in `hdrs`. Resolve \
+             this in the GENERATED output only; do not edit the project's build files."
+        ),
+        title,
+    }
+}
+
 /// Escalates a library that neither this project nor any converted module
 /// it was pointed at builds, naming every target that links it.
 ///
@@ -1928,6 +2009,7 @@ mod tests {
             ),
             header_visibility_needs_attention("t"),
             unconverted_dependency_needs_attention("-lcurl", &["t".to_string()]),
+            generated_headers_needs_attention(&[("include/x.h".to_string(), vec![])]),
         ];
         let mut kinds: Vec<&str> = items.iter().map(|i| i.kind).collect();
         let total = kinds.len();

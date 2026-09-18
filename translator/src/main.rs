@@ -114,6 +114,14 @@ struct Args {
     /// that module. See `dependencies`.
     #[arg(long = "dependency")]
     dependencies: Vec<String>,
+
+    /// An argument for the project's configure step, repeatable — the build
+    /// DECISIONS a consumer makes for this project (`--disable-openssl`),
+    /// which the conversion must replicate rather than whatever the host's
+    /// package set makes configure decide on its own. Recorded in the
+    /// conversion's BUILD file, where the next reader can see them.
+    #[arg(long = "configure-arg", allow_hyphen_values = true)]
+    configure_args: Vec<String>,
 }
 
 fn main() -> ExitCode {
@@ -191,6 +199,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             deliverable_root,
             &deps,
             args.install_dir.as_deref(),
+            &args.configure_args,
         )?,
     };
     // Every module the conversion was pointed at is a declared dependency,

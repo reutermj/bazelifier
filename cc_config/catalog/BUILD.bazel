@@ -121,6 +121,24 @@ cc_config_catalog(
         ("sys/stat.h", "HAVE_SYS_STAT_H"),
         ("sys/time.h", "HAVE_SYS_TIME_H"),
         ("sys/types.h", "HAVE_SYS_TYPES_H"),
+        # libevent 2.1.12 (bzl-7r9.3): paths from its configure's own
+        # `for ac_header in` lists. The BSD/Solaris/macOS ones are absent here
+        # and probe to false, which is the right answer on this platform.
+        ("afunix.h", "HAVE_AFUNIX_H"),
+        ("ifaddrs.h", "HAVE_IFADDRS_H"),
+        ("mach/mach.h", "HAVE_MACH_MACH_H"),
+        ("mach/mach_time.h", "HAVE_MACH_MACH_TIME_H"),
+        ("netinet/in6.h", "HAVE_NETINET_IN6_H"),
+        ("port.h", "HAVE_PORT_H"),
+        ("sys/devpoll.h", "HAVE_SYS_DEVPOLL_H"),
+        ("sys/epoll.h", "HAVE_SYS_EPOLL_H"),
+        ("sys/event.h", "HAVE_SYS_EVENT_H"),
+        ("sys/eventfd.h", "HAVE_SYS_EVENTFD_H"),
+        ("sys/queue.h", "HAVE_SYS_QUEUE_H"),
+        ("sys/sendfile.h", "HAVE_SYS_SENDFILE_H"),
+        ("sys/timerfd.h", "HAVE_SYS_TIMERFD_H"),
+        ("sys/un.h", "HAVE_SYS_UN_H"),
+        ("sys/wait.h", "HAVE_SYS_WAIT_H"),
     ],
     # (symbol, [declaring headers], HAVE_ macro) — check_symbol_exists.
     symbols = [
@@ -508,6 +526,295 @@ cc_config_catalog(
             ["stdlib.h"],
             "HAVE_ARC4RANDOM",
         ),
+        # libevent 2.1.12 (bzl-7r9.3): its AC_CHECK_FUNCS list; headers supplied
+        # by hand and each checked by compiling a reference against the host
+        # toolchain (the absent ones — arc4random_addrandom, issetugid, kqueue,
+        # port_create, mach_absolute_time, _gmtime64* — fail to declare, which
+        # is their correct answer on glibc).
+        (
+            "accept4",
+            ["sys/socket.h"],
+            "HAVE_ACCEPT4",
+        ),
+        (
+            "arc4random_buf",
+            ["stdlib.h"],
+            "HAVE_ARC4RANDOM_BUF",
+        ),
+        (
+            "arc4random_addrandom",
+            ["stdlib.h"],
+            "HAVE_ARC4RANDOM_ADDRANDOM",
+        ),
+        (
+            "epoll_create1",
+            ["sys/epoll.h"],
+            "HAVE_EPOLL_CREATE1",
+        ),
+        (
+            "epoll_ctl",
+            ["sys/epoll.h"],
+            "HAVE_EPOLL_CTL",
+        ),
+        (
+            "eventfd",
+            ["sys/eventfd.h"],
+            "HAVE_EVENTFD",
+        ),
+        (
+            "fcntl",
+            ["fcntl.h"],
+            "HAVE_FCNTL",
+        ),
+        (
+            "getegid",
+            ["unistd.h"],
+            "HAVE_GETEGID",
+        ),
+        (
+            "geteuid",
+            ["unistd.h"],
+            "HAVE_GETEUID",
+        ),
+        (
+            "getifaddrs",
+            ["ifaddrs.h"],
+            "HAVE_GETIFADDRS",
+        ),
+        (
+            "getnameinfo",
+            ["netdb.h"],
+            "HAVE_GETNAMEINFO",
+        ),
+        (
+            "getprotobynumber",
+            ["netdb.h"],
+            "HAVE_GETPROTOBYNUMBER",
+        ),
+        (
+            "getservbyname",
+            ["netdb.h"],
+            "HAVE_GETSERVBYNAME",
+        ),
+        (
+            "gettimeofday",
+            ["sys/time.h"],
+            "HAVE_GETTIMEOFDAY",
+        ),
+        (
+            "inet_ntop",
+            ["arpa/inet.h"],
+            "HAVE_INET_NTOP",
+        ),
+        (
+            "inet_pton",
+            ["arpa/inet.h"],
+            "HAVE_INET_PTON",
+        ),
+        (
+            "issetugid",
+            ["unistd.h"],
+            "HAVE_ISSETUGID",
+        ),
+        (
+            "kqueue",
+            ["sys/event.h"],
+            "HAVE_KQUEUE",
+        ),
+        (
+            "mach_absolute_time",
+            ["mach/mach_time.h"],
+            "HAVE_MACH_ABSOLUTE_TIME",
+        ),
+        (
+            "mmap",
+            ["sys/mman.h"],
+            "HAVE_MMAP",
+        ),
+        (
+            "nanosleep",
+            ["time.h"],
+            "HAVE_NANOSLEEP",
+        ),
+        (
+            "pipe",
+            ["unistd.h"],
+            "HAVE_PIPE",
+        ),
+        (
+            "pipe2",
+            ["unistd.h"],
+            "HAVE_PIPE2",
+        ),
+        (
+            "poll",
+            ["poll.h"],
+            "HAVE_POLL",
+        ),
+        (
+            "port_create",
+            ["port.h"],
+            "HAVE_PORT_CREATE",
+        ),
+        (
+            "putenv",
+            ["stdlib.h"],
+            "HAVE_PUTENV",
+        ),
+        (
+            "select",
+            ["sys/select.h"],
+            "HAVE_SELECT",
+        ),
+        (
+            "sendfile",
+            ["sys/sendfile.h"],
+            "HAVE_SENDFILE",
+        ),
+        (
+            "setenv",
+            ["stdlib.h"],
+            "HAVE_SETENV",
+        ),
+        (
+            "sigaction",
+            ["signal.h"],
+            "HAVE_SIGACTION",
+        ),
+        (
+            "signal",
+            ["signal.h"],
+            "HAVE_SIGNAL",
+        ),
+        (
+            "splice",
+            ["fcntl.h"],
+            "HAVE_SPLICE",
+        ),
+        (
+            "strlcpy",
+            ["string.h"],
+            "HAVE_STRLCPY",
+        ),
+        (
+            "strsep",
+            ["string.h"],
+            "HAVE_STRSEP",
+        ),
+        (
+            "strtok_r",
+            ["string.h"],
+            "HAVE_STRTOK_R",
+        ),
+        (
+            "sysctl",
+            ["sys/sysctl.h"],
+            "HAVE_SYSCTL",
+        ),
+        (
+            "timerfd_create",
+            ["sys/timerfd.h"],
+            "HAVE_TIMERFD_CREATE",
+        ),
+        (
+            "umask",
+            ["sys/stat.h"],
+            "HAVE_UMASK",
+        ),
+        (
+            "unsetenv",
+            ["stdlib.h"],
+            "HAVE_UNSETENV",
+        ),
+        (
+            "usleep",
+            ["unistd.h"],
+            "HAVE_USLEEP",
+        ),
+        (
+            "gethostbyname_r",
+            ["netdb.h"],
+            "HAVE_GETHOSTBYNAME_R",
+        ),
+        (
+            "_gmtime64",
+            ["time.h"],
+            "HAVE__GMTIME64",
+        ),
+        (
+            "_gmtime64_s",
+            ["time.h"],
+            "HAVE__GMTIME64_S",
+        ),
+    ],
+    # AC_CHECK_TYPES presence facts, from libevent 2.1.12 (bzl-7r9.3); its
+    # configure names type and header together.
+    type_exists = [
+        (
+            "uint16_t",
+            ["stdint.h"],
+            "HAVE_UINT16_T",
+        ),
+        (
+            "uint32_t",
+            ["stdint.h"],
+            "HAVE_UINT32_T",
+        ),
+        (
+            "uint64_t",
+            ["stdint.h"],
+            "HAVE_UINT64_T",
+        ),
+        (
+            "uint8_t",
+            ["stdint.h"],
+            "HAVE_UINT8_T",
+        ),
+        (
+            "uintptr_t",
+            ["stdint.h"],
+            "HAVE_UINTPTR_T",
+        ),
+        (
+            "sa_family_t",
+            ["sys/socket.h"],
+            "HAVE_SA_FAMILY_T",
+        ),
+        (
+            "struct addrinfo",
+            ["netdb.h"],
+            "HAVE_STRUCT_ADDRINFO",
+        ),
+        (
+            "struct in6_addr",
+            ["netinet/in.h"],
+            "HAVE_STRUCT_IN6_ADDR",
+        ),
+        (
+            "struct sockaddr_in6",
+            ["netinet/in.h"],
+            "HAVE_STRUCT_SOCKADDR_IN6",
+        ),
+        (
+            "struct sockaddr_storage",
+            ["sys/socket.h"],
+            "HAVE_STRUCT_SOCKADDR_STORAGE",
+        ),
+        (
+            "struct sockaddr_un",
+            ["sys/un.h"],
+            "HAVE_STRUCT_SOCKADDR_UN",
+        ),
+        (
+            "struct linger",
+            ["sys/socket.h"],
+            "HAVE_STRUCT_LINGER",
+        ),
+        (
+            "fd_mask",
+            ["sys/select.h"],
+            "HAVE_FD_MASK",
+        ),
     ],
     # (type, [declaring headers], SIZEOF_ macro) — check_type_size.
     types = [
@@ -529,6 +836,19 @@ cc_config_catalog(
             ["stdint.h"],
             "SIZEOF_INT64_T",
         ),
+        # libevent 2.1.12 (bzl-7r9.3).
+        (
+            "off_t",
+            ["sys/types.h"],
+            "SIZEOF_OFF_T",
+        ),
+        ("short", [], "SIZEOF_SHORT"),
+        (
+            "time_t",
+            ["time.h"],
+            "SIZEOF_TIME_T",
+        ),
+        ("void *", [], "SIZEOF_VOID_P"),
     ],
 )
 
@@ -571,6 +891,16 @@ config_header(
         ":have_pledge",
         ":have_decl_cpu_setsize",
         ":have_decl_hw_ncpu",
+        # libevent's additions, one of each kind and both answers: a header
+        # and a symbol present here and absent here, a type that exists, and
+        # a size.
+        ":have_sys_epoll_h",
+        ":have_port_h",
+        ":have_accept4",
+        ":have_kqueue",
+        ":have_uint16_t",
+        ":have_struct_sockaddr_un",
+        ":sizeof_void_p",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -627,6 +957,13 @@ assert_config_header_test(
         # reports 0 exactly like a genuinely-absent declaration
         "#define HAVE_DECL_HW_NCPU 0",  # BSD only. DEFINED to 0, not undefined — autoconf's ternary contract  # OpenBSD only
         "#define HAVE_NETINET_TCP_H",
+        "#define HAVE_SYS_EPOLL_H",  # Linux
+        "/* #undef HAVE_PORT_H */",  # Solaris event ports — absent here
+        "#define HAVE_ACCEPT4",  # glibc, under _GNU_SOURCE
+        "/* #undef HAVE_KQUEUE */",  # BSD — absent here
+        "#define HAVE_UINT16_T",  # check_type_exists: presence, not size
+        "#define HAVE_STRUCT_SOCKADDR_UN",  # a struct tag through the same probe
+        "#define SIZEOF_VOID_P 8",
     ],
     must_not_contain = [
         "#define HAVE_XLOCALE_H",  # must not be defined on glibc
