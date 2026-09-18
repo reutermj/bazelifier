@@ -67,14 +67,11 @@ sh_test(
     data = [":validation_workspace_tree"],
 )
 
-# The rules_cc git_override has to be repeated in the root MODULE.bazel, and
-# with the commit codegen emitted — see check_root_module_rules_cc_override.sh.
+# A direct bazel_dep on rules_cc in the root selects the host gcc for every
+# fixture — see check_root_module_no_rules_cc_dep.sh.
 sh_test(
-    name = "root_module_rules_cc_override_test",
-    srcs = ["//translator/build_defs:check_root_module_rules_cc_override.sh"],
-    args = [
-        "$(location :validation_workspace_tree)/MODULE.bazel",
-        "$(location :validation_workspace_tree)/fixtures/001-hello-world/MODULE.bazel",
-    ],
+    name = "root_module_no_direct_rules_cc_dep_test",
+    srcs = ["//translator/build_defs:check_root_module_no_rules_cc_dep.sh"],
+    args = ["$(location :validation_workspace_tree)/MODULE.bazel"],
     data = [":validation_workspace_tree"],
 )

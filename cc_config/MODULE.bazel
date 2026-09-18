@@ -7,7 +7,7 @@ module(
 # toolchain, so a converted module's configure_file config header is computed
 # for whoever builds it rather than baked from the conversion host. See
 # ../docs/architecture/configure-file-and-toolchain-probes.md.
-bazel_dep(name = "rules_cc", version = "0.2.22")
+bazel_dep(name = "rules_cc", version = "0.2.25")
 
 # The config-header expander is a Python tool (clearer substitution logic than
 # shell for the growing set of configure_file directives). aspect_rules_py runs

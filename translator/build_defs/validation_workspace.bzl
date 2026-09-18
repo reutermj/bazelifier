@@ -65,30 +65,13 @@ root_module_name="$2"
 shift 2
 fixture_dirs=("$@")
 
-# Every fixture's own MODULE.bazel pins rules_cc with a git_override, because
-# the version codegen depends on is not on the registry yet (see
-# codegen::RULES_CC_OVERRIDE_COMMIT). Bazel honours overrides only from the
-# ROOT module, so unless this root repeats it the fixtures' bazel_dep resolves
-# against a registry that lacks the version and every fixture fails at module
-# resolution. Copied from the first fixture rather than pinned here too, so the
-# commit has one home: when codegen stops emitting the override, this stops
-# with it, and the loud registry error is then the right outcome to see.
-#
-# The override alone, with NO bazel_dep on rules_cc beside it. An override
-# applies to the module wherever it sits in the graph, and a direct dependency
-# here is not harmless: Bazel orders registered toolchains by module depth,
-# rules_cc's own MODULE.bazel registers the auto-configured HOST toolchain, and
-# as a direct dependency of the root that outranks the fixtures'
-# `@llvm//toolchain:all` — every fixture then compiles with /usr/bin/gcc and
-# nothing fails to say so. See docs/lore/
+# No bazel_dep on rules_cc here, though every fixture depends on it. Bazel
+# orders registered toolchains by module depth, rules_cc's own MODULE.bazel
+# registers the auto-configured HOST toolchain, and as a direct dependency of
+# the root that outranks the fixtures' `@llvm//toolchain:all` — every fixture
+# then compiles with /usr/bin/gcc and nothing fails to say so. See docs/lore/
 # a-direct-bazel-dep-on-rules-cc-in-the-root-selects-the-host-gcc.md; pinned
-# by root_module_rules_cc_override_test.
-first_module_bazel="${out_dir}/fixtures/${fixture_dirs[0]}/MODULE.bazel"
-rules_cc_override="$(sed -n '/^git_override($/,/^)$/p' "${first_module_bazel}")"
-if [[ -n "${rules_cc_override}" ]] && ! grep -q 'module_name = "rules_cc"' <<<"${rules_cc_override}"; then
-  echo "generate_root_files: ${first_module_bazel} has a git_override that is not rules_cc; this script only knows how to repeat that one" >&2
-  exit 1
-fi
+# by root_module_no_direct_rules_cc_dep_test.
 
 {
   echo "module("
@@ -97,15 +80,6 @@ fi
   echo ")"
   echo
   echo "bazel_dep(name = \\"rules_shell\\", version = \\"0.8.0\\")"
-  if [[ -n "${rules_cc_override}" ]]; then
-    echo
-    echo "# Repeated from every fixture's MODULE.bazel: Bazel honours overrides only"
-    echo "# from the root module. Remove it there (codegen) and it disappears here."
-    echo "# Deliberately WITHOUT a bazel_dep on rules_cc: as a direct dependency of"
-    echo "# this root, rules_cc's host-toolchain registration would outrank the"
-    echo "# fixtures' llvm one and everything would compile with the host gcc."
-    echo "${rules_cc_override}"
-  fi
   echo
   # This comment ships in the unpacked workspace on purpose: when a
   # config_header fixture fails with "module cc_config@0.0.0 not found in

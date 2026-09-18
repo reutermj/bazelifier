@@ -7,7 +7,7 @@ module(
 # builds the C/C++ output of converted CMake projects hermetically. See
 # docs/architecture/build-verification.md.
 bazel_dep(name = "llvm", version = "0.8.14")
-bazel_dep(name = "rules_cc", version = "0.2.22")
+bazel_dep(name = "rules_cc", version = "0.2.25")
 
 # Autoconf-style toolchain probes for configure_file config headers. A local
 # module for now (see docs/architecture/configure-file-and-toolchain-probes.md);

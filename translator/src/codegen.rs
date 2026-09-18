@@ -17,25 +17,15 @@ use crate::model::{self, BuildGraph, Target, TargetKind};
 // depends on. Hardcoded for now since the translator has no per-project
 // toolchain-selection mechanism yet — see docs/architecture/bazel-codegen.md.
 //
-// 0.2.23 is the first rules_cc release that accepts `includes = ["."]` at a
-// module root (rules_cc commit 0d150d5, PR #625), which is how a header at
-// the module root becomes reachable by `#include <angled>` — zlib's `zlib.h`
-// does that for `zconf.h`. It is not on the Bazel Central Registry yet, so
-// every generated MODULE.bazel also pins the release's commit with a
-// `git_override`; see RULES_CC_OVERRIDE_COMMIT. *(History: until 2026-09-06
-// codegen worked around the rejection by copying public and generated
-// headers into an `_include/` directory, bzl-i4i.6. Removed in bzl-ti9 once
-// the fix was verified against the tag.)*
-const RULES_CC_VERSION: &str = "0.2.23";
-/// The commit the rules_cc `0.2.23` tag points at, rendered as a
-/// `git_override` because the registry has no 0.2.23 for the `bazel_dep` to
-/// resolve against. Delete this, the override in `render_module_bazel`, and
-/// the copy `validation_workspace.bzl` makes in the root MODULE.bazel (Bazel
-/// honours overrides only from the ROOT module) once
-/// `modules/rules_cc/metadata.json` in the bazel-central-registry repo lists
-/// 0.2.23 — the `bazel_dep` alone is then enough. Tracked as bzl-ti9.
-const RULES_CC_OVERRIDE_COMMIT: &str = "b1771c16fd98676eb719fd9c234bf17ee6d33067";
-const RULES_CC_OVERRIDE_REMOTE: &str = "https://github.com/bazelbuild/rules_cc.git";
+// rules_cc must be >= 0.2.23: that release (commit 0d150d5, PR #625) is the
+// first to accept `includes = ["."]` at a module root, which is how a header
+// there becomes reachable by `#include <angled>` — zlib's `zlib.h` does that
+// for `zconf.h`. 0.2.25 is the first such release the Bazel Central Registry
+// carries. *(History: until 2026-09-06 codegen worked around the rejection by
+// copying public and generated headers into an `_include/` directory,
+// bzl-i4i.6; from then until 2026-09-18 it pinned 0.2.23 by `git_override`
+// while the registry lacked it, bzl-ti9.)*
+const RULES_CC_VERSION: &str = "0.2.25";
 /// Only pulled in when a project actually exposes a build option — see
 /// `render_build_options`. A module with no options must not gain a
 /// dependency it never uses.
@@ -151,14 +141,6 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
          bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n\
          bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\
          {rules_shell}{cc_config}{skylib}\n\
-         # rules_cc {RULES_CC_VERSION} is not on the Bazel Central Registry yet. It is the\n\
-         # first release that accepts `includes = [\".\"]` at a module root, which\n\
-         # this module relies on wherever a header at its root is reached by\n\
-         # `#include <angled>`. Remove this override once the registry lists\n\
-         # {RULES_CC_VERSION}; the bazel_dep above is then sufficient. Bazel honours\n\
-         # overrides only from the ROOT module, so a workspace consuming this\n\
-         # module as a dependency has to repeat it.\n\
-         git_override(\n    module_name = \"rules_cc\",\n    commit = \"{RULES_CC_OVERRIDE_COMMIT}\",\n    remote = \"{RULES_CC_OVERRIDE_REMOTE}\",\n)\n\n\
          register_toolchains(\"@llvm//toolchain:all\")\n",
         name = module_name(&graph.module.name),
     )
@@ -1963,24 +1945,16 @@ mod tests {
         );
     }
 
-    // The override exists only because the registry has no 0.2.23; when it
-    // does, this test is the one to delete along with the constants. Until
-    // then it pins two things the build cannot check for us: that the
-    // override names the same module as the bazel_dep (a mismatch is a
-    // silently ignored override, and the registry lookup then fails far from
-    // here), and that the removal condition ships in the module, since the
-    // agent resolving it has no access to this repo.
+    // A generated module resolves rules_cc from the registry and nothing
+    // else. An override in its MODULE.bazel would be inert anyway once the
+    // module is consumed as a dependency (Bazel honours overrides only from
+    // the root), and the one it carried for twelve days had to be repeated by
+    // every consumer to work at all. The version floor is the real claim:
+    // below 0.2.23 `includes = ["."]` is rejected and root headers are
+    // unreachable by an angled include.
     #[test]
-    fn module_bazel_pins_rules_cc_by_git_override_until_the_registry_has_it() {
+    fn module_bazel_depends_on_a_registry_rules_cc_with_no_override() {
         let rendered = render(&graph(None)).module_bazel;
-        let expected = format!(
-            "git_override(\n    module_name = \"rules_cc\",\n    commit = \
-             \"{RULES_CC_OVERRIDE_COMMIT}\",\n    remote = \"{RULES_CC_OVERRIDE_REMOTE}\",\n)\n"
-        );
-        assert!(
-            rendered.contains(&expected),
-            "expected the override block verbatim:\n{expected}\nin:\n{rendered}"
-        );
         assert!(
             rendered.contains(&format!(
                 "bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")"
@@ -1988,8 +1962,19 @@ mod tests {
             "{rendered}"
         );
         assert!(
-            rendered.contains("Remove this override once the registry lists"),
-            "the removal condition must ship with the module:\n{rendered}"
+            !rendered.contains("_override("),
+            "no override of any kind may ship in a generated module:\n{rendered}"
+        );
+        let (major, minor, patch) = {
+            let mut it = RULES_CC_VERSION
+                .split('.')
+                .map(|n| n.parse::<u32>().unwrap());
+            (it.next().unwrap(), it.next().unwrap(), it.next().unwrap())
+        };
+        assert!(
+            (major, minor, patch) >= (0, 2, 23),
+            "rules_cc {RULES_CC_VERSION} rejects includes = [\".\"]; a module-root header \
+             is then unreachable by #include <angled>"
         );
     }
 

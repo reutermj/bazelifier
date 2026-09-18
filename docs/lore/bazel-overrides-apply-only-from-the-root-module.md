@@ -1,5 +1,9 @@
 # Bazel overrides apply only from the root module
 
+*(The rules_cc override this describes was removed on 2026-09-18, once
+0.2.25 reached the registry. The rule about overrides stands; the mechanism
+below is how it was learned.)*
+
 `git_override`, `archive_override`, `local_path_override` and
 `single_version_override` are read from the ROOT module's `MODULE.bazel`
 only. The same declaration in a module that is being consumed as a

@@ -170,41 +170,24 @@ A generated `sh_test` wrapping a dynamically linked binary needs
 `RUNPATH`, and `RUN_CMAKE_TEST_SH` stages runfiles into a writable tree (the
 binary writes into its working directory), which breaks those relative paths.
 
-## rules_cc is pinned by `git_override` until the registry catches up
+## A module-root include is `includes = ["."]`
 
-Every generated `MODULE.bazel` carries, beside its `bazel_dep` on rules_cc, a
-`git_override` pinning the commit behind the release codegen depends on
-(`RULES_CC_VERSION` / `RULES_CC_OVERRIDE_COMMIT` in `translator/src/codegen.rs`).
-The release is the first that accepts `includes = ["."]` at a module root,
-which is what lets a header at the root be reached by `#include <angled>` —
-zlib's `zlib.h` does that for `zconf.h`, and a project that put its own root
-on the include path (`Target::needs_root_include`) gets exactly that
-entry.[^staging]
-Bazel already passes `-iquote .` for a root package, so quoted includes never
-needed it; `"."` adds the `-I.` (and the matching `bazel-out/.../bin`) that
-angled ones do, which also reaches a GENERATED header at the root.
+A project that put its own module root on the include path
+(`Target::needs_root_include`) gets `includes = ["."]`, which rules_cc
+accepts from 0.2.23 (`RULES_CC_VERSION` in `translator/src/codegen.rs` is the
+floor, and a unit test holds it there). That is what lets a header at the
+root be reached by `#include <angled>` — zlib's `zlib.h` does that for
+`zconf.h`.[^staging] Bazel already passes `-iquote .` for a root package,
+so quoted includes never needed it; `"."` adds the `-I.` (and the matching
+`bazel-out/.../bin`) that angled ones do, which also reaches a GENERATED
+header at the root.
 
-The override exists only because that release is not on the Bazel Central
-Registry. **It is meant to be removed**, and the removal has three homes that
-must go together: the two constants and the block `render_module_bazel`
-emits; the copy `validation_workspace.bzl` makes in the root `MODULE.bazel`,
-which it reads back out of the first fixture rather than pinning a second
-time; and `root_module_rules_cc_override_test`, which asserts the two agree.
-That copy is the override alone — the root must not gain a direct
-`bazel_dep` on rules_cc, because that reorders toolchain registration and
-selects the host gcc for every fixture (see
-`docs/lore/a-direct-bazel-dep-on-rules-cc-in-the-root-selects-the-host-gcc.md`);
-the same test pins that.
-Bazel honours overrides only from the root module, so a fixture's own
-override is inert once the fixture is consumed as a dependency — that is why
-the validation root repeats it, and why a standalone consumer of a generated
-module has to as well (the module says so in a comment). Tracked as bzl-ti9;
-the re-check is whether `modules/rules_cc/metadata.json` in the
-bazel-central-registry repo lists the version.
-
-The independence claim is unchanged: the override names a public git remote,
-not a path, so the tarball is still portable — unlike the cc_config override,
-which is deliberately supplied by flag (see build-verification.md).
+The generated `MODULE.bazel` resolves rules_cc from the registry with no
+override of any kind, and so does the validation root — which also must not
+gain a direct `bazel_dep` on rules_cc, because that reorders toolchain
+registration and selects the host gcc for every fixture (see
+`docs/lore/a-direct-bazel-dep-on-rules-cc-in-the-root-selects-the-host-gcc.md`;
+`root_module_no_direct_rules_cc_dep_test` pins both).
 
 [^staging]: History: from 2026-07-31 to 2026-09-06 rules_cc rejected
     `includes = ["."]` outright ("resolves to the workspace root, which would
@@ -216,6 +199,10 @@ which is deliberately supplied by flag (see build-verification.md).
     bzl-ti9 after verifying in a zlib-shaped scratch module that 0.2.22
     rejects `"."`, 0.2.23 builds it, and 0.2.23 without `includes` fails on
     the angled include — so the pass is the fix and not some other change.
+    From 2026-09-10 to 2026-09-18 every generated module pinned 0.2.23 by
+    `git_override`, repeated in the validation root, while the registry lacked
+    it; 0.2.25 was the first release with the fix to reach the registry, and
+    the override went with it.
 
 ## Formatting and linting
 
