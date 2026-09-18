@@ -11,6 +11,33 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # those: without --disable-openssl this host's OpenSSL headers would make
 # configure build libevent_openssl and link a library no converted module
 # provides. Samples are built because Open MPI's build builds them.
+# END STATE (2026-09-18): GREEN from the unpacked workspace after the agent
+# stage — 7/7 comparisons, 2/2 module tests, no open items (post-agent row
+# in metrics/history_post_agent.jsonl). What it cost, for the record the
+# onboarding skill asks for:
+#
+# - Translator gaps found: 6. Fixed: 4 — primaries declared through
+#   variables converted to zero targets (expand_references); a make-time
+#   sed-generated header was silently absent (generated_headers escalation);
+#   automake install directories for public headers (installed_headers,
+#   strip_include_prefix); one program declared under two primaries rendered
+#   twice. Filed, unfixed: an automake source conditional on a probe the
+#   host satisfies is dropped (bzl-42r, strlcpy.c), and a valued macro gated
+#   on a boolean flag is frozen as 1 (bzl-iwo, SIZEOF_PTHREAD_T).
+# - Escalations at first conversion: 4 items, 116 unmapped config names.
+#   At green: 4 items, 41 names — 75 facts moved into the catalog
+#   (15 headers, 45 symbols, 5 sizes, 13 type-presence, 6 struct members,
+#   2 declarations; check_type_exists and check_struct_member are new probe
+#   kinds). The remaining 41 were genuine decisions: build options, the C
+#   library's gethostbyname_r arity, AC_USE_SYSTEM_EXTENSIONS, fallback
+#   typedefs, three probe aliases, and the openssl option.
+# - Deterministic fixes vs. genuine escalations at green: 75 : 41 by name;
+#   4 : 4 by item.
+# - Other projects moved: reference expansion recovered targets make built
+#   and the frontend dropped — libidn2 +14 (all its test programs),
+#   libmicrohttpd +12, xz +2 — with no comparison changing state.
+# - Four of the seven samples are servers; the comparison now bounds every
+#   run (compare_runtime_output.sh) rather than hanging on them.
 convert_autotools_project(
     name = "converted",
     srcs = ["@libevent//:all_srcs"],

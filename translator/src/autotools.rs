@@ -2601,7 +2601,7 @@ pub(crate) fn to_graph_with_dependencies(
 
 /// Moves every installed header a LIBRARY target carries in `sources` into
 /// its `public_headers`, and records the prefix to strip so it is reachable
-/// at its installed path. A binary keeps them private: nothing depends on a
+/// at its INSTALLED path. A binary keeps them private: nothing depends on a
 /// binary's headers.
 ///
 /// Matched by path SUFFIX: a `*_HEADERS` value is relative to the
@@ -2612,17 +2612,24 @@ pub(crate) fn to_graph_with_dependencies(
 /// target already carries are promoted: a declared-public header no target
 /// could see is left alone rather than attached by guesswork.
 fn promote_installed_headers(targets: &mut [Target], vars: &HashMap<String, String>) {
-    let installed = public_headers(vars);
-    let flat = flat_installed_header_basenames(vars);
-    let declared_as = |path: &str| {
-        installed
-            .iter()
-            .any(|raw| path == raw || path.ends_with(&format!("/{raw}")))
-    };
+    let installed = installed_headers(vars);
     for target in targets.iter_mut().filter(|t| t.kind == TargetKind::Library) {
+        let mut strips: Vec<Option<String>> = Vec::new();
         let (public, private): (Vec<String>, Vec<String>) = std::mem::take(&mut target.sources)
             .into_iter()
-            .partition(|s| is_header_file(Path::new(s)) && declared_as(s));
+            .partition(|s| {
+                if !is_header_file(Path::new(s)) {
+                    return false;
+                }
+                let Some((_, subdir)) = installed
+                    .iter()
+                    .find(|(raw, _)| s == raw || s.ends_with(&format!("/{raw}")))
+                else {
+                    return false;
+                };
+                strips.push(strip_for(s, subdir));
+                true
+            });
         target.sources = private;
         for header in public {
             if !target.public_headers.contains(&header) {
@@ -2630,52 +2637,91 @@ fn promote_installed_headers(targets: &mut [Target], vars: &HashMap<String, Stri
             }
         }
         target.public_headers.sort_unstable();
-        target.strip_include_prefix = strip_include_prefix(&target.public_headers, &flat);
+        // One prefix per target, so every promoted header has to agree.
+        strips.sort_unstable();
+        strips.dedup();
+        target.strip_include_prefix = match strips.as_slice() {
+            [Some(prefix)] => Some(prefix.clone()),
+            _ => None,
+        };
     }
 }
 
-/// Basenames of the headers automake installs FLAT into the include
-/// directory — the plain `include_HEADERS` primary, whose files land as
-/// `<includedir>/<basename>`. A `nobase_` variant keeps its directory and a
-/// `pkginclude_`/custom-dir one adds a subdirectory; both install at a path
-/// this function deliberately does not claim to know, so their headers are
-/// not here and get no prefix stripped.
-fn flat_installed_header_basenames(vars: &HashMap<String, String>) -> HashSet<String> {
-    vars.get("include_HEADERS")
-        .map(|v| v.split_whitespace().map(basename).collect())
-        .unwrap_or_default()
-}
-
-/// The one directory to strip so every public header of a target is
-/// reachable at its installed path, or `None` when the headers do not agree
-/// on a directory (or already sit at the module root). Per target because
-/// `strip_include_prefix` is; a target whose public headers span two
-/// directories gets none, and a cross-module consumer then fails loudly on
-/// the include rather than on a prefix that is right for some of them.
-fn strip_include_prefix(public_headers: &[String], flat: &HashSet<String>) -> Option<String> {
-    let mut dirs = public_headers
-        .iter()
-        .filter(|h| flat.contains(&basename(h)))
-        .map(|h| {
-            Path::new(h)
-                .parent()
-                .map(|p| p.to_string_lossy().into_owned())
-                .unwrap_or_default()
-        });
-    let first = dirs.next()?;
-    if first.is_empty() || dirs.any(|d| d != first) {
+/// The prefix to strip from `path` so it is reachable at `subdir/<basename>`,
+/// its installed name: `include/event2/buffer.h` installed as
+/// `event2/buffer.h` strips `include`. `None` when the path does not end in
+/// the installed name (the layout is not one strip away) or when there is
+/// nothing to strip.
+fn strip_for(path: &str, subdir: &str) -> Option<String> {
+    let installed = if subdir.is_empty() {
+        basename(path)
+    } else {
+        format!("{subdir}/{}", basename(path))
+    };
+    if path == installed {
         return None;
     }
-    Some(first)
+    let prefix = path.strip_suffix(&format!("/{installed}"))?;
+    (!prefix.is_empty()).then(|| prefix.to_string())
+}
+
+/// Every header the project installs under its include directory, as
+/// `(path as declared, subdirectory of <includedir> it lands in)`.
+///
+/// automake's rule: `<name>_HEADERS` installs each file's basename into
+/// `$(<name>dir)`, and only an install directory under `$(includedir)` makes
+/// a header PUBLIC — `include_HEADERS` lands in `<includedir>` itself, libevent's
+/// `include_event2_HEADERS` in `<includedir>/event2` because it declares
+/// `include_event2dir = $(includedir)/event2`. `noinst_`/`EXTRA_` are not
+/// installed; `nobase_` keeps the declared path and is left alone since its
+/// installed name is not one strip away. Values are expanded first, because
+/// libevent declares both lists through variables.
+fn installed_headers(vars: &HashMap<String, String>) -> Vec<(String, String)> {
+    let ambiguous = HashSet::new();
+    let mut out = Vec::new();
+    for (var, value) in vars {
+        let Some(prefix) = var.strip_suffix("_HEADERS") else {
+            continue;
+        };
+        // `dist_`/`nodist_` say whether the file ships in the tarball, not
+        // where it installs.
+        let prefix = prefix
+            .strip_prefix("dist_")
+            .or_else(|| prefix.strip_prefix("nodist_"))
+            .unwrap_or(prefix);
+        if prefix.starts_with("noinst")
+            || prefix.starts_with("EXTRA")
+            || prefix.starts_with("nobase_")
+        {
+            continue;
+        }
+        let subdir = if prefix == "include" {
+            String::new()
+        } else {
+            let dir = vars
+                .get(&format!("{prefix}dir"))
+                .map(|d| expand_references(d, vars, &ambiguous))
+                .unwrap_or_default();
+            let Some(rest) = dir.strip_prefix("$(includedir)") else {
+                continue;
+            };
+            rest.trim_matches('/').to_string()
+        };
+        for raw in expand_references(value, vars, &ambiguous).split_whitespace() {
+            if !raw.contains("$(") {
+                out.push((raw.to_string(), subdir.clone()));
+            }
+        }
+    }
+    out.sort();
+    out
 }
 
 /// Every header the project installs, from any `*_HEADERS` primary.
 fn public_headers(vars: &HashMap<String, String>) -> Vec<String> {
-    vars.iter()
-        .filter(|(k, _)| {
-            k.ends_with("_HEADERS") && !k.starts_with("noinst") && !k.starts_with("EXTRA")
-        })
-        .flat_map(|(_, v)| v.split_whitespace().map(str::to_string))
+    installed_headers(vars)
+        .into_iter()
+        .map(|(raw, _)| raw)
         .collect()
 }
 
@@ -4963,10 +5009,17 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
 
     // automake's `include_HEADERS` names no target, so the header a target
     // can see is promoted where it sits, and the install layout is recorded
-    // so a consumer's `<greet.h>` resolves.
+    // so a consumer's `<greet.h>` resolves. libevent's shape too: a custom
+    // install directory under includedir, declared through variables.
     #[test]
     fn installed_headers_are_promoted_to_hdrs_with_their_install_prefix() {
-        let vars = parse_variables("include_HEADERS = src/greet.h src/util.h\n");
+        let vars = parse_variables(
+            "include_HEADERS = src/greet.h src/util.h\n\
+             EVENT2_EXPORT = include/event2/buffer.h include/event2/event.h\n\
+             include_event2dir = $(includedir)/event2\n\
+             include_event2_HEADERS = $(EVENT2_EXPORT)\n\
+             noinst_HEADERS = src/private.h\n",
+        );
         let mut targets = vec![
             Target {
                 name: "libgreet_la".to_string(),
@@ -4983,6 +5036,17 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
                 name: "demo".to_string(),
                 kind: TargetKind::Executable,
                 sources: vec!["src/demo.c".to_string(), "src/greet.h".to_string()],
+                ..Default::default()
+            },
+            Target {
+                name: "libevent_core_la".to_string(),
+                kind: TargetKind::Library,
+                sources: vec![
+                    "event.c".to_string(),
+                    "include/event2/buffer.h".to_string(),
+                    "include/event2/event.h".to_string(),
+                    "event-internal.h".to_string(),
+                ],
                 ..Default::default()
             },
         ];
@@ -5002,20 +5066,49 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
             "a binary exports nothing: {:#?}",
             targets[1]
         );
-
-        // No prefix when there is nothing to strip, or no single answer.
-        let flat = flat_installed_header_basenames(&parse_variables(
-            "include_HEADERS = greet.h a/x.h b/y.h\n",
-        ));
-        assert_eq!(strip_include_prefix(&["greet.h".to_string()], &flat), None);
         assert_eq!(
-            strip_include_prefix(&["a/x.h".to_string(), "b/y.h".to_string()], &flat),
-            None,
-            "two directories cannot both be the prefix; better none than half right"
+            targets[2].public_headers,
+            vec![
+                "include/event2/buffer.h".to_string(),
+                "include/event2/event.h".to_string()
+            ],
+            "declared through a variable, in a custom include subdirectory"
         );
         assert_eq!(
-            strip_include_prefix(&["a/x.h".to_string()], &flat).as_deref(),
-            Some("a")
+            targets[2].strip_include_prefix.as_deref(),
+            Some("include"),
+            "installed as event2/buffer.h, so only `include` is stripped"
+        );
+        assert_eq!(
+            targets[2].sources,
+            vec!["event.c".to_string(), "event-internal.h".to_string()]
+        );
+
+        // No prefix when there is nothing to strip, or no single answer.
+        assert_eq!(strip_for("greet.h", ""), None);
+        assert_eq!(strip_for("a/x.h", "").as_deref(), Some("a"));
+        assert_eq!(
+            strip_for("include/event2/x.h", "event2").as_deref(),
+            Some("include")
+        );
+        assert_eq!(
+            strip_for("src/x.h", "event2"),
+            None,
+            "not one strip away from event2/x.h"
+        );
+        let mut split = vec![Target {
+            name: "lib".to_string(),
+            kind: TargetKind::Library,
+            sources: vec!["a/x.h".to_string(), "b/y.h".to_string()],
+            ..Default::default()
+        }];
+        promote_installed_headers(
+            &mut split,
+            &parse_variables("include_HEADERS = a/x.h b/y.h\n"),
+        );
+        assert_eq!(
+            split[0].strip_include_prefix, None,
+            "two directories cannot both be the prefix; better none than half right"
         );
     }
 

@@ -243,6 +243,18 @@ building against a fixture with nothing to differentiate):
 - **Target inventory**: every CMake codemodel target has a corresponding
   Bazel target that built. Cheap, but only catches gross omissions.
 
+### A run is bounded
+
+Each binary runs under a ten-second `timeout -s KILL`
+(`BAZELIFIER_RUN_LIMIT_SECONDS` overrides it). A program that never exits —
+libevent's sample servers, its `signal-test`, its fifo reader; libmicrohttpd's
+example servers — is compared over that window on both sides: same budget,
+same kill, and the streams and exit code (137) compared as for any other
+program. That is the check this tier can make on a server, and it is stated
+in the log as a NOTE so a pass on one reads as "equivalent for the window".
+Without the bound such a test hangs until Bazel's own timeout, minutes later,
+and reads as a broken harness.
+
 ## Fixtures
 
 - `001-hello-world` — single `cc_binary`, no dependencies. Its `project()`

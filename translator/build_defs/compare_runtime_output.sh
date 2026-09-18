@@ -124,10 +124,25 @@ mask_self() {
   # (xz uses argv[0] verbatim; some use basename(argv[0])).
   sed -e "s|$1|<SELF>|g" -e "s|\b$(basename "$1")\b|<SELF>|g"
 }
+# Every run is bounded. A program that never exits on its own — libevent's
+# sample servers listen forever, its signal-test waits for SIGINT, its
+# fifo reader blocks on a fifo it just created; libmicrohttpd's examples are
+# the same shape — is still comparable: both builds get the same wall-clock
+# budget, both are killed the same way, and what they printed and how they
+# exited is compared exactly as for a program that returns. A server that
+# behaves the same for ten seconds on both sides has passed the check this
+# script can make; one that prints something different in that window has
+# not. Without the bound the test hangs until Bazel's own timeout, which is
+# minutes and reads as a broken harness rather than a running server.
+#
+# KILL rather than TERM, so a program that handles SIGTERM by printing a
+# shutdown message does not turn the bound into an observable difference
+# between a build that caught it a millisecond earlier and one that did not.
+run_limit_seconds="${BAZELIFIER_RUN_LIMIT_SECONDS:-10}"
 run_gt() {
   local rc
   LD_LIBRARY_PATH="${ground_truth_lib_path}${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}" \
-    "${ground_truth_bin}" 2>"$2.raw" >"$1.raw"
+    timeout -s KILL "${run_limit_seconds}" "${ground_truth_bin}" 2>"$2.raw" >"$1.raw"
   # Captured immediately: the caller reads $? from this function, and the
   # masking below would otherwise overwrite it with sed's exit code — turning
   # every nonzero program exit into 0 and silently disabling the exit-code
@@ -139,7 +154,7 @@ run_gt() {
 }
 run_bazel() {
   local rc
-  "${bazel_bin}" 2>"$2.raw" >"$1.raw"
+  timeout -s KILL "${run_limit_seconds}" "${bazel_bin}" 2>"$2.raw" >"$1.raw"
   rc=$?
   mask_self "${bazel_bin}" <"$1.raw" >"$1"
   mask_self "${bazel_bin}" <"$2.raw" >"$2"
@@ -226,6 +241,13 @@ compare_stream() {
 
 compare_stream stdout "${tmpdir}/gt_out_a" "${tmpdir}/gt_out_b" "${tmpdir}/bz_out_a" "${tmpdir}/bz_out_b" || status=1
 compare_stream stderr "${tmpdir}/gt_err_a" "${tmpdir}/gt_err_b" "${tmpdir}/bz_err_a" "${tmpdir}/bz_err_b" || status=1
+
+# 137 is `timeout -s KILL`'s report that the bound hit. Said out loud so a
+# PASS on a server reads as what it is: equivalent for the window, not
+# terminated.
+if [[ "${ground_truth_exit}" -eq 137 && "${bazel_exit}" -eq 137 ]]; then
+  echo "NOTE: neither binary exited within ${run_limit_seconds}s; both were killed and compared over that window"
+fi
 
 if [[ "${status}" -eq 0 ]]; then
   echo "PASS: ${ground_truth_bin} and ${bazel_bin} behave equivalently"

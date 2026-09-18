@@ -122,6 +122,18 @@ sequence — where the CMake File API reports dependency order unstably
 chatter with the commands — which is why the frontend recognises only the
 handful of programs that build something and ignores every other line.
 
+### Configure arguments are part of the input
+
+`convert_autotools_project(configure_args = [...])` passes flags to the
+project's configure, and they are recorded on the corpus pin for the same
+reason the pin records a version: they are the build DECISIONS a consumer of
+this project made. libevent as Open MPI builds it is configured with
+`--disable-openssl`; left to the host's package set, configure would find
+this machine's OpenSSL headers and the module would link a library no
+converted module provides. `--prefix` is always `/usr/local`, supplied by
+the frontend, so a dependent's pkg-config relocation works (see
+build-verification.md, "Depending on another converted module").
+
 ## Second source: `make -p`, for identity
 
 The command stream carries no target **names**. automake knows a program is
@@ -240,11 +252,16 @@ statement, and a header it names need not appear in any `_SOURCES`
 attached every reachable header to the targets that can see it, an
 installed header a LIBRARY carries is promoted from `sources` to
 `public_headers` (`promote_installed_headers`), and the prefix a consumer
-must not see is recorded: `include_HEADERS = src/greet.h` installs
-`<includedir>/greet.h`, so the rule gets `strip_include_prefix = "src"`.
-Only the plain `include_HEADERS` layout is modelled; `nobase_` and
-`pkginclude_` variants install at paths this does not claim to know, and
-their headers get no prefix stripped.
+must not see is recorded. Where a header installs is automake's own rule:
+`<name>_HEADERS` puts each file's basename into `$(<name>dir)`, so
+`include_HEADERS = src/greet.h` lands at `<includedir>/greet.h` and the rule
+gets `strip_include_prefix = "src"`, while libevent's
+`include_event2_HEADERS = $(EVENT2_EXPORT)` with
+`include_event2dir = $(includedir)/event2` lands `include/event2/buffer.h` at
+`event2/buffer.h` and strips `include` (`installed_headers`). Only a
+directory under `$(includedir)` makes a header public; `nobase_` keeps the
+declared path and is left alone. Values are expanded first, since both of
+libevent's lists are variables.
 
 ### Libraries another converted module builds
 

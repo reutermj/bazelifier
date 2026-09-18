@@ -140,6 +140,47 @@ cc_config_catalog(
         ("sys/un.h", "HAVE_SYS_UN_H"),
         ("sys/wait.h", "HAVE_SYS_WAIT_H"),
     ],
+    # AC_CHECK_MEMBERS facts, from libevent 2.1.12 (bzl-7r9.3): the socket
+    # address layouts that split BSD (sin_len, sin6_len) from glibc
+    # (s6_addr16/32, ss_family).
+    struct_members = [
+        (
+            "struct in6_addr",
+            "s6_addr16",
+            ["netinet/in.h"],
+            "HAVE_STRUCT_IN6_ADDR_S6_ADDR16",
+        ),
+        (
+            "struct in6_addr",
+            "s6_addr32",
+            ["netinet/in.h"],
+            "HAVE_STRUCT_IN6_ADDR_S6_ADDR32",
+        ),
+        (
+            "struct sockaddr_in",
+            "sin_len",
+            ["netinet/in.h"],
+            "HAVE_STRUCT_SOCKADDR_IN_SIN_LEN",
+        ),
+        (
+            "struct sockaddr_in6",
+            "sin6_len",
+            ["netinet/in.h"],
+            "HAVE_STRUCT_SOCKADDR_IN6_SIN6_LEN",
+        ),
+        (
+            "struct sockaddr_storage",
+            "ss_family",
+            ["sys/socket.h"],
+            "HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY",
+        ),
+        (
+            "struct sockaddr_storage",
+            "__ss_family",
+            ["sys/socket.h"],
+            "HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY",
+        ),
+    ],
     # (symbol, [declaring headers], HAVE_ macro) — check_symbol_exists.
     symbols = [
         # File-timestamp and option-parsing functions the corpus checks via
@@ -746,6 +787,26 @@ cc_config_catalog(
             ["time.h"],
             "HAVE__GMTIME64_S",
         ),
+        # libevent's two sysctl declarations, checked only when sys/sysctl.h
+        # exists (it does not on glibc >= 2.32, so both are 0 here and 1 on
+        # the BSDs). Ternary like the other HAVE_DECL_ entries.
+        (
+            "CTL_KERN",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_CTL_KERN",
+        ),
+        (
+            "KERN_ARND",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_KERN_ARND",
+        ),
+        # libevent checks it outside AC_CHECK_FUNCS (a custom AC_CHECK_FUNC),
+        # and the frontend froze the host's yes; declared in netdb.h everywhere.
+        (
+            "getaddrinfo",
+            ["netdb.h"],
+            "HAVE_GETADDRINFO",
+        ),
     ],
     # AC_CHECK_TYPES presence facts, from libevent 2.1.12 (bzl-7r9.3); its
     # configure names type and header together.
@@ -849,6 +910,12 @@ cc_config_catalog(
             "SIZEOF_TIME_T",
         ),
         ("void *", [], "SIZEOF_VOID_P"),
+        # libevent computes it only with thread support on; a size is a size.
+        (
+            "pthread_t",
+            ["pthread.h"],
+            "SIZEOF_PTHREAD_T",
+        ),
     ],
 )
 
@@ -901,6 +968,9 @@ config_header(
         ":have_uint16_t",
         ":have_struct_sockaddr_un",
         ":sizeof_void_p",
+        ":have_struct_in6_addr_s6_addr32",
+        ":have_struct_sockaddr_in_sin_len",
+        ":have_decl_ctl_kern",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -964,6 +1034,9 @@ assert_config_header_test(
         "#define HAVE_UINT16_T",  # check_type_exists: presence, not size
         "#define HAVE_STRUCT_SOCKADDR_UN",  # a struct tag through the same probe
         "#define SIZEOF_VOID_P 8",
+        "#define HAVE_STRUCT_IN6_ADDR_S6_ADDR32",  # glibc names the union members; check_struct_member
+        "/* #undef HAVE_STRUCT_SOCKADDR_IN_SIN_LEN */",  # BSD only
+        "#define HAVE_DECL_CTL_KERN 0",  # sys/sysctl.h gone from glibc; ternary 0, not undefined
     ],
     must_not_contain = [
         "#define HAVE_XLOCALE_H",  # must not be defined on glibc

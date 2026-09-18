@@ -42,6 +42,14 @@ const JSON_C_SET_WITH_NO_VALUE: &str =
 const JSON_C_AUTOTOOLS_HARNESS: &str =
     include_str!("../project_notes/json-c/002-tests-use-an-autotools-era-shell-harness.md");
 
+const LIBEVENT_STRLCPY: &str = include_str!(
+    "../project_notes/libevent/001-strlcpy-c-is-compiled-only-where-the-c-library-lacks-strlcpy.md"
+);
+
+const LIBEVENT_TESTS: &str = include_str!(
+    "../project_notes/libevent/002-the-registered-tests-need-a-binary-open-mpis-flags-do-not-build.md"
+);
+
 /// Notes for `module_name`, empty when there are none.
 ///
 /// Matched on the module name rather than the directory the sources came
@@ -58,6 +66,16 @@ pub fn for_project(module_name: &str) -> Vec<Note> {
             Note {
                 filename: "002-tests-use-an-autotools-era-shell-harness.md",
                 body: JSON_C_AUTOTOOLS_HARNESS,
+            },
+        ],
+        "libevent" => vec![
+            Note {
+                filename: "001-strlcpy-c-is-compiled-only-where-the-c-library-lacks-strlcpy.md",
+                body: LIBEVENT_STRLCPY,
+            },
+            Note {
+                filename: "002-the-registered-tests-need-a-binary-open-mpis-flags-do-not-build.md",
+                body: LIBEVENT_TESTS,
             },
         ],
         _ => Vec::new(),
@@ -95,7 +113,7 @@ mod tests {
     // saying nothing.
     #[test]
     fn every_note_has_content() {
-        for name in ["json-c"] {
+        for name in ["json-c", "libevent"] {
             for note in for_project(name) {
                 assert!(
                     note.body.len() > 200,

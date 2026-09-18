@@ -368,6 +368,40 @@ check_type_exists = rule(
     fragments = ["cpp"],
 )
 
+def _check_struct_member_impl(ctx):
+    includes = "".join(["#include <%s>\n" % h for h in ctx.attr.headers])
+    source = includes + "int main(void) { %s s; return (int) sizeof(s.%s) ? 0 : 0; }\n" % (ctx.attr.struct, ctx.attr.member)
+    info = _run_probe(ctx, source, ctx.attr.define, link = False, defines = ["_GNU_SOURCE"])
+    return [
+        info,
+        DefaultInfo(files = depset([info.result])),
+    ]
+
+check_struct_member = rule(
+    implementation = _check_struct_member_impl,
+    doc = "Sets `define` to 1 when `struct` has `member` under the resolved toolchain — autoconf's AC_CHECK_MEMBERS, CMake's CheckStructHasMember. libevent's HAVE_STRUCT_IN6_ADDR_S6_ADDR32 / HAVE_STRUCT_SOCKADDR_IN_SIN_LEN family, which splits BSD from glibc. Probed under _GNU_SOURCE like the symbol probes, since that is what an autoconf project compiles with.",
+    attrs = {
+        "struct": attr.string(
+            mandatory = True,
+            doc = "The aggregate type, as written in C (e.g. \"struct sockaddr_in6\").",
+        ),
+        "member": attr.string(
+            mandatory = True,
+            doc = "The member to look for (e.g. \"sin6_len\").",
+        ),
+        "headers": attr.string_list(
+            default = [],
+            doc = "Headers that declare the struct, in #include <...> form.",
+        ),
+        "define": attr.string(
+            mandatory = True,
+            doc = "The macro to define to 1 when the member exists.",
+        ),
+    },
+    toolchains = use_cc_toolchain(),
+    fragments = ["cpp"],
+)
+
 def _check_include_file_impl(ctx):
     info = _run_probe(
         ctx,

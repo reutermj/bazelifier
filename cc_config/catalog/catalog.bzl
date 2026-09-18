@@ -13,12 +13,12 @@ addition below. The target name for each is its define lowercased, so the
 translator can derive the label from the `#cmakedefine` name it sees.
 """
 
-load("//cc_config:probe.bzl", "check_include_file", "check_symbol_exists", "check_type_exists", "check_type_size")
+load("//cc_config:probe.bzl", "check_include_file", "check_struct_member", "check_symbol_exists", "check_type_exists", "check_type_size")
 
 def _target_name(define):
     return define.lower()
 
-def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], type_exists = []):
+def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], type_exists = [], struct_members = []):
     """Declares the catalog probe targets.
 
     Args:
@@ -32,6 +32,8 @@ def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], 
       type_exists: list of (type, [headers], define) for check_type_exists —
             AC_CHECK_TYPES presence facts (HAVE_UINT16_T), distinct from the
             SIZEOF_ facts above.
+      struct_members: list of (struct, member, [headers], define) for
+            check_struct_member — AC_CHECK_MEMBERS facts.
     """
     for header, define in headers:
         check_include_file(
@@ -72,6 +74,15 @@ def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], 
             name = _target_name(define),
             type = type_name,
             headers = type_headers,
+            define = define,
+            visibility = ["//visibility:public"],
+        )
+    for struct, member, member_headers, define in struct_members:
+        check_struct_member(
+            name = _target_name(define),
+            struct = struct,
+            member = member,
+            headers = member_headers,
             define = define,
             visibility = ["//visibility:public"],
         )

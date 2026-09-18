@@ -414,6 +414,17 @@ const CATALOG_DEFINES: &[&str] = &[
     "SIZEOF_SHORT",
     "SIZEOF_TIME_T",
     "SIZEOF_VOID_P",
+    // libevent's AC_CHECK_DECLS and AC_CHECK_MEMBERS facts (bzl-7r9.3).
+    "HAVE_DECL_CTL_KERN",
+    "HAVE_DECL_KERN_ARND",
+    "HAVE_STRUCT_IN6_ADDR_S6_ADDR16",
+    "HAVE_STRUCT_IN6_ADDR_S6_ADDR32",
+    "HAVE_STRUCT_SOCKADDR_IN6_SIN6_LEN",
+    "HAVE_STRUCT_SOCKADDR_IN_SIN_LEN",
+    "HAVE_STRUCT_SOCKADDR_STORAGE_SS_FAMILY",
+    "HAVE_STRUCT_SOCKADDR_STORAGE___SS_FAMILY",
+    "HAVE_GETADDRINFO",
+    "SIZEOF_PTHREAD_T",
 ];
 
 /// The `@cc_config//catalog:<target>` label for a catalog define, or `None`
