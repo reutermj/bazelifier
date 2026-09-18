@@ -11,6 +11,7 @@ rust_binary(
         "src/config_header.rs",
         "src/configure_file.rs",
         "src/ctest.rs",
+        "src/dependencies.rs",
         "src/error.rs",
         "src/headers.rs",
         "src/libtool.rs",

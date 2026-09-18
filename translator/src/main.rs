@@ -4,6 +4,7 @@ mod codegen;
 mod config_header;
 mod configure_file;
 mod ctest;
+mod dependencies;
 mod error;
 mod headers;
 mod libtool;
@@ -97,6 +98,22 @@ struct Args {
     /// `source_dir`, i.e. the project converts on its own.
     #[arg(long)]
     deliverable_root: Option<PathBuf>,
+
+    /// Directory to `make install` the ground-truth build into (as a
+    /// `DESTDIR`, under `/usr/local`), so a DEPENDENT project's conversion
+    /// can configure against this one. Conversion-time scaffolding only:
+    /// nothing in it ships. See `dependencies`.
+    #[arg(long)]
+    install_dir: Option<PathBuf>,
+
+    /// A converted module this project depends on, as
+    /// `<its module tree>:<its install tree>` — the two outputs of that
+    /// module's own conversion. Repeatable. The install trees are merged into
+    /// one sysroot the project's configure is pointed at, and a library the
+    /// link line names from inside it becomes a cross-module dependency on
+    /// that module. See `dependencies`.
+    #[arg(long = "dependency")]
+    dependencies: Vec<String>,
 }
 
 fn main() -> ExitCode {
@@ -143,14 +160,44 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             }));
         }
     };
+    // A sibling of the build dir rather than inside it: the Autotools
+    // frontend asserts the build dir yields build commands, and a CMake
+    // configure treats unknown content in its build dir as its own.
+    // Absolute, because it ends up in configure's environment
+    // (PKG_CONFIG_SYSROOT_DIR) and configure runs from the build dir, where
+    // an execroot-relative path resolves to nothing — pkg-config then finds
+    // no .pc file and the failure reads as a missing dependency.
+    let sysroot_dir = paths::absolutize(&PathBuf::from(format!(
+        "{}_sysroot",
+        args.build_dir.display()
+    )))?;
+    let deps = dependencies::Dependencies::load(&args.dependencies, &sysroot_dir)?;
+    // A declared output has to exist even when the frontend has nothing to
+    // install into it (CMake does not install yet — see cmake_api::discover).
+    if let Some(dir) = &args.install_dir {
+        fs::create_dir_all(dir)?;
+    }
     let mut discovery = match frontend {
-        Frontend::Cmake => {
-            cmake_api::discover(&args.source_dir, &args.build_dir, deliverable_root)?
-        }
-        Frontend::Autotools => {
-            autotools::discover(&args.source_dir, &args.build_dir, deliverable_root)?
-        }
+        Frontend::Cmake => cmake_api::discover(
+            &args.source_dir,
+            &args.build_dir,
+            deliverable_root,
+            &deps,
+            args.install_dir.as_deref(),
+        )?,
+        Frontend::Autotools => autotools::discover(
+            &args.source_dir,
+            &args.build_dir,
+            deliverable_root,
+            &deps,
+            args.install_dir.as_deref(),
+        )?,
     };
+    // Every module the conversion was pointed at is a declared dependency,
+    // whether or not a link line ended up naming it: the project's configure
+    // ran against it, and a bazel_dep nothing links is inert while a missing
+    // one fails resolution.
+    discovery.graph.dependencies = deps.modules();
     // Here rather than in either frontend: the rule keys on a value both
     // produce (a source path equal to a config header's output path) and has
     // to run before BOTH consumers below — codegen must not list the file and
@@ -174,7 +221,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         fs::write(&script_path, codegen::render_run_registered_test_sh())?;
         make_executable(&script_path)?;
     }
-    copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph)?;
+    copy_ground_truth_artifacts(&args.build_dir, &args.out_module, graph, &deps)?;
     write_needs_attention(&args.out_module, &discovery.needs_attention)?;
     write_project_notes(&args.out_module, &graph.module.name)?;
     write_targets_manifest(&args.out_module, graph)?;
@@ -357,6 +404,26 @@ fn write_targets_manifest(out_module: &Path, graph: &model::BuildGraph) -> std::
     binaries.sort_unstable();
     lines.extend(binaries.iter().map(|n| format!("binary {n}")));
 
+    // Every library, by the file stem it was built as, so a DEPENDENT's
+    // conversion can turn `-lgreet` on its link line into this module's
+    // target (see `dependencies::read_libraries`). The linkage rides along
+    // because a binary linking a shared one must say so in `dynamic_deps`.
+    let mut libraries: Vec<String> = graph
+        .targets
+        .iter()
+        .filter(|t| t.kind == model::TargetKind::Library)
+        .filter_map(|t| {
+            let stem = dependencies::library_stem(Path::new(t.artifacts.first()?))?;
+            Some(format!(
+                "library {} {stem} {}",
+                t.name,
+                if t.is_shared { "shared" } else { "static" }
+            ))
+        })
+        .collect();
+    libraries.sort_unstable();
+    lines.extend(libraries);
+
     // The binary each generated sh_test wraps, so the harness can skip its
     // naive ground-truth comparison — a data-driven test run with no data
     // would fail identically on both sides and false-pass.
@@ -396,6 +463,7 @@ fn copy_ground_truth_artifacts(
     build_dir: &Path,
     out_module: &Path,
     graph: &model::BuildGraph,
+    deps: &dependencies::Dependencies,
 ) -> std::io::Result<()> {
     let ground_truth_dir = out_module.join("ground_truth");
     fs::create_dir_all(&ground_truth_dir)?;
@@ -447,6 +515,41 @@ fn copy_ground_truth_artifacts(
                     if !shared_lib_names.contains(&name) {
                         shared_lib_names.push(name);
                     }
+                }
+            }
+        }
+    }
+
+    // A shared library ANOTHER module built, which this module's binaries
+    // load at run time. Staged from the sysroot the ground-truth build linked
+    // against, since that sysroot is gone by the time the comparison runs and
+    // the binary's DT_NEEDED still names the library. The bytes are the
+    // dependency's own ground truth, so this is not vendoring a Bazel build.
+    for target in &graph.targets {
+        for dep in target.external_dependencies.iter().filter(|d| d.shared) {
+            let Some(real) = deps.shared_library_path(dep) else {
+                continue;
+            };
+            // Every name in the chain, by NAME rather than by resolving links
+            // (stage_shared_library_chain's method): the sysroot merge copied
+            // each link as its own file, so `libgreet.so`, `libgreet.so.1`
+            // and `libgreet.so.1.0.0` no longer resolve to one inode — and
+            // the binary's DT_NEEDED names the middle one.
+            let libdir = real.parent().unwrap_or(Path::new("/"));
+            let stem = dependencies::library_stem(&real).unwrap_or_default();
+            let mut names: Vec<String> = fs::read_dir(libdir)?
+                .filter_map(|e| e.ok())
+                .filter_map(|e| e.file_name().into_string().ok())
+                .filter(|n| n.starts_with(&format!("{stem}.so")))
+                .collect();
+            names.sort();
+            for name in names {
+                copy_into(&libdir.join(&name), &ground_truth_dir.join(&name))?;
+                if !artifact_paths.contains(&name) {
+                    artifact_paths.push(name.clone());
+                }
+                if !shared_lib_names.contains(&name) {
+                    shared_lib_names.push(name);
                 }
             }
         }
@@ -893,6 +996,7 @@ mod tests {
             unexpressed_tests: Vec::new(),
             config_headers: vec![],
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
         }
     }
 

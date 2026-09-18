@@ -124,6 +124,28 @@ pub struct Target {
     /// dependency ids for CMake, and from the artifacts a link command names
     /// for Autotools.
     pub dependencies: Vec<String>,
+    /// Libraries this target links that ANOTHER converted module builds,
+    /// resolved by the driver from the link line: an input whose path lies
+    /// inside a dependency's staged install tree belongs to that dependency
+    /// (`dependencies::Dependencies::resolve_path`). Rendered as
+    /// `@<module>//:<target>` in `deps`, with a `dynamic_deps` edge when the
+    /// library is shared, and as a `bazel_dep` on the module. A library the
+    /// link line names that resolves into NO dependency is not here — it is
+    /// escalated (`unconverted_dependency`), never linked from the host.
+    pub external_dependencies: Vec<ExternalDependency>,
+    /// The directory prefix a consumer must NOT see on this target's public
+    /// headers, so they are reachable at their INSTALLED path.
+    ///
+    /// automake's `include_HEADERS = src/greet.h` installs the file as
+    /// `<includedir>/greet.h`, and a consumer built against the installed
+    /// library includes `<greet.h>`; inside the module the file is still
+    /// `src/greet.h`. Rendered as `strip_include_prefix`, which is per
+    /// target, so it is set only when every public header shares one
+    /// directory — otherwise `None`, and a cross-module consumer fails
+    /// loudly on the include rather than getting a prefix that is right for
+    /// half the headers. `None` also when the headers already sit at the
+    /// module root, where there is nothing to strip.
+    pub strip_include_prefix: Option<String>,
     /// Whether this target declared its own module root as an include
     /// directory — CMake's `target_include_directories(${CMAKE_SOURCE_DIR})`
     /// or an Autotools `-I.` from the top directory.
@@ -167,6 +189,34 @@ pub struct Target {
     /// the CMake build directory. Used to locate ground-truth artifacts
     /// for validation — see docs/architecture/build-verification.md.
     pub artifacts: Vec<String>,
+}
+
+/// A library another converted module builds, as one of this module's
+/// targets links it. See [`Target::external_dependencies`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalDependency {
+    /// The dependency's Bazel module name, as its `MODULE.bazel` declares it.
+    pub module: String,
+    /// The library's target name inside that module.
+    pub target: String,
+    /// Whether that target is wrapped in a `cc_shared_library`, which a
+    /// binary linking it must name in `dynamic_deps` or Bazel links the
+    /// static form instead — silently, and against the dependency's own
+    /// linkage decision.
+    pub shared: bool,
+}
+
+/// A converted module this module depends on, for the generated
+/// `MODULE.bazel`'s `bazel_dep`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ModuleDependency {
+    pub name: String,
+    /// The version the dependency's own `MODULE.bazel` declares, when it
+    /// declares one. Emitted as the `bazel_dep` version; when the module is
+    /// resolved through a `local_path_override` (the validation workspace)
+    /// Bazel ignores it, and when it is published this is the version to ask
+    /// a registry for.
+    pub version: Option<String>,
 }
 
 /// Identifies the standalone Bazel module the translator produces for a
@@ -434,6 +484,11 @@ pub struct BuildGraph {
     /// indistinguishable in the output, and the obvious "fix" — restoring the
     /// file — is exactly the wrong one.
     pub displaced_sources: Vec<String>,
+    /// Converted modules this one depends on, for `bazel_dep`. Filled by the
+    /// driver from the `--dependency` specs, in that order; a module listed
+    /// here that no target links is still a declared dependency, because the
+    /// project's configure was run against it.
+    pub dependencies: Vec<ModuleDependency>,
 }
 
 impl BuildGraph {
@@ -544,6 +599,7 @@ mod tests {
             unexpressed_tests: Vec::new(),
             config_headers: vec![header("zconf.h", None), header("gl/string.h", Some("gl"))],
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
         };
         g.displace_sources_shadowed_by_config_headers(|_| false);
 
@@ -589,6 +645,7 @@ mod tests {
             unexpressed_tests: Vec::new(),
             config_headers: vec![header("string.h", Some("gl"))],
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
         };
         g.displace_sources_shadowed_by_config_headers(|_| false);
         assert_eq!(
@@ -619,6 +676,7 @@ mod tests {
             unexpressed_tests: Vec::new(),
             config_headers: vec![header("expat_config.h", None), header("other.h", None)],
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
         };
         g.displace_sources_shadowed_by_config_headers(|p| p == "expat_config.h");
         assert_eq!(g.displaced_sources, vec!["expat_config.h"]);

@@ -1,0 +1,16 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The consumer half of the cross-module pair. `deps` is the whole point: it
+# is how the translator learns that libgreet is a converted module rather
+# than a host library, and it is what makes Bazel convert 011 first. Remove
+# it and the conversion must escalate `-lgreet` by name, not link the host.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(
+        ["**"],
+        exclude = ["BUILD.bazel"],
+    ),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+    deps = ["//translator/tests/fixtures/autotools/011-installed-library:converted"],
+)

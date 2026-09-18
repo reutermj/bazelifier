@@ -948,6 +948,79 @@ pub fn shared_library_absorbs_static_needs_attention(
     }
 }
 
+/// Escalates a library that neither this project nor any converted module
+/// it was pointed at builds, naming every target that links it.
+///
+/// Per LIBRARY, not per target: the resolution is one action — convert the
+/// library's project and depend on it — however many rules wait on it, and
+/// libmicrohttpd's 65 test binaries each linking libcurl would otherwise be
+/// 65 copies of one instruction. The library is spelled the way the link
+/// line spelled it, since that is the only name the translator has. The
+/// item says what NOT to do as well, because the obvious fix — `-l<name>` in
+/// `linkopts` — links whatever the build machine happens to have and passes
+/// every check here while breaking on the next machine.
+pub fn unconverted_dependency_needs_attention(library: &str, targets: &[String]) -> NeedsAttention {
+    let title = format!("Library '{library}' is linked but no converted module builds it");
+    let list = targets
+        .iter()
+        .map(|t| format!("- `{t}`"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    NeedsAttention {
+        kind: "unconverted_dependency",
+        subject: library.to_string(),
+        gap: format!(
+            "{} target(s) link `{library}`, a library this project does not build and that \
+             no converted dependency this conversion was pointed at provides:\n\n{list}\n\n\
+             It is spelled the way the project's own link line spells it: `-l<name>` for a \
+             library found on a search path, an absolute path for one named outright. It was \
+             left OUT of every rule above — their `deps` name only libraries this module or a \
+             converted dependency builds — so each will fail to link, or to find a header, \
+             until this is resolved.",
+            targets.len()
+        ),
+        context: format!(
+            "The generated module builds hermetically, with a toolchain it declares itself, \
+             and it must keep doing so: a library that is only on THIS machine cannot be part \
+             of it. So the resolution is never to reach for the host's copy. Specifically, do \
+             NOT add `linkopts = [\"-l<name>\"]` or a `-L` path to any rule: that links \
+             whatever happens to be installed where the module is built, passes every check \
+             on a machine that has it, and fails on the first one that does not — the exact \
+             non-reproducibility the conversion exists to remove.\n\n\
+             What `{library}` IS decides what to do:\n\n\
+             - A library from ANOTHER PROJECT (libcurl, libevent, hwloc): convert that project \
+             into its own Bazel module and depend on it. The pipeline supports this directly — \
+             a conversion can be given already-converted modules as dependencies, and a link \
+             input that resolves into one becomes `deps = [\"@<module>//:<target>\"]` on each \
+             rule plus a `bazel_dep` in MODULE.bazel, with no escalation. That this item \
+             exists means the dependency was not among the modules this conversion was \
+             pointed at: either it has not been converted yet, or the conversion was run \
+             without it. Re-running with the converted dependency supplied is the intended \
+             resolution and edits nothing by hand.\n\
+             - Part of the C TOOLCHAIN (libm, libpthread, libdl, librt, libgcc_s, libstdc++): \
+             the hermetic toolchain supplies these itself and they never appear in this item; \
+             a name here that looks like one is a library the toolchain does NOT supply and \
+             must be treated as another project's.\n\
+             - Only used by TESTS or an optional feature (libmicrohttpd's tests link libcurl \
+             to exercise the server): converting the library is still the right answer if \
+             the tests are to run; dropping the tests instead is a decision to RECORD in the \
+             generated output, naming what was lost, never a silent omission."
+        ),
+        expected_output: format!(
+            "Preferred: the library's project converted as a module, and this conversion \
+             re-run with it as a dependency, so that every target listed gains `deps` on \
+             `@<module>//:<library target>` (and `dynamic_deps` on its `_shared` wrapper when \
+             the library is shared) and MODULE.bazel gains the matching `bazel_dep`. The item \
+             then no longer fires.\n\n\
+             Otherwise, an edit to the generated BUILD.bazel that removes the listed targets \
+             (or the tests that need them) with a comment naming `{library}` and why it was \
+             not converted — so the omission is deliberate and visible. Never a `linkopts` \
+             entry naming a host library."
+        ),
+        title,
+    }
+}
+
 pub fn header_visibility_needs_attention(target_name: &str) -> NeedsAttention {
     let title = format!("Library '{target_name}' has headers with no public declaration");
     NeedsAttention {
@@ -1854,6 +1927,7 @@ mod tests {
                 TestDialect::AddTest,
             ),
             header_visibility_needs_attention("t"),
+            unconverted_dependency_needs_attention("-lcurl", &["t".to_string()]),
         ];
         let mut kinds: Vec<&str> = items.iter().map(|i| i.kind).collect();
         let total = kinds.len();
@@ -1884,6 +1958,38 @@ mod tests {
         assert_eq!(
             slugify("Library 'greet' has no public headers"),
             "library-greet-has-no-public-headers"
+        );
+    }
+
+    // The item ships to an agent who will reach for `-lcurl` first, because
+    // it works on the machine in front of them. The text has to name that
+    // move and rule it out, and name the move that is right.
+    #[test]
+    fn unconverted_dependency_names_the_library_and_forbids_the_host_link() {
+        let item = unconverted_dependency_needs_attention(
+            "-lcurl",
+            &["test_get".to_string(), "test_post".to_string()],
+        );
+        assert_eq!(item.kind, "unconverted_dependency");
+        assert_eq!(item.subject, "-lcurl");
+        for needle in ["2 target(s) link `-lcurl`", "- `test_get`", "- `test_post`"] {
+            assert!(
+                item.gap.contains(needle),
+                "gap must say {needle:?}:\n{}",
+                item.gap
+            );
+        }
+        assert!(
+            item.context.contains("NOT add `linkopts"),
+            "the wrong move must be named:\n{}",
+            item.context
+        );
+        assert!(
+            item.expected_output
+                .contains("@<module>//:<library target>")
+                && item.expected_output.contains("bazel_dep"),
+            "and the right one:\n{}",
+            item.expected_output
         );
     }
 }

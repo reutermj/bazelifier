@@ -87,6 +87,16 @@ source in every fixture build.
     values from make's variable database rather than the CMake cache, parses
     autoconf's `#undef` dialect rather than `#cmakedefine`/`@VAR@`, and runs
     BEFORE the graph exists rather than after the codemodel walk.
+  - `src/dependencies.rs` — converted modules a project depends on, as the
+    translator sees them at conversion time: each dependency's conversion
+    also emits its ground-truth build `make install`ed under a fixed prefix,
+    a dependent's action receives those trees (`deps` on the conversion
+    rule), they are merged into one sysroot its configure is pointed at, and
+    a link input whose PATH lies inside the sysroot resolves to the module
+    that installed it. Nothing from the sysroot ships. Frontend-agnostic:
+    keys on paths and on files the translator wrote itself. See
+    docs/architecture/build-verification.md, "Depending on another converted
+    module".
   - `src/libtool.rs` — libtool artifact handling (`.la` control files,
     `dlname=`, wrapper scripts in place of binaries). Its own module rather
     than the driver's business, and deliberately frontend-agnostic: every

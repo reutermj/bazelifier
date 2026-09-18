@@ -9,6 +9,14 @@ rule only produces that output; validating it as its own workspace happens
 out-of-band (see docs/architecture/build-verification.md).
 """
 
+ConvertedProjectInfo = provider(
+    doc = "The two trees a conversion produces: the standalone module, and the project's own ground-truth build installed under /usr/local as a DESTDIR. The install tree exists ONLY so a dependent project's conversion can configure against it (see the translator's `dependencies` module and docs/architecture/build-verification.md); it never ships.",
+    fields = {
+        "module": "File: the generated module tree (MODULE.bazel, BUILD.bazel, sources, ground_truth/, needs_attention/).",
+        "install": "File: the ground-truth build's `make install DESTDIR=` tree.",
+    },
+)
+
 def _derived_source_dir(srcs, marker):
     """Returns the execroot-relative dir of the top-level `marker` file.
 
@@ -48,6 +56,12 @@ def _convert_cmake_project_impl(ctx):
     frontend = _FRONTENDS[ctx.attr.frontend]
     marker = frontend.marker
     out_dir = ctx.actions.declare_directory(ctx.attr.name)
+
+    # Declared as a real output, unlike the build scratch below, because a
+    # DEPENDENT's action has to receive it as an input. Under a fixed
+    # /usr/local prefix inside it, so the .pc files stay path-free and
+    # pkg-config's sysroot relocation does the rest.
+    install_dir = ctx.actions.declare_directory(ctx.attr.name + "_install")
 
     # A scratch directory for the CMake configure step (`cmake -B`). Kept
     # separate from out_dir so the translator's declared output only ever
@@ -90,10 +104,24 @@ def _convert_cmake_project_impl(ctx):
     # frontend and failed deep inside it on a File API reply that was never
     # written.
     args.add("--frontend", ctx.attr.frontend)
+    args.add("--install-dir", install_dir.path)
+
+    # Each converted dependency arrives as both of its trees: the module
+    # (for its name, version and library targets) and the install tree (for
+    # the headers and libraries this project's configure has to find). The
+    # translator merges the install trees into one sysroot and resolves link
+    # inputs back to the module that installed them, by path. This is the
+    # conversion ORDER, expressed as Bazel's own graph: a dependency converts
+    # before its dependents, and re-converting it re-converts them.
+    dep_inputs = []
+    for dep in ctx.attr.deps:
+        info = dep[ConvertedProjectInfo]
+        args.add("--dependency", "%s:%s" % (info.module.path, info.install.path))
+        dep_inputs += [info.module, info.install]
 
     ctx.actions.run(
-        outputs = [out_dir],
-        inputs = srcs,
+        outputs = [out_dir, install_dir],
+        inputs = srcs + dep_inputs,
         executable = ctx.executable._bazelifier,
         arguments = [args],
         mnemonic = "ConvertProject",
@@ -107,7 +135,15 @@ def _convert_cmake_project_impl(ctx):
         use_default_shell_env = True,
     )
 
-    return [DefaultInfo(files = depset([out_dir]))]
+    # DefaultInfo carries only the module: everything downstream that lists
+    # a conversion in `srcs` or `data` (the validation workspace, the
+    # fixtures' own consumers) wants the module and nothing else. The install
+    # tree is reachable only through the provider, i.e. only by another
+    # conversion's `deps`.
+    return [
+        DefaultInfo(files = depset([out_dir])),
+        ConvertedProjectInfo(module = out_dir, install = install_dir),
+    ]
 
 convert_cmake_project = rule(
     implementation = _convert_cmake_project_impl,
@@ -124,6 +160,10 @@ convert_cmake_project = rule(
         ),
         "source_dir": attr.string(
             doc = "Path (relative to the execroot) to the project's root directory, i.e. the directory containing its CMakeLists.txt or configure.ac. Leave empty to derive it from the single marker file in srcs — required when the sources come from an external repo (a corpus project) whose staged path the BUILD author can't name.",
+        ),
+        "deps": attr.label_list(
+            providers = [ConvertedProjectInfo],
+            doc = "Other conversions this project links libraries from. Each is given to the translator as a converted module plus its install tree, the project's configure is pointed at them, and a library the link line names from inside one becomes a bazel_dep + `@module//:target` edge in the generated output. A library the link line names that resolves into none of them is escalated (unconverted_dependency), never linked from the host.",
         ),
         "deliverable_root": attr.string(
             default = "",

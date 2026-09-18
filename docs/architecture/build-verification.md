@@ -357,6 +357,70 @@ Numbers are not shared across the two sets, so pick names that stay distinct.
   instead) is covered by unit tests rather than a second fixture, since only
   the rule's attribute differs.
 
+- `autotools/011-installed-library` and `autotools/012-links-installed-library`
+  — the cross-module pair. 011 installs a header, a libtool shared library
+  and a `.pc` file; 012 is a program whose configure finds it through
+  `pkg-config` and links `-lgreet`. 012's conversion declares
+  `deps = [":011"]`, and that one attribute is what turns `-lgreet` from an
+  unconverted dependency into `bazel_dep(greet)` plus
+  `deps = ["@greet//:libgreet.la"]` — see "Depending on another converted
+  module" below. The negative direction (the same link line with no
+  dependency supplied escalates `-lgreet` by name) is a unit test in
+  `autotools.rs`, because 012's configure REFUSES to run without libgreet,
+  which is a loud failure of its own but not the escalation.
+
+## Depending on another converted module
+
+A project that links a library it does not build is converted AGAINST that
+library's conversion, never against the host's copy:
+
+- **The dependency's conversion emits two trees.** Beside the module, its
+  ground-truth build is `make install`ed as a `DESTDIR` under a fixed
+  `/usr/local` prefix (`ConvertedProjectInfo.install`). That tree is
+  conversion-time scaffolding: a dependent's action receives it as an input,
+  and nothing from it is ever packaged.
+- **The dependent's conversion names its dependencies** with `deps` on the
+  conversion rule. The translator merges their install trees into one
+  sysroot, points the project's configure at it (`PKG_CONFIG_SYSROOT_DIR`,
+  `PKG_CONFIG_LIBDIR`, `CPPFLAGS`, `LDFLAGS`), and runs the real build.
+  Bazel's own graph between the two conversion targets is therefore the
+  conversion ORDER: a dependency converts first, and re-converting it
+  re-converts its dependents.
+- **A link input is resolved by PATH.** `-L<sysroot>/usr/local/lib -lgreet`
+  (or libtool's absolute `.so` path) lies inside the tree one dependency
+  installed, so it is that module's library — a fact the input states. The
+  target gets `deps = ["@greet//:libgreet.la"]`, a `dynamic_deps` entry when
+  the library is shared, and `MODULE.bazel` gets `bazel_dep(name = "greet",
+  version = "1.2")` with the dependency's own version. Resolution is the
+  consumer's business: the validation root already supplies a
+  `local_path_override` per fixture, which is why the unpacked workspace
+  builds 012 against 011 with no further wiring.
+- **A link input that resolves into no dependency is escalated**
+  (`unconverted_dependency`), one item per library naming every target that
+  links it, spelled as the link line spelled it. The toolchain's own runtime (`-lm`, `-lpthread`, `-ldl`, ...) is not a
+  dependency and is skipped. Never a `linkopts` entry: that links whatever
+  the build machine has, which is the non-hermeticity this whole tier exists
+  to rule out.
+- **The dependency's shared library is staged beside the dependent's ground
+  truth**, every name in its chain, because the ground-truth binary's
+  `DT_NEEDED` names it and the sysroot is gone by the time the comparison
+  runs. The bytes are the dependency's own ground truth.
+- **The dependency's module exports its headers at their INSTALLED path**:
+  automake's `include_HEADERS = src/greet.h` installs `<includedir>/greet.h`,
+  a consumer includes `<greet.h>`, so the library's rule carries
+  `strip_include_prefix = "src"` (`Target::strip_include_prefix`; set only
+  when every public header of a target agrees on one directory).
+
+Why not the Bazel-built dependency for the discovery build: the reference
+side of the comparison would then share the converted dependency's errors,
+and a gcc-built reference would link a clang-built library. The dependency's
+own native build is what its own comparison already validated, so it is the
+reference. The mechanics and the two mistakes made on the way are in
+`docs/lore/a-dependents-ground-truth-build-finds-its-dependencies-through-a-relocated-sysroot.md`.
+Only the Autotools frontend resolves link inputs this way today; the CMake
+frontend accepts the same inputs and does nothing with them yet
+(bzl-7r9.2's notes).
+
 ## Header visibility is not enforced by default
 
 Bazel does **not** enforce the `hdrs`/`srcs` split for C++ headers by

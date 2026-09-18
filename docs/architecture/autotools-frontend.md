@@ -218,6 +218,30 @@ private.
 
 This needs no `Makefile.am` parsing: `make -p` reports the primary directly.
 
+The primary names no TARGET, though: `include_HEADERS` is a project-level
+statement, and a header it names need not appear in any `_SOURCES`
+(libevent's and hwloc's never do). So after the include-directory sweep has
+attached every reachable header to the targets that can see it, an
+installed header a LIBRARY carries is promoted from `sources` to
+`public_headers` (`promote_installed_headers`), and the prefix a consumer
+must not see is recorded: `include_HEADERS = src/greet.h` installs
+`<includedir>/greet.h`, so the rule gets `strip_include_prefix = "src"`.
+Only the plain `include_HEADERS` layout is modelled; `nobase_` and
+`pkginclude_` variants install at paths this does not claim to know, and
+their headers get no prefix stripped.
+
+### Libraries another converted module builds
+
+A `-l<name>` on the link line, with the `-L` directories the same line
+carried, is resolved the way the linker resolves it — and if the file it
+finds lies inside a converted dependency's staged install tree, the target
+gets a cross-module edge on that module's library (see
+build-verification.md, "Depending on another converted module"). An
+absolute `.so` path, libtool's spelling of the same input, resolves the same
+way. Anything that resolves into no dependency and is not the toolchain's
+own runtime is escalated as `unconverted_dependency`, one item per library
+naming the targets that link it.
+
 ### Config headers, in autoconf's dialect
 
 autoconf's `config.h.in` writes a bare `#undef FOO` where CMake writes
@@ -331,27 +355,21 @@ already decided by the time the graph is built.
 
 ## Known gaps
 
-- **Two gaps are recovered but not yet escalated.** The frontend escalates
-  unmapped config macros and sources that escape the module; it collects two
-  more and discards them (bzl-yjn.5):
-  - **External libraries.** A library the project links and does not build is
-    an input the generated module cannot satisfy. libmicrohttpd is the first
-    corpus project with one (libcurl, for 65 of its tests) and it showed the
-    gap is worse than recorded here: `external_links` is collected and
-    discarded, no escalation kind covers it, and `codegen` has no way to
-    express it — so the dependency vanishes and the module fails on a missing
-    header far from the cause. The answer is not a `linkopt`, which would
-    link a HOST library and break hermeticity; the dependency has to be
-    converted and depended on as another Bazel module. Tracked as bzl-x8l.
+- **One gap is recovered but not yet escalated.** The frontend escalates
+  unmapped config macros, sources that escape the module, and libraries no
+  converted module builds; it still collects and discards one more
+  (bzl-yjn.5):
+  - ~~**External libraries.**~~ Resolved to a cross-module edge when a
+    converted dependency provides the library, escalated as
+    `unconverted_dependency` otherwise — see "Libraries another converted
+    module builds" above. *(History: until 2026-09-18 `external_links` was
+    collected and discarded, no escalation kind covered it, and the module
+    failed on a missing header far from the cause; libmicrohttpd's libcurl
+    was the corpus case, bzl-x8l.)*
   - ~~**Declared targets `make` never produced.**~~ `check_PROGRAMS` were the
     live case and are now built by a second pass — see the target table
     above. What remains under this heading is anything else `make` declares
     and never produces, for which there is still no escalation.
-
-  The external-library case was assumed to fail *loudly* (an unresolved
-  library at link) and does not: it fails at compile, on a header, in a
-  target whose dependency was never recorded. That assumption is why the
-  silent-looking case — a dropped source — was escalated first.
 - **An already-configured source tree fails**, because `configure` refuses to
   run twice. Converting a tree someone has built in place is a normal thing to
   attempt.

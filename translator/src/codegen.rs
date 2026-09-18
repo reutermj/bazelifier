@@ -136,11 +136,26 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
         format!("bazel_dep(name = \"bazel_skylib\", version = \"{BAZEL_SKYLIB_VERSION}\")\n")
     };
 
+    // Converted modules this one links, by the name and version their own
+    // MODULE.bazel declares. Resolution is the consumer's business — the
+    // validation root supplies each with a local_path_override — so nothing
+    // here says where they come from, and the module stays portable.
+    let converted: String = graph
+        .dependencies
+        .iter()
+        .map(|d| {
+            format!(
+                "bazel_dep(name = \"{}\", version = \"{}\")\n",
+                d.name,
+                d.version.as_deref().unwrap_or("0.0.0")
+            )
+        })
+        .collect();
     format!(
         "module(\n    name = \"{name}\",\n{version})\n\n\
          bazel_dep(name = \"rules_cc\", version = \"{RULES_CC_VERSION}\")\n\
          bazel_dep(name = \"llvm\", version = \"{LLVM_VERSION}\")\n\
-         {rules_shell}{cc_config}{skylib}\n\
+         {rules_shell}{cc_config}{skylib}{converted}\n\
          register_toolchains(\"@llvm//toolchain:all\")\n",
         name = module_name(&graph.module.name),
     )
@@ -795,15 +810,6 @@ fn render_path_list(out: &mut String, attr: &str, paths: &[String]) {
     render_string_list(out, attr, paths);
 }
 
-/// Renders `deps`, turning each sibling target name into a same-package
-/// Bazel label. Every target a converted module emits lives in that
-/// module's one top-level `BUILD.bazel`, so a dependency is always
-/// `":name"` — there is no cross-package case to handle yet.
-fn render_deps(out: &mut String, deps: &[String]) {
-    let labels: Vec<String> = deps.iter().map(|dep| format!(":{dep}")).collect();
-    render_string_list(out, "deps", &labels);
-}
-
 // Public by default: a converted module is meant to be depended on, both
 // by bazelifier's own validation tooling and, as more projects get
 // converted, by other converted modules (matching how CMake targets are
@@ -882,6 +888,12 @@ fn render_cc_rule(
     // Bazel rejects it as an unknown attribute rather than ignoring it.
     if target.kind == TargetKind::Library {
         render_path_list(out, "hdrs", &target.public_headers);
+        // So a consumer in ANOTHER module reaches the headers at their
+        // installed path (`<greet.h>`, not `<src/greet.h>`); see
+        // model::Target::strip_include_prefix for when it is set.
+        if let Some(prefix) = &target.strip_include_prefix {
+            out.push_str(&format!("    strip_include_prefix = \"{prefix}\",\n"));
+        }
     }
     // A shadowing directory goes in `local_includes`, not `includes`, because
     // Bazel's `includes` is TRANSITIVE and `AM_CPPFLAGS` is not. Left in
@@ -922,8 +934,21 @@ fn render_cc_rule(
     // Not render_path_list: a define (`FOO`, `FOO=1`) is not a path and
     // must not be run through the module-relative assertion.
     render_string_list(out, "local_defines", &target.local_defines);
-    let mut deps: Vec<String> = target.dependencies.clone();
-    deps.extend(textual_dep);
+    let mut deps: Vec<String> = target
+        .dependencies
+        .iter()
+        .map(|d| format!(":{d}"))
+        .collect();
+    deps.extend(textual_dep.iter().map(|d| format!(":{d}")));
+    // A library another converted module builds, resolved by the frontend
+    // from the link line: a label into that module, which the bazel_dep in
+    // MODULE.bazel makes resolvable.
+    deps.extend(
+        target
+            .external_dependencies
+            .iter()
+            .map(|d| format!("@{}//:{}", d.module, d.target)),
+    );
     // Only the targets the BUILD gave the shadowing directory to. This was
     // every target, on the reasoning that a project vendoring gnulib wants
     // the replacements everywhere — and libidn2 disproves it. `AM_CPPFLAGS`
@@ -945,9 +970,9 @@ fn render_cc_rule(
         .filter_map(|h| h.shadow_dir.as_deref())
         .any(|dir| target.includes.iter().any(|inc| inc == dir))
     {
-        deps.push(SHADOW_HEADERS_TARGET.to_string());
+        deps.push(format!(":{SHADOW_HEADERS_TARGET}"));
     }
-    render_deps(out, &deps);
+    render_string_list(out, "deps", &deps);
 
     // A dependency CMake declared SHARED gets a dynamic_deps edge ALONGSIDE
     // its deps entry, not instead of it: deps carries CcInfo (headers,
@@ -960,12 +985,22 @@ fn render_cc_rule(
     // in the corpus hits it yet; when something does it needs an escalation
     // rather than this silent static downgrade (bzl-i4i.4).
     if target.kind == TargetKind::Executable {
-        let dynamic: Vec<String> = target
+        let mut dynamic: Vec<String> = target
             .dependencies
             .iter()
             .filter(|d| shared.contains(d.as_str()))
             .map(|d| format!(":{}", shared_library_name(d)))
             .collect();
+        // The same edge across a module boundary: the dependency's module
+        // wraps its shared library exactly as this one would
+        // (render_shared_library), so the wrapper's name is derivable.
+        dynamic.extend(
+            target
+                .external_dependencies
+                .iter()
+                .filter(|d| d.shared)
+                .map(|d| format!("@{}//:{}", d.module, shared_library_name(&d.target))),
+        );
         render_string_list(out, "dynamic_deps", &dynamic);
     }
 
@@ -1325,6 +1360,94 @@ mod tests {
         );
     }
 
+    // A library another module built, linked by this module's binary. The
+    // three places it has to appear are all derivable from what the frontend
+    // recorded, and a consumer missing any one of them fails differently:
+    // no bazel_dep → resolution error; no deps → missing header; no
+    // dynamic_deps → static link of a library the dependency built shared.
+    #[test]
+    fn an_external_dependency_renders_as_bazel_dep_plus_cross_module_labels() {
+        let mut g = graph(None);
+        g.dependencies = vec![model::ModuleDependency {
+            name: "greet".to_string(),
+            version: Some("1.2".to_string()),
+        }];
+        g.targets[0].external_dependencies = vec![model::ExternalDependency {
+            module: "greet".to_string(),
+            target: "libgreet_la".to_string(),
+            shared: true,
+        }];
+        let rendered = render(&g);
+        assert!(
+            rendered
+                .module_bazel
+                .contains("bazel_dep(name = \"greet\", version = \"1.2\")\n"),
+            "{}",
+            rendered.module_bazel
+        );
+        assert!(
+            rendered
+                .build_bazel
+                .contains("    deps = [\n        \"@greet//:libgreet_la\",\n    ],\n"),
+            "{}",
+            rendered.build_bazel
+        );
+        assert!(
+            rendered.build_bazel.contains(
+                "    dynamic_deps = [\n        \"@greet//:libgreet_la_shared\",\n    ],\n"
+            ),
+            "{}",
+            rendered.build_bazel
+        );
+
+        // A module the conversion was pointed at but nothing links is still
+        // declared, and a version the dependency never stated renders as
+        // Bazel's placeholder rather than being invented.
+        let mut unlinked = graph(None);
+        unlinked.dependencies = vec![model::ModuleDependency {
+            name: "shout".to_string(),
+            version: None,
+        }];
+        let rendered = render(&unlinked);
+        assert!(
+            rendered
+                .module_bazel
+                .contains("bazel_dep(name = \"shout\", version = \"0.0.0\")\n"),
+            "{}",
+            rendered.module_bazel
+        );
+        assert!(
+            !rendered.build_bazel.contains("@shout"),
+            "{}",
+            rendered.build_bazel
+        );
+    }
+
+    // `include_HEADERS = src/greet.h` installs as `<includedir>/greet.h`, so
+    // a consumer includes `<greet.h>`; without the prefix stripped the
+    // cross-module include fails on the first header.
+    #[test]
+    fn a_library_with_an_install_layout_strips_its_include_prefix() {
+        let mut out = String::new();
+        render_cc_rule(
+            &mut out,
+            &Target {
+                name: "libgreet_la".to_string(),
+                kind: TargetKind::Library,
+                sources: vec!["src/greet.c".to_string()],
+                public_headers: vec!["src/greet.h".to_string()],
+                strip_include_prefix: Some("src".to_string()),
+                ..Default::default()
+            },
+            &[],
+            &HashSet::new(),
+        );
+        assert!(
+            out.contains("    hdrs = [\n        \"src/greet.h\",\n    ],\n    strip_include_prefix = \"src\",\n"),
+            "{out}"
+        );
+    }
+
     fn graph(version: Option<&str>) -> BuildGraph {
         BuildGraph {
             module: ModuleInfo {
@@ -1334,6 +1457,7 @@ mod tests {
             tests: vec![],
             unexpressed_tests: Vec::new(),
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
             config_headers: vec![],
             targets: vec![Target {
                 name: "hello".to_string(),
@@ -1369,6 +1493,7 @@ mod tests {
             tests: vec![],
             unexpressed_tests: Vec::new(),
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
             config_headers: vec![],
             targets: vec![
                 Target {
@@ -1436,6 +1561,7 @@ mod tests {
             tests: vec![],
             unexpressed_tests: Vec::new(),
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
             config_headers: vec![],
             targets: vec![Target {
                 name: "app".to_string(),
@@ -1475,6 +1601,7 @@ mod tests {
                 tests: vec![],
                 unexpressed_tests: Vec::new(),
                 displaced_sources: Vec::new(),
+                dependencies: Vec::new(),
                 config_headers: vec![],
                 targets: vec![Target {
                     name: "t".to_string(),
@@ -1575,6 +1702,7 @@ mod tests {
             tests: vec![test],
             unexpressed_tests: Vec::new(),
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
             config_headers: vec![],
         }
     }
@@ -1738,6 +1866,7 @@ mod tests {
             tests: vec![],
             unexpressed_tests: Vec::new(),
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
             config_headers: vec![],
             targets: vec![target],
         }
@@ -1793,6 +1922,7 @@ mod tests {
             tests: vec![],
             unexpressed_tests: Vec::new(),
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
             config_headers: vec![],
             targets: vec![
                 Target {

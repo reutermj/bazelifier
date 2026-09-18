@@ -1,0 +1,17 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The library half of the cross-module pair: installs a header, a libtool
+# shared library and a pkg-config file. Fixture 012 converts against this
+# conversion's install tree and must come out depending on this module.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(
+        ["**"],
+        exclude = ["BUILD.bazel"],
+    ),
+    source_dir = package_name(),
+    visibility = [
+        "//translator/tests:__pkg__",
+        "//translator/tests/fixtures/autotools/012-links-installed-library:__pkg__",
+    ],
+)

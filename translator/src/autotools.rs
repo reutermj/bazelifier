@@ -32,7 +32,7 @@
 //! name, producing a module that could not load.
 
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -40,15 +40,18 @@ use crate::config_header::{
     parse_config_file_headers, parse_config_headers, parse_resolved_macro_values,
     plan_config_header, plan_substitution_header,
 };
+use crate::dependencies::Dependencies;
 use crate::error::Error;
 use crate::headers::{
     inject_headers_on_include_dirs, is_buildable_source, is_header_file, is_translation_unit,
 };
-use crate::model::{BuildGraph, Discovery, ModuleInfo, Target, TargetKind, Test};
+use crate::model::{
+    BuildGraph, Discovery, ExternalDependency, ModuleInfo, Target, TargetKind, Test,
+};
 use crate::needs_attention::{
     ConfigDialect, TestDialect, ctest_command_not_a_target_needs_attention,
     shared_library_absorbs_static_needs_attention, sources_outside_deliverable_needs_attention,
-    unmapped_config_macros_needs_attention,
+    unconverted_dependency_needs_attention, unmapped_config_macros_needs_attention,
 };
 use crate::paths::{absolutize, anchor_for_display, common_ancestor, normalize_lexically};
 
@@ -102,11 +105,20 @@ pub fn discover(
     source_dir: &Path,
     build_dir: &Path,
     deliverable_root: &Path,
+    deps: &Dependencies,
+    install_dir: Option<&Path>,
 ) -> Result<Discovery, Error> {
-    configure(source_dir, build_dir)?;
+    configure(source_dir, build_dir, &deps.configure_env())?;
     // The build IS the interrogation: make echoes every command as it runs
     // them, so its stdout is the resolved command stream.
     let stream = build(build_dir, &[])?;
+    // Installed for a DEPENDENT's sake, not this module's: the tree is what
+    // another project's configure will be pointed at. Under the fixed prefix
+    // so the .pc files it writes are path-free — see
+    // dependencies::INSTALL_PREFIX.
+    if let Some(dir) = install_dir {
+        install(build_dir, dir)?;
+    }
     // Then a second pass for the test programs, which the first cannot see:
     // automake defers anything `check_`-prefixed, so plain `make` compiles
     // none of them and emits no command for them. Appended rather than parsed
@@ -228,7 +240,7 @@ pub fn discover(
             deliverable_root: deliverable_root.to_string_lossy().into_owned(),
         });
     }
-    let (mut graph, graph_needs_attention, module_root) = to_graph(
+    let (mut graph, graph_needs_attention, module_root) = to_graph_with_dependencies(
         &parse_commands(&stream, build_dir),
         &declared,
         &database,
@@ -236,6 +248,7 @@ pub fn discover(
         &source_dir_abs,
         &deliverable_root,
         &absolutize(build_dir)?,
+        deps,
     );
     graph.config_headers = config_headers;
     // And a THIRD source: headers the project generates as REPLACEMENTS for
@@ -290,6 +303,14 @@ pub fn discover(
     // knows nothing about where the graph came from.
     inject_headers_on_include_dirs(&mut graph.targets, &module_root);
     inject_textual_includes(&mut graph.targets, &module_root);
+    // After the sweep above, because that is what puts an `include_HEADERS`
+    // file no `_SOURCES` lists into a target at all. automake attaches a
+    // public header to no target — `include_HEADERS` is a project-level
+    // statement — so the target that can SEE it (it is among the target's
+    // inputs) and the declaration that it is public are combined here, the
+    // way the CMake frontend combines `install(FILES)` with the include
+    // path. libevent and hwloc declare every public header exactly this way.
+    promote_installed_headers(&mut graph.targets, &parse_variables(&database));
 
     // A module with no targets cannot be built, compared or tested, so every
     // downstream tier reports vacuous success — the repo's named recurring
@@ -765,7 +786,7 @@ fn probed_names(build_dir: &Path) -> std::collections::HashSet<String> {
     names
 }
 
-fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
+fn configure(source_dir: &Path, build_dir: &Path, env: &[(String, String)]) -> Result<(), Error> {
     std::fs::create_dir_all(build_dir)?;
     // Absolutized because the command runs with `current_dir(build_dir)`: a
     // caller-supplied source_dir is usually relative (Bazel passes an
@@ -774,6 +795,12 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
     // comparing paths.
     let configure = absolutize(source_dir)?.join("configure");
     let output = Command::new(&configure)
+        // A prefix pkg-config's relocation can stand in for: the install
+        // step below writes under it, and dependents read it through a
+        // sysroot. Explicit rather than autoconf's default, which is the
+        // same value, so the two halves cannot drift.
+        .arg(format!("--prefix={}", crate::dependencies::INSTALL_PREFIX))
+        .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
         .current_dir(build_dir)
         .output()
         .map_err(|e| {
@@ -794,6 +821,27 @@ fn configure(source_dir: &Path, build_dir: &Path) -> Result<(), Error> {
     if !output.status.success() {
         return Err(Error::ConfigureFailed {
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        });
+    }
+    Ok(())
+}
+
+/// `make install` into `dest` as a `DESTDIR`, after the ground-truth build.
+/// Conversion-time scaffolding for a dependent's configure; nothing here
+/// ships. See `dependencies`.
+fn install(build_dir: &Path, dest: &Path) -> Result<(), Error> {
+    std::fs::create_dir_all(dest)?;
+    let output = Command::new("make")
+        .arg("install")
+        .arg(format!("DESTDIR={}", absolutize(dest)?.display()))
+        .current_dir(build_dir)
+        .output()?;
+    if !output.status.success() {
+        return Err(Error::BuildFailed {
+            stderr: format!(
+                "make install failed:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            ),
         });
     }
     Ok(())
@@ -1730,7 +1778,36 @@ fn tokenize(line: &str) -> Vec<String> {
 /// answer. Same rule as `cmake_api::rebase_to_module_root` — see
 /// docs/architecture/build-verification.md on why a wider root is the
 /// resolution rather than a workaround.
+/// [`to_graph_with_dependencies`] for a project converted on its own — every
+/// test's case, and the one where a library the project does not build can
+/// only be escalated.
+#[cfg(test)]
 pub(crate) fn to_graph(
+    commands: &[BuildCommand],
+    declared: &[DeclaredTarget],
+    database: &str,
+    project_name: &str,
+    source_dir: &Path,
+    deliverable_root: &Path,
+    build_root: &Path,
+) -> (
+    BuildGraph,
+    Vec<crate::needs_attention::NeedsAttention>,
+    PathBuf,
+) {
+    to_graph_with_dependencies(
+        commands,
+        declared,
+        database,
+        project_name,
+        source_dir,
+        deliverable_root,
+        build_root,
+        &Dependencies::default(),
+    )
+}
+
+pub(crate) fn to_graph_with_dependencies(
     commands: &[BuildCommand],
     declared: &[DeclaredTarget],
     // The raw `make -p` output. `vars` is derived from it here rather than
@@ -1742,6 +1819,7 @@ pub(crate) fn to_graph(
     source_dir: &Path,
     deliverable_root: &Path,
     build_root: &Path,
+    deps: &Dependencies,
 ) -> (
     BuildGraph,
     Vec<crate::needs_attention::NeedsAttention>,
@@ -1878,9 +1956,10 @@ pub(crate) fn to_graph(
     // for the escalation they deserve.
     let mut unbuilt: Vec<String> = Vec::new();
     let mut targets = Vec::new();
-    // External libraries any target links but the project does not build.
-    // Gathered across all targets so the caller can escalate them once.
-    let mut external_links: Vec<String> = Vec::new();
+    // Libraries a target links that neither this project nor any converted
+    // dependency builds, per target: the escalation has to name the rule
+    // that is now incomplete, not just the library.
+    let mut external_links: Vec<(String, Vec<String>)> = Vec::new();
     // Sources a target compiles that lie outside the module, paired with the
     // target that lost them: a dropped source is a link failure, and the
     // escalation has to say which rule is now incomplete. Flattening these
@@ -2061,9 +2140,36 @@ pub(crate) fn to_graph(
         // records about CMakeLists.txt: the declaration is the unresolved
         // half. The link line carries the resolved `./lib/libhello.a`.
         let mut dependencies: Vec<String> = Vec::new();
+        let mut external_dependencies: Vec<ExternalDependency> = Vec::new();
         let mut unresolved: Vec<String> = Vec::new();
-        for input in link.map(|cmd| cmd.args.as_slice()).unwrap_or(&[]) {
+        let link_args = link.map(|cmd| cmd.args.as_slice()).unwrap_or(&[]);
+        let link_dir = link.map(|cmd| cmd.dir.clone()).unwrap_or_default();
+        // The `-L` directories, resolved against the directory the link ran
+        // in, so a `-l<name>` can be looked up the way the linker looks it
+        // up. Collected first because `-L` may follow the `-l` it serves.
+        let search_dirs: Vec<PathBuf> = link_args
+            .iter()
+            .filter_map(|a| a.strip_prefix("-L"))
+            .filter(|d| !d.is_empty())
+            .map(|d| link_dir.join(d))
+            .collect();
+        for input in link_args {
+            if let Some(name) = input.strip_prefix("-l").filter(|n| !n.is_empty()) {
+                match deps.resolve_name(name, &search_dirs) {
+                    Some(external) => external_dependencies.push(external),
+                    // Not the toolchain's own runtime: `-lm` is not a
+                    // dependency anyone converts, and the llvm toolchain
+                    // brings its own.
+                    None if !is_toolchain_library(name) => unresolved.push(input.clone()),
+                    None => {}
+                }
+                continue;
+            }
             if !is_library(input) {
+                continue;
+            }
+            if let Some(external) = deps.resolve_path(&link_dir.join(input)) {
+                external_dependencies.push(external);
                 continue;
             }
             match declared
@@ -2079,7 +2185,13 @@ pub(crate) fn to_graph(
                 None => unresolved.push(input.clone()),
             }
         }
-        external_links.extend(unresolved);
+        external_dependencies.sort_by(|a, b| (&a.module, &a.target).cmp(&(&b.module, &b.target)));
+        external_dependencies.dedup();
+        unresolved.sort_unstable();
+        unresolved.dedup();
+        if !unresolved.is_empty() {
+            external_links.push((target_label(&decl.name), unresolved));
+        }
 
         sources.sort_unstable();
         sources.dedup();
@@ -2135,6 +2247,8 @@ pub(crate) fn to_graph(
                 .filter_map(|h| rebase(h, &decl_dir))
                 .collect(),
             dependencies,
+            external_dependencies,
+            strip_include_prefix: None,
             includes,
             local_defines,
             needs_root_include,
@@ -2273,10 +2387,30 @@ pub(crate) fn to_graph(
         ));
     }
 
+    // A library some target links that nothing converted builds. One item per
+    // LIBRARY, naming every target that links it: the resolution is one action
+    // (convert that library's project) however many rules wait on it, and
+    // libmicrohttpd's 65 test binaries each linking libcurl would otherwise
+    // be 65 copies of one instruction. Escalated rather than linked from the
+    // host: `-lcurl` as a linkopt would resolve against whatever this machine
+    // has installed, which is the hermeticity the llvm toolchain exists to
+    // rule out (bzl-x8l).
+    let mut by_library: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for (target, libraries) in &external_links {
+        for library in libraries {
+            by_library
+                .entry(library.clone())
+                .or_default()
+                .push(target.clone());
+        }
+    }
+    for (library, targets) in &by_library {
+        needs_attention.push(unconverted_dependency_needs_attention(library, targets));
+    }
     // Not yet escalated — see bzl-yjn.5. Recorded here so the information is
     // recovered rather than discarded, and so the escalation, when it lands,
     // has something to report.
-    let _ = (&external_links, &unbuilt);
+    let _ = &unbuilt;
 
     (
         BuildGraph {
@@ -2296,10 +2430,81 @@ pub(crate) fn to_graph(
             // Filled by the driver, which applies the one graph-level rule
             // both frontends share; see main.rs.
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
         },
         needs_attention,
         module_root.clone(),
     )
+}
+
+/// Moves every installed header a LIBRARY target carries in `sources` into
+/// its `public_headers`, and records the prefix to strip so it is reachable
+/// at its installed path. A binary keeps them private: nothing depends on a
+/// binary's headers.
+///
+/// Matched by path SUFFIX: a `*_HEADERS` value is relative to the
+/// Makefile.am that declared it, whose directory the flattened variable map
+/// no longer knows, while the target's paths are module-relative — so
+/// `src/greet.h` declared at the root and carried as `src/greet.h` match,
+/// and so would `greet.h` declared in `src/Makefile.am`. Only headers a
+/// target already carries are promoted: a declared-public header no target
+/// could see is left alone rather than attached by guesswork.
+fn promote_installed_headers(targets: &mut [Target], vars: &HashMap<String, String>) {
+    let installed = public_headers(vars);
+    let flat = flat_installed_header_basenames(vars);
+    let declared_as = |path: &str| {
+        installed
+            .iter()
+            .any(|raw| path == raw || path.ends_with(&format!("/{raw}")))
+    };
+    for target in targets.iter_mut().filter(|t| t.kind == TargetKind::Library) {
+        let (public, private): (Vec<String>, Vec<String>) = std::mem::take(&mut target.sources)
+            .into_iter()
+            .partition(|s| is_header_file(Path::new(s)) && declared_as(s));
+        target.sources = private;
+        for header in public {
+            if !target.public_headers.contains(&header) {
+                target.public_headers.push(header);
+            }
+        }
+        target.public_headers.sort_unstable();
+        target.strip_include_prefix = strip_include_prefix(&target.public_headers, &flat);
+    }
+}
+
+/// Basenames of the headers automake installs FLAT into the include
+/// directory — the plain `include_HEADERS` primary, whose files land as
+/// `<includedir>/<basename>`. A `nobase_` variant keeps its directory and a
+/// `pkginclude_`/custom-dir one adds a subdirectory; both install at a path
+/// this function deliberately does not claim to know, so their headers are
+/// not here and get no prefix stripped.
+fn flat_installed_header_basenames(vars: &HashMap<String, String>) -> HashSet<String> {
+    vars.get("include_HEADERS")
+        .map(|v| v.split_whitespace().map(basename).collect())
+        .unwrap_or_default()
+}
+
+/// The one directory to strip so every public header of a target is
+/// reachable at its installed path, or `None` when the headers do not agree
+/// on a directory (or already sit at the module root). Per target because
+/// `strip_include_prefix` is; a target whose public headers span two
+/// directories gets none, and a cross-module consumer then fails loudly on
+/// the include rather than on a prefix that is right for some of them.
+fn strip_include_prefix(public_headers: &[String], flat: &HashSet<String>) -> Option<String> {
+    let mut dirs = public_headers
+        .iter()
+        .filter(|h| flat.contains(&basename(h)))
+        .map(|h| {
+            Path::new(h)
+                .parent()
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_default()
+        });
+    let first = dirs.next()?;
+    if first.is_empty() || dirs.any(|d| d != first) {
+        return None;
+    }
+    Some(first)
 }
 
 /// Every header the project installs, from any `*_HEADERS` primary.
@@ -2480,10 +2685,32 @@ fn is_library(path: &str) -> bool {
     path.ends_with(".a") || path.ends_with(".la") || path.contains(".so")
 }
 
+/// Whether `-l<name>` names the C toolchain's own runtime rather than a
+/// library some project builds. These are what every hermetic toolchain
+/// supplies itself, so linking them is not a dependency on the host — and
+/// escalating `-lm` on every project that uses `sqrt` would bury the real
+/// unconverted dependencies. Anything not listed is treated as one.
+fn is_toolchain_library(name: &str) -> bool {
+    matches!(
+        name,
+        "c" | "m"
+            | "pthread"
+            | "dl"
+            | "rt"
+            | "util"
+            | "resolv"
+            | "gcc"
+            | "gcc_s"
+            | "stdc++"
+            | "atomic"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::codegen;
+    use crate::needs_attention::NeedsAttention;
 
     /// A real capture from fixture 001, trimmed of the autoconf
     /// -DPACKAGE_* block for readability. Frozen evidence: this is what
@@ -4288,6 +4515,205 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
         assert!(
             rendered.contains("\":libgreet.a\",") && rendered.contains("\":libshout.la\","),
             "with both library edges:\n{rendered}"
+        );
+    }
+
+    /// A converted dependency as its conversion leaves it, plus the merged
+    /// sysroot a dependent's conversion would see. Real files, because the
+    /// resolution keys on paths that exist.
+    fn converted_greet(tag: &str) -> (PathBuf, Dependencies) {
+        let root = std::env::temp_dir().join(format!("bzlf_xmod_{tag}_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let module = root.join("greet_module");
+        std::fs::create_dir_all(&module).unwrap();
+        std::fs::write(
+            module.join("MODULE.bazel"),
+            "module(\n    name = \"greet\",\n    version = \"1.2\",\n)\n",
+        )
+        .unwrap();
+        std::fs::write(
+            module.join("TARGETS"),
+            "library libgreet_la libgreet shared\n",
+        )
+        .unwrap();
+        let lib = root.join("greet_install/usr/local/lib");
+        std::fs::create_dir_all(&lib).unwrap();
+        std::fs::write(lib.join("libgreet.so"), "elf").unwrap();
+        std::fs::write(lib.join("libgreet.la"), "# libtool").unwrap();
+        let sysroot = root.join("sysroot");
+        let deps = Dependencies::load(
+            &[format!(
+                "{}:{}",
+                module.display(),
+                root.join("greet_install").display()
+            )],
+            &sysroot,
+        )
+        .unwrap();
+        (root, deps)
+    }
+
+    fn app_graph(stream: &str, deps: &Dependencies) -> (BuildGraph, Vec<NeedsAttention>) {
+        let database = "bin_PROGRAMS = app\napp_SOURCES = src/main.c\n";
+        let vars = parse_variables(database);
+        let (graph, escalations, _) = to_graph_with_dependencies(
+            &parse_commands(stream, Path::new("/proj")),
+            &declared_targets(&vars),
+            database,
+            "greet-user",
+            Path::new("/proj"),
+            Path::new("/proj"),
+            Path::new("/proj"),
+            deps,
+        );
+        (graph, escalations)
+    }
+
+    // The shape pkg-config produces: `-L<sysroot lib> -lgreet`. With the
+    // dependency supplied it is a cross-module edge and nothing escalates;
+    // without it the same line escalates the library by name. Both
+    // directions, because a resolver that resolved everything and one that
+    // resolved nothing each pass one of them.
+    #[test]
+    fn a_library_from_a_converted_dependency_is_an_edge_and_otherwise_an_escalation() {
+        let (root, deps) = converted_greet("edge");
+        let libdir = root.join("sysroot/usr/local/lib");
+        let stream = format!(
+            "make[1]: Entering directory '/proj'\n\
+             gcc -c -o src/app-main.o src/main.c\n\
+             gcc -o app src/app-main.o -L{} -lgreet -lm\n\
+             make[1]: Leaving directory '/proj'\n",
+            libdir.display()
+        );
+
+        let (graph, escalations) = app_graph(&stream, &deps);
+        assert_eq!(
+            graph.targets[0].external_dependencies,
+            vec![ExternalDependency {
+                module: "greet".to_string(),
+                target: "libgreet_la".to_string(),
+                shared: true,
+            }],
+            "{:#?}",
+            graph.targets[0]
+        );
+        assert!(
+            escalations
+                .iter()
+                .all(|e| e.kind != "unconverted_dependency"),
+            "resolved, so nothing to escalate — and -lm is the toolchain's: {escalations:#?}"
+        );
+
+        let (graph, escalations) = app_graph(&stream, &Dependencies::default());
+        assert!(graph.targets[0].external_dependencies.is_empty());
+        let item = escalations
+            .iter()
+            .find(|e| e.kind == "unconverted_dependency")
+            .unwrap_or_else(|| {
+                panic!("the same line must escalate without the dependency: {escalations:#?}")
+            });
+        assert_eq!(
+            item.subject, "-lgreet",
+            "one item per library, named as the link line spelled it"
+        );
+        assert!(
+            item.gap.contains("- `app`"),
+            "and it names the rule that waits on it:\n{}",
+            item.gap
+        );
+        assert!(
+            !escalations.iter().any(|e| e.subject == "-lm"),
+            "the toolchain's own runtime is not a dependency: {escalations:#?}"
+        );
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // A libtool-linked program names the dependency by the absolute path
+    // of its `.la` (what `--with-foo-extra-libs=` and a resolved
+    // `$(FOO_LIBS)` produce) rather than by `-L`/`-l`; both spellings are
+    // the same edge. The wrapper invocation is what the parser reads — the
+    // `libtool: link:` echo that follows it is not a command.
+    #[test]
+    fn an_absolute_path_into_the_sysroot_resolves_the_same_way() {
+        let (root, deps) = converted_greet("abs");
+        let la = root.join("sysroot/usr/local/lib/libgreet.la");
+        let stream = format!(
+            "make[1]: Entering directory '/proj'\n\
+             gcc -c -o src/app-main.o src/main.c\n\
+             /bin/bash ./libtool --tag=CC --mode=link gcc -o app src/app-main.o {}\n\
+             make[1]: Leaving directory '/proj'\n",
+            la.display()
+        );
+        let (graph, escalations) = app_graph(&stream, &deps);
+        assert_eq!(
+            graph.targets[0].external_dependencies.len(),
+            1,
+            "{:#?}",
+            graph.targets[0]
+        );
+        assert!(
+            escalations
+                .iter()
+                .all(|e| e.kind != "unconverted_dependency")
+        );
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // automake's `include_HEADERS` names no target, so the header a target
+    // can see is promoted where it sits, and the install layout is recorded
+    // so a consumer's `<greet.h>` resolves.
+    #[test]
+    fn installed_headers_are_promoted_to_hdrs_with_their_install_prefix() {
+        let vars = parse_variables("include_HEADERS = src/greet.h src/util.h\n");
+        let mut targets = vec![
+            Target {
+                name: "libgreet_la".to_string(),
+                kind: TargetKind::Library,
+                sources: vec![
+                    "src/greet.c".to_string(),
+                    "src/greet.h".to_string(),
+                    "src/util.h".to_string(),
+                    "src/private.h".to_string(),
+                ],
+                ..Default::default()
+            },
+            Target {
+                name: "demo".to_string(),
+                kind: TargetKind::Executable,
+                sources: vec!["src/demo.c".to_string(), "src/greet.h".to_string()],
+                ..Default::default()
+            },
+        ];
+        promote_installed_headers(&mut targets, &vars);
+        assert_eq!(
+            targets[0].public_headers,
+            vec!["src/greet.h".to_string(), "src/util.h".to_string()]
+        );
+        assert_eq!(
+            targets[0].sources,
+            vec!["src/greet.c".to_string(), "src/private.h".to_string()],
+            "an uninstalled header stays private"
+        );
+        assert_eq!(targets[0].strip_include_prefix.as_deref(), Some("src"));
+        assert!(
+            targets[1].public_headers.is_empty() && targets[1].sources.len() == 2,
+            "a binary exports nothing: {:#?}",
+            targets[1]
+        );
+
+        // No prefix when there is nothing to strip, or no single answer.
+        let flat = flat_installed_header_basenames(&parse_variables(
+            "include_HEADERS = greet.h a/x.h b/y.h\n",
+        ));
+        assert_eq!(strip_include_prefix(&["greet.h".to_string()], &flat), None);
+        assert_eq!(
+            strip_include_prefix(&["a/x.h".to_string(), "b/y.h".to_string()], &flat),
+            None,
+            "two directories cannot both be the prefix; better none than half right"
+        );
+        assert_eq!(
+            strip_include_prefix(&["a/x.h".to_string()], &flat).as_deref(),
+            Some("a")
         );
     }
 }

@@ -55,6 +55,8 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/008-spliced-replacement-header:converted",
         "//translator/tests/fixtures/autotools/009-enable-flag:converted",
         "//translator/tests/fixtures/autotools/010-conditional-tests-per-directory:converted",
+        "//translator/tests/fixtures/autotools/011-installed-library:converted",
+        "//translator/tests/fixtures/autotools/012-links-installed-library:converted",
     ],
 )
 

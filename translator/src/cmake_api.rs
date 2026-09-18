@@ -276,6 +276,14 @@ pub fn discover(
     source_dir: &Path,
     build_dir: &Path,
     deliverable_root: &Path,
+    // Accepted so the driver treats both frontends alike, not yet honoured:
+    // a CMake dependent would need CMAKE_PREFIX_PATH pointed at the sysroot,
+    // `cmake --install` into the install dir, and its link inputs (File API
+    // link fragments) resolved through `deps` the way autotools.rs resolves
+    // its link line. No CMake corpus project links a library it does not
+    // build yet, so this waits for one (bzl-7r9.2's notes).
+    _deps: &crate::dependencies::Dependencies,
+    _install_dir: Option<&Path>,
 ) -> Result<Discovery, Error> {
     request_file_api_queries(build_dir)?;
     let trace = configure(source_dir, build_dir)?;
@@ -372,6 +380,7 @@ pub fn discover(
             // Filled by the driver, which applies the one graph-level rule
             // both frontends share; see main.rs.
             displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
         },
         needs_attention,
         module_root: codemodel.module_root,
