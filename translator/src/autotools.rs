@@ -312,6 +312,7 @@ pub fn discover(
         &source_dir_abs,
         &graph.config_headers,
         &stream,
+        &std::fs::read_to_string(source_dir.join("configure")).unwrap_or_default(),
     );
     if !generated.is_empty() {
         needs_attention.push(generated_headers_needs_attention(&generated));
@@ -2831,12 +2832,20 @@ fn flag_value(args: &[String], flag: &str) -> Option<String> {
 /// evidence, not parsed: `parse_commands` keeps only compilers and
 /// archivers, so the `sed` that made the file is invisible to the graph but
 /// still in the stream, and it is the one thing an agent needs.
+///
+/// A header no stream line mentions may be written by `configure` itself
+/// rather than by a make rule — hwloc's and PMIx's per-framework
+/// `static-components.h`, which the MCA m4 emits from the component list
+/// configure selected. `configure_text` is searched for the name so the
+/// item can say so instead of sending the agent to a Makefile.am that has
+/// no such rule.
 fn generated_headers_in_build_tree(
     commands: &[BuildCommand],
     build_root: &Path,
     source_dir: &Path,
     config_headers: &[crate::model::ConfigHeader],
     stream: &str,
+    configure_text: &str,
 ) -> Vec<(String, Vec<String>)> {
     let build_root = normalize_lexically(build_root);
     let source_dir = normalize_lexically(source_dir);
@@ -2881,11 +2890,20 @@ fn generated_headers_in_build_tree(
         .into_iter()
         .map(|rel| {
             let name = basename(&rel);
-            let recipe: Vec<String> = stream
+            let mut recipe: Vec<String> = stream
                 .lines()
                 .filter(|l| l.contains(&name) && !l.contains(" -c ") && !l.contains(" -o "))
                 .map(|l| l.trim().to_string())
                 .collect();
+            if recipe.is_empty() && configure_text.contains(&name) {
+                recipe.push(format!(
+                    "(no make rule: `configure` itself writes `{name}` — search the \
+                     project's configure for that name to find the shell that emits \
+                     it. Its content is what configure DECIDED, typically a list \
+                     derived from the project's own m4, so reproduce it from the same \
+                     decisions rather than vendoring this host's copy)"
+                ));
+            }
             (rel, recipe)
         })
         .collect()
@@ -5245,6 +5263,7 @@ EXEEXT =
             &src,
             std::slice::from_ref(&config_h),
             &stream,
+            "",
         );
         assert_eq!(generated.len(), 1, "{generated:#?}");
         assert_eq!(generated[0].0, "include/event2/event-config.h");
@@ -5259,6 +5278,64 @@ EXEEXT =
             item.gap.contains("include/event2/event-config.h") && item.gap.contains("sed -f"),
             "{}",
             item.gap
+        );
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // PMIx and hwloc: each MCA framework's `static-components.h` is written
+    // by configure's shell, not by a make rule, so no stream line names it
+    // and the item used to send the agent to a Makefile.am with nothing in
+    // it. When configure's own text names the header, the item says so.
+    #[test]
+    fn a_header_configure_itself_writes_is_named_as_such_not_blamed_on_make() {
+        let root = std::env::temp_dir().join(format!("bzlf_cfghdr_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let build = root.join("build");
+        let src = root.join("src");
+        std::fs::create_dir_all(build.join("src/mca/ptl/base")).unwrap();
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(build.join("src/mca/ptl/base/static-components.h"), "").unwrap();
+        let stream = format!(
+            "gcc -I. -Isrc/mca/ptl/base -I{src} -c -o ptl.o {src}/ptl.c\n",
+            src = src.display()
+        );
+        let with = |configure: &str| {
+            generated_headers_in_build_tree(
+                &parse_commands(&stream, &build),
+                &build,
+                &src,
+                &[],
+                &stream,
+                configure,
+            )
+        };
+        let named = with("    outfile_real=$outdir/static-components.h\n");
+        assert_eq!(named.len(), 1, "{named:#?}");
+        assert!(
+            named[0]
+                .1
+                .iter()
+                .any(|l| l.contains("`configure` itself writes")),
+            "configure's text names the header, so the item must say configure wrote it: {:#?}",
+            named[0].1
+        );
+        let item = generated_headers_needs_attention(&named);
+        assert!(
+            item.gap
+                .contains("`configure` itself writes `static-components.h`")
+                && !item
+                    .gap
+                    .contains("look for the rule in the project's Makefile.am"),
+            "{}",
+            item.gap
+        );
+        // And when configure does NOT name it, the Makefile.am hint stands:
+        // this branch must not fire on every unexplained header.
+        let unnamed = with("# nothing here\n");
+        assert!(
+            unnamed[0].1.is_empty(),
+            "no recipe, and no claim about configure: {:#?}",
+            unnamed[0].1
         );
         std::fs::remove_dir_all(&root).unwrap();
     }
