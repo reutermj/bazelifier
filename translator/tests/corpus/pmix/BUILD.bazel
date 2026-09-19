@@ -12,6 +12,17 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # edge rather than an escalation. What this host contributes beyond that
 # (zlib for the pcompress component, munge, ...) surfaces as
 # unconverted_dependency items and is decided in the module.
+#
+# STATE (2026-09-19, stopping point — RED, with a diagnosis): converts to 95
+# targets, 1 expressible test, 6 items; eight translator gaps it surfaced
+# are fixed and pinned (see bzl-7r9.5's notes for the list). The agent-stage
+# resolution is kept as tools/resolutions/pmix/ (applied together with the
+# adapted hwloc and libevent resolutions it depends on). Applied, every
+# source compiles and all four config-header assertions pass; libpmix.so
+# does not yet LINK: the frontend keys compiled objects by the path the
+# compiler printed, so the six bfrops components' same-named copy.c collide
+# and one archive carries another's file — duplicate symbols. Filed as the
+# last known blocker; fix it, re-apply, then measure.
 convert_autotools_project(
     name = "converted",
     srcs = ["@pmix//:all_srcs"],
