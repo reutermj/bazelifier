@@ -559,15 +559,16 @@ fn is_truthy_default(value: &str) -> bool {
 /// It deliberately does NOT assert `HAVE_UNISTD_H 1`. Whether a probe resolves
 /// true is a fact about the CONSUMER's toolchain, and pinning this host's
 /// answer would recreate the exact bug the probing design exists to prevent.
-/// Whether a config-header value renders as `/* #undef NAME */` rather than
-/// a define. Mirrors `_CMAKE_FALSE` in `cc_config/cc_config/
-/// expand_config_header.py`, which is the one that decides; the two have to
-/// agree or an assertion forbids what the header correctly contains.
-fn is_false_value(value: &str) -> bool {
-    matches!(
-        value.to_ascii_lowercase().as_str(),
-        "" | "0" | "off" | "false" | "n" | "no" | "ignore" | "notfound"
-    )
+/// Whether a config-header VALUE on an autoconf `#undef` line renders as
+/// `/* #undef NAME */` rather than a define: only when it is empty. Mirrors
+/// the `literal` rule in `cc_config/cc_config/expand_config_header.py`,
+/// which is the one that decides; the two have to agree or an assertion
+/// forbids what the header correctly contains. A `0` is a define —
+/// config.status writes `#define PMIX_MINOR_VERSION 0` and PMIx does
+/// arithmetic with it — which is why this is not CMake's truthiness (that
+/// applies to `#cmakedefine`, where `values` never reach this function).
+fn renders_undefined(value: &str) -> bool {
+    value.is_empty()
 }
 
 fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader) {
@@ -593,16 +594,16 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
         // `/* #undef NAME */` is exactly what config.status emits for a name
         // it did not resolve, so this matches the real failure and cannot
         // collide with a longer name: the trailing ` */` terminates it.
-        // Only for a value that RENDERS as a define. A value of `0` (or
-        // any other false spelling) renders as the very `/* #undef NAME */`
-        // line this forbids, so forbidding it for every name made a header
-        // with one deliberately-undefined macro fail its own assertion —
-        // hwloc's six `HWLOC_HAVE_<disabled backend>` did. The false ones
-        // are pinned the other way, in `must_contain` below.
+        // Only for a value that RENDERS as a define. An EMPTY value renders
+        // as the very `/* #undef NAME */` line this forbids, so forbidding
+        // it for every name made a header with one deliberately-undefined
+        // macro fail its own assertion — hwloc's six `HWLOC_HAVE_<disabled
+        // backend>` did. The empty ones are pinned the other way, in
+        // `must_contain` below.
         model::ConfigDialect::Undef => header
             .values
             .iter()
-            .filter(|(_, v)| !is_false_value(v))
+            .filter(|(_, v)| !renders_undefined(v))
             .map(|(n, _)| format!("/* #undef {n} */"))
             .collect(),
         // Nothing declares here, so the `@NAME@` check below is the whole
@@ -645,14 +646,22 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
     // different per frontend, which is exactly what it must not do.
     const MIN_DISTINGUISHING_LEN: usize = 4;
     // A name deliberately left undefined is asserted AS undefined — the one
-    // check that can tell "the agent decided 0" from "nobody answered", and
-    // the positive pin the false half of every option needs.
+    // check that can tell "the agent decided it is absent" from "nobody
+    // answered", and the positive pin the off half of every option needs.
+    // Every other value is pinned as the exact `#define NAME VALUE` line:
+    // anchored by the name, so a `0` or a `1` — too short to assert on its
+    // own below — is still checked, and checked to be a DEFINE.
     let mut must_contain: Vec<String> = if header.dialect == model::ConfigDialect::Undef {
         header
             .values
             .iter()
-            .filter(|(_, v)| is_false_value(v))
-            .map(|(n, _)| format!("/* #undef {n} */"))
+            .map(|(n, v)| {
+                if renders_undefined(v) {
+                    format!("/* #undef {n} */")
+                } else {
+                    format!("#define {n} {v}")
+                }
+            })
             .collect()
     } else {
         Vec::new()
@@ -1546,7 +1555,11 @@ mod tests {
     // A value of 0 renders as `/* #undef NAME */`; the assertion must
     // expect that line, not forbid it (hwloc's disabled backends).
     #[test]
-    fn a_false_value_is_asserted_undefined_not_forbidden() {
+    // PMIx: `#define PMIX_MINOR_VERSION 0` is a zero the code computes with,
+    // not an absent feature. Only an EMPTY value is undefined; a 0 or a 1
+    // is pinned as its exact define line, which a bare "0" (too short for
+    // the value assertion) could never be.
+    fn a_zero_value_is_asserted_defined_and_only_an_empty_one_undefined() {
         let mut out = String::new();
         render_config_header_assertion(
             &mut out,
@@ -1556,8 +1569,9 @@ mod tests {
                 template_source: None,
                 catalog_probes: vec![],
                 values: vec![
-                    ("HWLOC_HAVE_NVML".to_string(), "0".to_string()),
+                    ("PMIX_MINOR_VERSION".to_string(), "0".to_string()),
                     ("HWLOC_HAVE_PLUGINS".to_string(), "1".to_string()),
+                    ("HWLOC_HAVE_LIBXML2".to_string(), String::new()),
                 ],
                 options: Vec::new(),
                 splices: Vec::new(),
@@ -1568,13 +1582,16 @@ mod tests {
         );
         let (mc, mnc) = out.split_once("must_not_contain").unwrap_or((&out, ""));
         assert!(
-            mc.contains("\"/* #undef HWLOC_HAVE_NVML */\""),
-            "the 0 is pinned as undefined:\n{out}"
+            mc.contains("\"#define PMIX_MINOR_VERSION 0\"")
+                && mc.contains("\"#define HWLOC_HAVE_PLUGINS 1\"")
+                && mc.contains("\"/* #undef HWLOC_HAVE_LIBXML2 */\""),
+            "0 and 1 are pinned as defines, the empty value as undefined:\n{out}"
         );
         assert!(
-            !mnc.contains("HWLOC_HAVE_NVML */")
-                && mnc.contains("\"/* #undef HWLOC_HAVE_PLUGINS */\""),
-            "and only the 1 forbids its undef line:\n{out}"
+            mnc.contains("\"/* #undef PMIX_MINOR_VERSION */\"")
+                && mnc.contains("\"/* #undef HWLOC_HAVE_PLUGINS */\"")
+                && !mnc.contains("HWLOC_HAVE_LIBXML2 */"),
+            "and only the defined ones forbid their undef line:\n{out}"
         );
     }
 

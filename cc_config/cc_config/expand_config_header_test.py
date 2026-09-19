@@ -117,6 +117,44 @@ class SpacedUndefTest(unittest.TestCase):
         self.assertEqual(out, "/* #undef WORDS_BIGENDIAN */\n")
 
 
+class LiteralValueTest(unittest.TestCase):
+    """A value on an autoconf line is config.status's answer, verbatim.
+
+    PMIx: `#define PMIX_MINOR_VERSION 0` in configure's own header, used in
+    PMIX_MCA_BASE_MAKE_VERSION(..., PMIX_MINOR_VERSION, ...). Rendering the 0
+    as `/* #undef */` (CMake's truthiness) made that a compile error. Only an
+    empty literal means "leave it undefined".
+    """
+
+    def test_a_literal_zero_is_defined_to_zero(self):
+        values = {"PMIX_MINOR_VERSION": "0"}
+        is_set = lambda n: n in values and values[n] not in ("", "0")
+        out = expand("#undef PMIX_MINOR_VERSION\n", is_set, values, (), literal=["PMIX_MINOR_VERSION"])
+        self.assertEqual(out, "#define PMIX_MINOR_VERSION 0\n")
+
+    def test_a_literal_zero_on_a_spaced_undef_is_defined_too(self):
+        values = {"HWLOC_HAVE_NVML": "0"}
+        out = expand("#  undef HWLOC_HAVE_NVML\n", lambda n: False, values, (), literal=["HWLOC_HAVE_NVML"])
+        self.assertEqual(out, "#define HWLOC_HAVE_NVML 0\n")
+
+    def test_an_empty_literal_is_undefined(self):
+        values = {"HWLOC_HAVE_LIBXML2": ""}
+        out = expand("#undef HWLOC_HAVE_LIBXML2\n", lambda n: False, values, (), literal=["HWLOC_HAVE_LIBXML2"])
+        self.assertEqual(out, "/* #undef HWLOC_HAVE_LIBXML2 */\n")
+
+    def test_a_false_probe_is_still_undefined(self):
+        # The same "0" NOT marked literal is a probe result and undefs — the
+        # direction that must not change.
+        values = {"HAVE_FOO": "0"}
+        out = expand("#undef HAVE_FOO\n", lambda n: False, values, ())
+        self.assertEqual(out, "/* #undef HAVE_FOO */\n")
+
+    def test_cmakedefine_keeps_cmake_truthiness(self):
+        values = {"ENABLE_X": "0"}
+        out = expand("#cmakedefine ENABLE_X\n", lambda n: False, values, (), literal=["ENABLE_X"])
+        self.assertEqual(out, "/* #undef ENABLE_X */\n")
+
+
 class TernaryUndefTest(unittest.TestCase):
     """`HAVE_DECL_*` is autoconf's one TERNARY config macro.
 

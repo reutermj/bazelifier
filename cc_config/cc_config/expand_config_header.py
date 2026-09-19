@@ -159,8 +159,20 @@ def splice_files(template, splices):
     return template
 
 
-def expand(template, is_set, values, unresolved=()):
+def expand(template, is_set, values, unresolved=(), literal=()):
     """Expands `template`. `unresolved` names become `#error`, not `#undef`.
+
+    `literal` names the entries of `values` that are VALUES — from the
+    translator (config.status's D[] table, a CMake cache entry) or from the
+    agent — as opposed to probe results merged in by `main`. On an autoconf
+    `#undef NAME` line a literal is written verbatim, `#define NAME 0`
+    included: config.status defines every name in its table to whatever it
+    holds, and a zero there is a zero (PMIx does arithmetic with
+    PMIX_MINOR_VERSION, which is 0), not "absent". Only an EMPTY literal
+    leaves the name undefined — the one spelling for "absent" a value can
+    carry, and the agent's way to say so. `#cmakedefine` keeps CMake's own
+    truthiness, where OFF/0/NO undef, because that is what CMake does with
+    the same template.
 
     The distinction `is_set` cannot make: it answers false both for "the
     probe ran and said no" and for "nobody asked". Rendering the second as
@@ -176,6 +188,7 @@ def expand(template, is_set, values, unresolved=()):
     the header fail, and they fail naming the macro.
     """
     unresolved = frozenset(unresolved)
+    literal = frozenset(literal)
     out = []
     for line in template.splitlines(keepends=True):
         eol = "\n" if line.endswith("\n") else ""
@@ -216,7 +229,9 @@ def expand(template, is_set, values, unresolved=()):
         mspaced = _AC_UNDEF_SPACED.match(body)
         if mspaced and mspaced.group(1) in values:
             name = mspaced.group(1)
-            if is_set(name):
+            if name in literal and values[name] != "":
+                out.append("#define %s %s%s" % (name, values[name], eol))
+            elif is_set(name):
                 out.append("#define %s %s%s" % (name, values.get(name, "1"), eol))
             elif _AC_TERNARY.match(name):
                 # This pattern's `[ \t]*` also matches the UNSPACED form, so
@@ -233,10 +248,14 @@ def expand(template, is_set, values, unresolved=()):
         mundef = _AC_UNDEF.match(body)
         if mundef:
             name = mundef.group(1)
-            # Same resolution as #cmakedefine, deliberately: both ask whether a
-            # probe succeeded, so a project's autoconf template and its CMake
-            # equivalent produce identical output from identical probe results.
-            if is_set(name):
+            # A literal value is config.status's own answer, written as it
+            # would write it (see the docstring). A PROBE resolves the same
+            # way as #cmakedefine, deliberately: both ask whether it succeeded,
+            # so a project's autoconf template and its CMake equivalent
+            # produce identical output from identical probe results.
+            if name in literal and values[name] != "":
+                out.append("#define %s %s%s" % (name, values[name], eol))
+            elif is_set(name):
                 value = values.get(name, "1")
                 out.append("#define %s %s%s" % (name, value, eol))
             elif _AC_TERNARY.match(name):
@@ -300,6 +319,8 @@ def main():
         template = fh.read()
     with open(args.values) as fh:
         values = json.load(fh)
+    # What arrived as a VALUE, before the probe results below join the map.
+    literal = frozenset(values)
 
     # A probe result is either boolean ("true"/"false" — a check_include_file
     # or check_symbol_exists) or a value (a number from check_type_size). Every
@@ -351,7 +372,7 @@ def main():
     # produce a header the project's own build never generates.
     with open(args.output, "w") as fh:
         fh.write(
-            splice_files(expand(template, is_set, values, args.unresolved), splices)
+            splice_files(expand(template, is_set, values, args.unresolved, literal), splices)
         )
     return 0
 

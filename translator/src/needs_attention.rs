@@ -403,10 +403,13 @@ pub fn unmapped_config_macros_needs_attention(
              (`HAVE___BUILTIN_BSWAPXX`), a glibc extension \
              (`HAVE_PROGRAM_INVOCATION_NAME`), `WORDS_BIGENDIAN`, `_FILE_OFFSET_BITS`, or any \
              macro naming a platform this module does not target (BSD, Apple, Windows, AIX). \
-             A `values` entry of `0`, which the expander treats as unset — the same as \
-             omitting the name, but it records that the name was considered;\n\
+             A `values` entry of `\"\"` (the empty string), which the expander renders as \
+             undefined — the same as omitting the name, but it records that the name was \
+             considered. NOT `0` on an autoconf template, where a `0` is written verbatim \
+             as `#define NAME 0` exactly as config.status writes it; a CMake template keeps \
+             CMake's truthiness, where `0` and `OFF` undefine;\n\
              - a FALLBACK TYPEDEF (`int32_t`, `uint64_t`, `_UINT8_T`, `uintptr_t` and \
-             friends): `0`, always. autoconf defines these only when the real type is \
+             friends): `\"\"`, always. autoconf defines these only when the real type is \
              MISSING, so on any toolchain with `stdint.h` they must stay undefined — \
              defining one typedefs over the real type and the error surfaces far away.\n\n\
              **Be strict about what reaches the catalog.** Anything whose honest answer is \

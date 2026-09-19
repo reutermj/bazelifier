@@ -215,15 +215,25 @@ bare path in C. Codegen single-quotes any value the shell would alter
 carries such defines (`PACKAGE_STRING="x 1.0"`); they were simply unused in
 C until hwloc's `topology-linux.c` read one.
 
-## Config-header assertions pin false values as undefined
+## Config-header assertions pin every autoconf value as its exact line
 
-A value of `0` (or `off`, `no`, ...) renders as `/* #undef NAME */`, so the
-generated `assert_config_header_test` puts that line in `must_contain` for a
-false value and in `must_not_contain` only for a true one. The mirror of the
-expander's false set lives in `codegen::is_false_value`. *(History: until
-2026-09-19 every value's undef line was forbidden regardless, so a header
-with one deliberately-undefined macro failed its own assertion — hwloc's
-six disabled backends.)*
+On an autoconf (`#undef`) template a VALUE is written verbatim — `#define
+NAME 0` included, because config.status writes exactly that and PMIx does
+arithmetic with `PMIX_MINOR_VERSION`, which is 0 — and only an EMPTY value
+renders as `/* #undef NAME */`. The generated `assert_config_header_test`
+pins each value as its `#define NAME VALUE` line (anchored by the name, so
+a `0` or a `1` is checked although too short to assert on its own) and each
+empty value as its undef comment, which is the one check that can tell
+"the agent decided it is absent" from "nobody answered". The rule lives
+in `cc_config`'s expander (`literal`) and is mirrored by
+`codegen::renders_undefined`; the two must agree or an assertion forbids
+what the header correctly contains. `#cmakedefine` templates keep CMake's
+truthiness (`0`, `OFF`, `NO` undef), which is what CMake does with them.
+*(History: until 2026-09-19 a `0` on an autoconf line rendered as undefined
+too, CMake's rule applied to a dialect that has none — harmless for every
+`#if X` consumer until PMIx used a zero as a number. Before that, every
+value's undef line was forbidden regardless, so hwloc's six disabled
+backends failed their own assertion.)*
 
 ## Formatting and linting
 
