@@ -204,10 +204,21 @@ This is its own subsystem, not a translator tweak. All of it has landed:
    `json_parse` compile hermetically under the module's own toolchain with no
    host-captured config, and match the CMake build's runtime output.
 
-The catalog is a fixed, hand-written set (see below). A project naming a fact
-it lacks escalates rather than being guessed at; extending the catalog means
-editing `cc_config/catalog/BUILD.bazel` **and** `CATALOG_DEFINES` in
-`translator/src/configure_file.rs`, which `//:catalog_sync_check` enforces.
+The catalog is a fixed, hand-maintained set (see below). A project naming a
+fact it lacks escalates rather than being guessed at; extending the catalog
+means editing `cc_config/catalog/BUILD.bazel` **and** `CATALOG_DEFINES` in
+`translator/src/configure_file.rs`, which `//:catalog_sync_check` enforces,
+plus a line in the smoke template and its assertion — the only gate that
+checks a header PATH. `tools/catalog/harvest.py CONFIGURE --template
+config.h.in` reads every check site out of an Autotools project's own
+`configure` (the resolved text, which states the header paths and probe
+includes that the macro names alone cannot recover), verifies each entry's
+headers by compiling the catalog's own probe program on the host, and with
+`--apply` writes all four places. It reads `configure`, not the
+`unmapped_config_macros` item, because the frontend freezes some probe
+results as values that never reach the item (bzl-kba). What it cannot
+verify — a symbol this host lacks — it says so, and a symbol no candidate
+header declares is reported and never applied.
 
 ## Ownership
 

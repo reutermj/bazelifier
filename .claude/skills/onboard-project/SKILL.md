@@ -177,10 +177,21 @@ A project that does not build natively cannot produce ground truth.
   reproduced, with that reason. Without the list you cannot tell a runner bug from a wrong flag.
 - **Harvest catalog facts from `configure` itself**, not from the
   `unmapped_config_macros` item: the frontend freezes some probe results as
-  values (bzl-kba), and those never reach the item. The `for ac_header in`,
-  `for ac_func in`, `ac_fn_c_check_type`, `ac_fn_check_decl`,
-  `ac_fn_c_check_member` and `sizeof (` sites in `configure` are the
-  complete list; hwloc's were 92 entries.
+  values (bzl-kba), and those never reach the item. One command:
+
+  ```bash
+  python3 tools/catalog/harvest.py <src>/configure --template <src>/config.h.in
+  ```
+
+  It reads every check site (`for ac_header in`, `for ac_func in`,
+  `ac_fn_c_check_type`, `ac_fn_check_decl`, `ac_fn_c_check_member`,
+  `sizeof (`), verifies each header on the host compiler, and reports the
+  entries the catalog lacks plus the template macros no check site covers
+  (those stay on the escalation path). Read the report — an AC_CHECK_FUNCS
+  symbol's header is chosen, not stated, and one marked `HEADER?` needs
+  `--header sym=h` — then `--apply`, `bazel run //:buildifier`, and the
+  checks it names. hwloc's were 92 entries by hand; the tool finds the
+  15 it missed.
 
 ## 2. Pin it
 

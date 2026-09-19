@@ -80,7 +80,9 @@ re-read both before choosing.
 
 One resolution legitimately needs this checkout: extending the `cc_config`
 catalog, since `cc_config` is supplied by `--override_module` and is not in
-the tarball. Every other branch must be reachable from inside the module.
+the tarball. Do it with `tools/catalog/harvest.py` over the project's
+`configure` (the onboard-project skill has the command), not by hand from the
+item's list. Every other branch must be reachable from inside the module.
 
 ## Reproducing a test suite: read everything first
 
