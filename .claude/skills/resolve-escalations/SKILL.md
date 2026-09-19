@@ -82,6 +82,36 @@ One resolution legitimately needs this checkout: extending the `cc_config`
 catalog, since `cc_config` is supplied by `--override_module` and is not in
 the tarball. Every other branch must be reachable from inside the module.
 
+## Reproducing a test suite: read everything first
+
+Most of the cost of hwloc's agent stage was five rebuild cycles, each fixing
+one thing a full read would have caught (bzl-7r9.4). Before writing a runner:
+
+- **Read every driver end to end**, not the first three of five. hwloc's
+  `allowed` driver exports two environment variables the others do not;
+  its `x86` driver invokes lstopo differently. Diff your runner against
+  each driver line by line before the first build.
+- **Resolve the module root from the runner's own path** (`dirname "$0"`),
+  never from `$PWD`: a module consumed as a dependency runs its tests with a
+  different working directory. The generated `run_registered_test.sh`
+  already does this — copy it.
+- **Every sidecar a driver reads goes in `data`**: `.options`, `.env`,
+  `.source`, `.exclude`, and any file in ANOTHER directory the script opens
+  (annotate reads an XML topology from `tests/hwloc/xml`). Glob the whole
+  test directory, and the directories the scripts reach into.
+- **A configure-generated `.sh.in` needs every `@var@` substituted**,
+  including the ones that expand to nothing (`@EXEEXT@`, `@XMLLINT@`);
+  an unsubstituted one silently changes a comparison.
+- **When a reproduced test fails, first ask whether upstream passes it**
+  under the same configure options (`make check` in the scratch build).
+  Seven of hwloc's failures were upstream's too, and the fix was the
+  conversion's flag, not the runner.
+- **Keep the resolution as a script applied to a FRESH unpack**
+  (`sweep.py --post-agent` unpacks once; delete the workspace to get a new
+  one). A script that edits the generated BUILD in place cannot be applied
+  twice, and restoring the module by hand between attempts is where the
+  time went.
+
 ## Delete the item when you close it
 
 The `.md` file is the open-work marker. `compare_runtime_output.sh` gates on

@@ -316,6 +316,28 @@ The `#undef` form is matched only at line start, unlike the CMake directive.
 A mid-line `#undef` is ordinary C undefining a macro, and rewriting it would
 corrupt a header rather than configure it.
 
+## The flattened database is a bug class, not a bug
+
+`parse_variables` merges every directory's `make -p` database into one map.
+Five bugs so far were that one decision seen from a different consumer, and
+each was fixed at the consumer:
+
+1. `TESTS` resolved against another directory's `am__EXEEXT_N` (bzl-oek);
+2. a per-target `_SOURCES` read from the wrong directory (`hwloc_bind`);
+3. primaries expanded against the flattened map, then a guard that refused
+   any name defined two ways and dropped the targets that needed it
+   (`shmem`);
+4. scopes split on `Entering` only, so a parent's database — printed after
+   its sub-makes return — went to its last child (67 hwloc tests);
+5. an undefined `$(am__*)` treated as unresolved rather than as a false
+   conditional.
+
+Each fix now reads from `directory_scopes`/`parse_variables_by_directory`
+and is pinned. The next consumer of `vars` that behaves oddly on a
+recursive project is almost certainly the sixth instance: reach for the
+per-directory map before anything else. bzl-7r9.10 is the refactor that
+makes the per-directory map the only model.
+
 ## Ordering, and why it is load-bearing
 
 `discover` configures, then **builds** — and the build's own stdout is the

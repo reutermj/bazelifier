@@ -160,6 +160,26 @@ survey turned a mapping into a classifier and cost twenty minutes.
 Verify the candidate configures and builds on this machine before pinning it.
 A project that does not build natively cannot produce ground truth.
 
+**Three more things before pinning, each learned on hwloc (bzl-7r9.4):**
+
+- **A configure flag is not a decision until you have read what it gates.**
+  `--disable-pci` looked like `--disable-libxml2` and was not: in
+  `config/hwloc.m4` the same option also turns off the Linux backend's sysfs
+  PCI discovery, which needs no library, and hwloc's own suite fails seven
+  tests under it. `grep -n '<flag name>' config/*.m4 configure.ac` and read
+  every branch before recording the flag in `configure_args`.
+- **Run upstream's own `make check` under the pinned flags, in the scratch
+  build, and keep the pass/fail list.** A test upstream fails under this
+  configuration is not the agent's to make green — it is evidence the
+  configuration is wrong, or a test to record as not reproduced with that
+  reason. Without the list you cannot tell a runner bug from a wrong flag.
+- **Harvest catalog facts from `configure` itself**, not from the
+  `unmapped_config_macros` item: the frontend freezes some probe results as
+  values (bzl-kba), and those never reach the item. The `for ac_header in`,
+  `for ac_func in`, `ac_fn_c_check_type`, `ac_fn_check_decl`,
+  `ac_fn_c_check_member` and `sizeof (` sites in `configure` are the
+  complete list; hwloc's were 92 entries.
+
 ## 2. Pin it
 
 `MODULE.bazel`, as INPUT to the translator only — never a `bazel_dep`.
