@@ -2956,13 +2956,36 @@ fn lex_yacc_compiled_as(
         .map(|(source, dir)| pathdiff(&normalize_lexically(&dir.join(source)), decl_dir))
 }
 
-/// `-I` directories, with the flag stripped and `.`-relative paths kept.
+/// Include directories, with the flag stripped and `.`-relative paths kept.
+///
+/// `-iquote` and `-isystem` count as well as `-I`: PMIx passes its source
+/// root as `-iquote$(top_srcdir)` and every one of its sources reaches its
+/// headers as `#include "src/class/pmix_list.h"`, so reading `-I` alone
+/// converted a module with no root include and no `src/` headers staged,
+/// and every compile failed on the first quoted include. Bazel's `includes`
+/// serves the quoted and the angled form alike, which is wider than
+/// `-iquote` but never narrower. The detached spelling (`-I dir`) is read
+/// too, since the compiler accepts it.
 fn includes_of(args: &[String]) -> Vec<String> {
-    args.iter()
-        .filter_map(|a| a.strip_prefix("-I"))
-        .filter(|d| !d.is_empty())
-        .map(str::to_string)
-        .collect()
+    let mut out = Vec::new();
+    let mut args = args.iter();
+    while let Some(arg) = args.next() {
+        let Some(rest) = ["-iquote", "-isystem", "-I"]
+            .iter()
+            .find_map(|flag| arg.strip_prefix(flag))
+        else {
+            continue;
+        };
+        let dir = if rest.is_empty() {
+            args.next().cloned()
+        } else {
+            Some(rest.to_string())
+        };
+        if let Some(dir) = dir.filter(|d| !d.is_empty()) {
+            out.push(dir);
+        }
+    }
+    out
 }
 
 /// `-D` definitions, with the flag stripped.
@@ -5327,6 +5350,35 @@ EXEEXT =
             item.gap
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // PMIx: every compile carries `-iquote$(top_srcdir)` and the sources
+    // include their headers as `"src/class/pmix_list.h"`. Reading `-I` alone
+    // gave the targets no root include and staged nothing under src/, and
+    // every compile failed on its first quoted include.
+    #[test]
+    fn iquote_and_isystem_directories_are_include_directories_too() {
+        let args: Vec<String> = [
+            "gcc",
+            "-DHAVE_CONFIG_H",
+            "-I.",
+            "-iquote/s",
+            "-isystem/s/include",
+            "-I",
+            "/s/src/include",
+            "-include",
+            "config.h",
+            "-c",
+            "/s/src/a.c",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        assert_eq!(
+            includes_of(&args),
+            vec![".", "/s", "/s/include", "/s/src/include"],
+            "all three spellings, the detached -I, and never -include"
+        );
     }
 
     // PMIx: `libpmixutilkeyval_la_SOURCES = keyval_lex.h keyval_lex.l`, and
