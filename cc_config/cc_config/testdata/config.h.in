@@ -4,6 +4,7 @@
 #cmakedefine PACKAGE_NAME "@PACKAGE_NAME@"
 #define PACKAGE_VERSION "@PACKAGE_VERSION@"
 #define SIZEOF_LONG @SIZEOF_LONG@
+#define ALIGNOF_DOUBLE @ALIGNOF_DOUBLE@
 
 /* bzl-fxa.24: CMake expands a #cmakedefine wherever it appears on the line,
    not only at the start. json-c writes exactly this shape. Both forms below

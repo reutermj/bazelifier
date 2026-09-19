@@ -402,6 +402,97 @@ check_struct_member = rule(
     fragments = ["cpp"],
 )
 
+def _check_c_source_compiles_impl(ctx):
+    info = _run_probe(ctx, ctx.attr.source, ctx.attr.define, link = ctx.attr.link, defines = ctx.attr.defines)
+    return [
+        info,
+        DefaultInfo(files = depset([info.result])),
+    ]
+
+check_c_source_compiles = rule(
+    implementation = _check_c_source_compiles_impl,
+    doc = "Sets `define` to 1 when `source` compiles (and, with `link`, links) under the resolved toolchain — the Bazel equivalent of autoconf's AC_COMPILE_IFELSE/AC_LINK_IFELSE and CMake's check_c_source_compiles. For the facts a project probes with its OWN snippet rather than by naming a header, symbol or type: compiler attribute support (PMIx's and hwloc's *_HAVE_ATTRIBUTE_* family, thirty macros each), builtins (__builtin_expect), C11 features (_Static_assert, _Thread_local). These are facts about the consumer's compiler, so a converted module declares them as probes beside its config_header rather than freezing the conversion host's answers; the snippet is the project's, taken from its configure, so the module answers the same question configure asked.",
+    attrs = {
+        "source": attr.string(
+            mandatory = True,
+            doc = "The complete C source to compile — the project's own probe program, verbatim.",
+        ),
+        "define": attr.string(
+            mandatory = True,
+            doc = "The macro to define to 1 when the source builds.",
+        ),
+        "link": attr.bool(
+            default = False,
+            doc = "Also link, for a fact that only shows at link time (AC_LINK_IFELSE).",
+        ),
+        "defines": attr.string_list(
+            default = [],
+            doc = "Preprocessor defines the snippet compiles under (e.g. [\"_GNU_SOURCE\"]).",
+        ),
+    },
+    toolchains = use_cc_toolchain(),
+    fragments = ["cpp"],
+)
+
+def _check_type_alignof_impl(ctx):
+    # The same compile-time search as check_type_size, over an alignment
+    # instead of a size: `_Alignof` is C11 and every toolchain the modules
+    # build with has it; autoconf's own probe uses the offsetof trick, which
+    # answers the same number.
+    cc_toolchain, feature_configuration = _toolchain(ctx)
+    compile = _compile_command_line(cc_toolchain, feature_configuration)
+    stem = ctx.label.name
+    source = ctx.actions.declare_file(stem + "_probe.c")
+    ctx.actions.write(
+        output = source,
+        content = """{includes}
+int probe[_Alignof({type}) == CC_CONFIG_PROBE_SIZE ? 1 : -1];
+""".format(
+            includes = "".join(["#include <%s>\n" % h for h in ctx.attr.headers]),
+            type = ctx.attr.type,
+        ),
+    )
+    result = ctx.actions.declare_file(stem + ".result")
+    log = ctx.actions.declare_file(stem + ".log")
+    ctx.actions.run_shell(
+        inputs = depset(direct = [source]),
+        outputs = [result, log],
+        tools = cc_toolchain.all_files,
+        command = _SIZE_RUNNER,
+        arguments = [compile.tool, result.path, log.path, source.path] +
+                    [str(c) for c in _CANDIDATE_SIZES] + ["--"] + compile.command_line,
+        env = compile.env,
+        mnemonic = "CcConfigProbe",
+        progress_message = "Probing %s" % ctx.attr.define,
+        toolchain = CC_TOOLCHAIN_TYPE,
+    )
+    info = ProbeResultInfo(define = ctx.attr.define, result = result)
+    return [
+        info,
+        DefaultInfo(files = depset([info.result])),
+    ]
+
+check_type_alignof = rule(
+    implementation = _check_type_alignof_impl,
+    doc = "Sets `define` to the alignment of `type` under the resolved toolchain, found at compile time the way check_type_size finds a size — autoconf's AC_CHECK_ALIGNOF (PMIx's ALIGNOF_BOOL, ALIGNOF_DOUBLE, ..., which the catalog carries under their autoconf names).",
+    attrs = {
+        "type": attr.string(
+            mandatory = True,
+            doc = "The type whose alignment to determine (e.g. \"double\", \"size_t\").",
+        ),
+        "headers": attr.string_list(
+            default = [],
+            doc = "Headers that declare the type, in #include <...> form.",
+        ),
+        "define": attr.string(
+            mandatory = True,
+            doc = "The macro to define to the alignment (e.g. \"ALIGNOF_DOUBLE\").",
+        ),
+    },
+    toolchains = use_cc_toolchain(),
+    fragments = ["cpp"],
+)
+
 def _check_include_file_impl(ctx):
     info = _run_probe(
         ctx,

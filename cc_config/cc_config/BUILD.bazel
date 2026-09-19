@@ -1,6 +1,6 @@
 load("@aspect_rules_py//py:defs.bzl", "py_binary", "py_library", "py_test")
 load(":config_header.bzl", "assert_config_header_test", "config_header")
-load(":probe.bzl", "assert_probe_result_test", "check_include_file", "check_symbol_exists", "check_type_size", "probe_alias")
+load(":probe.bzl", "assert_probe_result_test", "check_c_source_compiles", "check_include_file", "check_symbol_exists", "check_type_alignof", "check_type_size", "probe_alias")
 
 exports_files([
     "probe.bzl",
@@ -115,6 +115,43 @@ assert_probe_result_test(
     probe = ":have_strdup_gnu",
 )
 
+# A source-compiles probe, both directions: a snippet every C compiler
+# accepts, and one no compiler does. This is the probe a project's OWN
+# configure snippets become (attribute support, builtins), so the
+# both-directions proof is the whole point — a probe that answered "yes" to
+# everything would be indistinguishable from a working one on the first.
+check_c_source_compiles(
+    name = "have_attribute_unused",
+    define = "HAVE_ATTRIBUTE_UNUSED",
+    source = "int foo __attribute__((unused)); int main(void) { return 0; }\n",
+)
+
+assert_probe_result_test(
+    name = "attribute_unused_compiles",
+    expected = True,
+    probe = ":have_attribute_unused",
+)
+
+check_c_source_compiles(
+    name = "have_no_such_syntax",
+    define = "HAVE_NO_SUCH_SYNTAX",
+    source = "this is not C; int main(void) { return 0; }\n",
+)
+
+assert_probe_result_test(
+    name = "nonsense_does_not_compile",
+    expected = False,
+    probe = ":have_no_such_syntax",
+)
+
+# An alignment probe, exercised through the config header below like the
+# size probe: _Alignof(double) is 8 on every ABI the modules target.
+check_type_alignof(
+    name = "alignof_double",
+    define = "ALIGNOF_DOUBLE",
+    type = "double",
+)
+
 # A size probe, exercised through the config header below: sizeof(long) is
 # determined at compile time and substituted as a value.
 check_type_size(
@@ -133,6 +170,7 @@ config_header(
         ":have_no_such_symbol",
         ":have_definitely_no_such_header",
         ":sizeof_long",
+        ":alignof_double",
     ],
     template = "testdata/config.h.in",
     values = {
@@ -154,6 +192,7 @@ assert_config_header_test(
         # A size probe's number substituted as a value (8 on the linux
         # x86-64 toolchain this builds against).
         "#define SIZEOF_LONG 8",
+        "#define ALIGNOF_DOUBLE 8",  # check_type_alignof, substituted like a size
         # bzl-fxa.24: a directive that does not start the line still expands,
         # and the unset form drops whatever preceded it rather than nesting
         # comment openers. Both verified against CMake 3.28's own output.
@@ -174,6 +213,7 @@ assert_config_header_test(
         "#define HAVE_NO_SUCH_SYMBOL",
         "@PACKAGE_VERSION@",
         "@SIZEOF_LONG@",
+        "@ALIGNOF_DOUBLE@",
         # The literal directive must not survive anywhere — that is exactly
         # what json-c's generated header retained (bzl-fxa.24).
         "#cmakedefine",
