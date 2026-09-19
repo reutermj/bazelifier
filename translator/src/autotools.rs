@@ -31,7 +31,6 @@
 //! `bin_PROGRAMS = hello` and `noinst_LIBRARIES = lib/libhello.a` onto one
 //! name, producing a module that could not load.
 
-use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -154,8 +153,7 @@ pub fn discover(
         });
     }
 
-    let vars = parse_variables(&database);
-    let declared = declared_targets_by_directory(&database);
+    let db = VariableDatabase::parse(&database, &absolutize(build_dir)?);
 
     // AC_CONFIG_HEADERS, from config.status — see parse_config_headers on why
     // not configure.ac. The template lives in the SOURCE tree (autoconf's
@@ -184,8 +182,14 @@ pub fn discover(
         let Ok(text) = std::fs::read_to_string(&template_path) else {
             continue;
         };
-        let (header, unmapped) =
-            plan_config_header(&output, &template, &text, &vars, &flag_macros, &traced);
+        let (header, unmapped) = plan_config_header(
+            &output,
+            &template,
+            &text,
+            db.scope_for(&output),
+            &flag_macros,
+            &traced,
+        );
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
                 &output,
@@ -212,7 +216,8 @@ pub fn discover(
         let Ok(text) = std::fs::read_to_string(source_dir.join(&template)) else {
             continue;
         };
-        let (mut header, unmapped) = plan_substitution_header(&output, &template, &text, &vars);
+        let (mut header, unmapped) =
+            plan_substitution_header(&output, &template, &text, db.scope_for(&output));
         header.options = flag_options(&header, &flag_macros);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
@@ -225,9 +230,10 @@ pub fn discover(
         }
         config_headers.push(header);
     }
-    let project_name = vars
+    let project_name = db
+        .root()
         .get("PACKAGE")
-        .or_else(|| vars.get("PACKAGE_NAME"))
+        .or_else(|| db.root().get("PACKAGE_NAME"))
         .cloned()
         .unwrap_or_else(|| "project".to_string());
     let source_dir_abs = absolutize(source_dir)?;
@@ -243,12 +249,10 @@ pub fn discover(
     }
     let (mut graph, graph_needs_attention, module_root) = to_graph_with_dependencies(
         &parse_commands(&stream, build_dir),
-        &declared,
-        &database,
+        &db,
         &project_name,
         &source_dir_abs,
         &deliverable_root,
-        &absolutize(build_dir)?,
         deps,
     );
     graph.config_headers = config_headers;
@@ -328,7 +332,7 @@ pub fn discover(
     // inputs) and the declaration that it is public are combined here, the
     // way the CMake frontend combines `install(FILES)` with the include
     // path. libevent and hwloc declare every public header exactly this way.
-    promote_installed_headers(&mut graph.targets, &parse_variables(&database));
+    promote_installed_headers(&mut graph.targets, &db);
 
     // A module with no targets cannot be built, compared or tested, so every
     // downstream tier reports vacuous success — the repo's named recurring
@@ -988,98 +992,175 @@ pub(crate) struct DeclaredTarget {
     /// from a filename: `LTLIBRARIES` builds a shared library, `LIBRARIES`
     /// an archive.
     pub(crate) primary: String,
+    /// The build directory of the make that declared it — the scope its
+    /// per-target variables (`<canon>_SOURCES`, ...) are read from. Two
+    /// targets in different directories can canonicalise to one variable
+    /// name (hwloc's utility `hwloc-bind` and its test `hwloc_bind` both own
+    /// `hwloc_bind_SOURCES`), so the name alone cannot say which is meant.
+    pub(crate) directory: PathBuf,
 }
 
-/// Parses `make -p` output into a variable map.
+/// make's variable database, one scope per directory whose make printed it.
 ///
-/// Split from [`variable_database`] so a frozen real capture can drive it
-/// without a configured tree. Only `NAME = value` lines are kept; make's
-/// database also contains rules, comments and `NAME := value` forms, none of
-/// which carry automake's declarations.
-pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
-    let mut vars = HashMap::new();
-    for line in database.lines() {
-        // Rules and comments both reach here; a leading tab means a recipe.
-        if line.starts_with('\t') || line.starts_with('#') {
-            continue;
-        }
-        let Some((name, value)) = line.split_once(" = ") else {
-            continue;
-        };
-        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
-            continue;
-        }
-        let value = value.trim();
-        // `make -p` on a recursive project concatenates the database of every
-        // subdirectory, so one name can be defined several times meaning
-        // different things. For a per-target variable that is harmless —
-        // `xz_SOURCES` belongs to whichever directory declares `xz` and no
-        // other. Which names are NOT harmless, and why, is
-        // [`accumulates_across_directories`]; merging them here is not make's
-        // own semantics, because make never sees the definitions together.
-        // `am__*` is scoped to its declaring directory, so a later directory
-        // REPLACES it rather than adding to it. Within one directory automake
-        // can still restate a name, and there the last word is make's own.
-        if accumulates_across_directories(name) {
-            match vars.entry(name.to_string()) {
-                Entry::Occupied(mut slot) => {
-                    let merged: &mut String = slot.get_mut();
-                    if !merged.is_empty() && !value.is_empty() {
-                        merged.push(' ');
-                    }
-                    merged.push_str(value);
-                }
-                Entry::Vacant(slot) => {
-                    slot.insert(value.to_string());
-                }
-            }
-            continue;
-        }
-        vars.insert(name.to_string(), value.to_string());
-    }
-    vars
+/// `make -p -n` on a recursive project prints one database per sub-make,
+/// each preceded by that make's `# make[N]: Entering directory`
+/// announcement (commented, like everything else in -p output) and printed
+/// AFTER its own sub-makes have returned — so the text following a
+/// `Leaving directory` line is the PARENT's. Hence a stack, not "the last
+/// directory entered": splitting on `Entering` alone handed hwloc's
+/// `utils/hwloc` database, its nine `TESTS`, to the last subdirectory
+/// entered before it was printed, and 67 of hwloc's 214 escalated tests
+/// were that misattribution. The top-level make's own database follows the
+/// last `Leaving` and is keyed by the build root. A directory entered twice
+/// (automake recurses into `.` for `SUBDIRS = . sub`) is one scope.
+///
+/// Within a scope the last definition wins, which is make's own rule.
+/// Across scopes NOTHING is merged, and holding that line is the reason
+/// this is a type rather than a map: recursive make never sees two
+/// directories' definitions together, and every name automake emits is
+/// scoped to its Makefile — the `am__*` indirection (`am__EXEEXT_1` is
+/// `test_md5` in one of libmicrohttpd's directories and
+/// `basicauthentication` in another), the per-target `<canon>_SOURCES`
+/// (hwloc's `hwloc-bind` and `hwloc_bind`), and the primaries and `TESTS`,
+/// which a project declares once per directory. A consumer that wants
+/// every directory's declarations walks [`VariableDatabase::scopes`] and
+/// merges by NAME at its own level, where a merge means something
+/// (`declared_targets`, `installed_headers`, `classify_tests_per_directory`).
+/// A value `configure` substituted into every Makefile (`PACKAGE`,
+/// `VERSION`, `EXEEXT`, `includedir`) reads the same in any scope and is
+/// taken from the root.
+///
+/// *(History: until 2026-09-19 the frontend flattened every scope into one
+/// map, merging a fixed list of names — `TESTS`, `am__*`, the primaries —
+/// and letting the last definition win for the rest. Five bugs were that
+/// one decision seen from five consumers, each fixed at the consumer with a
+/// per-directory read beside the flat map; see autotools-frontend.md, "The
+/// flattened database is a bug class". This type is the per-directory read
+/// made the only model.)*
+pub(crate) struct VariableDatabase {
+    build_root: PathBuf,
+    /// The root first, then directories in the order make printed them —
+    /// the order it finished walking the tree, and the only declaration
+    /// order there is (tests are emitted in it). The root is pinned first
+    /// rather than placed where its database appears, which is LAST in real
+    /// output (the top-level make prints after every sub-make has returned),
+    /// so a project's own top-level tests lead its list.
+    scopes: Vec<(PathBuf, HashMap<String, String>)>,
 }
 
-/// The variable database split by the directory whose make printed it.
-///
-/// `make -p -n` on a recursive project prints one database per
-/// sub-make, each preceded by that make's `# make[N]: Entering directory`
-/// announcement (commented, like everything else in -p output). Definitions
-/// before any announcement — the top-level make's own — are keyed by
-/// `build_root`. Within one directory the last definition wins, which is
-/// make's own rule; across directories nothing is merged, which is the
-/// whole point: see `target_var` in `to_graph_with_dependencies`.
-pub(crate) fn parse_variables_by_directory(
-    database: &str,
-    build_root: &Path,
-) -> HashMap<PathBuf, HashMap<String, String>> {
-    let mut by_dir: HashMap<PathBuf, HashMap<String, String>> = HashMap::new();
-    let mut dirs: Vec<PathBuf> = vec![build_root.to_path_buf()];
-    for line in database.lines() {
-        if let Some(rest) = line.strip_prefix("# make[") {
-            if let Some(dir) = rest.split_once("Entering directory ").map(|(_, d)| d) {
-                dirs.push(PathBuf::from(dir.trim().trim_matches(&['\'', '`'][..])));
-            } else if rest.contains("Leaving directory ") && dirs.len() > 1 {
-                dirs.pop();
+impl VariableDatabase {
+    /// Parses `make -p` output.
+    ///
+    /// Split from [`variable_database`] so a frozen real capture can drive
+    /// it without a configured tree. Only `NAME = value` lines are kept;
+    /// the database also holds rules, comments and `NAME := value` forms,
+    /// none of which carry automake's declarations.
+    pub(crate) fn parse(database: &str, build_root: &Path) -> Self {
+        let build_root = build_root.to_path_buf();
+        let mut scopes: Vec<(PathBuf, HashMap<String, String>)> =
+            vec![(build_root.clone(), HashMap::new())];
+        let mut index: HashMap<PathBuf, usize> = HashMap::from([(build_root.clone(), 0)]);
+        let mut stack: Vec<PathBuf> = vec![build_root.clone()];
+        for line in database.lines() {
+            // The announcements are `# make[N]: ...` comment lines, so they
+            // have to be read BEFORE the comment filter below.
+            if line.trim_start_matches("# ").starts_with("make[") {
+                if let Some(entered) = entering_directory(line) {
+                    stack.push(entered);
+                } else if leaving_directory(line) && stack.len() > 1 {
+                    stack.pop();
+                }
+                continue;
             }
-            continue;
+            // Rules and comments both reach here; a leading tab means a recipe.
+            if line.starts_with('\t') || line.starts_with('#') {
+                continue;
+            }
+            let Some((name, value)) = line.split_once(" = ") else {
+                continue;
+            };
+            if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                continue;
+            }
+            let current = stack.last().expect("the root scope is never popped");
+            let slot = *index.entry(current.clone()).or_insert_with(|| {
+                scopes.push((current.clone(), HashMap::new()));
+                scopes.len() - 1
+            });
+            scopes[slot]
+                .1
+                .insert(name.to_string(), value.trim().to_string());
         }
-        if line.starts_with('\t') || line.starts_with('#') {
-            continue;
-        }
-        let Some((name, value)) = line.split_once(" = ") else {
-            continue;
-        };
-        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
-            continue;
-        }
-        let current = dirs.last().expect("the build root is never popped").clone();
-        by_dir
-            .entry(current)
-            .or_default()
-            .insert(name.to_string(), value.trim().to_string());
+        Self { build_root, scopes }
     }
-    by_dir
+
+    pub(crate) fn build_root(&self) -> &Path {
+        &self.build_root
+    }
+
+    /// The variables of the make that ran in `dir`, if one did.
+    pub(crate) fn scope(&self, dir: &Path) -> Option<&HashMap<String, String>> {
+        self.scopes
+            .iter()
+            .find(|(d, _)| d == dir)
+            .map(|(_, vars)| vars)
+    }
+
+    /// Every scope, in first-seen order.
+    pub(crate) fn scopes(&self) -> impl Iterator<Item = (&Path, &HashMap<String, String>)> {
+        self.scopes.iter().map(|(d, vars)| (d.as_path(), vars))
+    }
+
+    /// The top-level make's scope: where a value `configure` substituted
+    /// into every Makefile is read. Always present (empty at worst).
+    pub(crate) fn root(&self) -> &HashMap<String, String> {
+        &self.scopes[0].1
+    }
+
+    /// The scope a build-tree file belongs to: the nearest directory at or
+    /// above it whose make printed a database, else the root's. A config
+    /// header's `@VAR@`s are `configure` substitutions, present in every
+    /// Makefile, so for jansson's `src/jansson_config.h` the `src` scope and
+    /// the root agree; a template in a directory with no Makefile of its own
+    /// (hwloc's `include/hwloc/autogen/config.h`) reads its ancestor's.
+    pub(crate) fn scope_for(&self, path_in_build_tree: &str) -> &HashMap<String, String> {
+        let mut dir = self.build_root.join(path_in_build_tree);
+        while dir.pop() {
+            if let Some(scope) = self.scope(&dir) {
+                return scope;
+            }
+            if dir == self.build_root {
+                break;
+            }
+        }
+        self.root()
+    }
+
+    /// Every target automake declared, each primary expanded in the scope
+    /// of the directory whose Makefile declared it.
+    ///
+    /// This is the identity source. The command stream shows `-o greeter`
+    /// — a filename — while `bin_PROGRAMS = greeter` is the name automake
+    /// actually uses, and the `bin_` prefix additionally states where it
+    /// installs. Inferring identity from artifact paths instead breaks on a
+    /// binary whose name differs from its target's, on libtool's
+    /// `.libs/libfoo.so.1.0.0` versus `libfoo.la`, and on a non-empty
+    /// `EXEEXT`.
+    ///
+    /// Per directory because that is where a primary's references resolve:
+    /// automake compiles a conditional target through `$(am__EXEEXT_N)`,
+    /// and the counter restarts in every Makefile — hwloc's `tests/hwloc`
+    /// says `am__EXEEXT_2 = shmem` while `utils/hwloc` says something else
+    /// under the same name. Declarations are then merged by name across
+    /// directories ([`dedup_declarations`]): xz declares `bin_PROGRAMS` in
+    /// four directories and every one of them is a target.
+    pub(crate) fn declared_targets(&self) -> Vec<DeclaredTarget> {
+        let mut targets = Vec::new();
+        for (directory, scope) in self.scopes() {
+            targets.extend(declared_targets_in(directory, scope));
+        }
+        dedup_declarations(targets)
+    }
 }
 
 /// What an automake `TESTS` entry turns out to be.
@@ -1124,12 +1205,11 @@ pub(crate) enum TestEntry {
 /// `am__EXEEXT_1` in six directories, and resolving `src/testcurl`'s
 /// `TESTS = $(check_PROGRAMS) = $(am__EXEEXT_1)` against the union produced
 /// 102 "tests" — including `doc/examples`' example programs, from a
-/// directory that declares no `TESTS`. See
-/// [`accumulates_across_directories`] for the two kinds of variable and why
-/// only one of them merges.
-fn classify_tests_per_directory(database: &str, build_root: &Path) -> Vec<TestEntry> {
+/// directory that declares no `TESTS`. See [`VariableDatabase`] on why no
+/// scope ever merges with another.
+fn classify_tests_per_directory(db: &VariableDatabase) -> Vec<TestEntry> {
     let mut entries = Vec::new();
-    for (directory, scope) in directory_scopes(database) {
+    for (directory, scope) in db.scopes() {
         // Where the declaring `Makefile.am` sits, relative to the module.
         // A `TESTS` entry names a file relative to ITS directory, so xz's
         // `tests/Makefile.am` saying `test_files.sh` means
@@ -1138,10 +1218,10 @@ fn classify_tests_per_directory(database: &str, build_root: &Path) -> Vec<TestEn
         // root. Unqualified, both looked for it at the top level and found
         // nothing.
         let prefix = directory
-            .as_ref()
-            .and_then(|d| d.strip_prefix(build_root).ok())
+            .strip_prefix(db.build_root())
+            .ok()
             .filter(|rel| !rel.as_os_str().is_empty());
-        for entry in classify_tests(&scope) {
+        for entry in classify_tests(scope) {
             let entry = match (&prefix, entry) {
                 (Some(rel), TestEntry::Script(name)) if !name.contains('/') => {
                     TestEntry::Script(rel.join(&name).to_string_lossy().into_owned())
@@ -1154,57 +1234,6 @@ fn classify_tests_per_directory(database: &str, build_root: &Path) -> Vec<TestEn
         }
     }
     entries
-}
-
-/// Splits `make -p` output by the directory each line's make was running in.
-///
-/// Each scope still gets the flattening [`parse_variables`] does, because a
-/// primary genuinely does span directories (xz declares `bin_PROGRAMS` in
-/// four). What must not span them is the `am__*` indirection, and keeping
-/// one map per directory is what stops it.
-///
-/// Tracked as a STACK, not as "the last directory entered": `make -p`
-/// prints a make's database after its sub-makes have returned, so the text
-/// following a `Leaving directory` line is the PARENT's database. Splitting
-/// on `Entering` alone handed hwloc's `utils/hwloc` database — its nine
-/// `TESTS` — to `utils/hwloc/test-hwloc-dump-hwdata`, the last directory
-/// entered before it was printed, and the top-level database to whatever
-/// directory happened to be last; 67 of hwloc's 214 escalated tests were
-/// this misattribution. A directory entered twice (automake recurses into
-/// `.` for a `SUBDIRS = . sub` Makefile) has its chunks parsed together.
-fn directory_scopes(database: &str) -> Vec<(Option<PathBuf>, HashMap<String, String>)> {
-    // `None` for whatever precedes the first announcement — make's own
-    // built-in database, which declares no tests.
-    let mut stack: Vec<Option<PathBuf>> = vec![None];
-    let mut chunks: Vec<(Option<PathBuf>, String)> = Vec::new();
-    let mut append = |dir: &Option<PathBuf>, line: &str| {
-        let chunk = match chunks.iter_mut().find(|(d, _)| d == dir) {
-            Some((_, text)) => text,
-            None => {
-                chunks.push((dir.clone(), String::new()));
-                &mut chunks.last_mut().expect("just pushed").1
-            }
-        };
-        chunk.push_str(line);
-        chunk.push('\n');
-    };
-    for line in database.lines() {
-        if let Some(entered) = entering_directory(line) {
-            stack.push(Some(entered));
-            continue;
-        }
-        if leaving_directory(line) {
-            if stack.len() > 1 {
-                stack.pop();
-            }
-            continue;
-        }
-        append(stack.last().expect("the base scope is never popped"), line);
-    }
-    chunks
-        .into_iter()
-        .map(|(dir, text)| (dir, parse_variables(&text)))
-        .collect()
 }
 
 fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
@@ -1345,79 +1374,6 @@ fn expand_exeext(token: &str, vars: &HashMap<String, String>) -> String {
         .replace("${EXEEXT}", exeext)
 }
 
-/// Whether a variable's definitions must be MERGED across directories rather
-/// than letting the last one win.
-///
-/// Named for the property rather than for its members, because the members
-/// keep growing and there is exactly one reason they belong together:
-/// recursive make declares these per directory and never sees the
-/// definitions together, so combining them is ours to do. Each addition was
-/// found the same way — by a project losing targets:
-///
-/// - **primaries** (`bin_PROGRAMS`, `lib_LTLIBRARIES`, ...) — xz declares
-///   `bin_PROGRAMS` in four directories; last-wins emitted `lzmainfo`,
-///   dropped the project's namesake `xz` binary, and reported success.
-/// - **`TESTS`** — jansson declares `run-suites` in `test/` and
-///   `scripts/clang-format-check` at the root; last-wins kept one.
-///
-/// `am__*` is deliberately NOT here, and was: automake's per-conditional
-/// indirection is scoped to its declaring directory, so merging it is wrong
-/// in the same way last-wins is wrong for a primary. libmicrohttpd defines
-/// `am__EXEEXT_1` in six directories meaning `test_md5`, `perf_replies`,
-/// `basicauthentication` and three more; merging dragged `doc/examples`'s
-/// example programs into `src/testcurl`'s `TESTS`, which is where 102 of its
-/// escalated "tests" came from — from a directory declaring no `TESTS` at
-/// all. xz shows it through `am__append_1`, defined nine times.
-///
-/// The merge was originally added because last-wins picked `src/testcurl`'s
-/// EMPTY definition and the tests escalated as the literal `$(am__EXEEXT_1)`.
-/// Empty was that directory's CORRECT answer; the real bug was resolving one
-/// directory's `TESTS` against another directory's variables.
-///
-/// Deliberately NOT the same predicate as [`declared_targets`]'s, which
-/// accepts only the three primary suffixes: that one answers "is this a
-/// target declaration", this one answers "does this need merging". They
-/// overlap on primaries and diverge everywhere else, and an earlier version
-/// of this comment claimed they could not disagree — they must.
-///
-/// `am__` is matched by PREFIX because its suffix is a counter, not a kind;
-/// the namespace is automake's own and a project cannot collide with it.
-fn accumulates_across_directories(name: &str) -> bool {
-    name == "TESTS"
-        || name.starts_with("am__")
-        || name
-            .rsplit_once('_')
-            .is_some_and(|(_, primary)| matches!(primary, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"))
-}
-
-/// Recovers every target automake DECLARED, from the primaries.
-///
-/// This is the identity source. The command stream shows `-o greeter` — a
-/// filename — while `bin_PROGRAMS = greeter` is the name automake actually
-/// uses, and the `bin_` prefix additionally states where it installs.
-/// Inferring identity from artifact paths instead breaks on a binary whose
-/// name differs from its target's, on libtool's `.libs/libfoo.so.1.0.0`
-/// versus `libfoo.la`, and on a non-empty `EXEEXT`.
-/// Every target automake declared, each primary expanded in the scope of
-/// the directory whose Makefile declared it.
-///
-/// Per directory because that is where a primary's references resolve.
-/// automake compiles a conditional target through `$(am__EXEEXT_N)`, and the
-/// counter restarts in every Makefile: hwloc's `tests/hwloc` says
-/// `am__EXEEXT_2 = shmem` while `utils/hwloc` says something else under the
-/// same name, so the flattened map holds one of them and the other target
-/// vanishes — `shmem` was built by `make check` and declared by nothing.
-/// Within one directory the last definition wins, which is make's own rule.
-/// Declarations are then merged by name across directories
-/// ([`dedup_declarations`]).
-pub(crate) fn declared_targets_by_directory(database: &str) -> Vec<DeclaredTarget> {
-    let mut targets = Vec::new();
-    for (_, scope) in directory_scopes(database) {
-        targets.extend(declared_targets(&scope));
-    }
-    dedup_declarations(targets)
-}
-
 /// Expands `$(NAME)` / `${NAME}` references in a primary's value the way
 /// make would, from the variable map, recursively.
 ///
@@ -1471,10 +1427,10 @@ fn expand_references(value: &str, vars: &HashMap<String, String>) -> String {
     go(value, vars, 8)
 }
 
-/// The targets one variable map declares. For a single-directory project or
-/// a frozen capture this is the whole answer; a recursive project goes
-/// through [`declared_targets_by_directory`].
-pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTarget> {
+/// The targets ONE scope declares, from its primaries. The whole answer for
+/// a single-directory project; [`VariableDatabase::declared_targets`] walks
+/// every scope of a recursive one.
+fn declared_targets_in(directory: &Path, vars: &HashMap<String, String>) -> Vec<DeclaredTarget> {
     let mut targets = Vec::new();
     for (var, value) in vars {
         let Some((destination, primary)) = var.rsplit_once('_') else {
@@ -1497,10 +1453,9 @@ pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTa
             if name.is_empty() {
                 continue;
             }
-            // An unexpanded reference, not a target. A recursive project's
-            // top-level `bin_PROGRAMS` is often a list of `$(am__EXEEXT_N)`
-            // internals; the real names come from the subdirectory
-            // definitions, which parse_variables merges in alongside these.
+            // An unexpanded reference, not a target: an `am__*` name this
+            // scope does not define is a conditional that was false, and a
+            // project's own undefined variable has no answer to invent.
             // Taking one as a name produces a target automake never declared,
             // matched against no build command, escalated as unbuilt.
             if name.contains("$(") {
@@ -1510,6 +1465,7 @@ pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTa
                 name,
                 destination: destination.to_string(),
                 primary: primary.to_string(),
+                directory: directory.to_path_buf(),
             });
         }
     }
@@ -1990,12 +1946,10 @@ fn tokenize(line: &str) -> Vec<String> {
 #[cfg(test)]
 pub(crate) fn to_graph(
     commands: &[BuildCommand],
-    declared: &[DeclaredTarget],
-    database: &str,
+    db: &VariableDatabase,
     project_name: &str,
     source_dir: &Path,
     deliverable_root: &Path,
-    build_root: &Path,
 ) -> (
     BuildGraph,
     Vec<crate::needs_attention::NeedsAttention>,
@@ -2003,36 +1957,28 @@ pub(crate) fn to_graph(
 ) {
     to_graph_with_dependencies(
         commands,
-        declared,
-        database,
+        db,
         project_name,
         source_dir,
         deliverable_root,
-        build_root,
         &Dependencies::default(),
     )
 }
 
 pub(crate) fn to_graph_with_dependencies(
     commands: &[BuildCommand],
-    declared: &[DeclaredTarget],
-    // The raw `make -p` output. `vars` is derived from it here rather than
-    // passed alongside, because automake's `TESTS` must resolve within ONE
-    // directory's variables — see [`classify_tests_per_directory`] — so a
-    // caller holding only the flattened map cannot answer that question.
-    database: &str,
+    db: &VariableDatabase,
     project_name: &str,
     source_dir: &Path,
     deliverable_root: &Path,
-    build_root: &Path,
     deps: &Dependencies,
 ) -> (
     BuildGraph,
     Vec<crate::needs_attention::NeedsAttention>,
     PathBuf,
 ) {
-    let vars = &parse_variables(database);
-    let by_dir = parse_variables_by_directory(database, build_root);
+    let build_root = db.build_root();
+    let declared = db.declared_targets();
     // artifact basename -> the link/archive command that produced it, so a
     // declared target can find the step that built it. Needed before the
     // module root can be chosen, because the root depends on where each
@@ -2053,18 +1999,12 @@ pub(crate) fn to_graph_with_dependencies(
             .map(|rel| source_dir.join(rel))
             .unwrap_or_else(|| source_dir.to_path_buf())
     };
-    // A per-target variable, read from the directory that BUILT the target
-    // before the flattened map. Two targets in different directories can
-    // canonicalise to one variable name — hwloc's `hwloc-bind` (utils) and
-    // its test `hwloc_bind` (tests) both own `hwloc_bind_SOURCES` — and the
-    // flattened map keeps whichever came last, so utils' program was handed
-    // the test's source and the copy failed on a file that did not exist.
-    let target_var = |name: &str, key: &str| -> Option<&String> {
-        built
-            .get(&basename(name))
-            .and_then(|cmd| by_dir.get(&cmd.dir))
-            .and_then(|scope| scope.get(key))
-            .or_else(|| vars.get(key))
+    // A per-target variable, read from the scope that DECLARED the target
+    // — see `DeclaredTarget::directory` for the collision that makes the
+    // scope necessary. No fallback to any other scope: a name this scope
+    // lacks is one the declaring Makefile did not set.
+    let target_var = |decl: &DeclaredTarget, key: &str| -> Option<&String> {
+        db.scope(&decl.directory).and_then(|scope| scope.get(key))
     };
 
     // The module root, widened to cover anything the build references from
@@ -2098,10 +2038,10 @@ pub(crate) fn to_graph_with_dependencies(
 
     let module_root = {
         let mut shipped = Vec::new();
-        for decl in declared {
+        for decl in &declared {
             let dir = declaring_dir(&decl.name);
             let canon = canonical_name(&decl.name);
-            let raw = target_var(&decl.name, &format!("{canon}_SOURCES"))
+            let raw = target_var(decl, &format!("{canon}_SOURCES"))
                 .map(String::as_str)
                 .unwrap_or_default();
             // Same fallback the target loop uses, and for the same reason: an
@@ -2130,7 +2070,7 @@ pub(crate) fn to_graph_with_dependencies(
             // an `-I` did not widen where its CMake equivalent did — two
             // structurally identical projects converting differently, which
             // is what bzl-kga was filed about.
-            let headers = public_headers(vars);
+            let headers = public_headers(db);
             let includes = built
                 .get(&basename(&decl.name))
                 .map(|cmd| includes_of(&cmd.args))
@@ -2184,7 +2124,7 @@ pub(crate) fn to_graph_with_dependencies(
     // escalation has to say which rule is now incomplete. Flattening these
     // into one module-wide list would throw away exactly that.
     let mut outside_module: Vec<(String, Vec<String>)> = Vec::new();
-    for decl in declared {
+    for decl in &declared {
         let canon = canonical_name(&decl.name);
         if built.get(&basename(&decl.name)).is_none() {
             unbuilt.push(decl.name.clone());
@@ -2208,7 +2148,7 @@ pub(crate) fn to_graph_with_dependencies(
         // the cause. The command stream has all 80 — this is exactly the split
         // the module doc describes, so when the declaration cannot answer, the
         // stream does.
-        let declared_raw = target_var(&decl.name, &format!("{canon}_SOURCES"))
+        let declared_raw = target_var(decl, &format!("{canon}_SOURCES"))
             .map(String::as_str)
             .unwrap_or_default();
         let declared_sources: Vec<String> = if declared_raw.contains("$(") {
@@ -2461,7 +2401,7 @@ pub(crate) fn to_graph_with_dependencies(
             // panicked that assert.
             public_headers: headers
                 .iter()
-                .filter(|h| public_headers(vars).contains(*h))
+                .filter(|h| public_headers(db).contains(*h))
                 .filter_map(|h| rebase(h, &decl_dir))
                 .collect(),
             dependencies,
@@ -2510,7 +2450,7 @@ pub(crate) fn to_graph_with_dependencies(
     // where the built binary already sits, so there is no CTest-style
     // WORKING_DIRECTORY to rebase.
     let (mut tests, mut unexpressed_tests) = (Vec::new(), Vec::new());
-    for entry in classify_tests_per_directory(database, build_root) {
+    for entry in classify_tests_per_directory(db) {
         match entry {
             TestEntry::Binary(name) => {
                 let label = target_label(&name);
@@ -2634,7 +2574,7 @@ pub(crate) fn to_graph_with_dependencies(
         BuildGraph {
             module: ModuleInfo {
                 name: project_name.to_string(),
-                version: vars.get("VERSION").cloned(),
+                version: db.root().get("VERSION").cloned(),
             },
             targets,
             tests,
@@ -2661,14 +2601,14 @@ pub(crate) fn to_graph_with_dependencies(
 /// binary's headers.
 ///
 /// Matched by path SUFFIX: a `*_HEADERS` value is relative to the
-/// Makefile.am that declared it, whose directory the flattened variable map
+/// Makefile.am that declared it, whose directory the promotion
 /// no longer knows, while the target's paths are module-relative — so
 /// `src/greet.h` declared at the root and carried as `src/greet.h` match,
 /// and so would `greet.h` declared in `src/Makefile.am`. Only headers a
 /// target already carries are promoted: a declared-public header no target
 /// could see is left alone rather than attached by guesswork.
-fn promote_installed_headers(targets: &mut [Target], vars: &HashMap<String, String>) {
-    let installed = installed_headers(vars);
+fn promote_installed_headers(targets: &mut [Target], db: &VariableDatabase) {
+    let installed = installed_headers(db);
     for target in targets.iter_mut().filter(|t| t.kind == TargetKind::Library) {
         let mut strips: Vec<Option<String>> = Vec::new();
         let (public, private): (Vec<String>, Vec<String>) = std::mem::take(&mut target.sources)
@@ -2732,7 +2672,24 @@ fn strip_for(path: &str, subdir: &str) -> Option<String> {
 /// installed; `nobase_` keeps the declared path and is left alone since its
 /// installed name is not one strip away. Values are expanded first, because
 /// libevent declares both lists through variables.
-fn installed_headers(vars: &HashMap<String, String>) -> Vec<(String, String)> {
+///
+/// Every scope contributes: a `_HEADERS` primary is declared per directory
+/// like any other (hwloc's in `include/`, libevent's at the root), and its
+/// `<name>dir` is defined in the same Makefile, so both are read from one
+/// scope. Paths are as the declaring Makefile.am wrote them; the callers
+/// match them by suffix against a target's module-relative sources.
+fn installed_headers(db: &VariableDatabase) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for (_, vars) in db.scopes() {
+        out.extend(installed_headers_in(vars));
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// One scope's contribution to [`installed_headers`].
+fn installed_headers_in(vars: &HashMap<String, String>) -> Vec<(String, String)> {
     let mut out = Vec::new();
     for (var, value) in vars {
         let Some(prefix) = var.strip_suffix("_HEADERS") else {
@@ -2776,13 +2733,12 @@ fn installed_headers(vars: &HashMap<String, String>) -> Vec<(String, String)> {
             }
         }
     }
-    out.sort();
     out
 }
 
 /// Every header the project installs, from any `*_HEADERS` primary.
-fn public_headers(vars: &HashMap<String, String>) -> Vec<String> {
-    installed_headers(vars)
+fn public_headers(db: &VariableDatabase) -> Vec<String> {
+    installed_headers(db)
         .into_iter()
         .map(|(raw, _)| raw)
         .collect()
@@ -3052,6 +3008,21 @@ fn is_toolchain_library(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A database with no directory announcements: one scope, the root's.
+    fn single_scope(database: &str) -> HashMap<String, String> {
+        let db = VariableDatabase::parse(database, Path::new("/b"));
+        assert_eq!(
+            db.scopes().count(),
+            1,
+            "single_scope is for a database without directory announcements"
+        );
+        db.root().clone()
+    }
+
+    fn parsed(database: &str) -> VariableDatabase {
+        VariableDatabase::parse(database, Path::new("/b"))
+    }
     use crate::codegen;
     use crate::needs_attention::NeedsAttention;
 
@@ -3124,14 +3095,10 @@ libshout_la_SOURCES = src/shout.c\n\
     const ROOT: &str = "/src";
 
     fn graph_from_captures() -> BuildGraph {
-        let vars = parse_variables(DATABASE);
-        let declared = declared_targets(&vars);
         graph_only(to_graph(
             &parse_commands(STREAM, Path::new(ROOT)),
-            &declared,
-            DATABASE,
+            &VariableDatabase::parse(DATABASE, Path::new(ROOT)),
             "greeter",
-            Path::new(ROOT),
             Path::new(ROOT),
             Path::new(ROOT),
         ))
@@ -3172,14 +3139,13 @@ make[1]: Leaving directory '/src/app'\n\
              directory: {commands:#?}"
         );
 
-        let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n");
-        let declared = declared_targets(&vars);
         let graph = graph_only(to_graph(
             &commands,
-            &declared,
-            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n",
+            &VariableDatabase::parse(
+                "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n",
+                Path::new("/src"),
+            ),
             "sibling",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         ));
@@ -3224,14 +3190,13 @@ gcc -c -o evil.o ../../outside/evil.c\n\
 gcc -o tool main.o evil.o\n\
 make[1]: Leaving directory '/src/app'\n\
 ";
-        let vars =
-            parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../outside/evil.c\n");
         let (graph, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../outside/evil.c\n",
+            &VariableDatabase::parse(
+                "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../outside/evil.c\n",
+                Path::new("/src"),
+            ),
             "escaper",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -3298,16 +3263,15 @@ make[1]: Leaving directory '/deliv/proj/app'\n\
         Vec<crate::needs_attention::NeedsAttention>,
         PathBuf,
     ) {
-        let vars =
-            parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../shared/helper.c\n");
         to_graph(
             &parse_commands(ESCAPING_STREAM, Path::new("/deliv/proj")),
-            &declared_targets(&vars),
-            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../shared/helper.c\n",
+            &VariableDatabase::parse(
+                "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../../shared/helper.c\n",
+                Path::new("/deliv/proj"),
+            ),
             "widening",
             Path::new("/deliv/proj"),
             Path::new(deliverable_root),
-            Path::new("/deliv/proj"),
         )
     }
 
@@ -3351,15 +3315,12 @@ make[1]: Leaving directory '/deliv/proj'\n\
         let db = "bin_PROGRAMS = tool\n\
              tool_SOURCES = main.c\n\
              include_HEADERS = ../shared/api.h\n";
-        let vars = parse_variables(db);
         let (_, _, module_root) = to_graph(
             &parse_commands(STREAM, Path::new("/deliv/proj")),
-            &declared_targets(&vars),
-            db,
+            &VariableDatabase::parse(db, Path::new("/deliv/proj")),
             "hdr",
             Path::new("/deliv/proj"),
             Path::new("/deliv"),
-            Path::new("/deliv/proj"),
         );
 
         assert_eq!(
@@ -3403,11 +3364,12 @@ gcc -c -o main.o src/main.c\n\
 gcc -o tool main.o\n\
 make[1]: Leaving directory '/deliv/proj'\n\
 ";
-        let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = src/main.c\n");
         let (graph, _, module_root) = to_graph(
             &parse_commands(STREAM, Path::new("/deliv/proj")),
-            &declared_targets(&vars),
-            "bin_PROGRAMS = tool\ntool_SOURCES = src/main.c\n",
+            &VariableDatabase::parse(
+                "bin_PROGRAMS = tool\ntool_SOURCES = src/main.c\n",
+                Path::new("/deliv/proj"),
+            ),
             "narrow",
             Path::new("/deliv/proj"),
             // Deliberately WIDE: widening is driven by what the build
@@ -3415,7 +3377,6 @@ make[1]: Leaving directory '/deliv/proj'\n\
             // widens to the cap regardless would ship the sibling directory
             // into every module that merely could have used it.
             Path::new("/deliv"),
-            Path::new("/deliv/proj"),
         );
 
         assert_eq!(
@@ -3436,13 +3397,13 @@ gcc -c -o util.o ../common/util.c\n\
 gcc -o tool main.o util.o\n\
 make[1]: Leaving directory '/src/app'\n\
 ";
-        let vars = parse_variables("bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n");
         let (_, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n",
+            &VariableDatabase::parse(
+                "bin_PROGRAMS = tool\ntool_SOURCES = main.c ../common/util.c\n",
+                Path::new("/src"),
+            ),
             "sibling",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -3513,13 +3474,10 @@ make[1]: Leaving directory '/src/lib'\n\
         // Exactly the shape make reports: the base list, plus an unexpanded
         // reference standing for everything the conditionals added.
         let db = "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c $(am__append_1)\n";
-        let vars = parse_variables(db);
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            db,
+            &VariableDatabase::parse(db, Path::new("/src")),
             "conditional",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -3549,14 +3507,13 @@ gcc -c -o base.o base.c\n\
 ar cru libfoo.a base.o\n\
 make[1]: Leaving directory '/src/lib'\n\
 ";
-        let vars =
-            parse_variables("noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c base.h\n");
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c base.h\n",
+            &VariableDatabase::parse(
+                "noinst_LIBRARIES = libfoo.a\nlibfoo_a_SOURCES = base.c base.h\n",
+                Path::new("/src"),
+            ),
             "expanded",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -3597,13 +3554,10 @@ make[1]: Leaving directory '/src/lib'\n\
         let db = "noinst_LIBRARIES = libgreet.a\n\
              libgreet_a_SOURCES = greet.c greet.h\n\
              include_HEADERS = greet.h\n";
-        let vars = parse_variables(db);
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            db,
+            &VariableDatabase::parse(db, Path::new("/src")),
             "sub",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -3641,13 +3595,10 @@ ar cru libmix.a a.o b.o c.o\n\
 make[1]: Leaving directory '/src'\n\
 ";
         let db = "noinst_LIBRARIES = libmix.a\nlibmix_a_SOURCES = a.C b.c++ c.CPP README\n";
-        let vars = parse_variables(db);
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            db,
+            &VariableDatabase::parse(db, Path::new("/src")),
             "mixed",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -3688,14 +3639,10 @@ gcc -I. -c -o src/hello.o src/hello.c\n\
 ar cru lib/libhello.a lib/basename.o\n\
 gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
 ";
-        let vars = parse_variables(DB);
-        let declared = declared_targets(&vars);
         let graph = graph_only(to_graph(
             &parse_commands(STREAM_WITH_RESOLVED_LINK, Path::new(ROOT)),
-            &declared,
-            DB,
+            &VariableDatabase::parse(DB, Path::new(ROOT)),
             "hello",
-            Path::new(ROOT),
             Path::new(ROOT),
             Path::new(ROOT),
         ));
@@ -3763,7 +3710,7 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         // unexpanded reference while check_PROGRAMS beside it is expanded.
         let db = "check_PROGRAMS = test_str_compare$(EXEEXT) test_str_token$(EXEEXT)\n\
              TESTS = $(check_PROGRAMS)\n";
-        let vars = parse_variables(db);
+        let vars = single_scope(db);
         assert_eq!(
             classify_tests(&vars),
             vec![
@@ -3779,7 +3726,7 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
     #[test]
     fn tests_naming_a_script_are_classified_as_scripts() {
         let db = "check_PROGRAMS = test_array$(EXEEXT)\nTESTS = run-suites scripts/format-check\n";
-        let vars = parse_variables(db);
+        let vars = single_scope(db);
         assert_eq!(
             classify_tests(&vars),
             vec![
@@ -3810,7 +3757,7 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
         let db = "EXEEXT = .exe\n\
              check_PROGRAMS = check_one$(EXEEXT)\n\
              TESTS = $(check_PROGRAMS)\n";
-        let vars = parse_variables(db);
+        let vars = single_scope(db);
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Binary("check_one.exe".to_string())],
@@ -3818,7 +3765,7 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
              two never match"
         );
         assert_eq!(
-            declared_targets(&vars)
+            declared_targets_in(Path::new("/b"), &vars)
                 .iter()
                 .map(|d| d.name.clone())
                 .collect::<Vec<_>>(),
@@ -3859,13 +3806,19 @@ am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
     #[test]
     fn a_directory_scoped_am_variable_does_not_leak_into_another_directory() {
         assert!(
-            classify_tests_per_directory(COLLIDING_EXEEXT, Path::new("/b/libmicrohttpd-1.0.1"))
-                .is_empty(),
+            classify_tests_per_directory(&VariableDatabase::parse(
+                COLLIDING_EXEEXT,
+                Path::new("/b/libmicrohttpd-1.0.1")
+            ))
+            .is_empty(),
             "src/testcurl declares TESTS = $(check_PROGRAMS) = $(am__EXEEXT_1), \
              and ITS am__EXEEXT_1 is empty. test_md5 belongs to src/microhttpd \
              and basicauthentication to doc/examples, which declares no TESTS \
              at all: {:#?}",
-            classify_tests_per_directory(COLLIDING_EXEEXT, Path::new("/b/libmicrohttpd-1.0.1"))
+            classify_tests_per_directory(&VariableDatabase::parse(
+                COLLIDING_EXEEXT,
+                Path::new("/b/libmicrohttpd-1.0.1")
+            ))
         );
     }
 
@@ -3882,7 +3835,7 @@ TESTS = $(check_PROGRAMS)\n\
 am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
 ";
         assert_eq!(
-            classify_tests_per_directory(DB, Path::new("/b/proj")),
+            classify_tests_per_directory(&VariableDatabase::parse(DB, Path::new("/b/proj"))),
             vec![TestEntry::Binary("test_md5".to_string())],
             "src/microhttpd's own TESTS resolves against its own \
              am__EXEEXT_1, and doc/examples contributes nothing"
@@ -3895,7 +3848,7 @@ am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
     #[test]
     fn the_brace_form_of_exeext_expands_too() {
         let db = "EXEEXT = .exe\ncheck_PROGRAMS = tool${EXEEXT}\nTESTS = $(check_PROGRAMS)\n";
-        let vars = parse_variables(db);
+        let vars = single_scope(db);
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Binary("tool.exe".to_string())],
@@ -4343,7 +4296,7 @@ make[1]: Leaving directory '/build/gl'\n\
              am__EXEEXT_2 = test_sha1$(EXEEXT) test_sha256$(EXEEXT)\n\
              check_PROGRAMS = test_base$(EXEEXT) $(am__EXEEXT_1) $(am__EXEEXT_2)\n\
              TESTS = $(check_PROGRAMS)\n";
-        let vars = parse_variables(db);
+        let vars = single_scope(db);
         assert_eq!(
             classify_tests(&vars),
             vec![
@@ -4420,13 +4373,10 @@ make[1]: Leaving directory '/src/lib'\n\
 ";
         let db = "noinst_LTLIBRARIES = gl/libgnu.la\nlibgnu_la_SOURCES = helper.c\n\
              lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n";
-        let vars = parse_variables(db);
         let (_, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            db,
+            &VariableDatabase::parse(db, Path::new("/src")),
             "conv",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -4455,14 +4405,13 @@ gcc -c -o main.o main.c\n\
 libtool --tag=CC --mode=link gcc main.o -o libthing.la\n\
 make[1]: Leaving directory '/src/lib'\n\
 ";
-        let vars =
-            parse_variables("lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n");
         let (_, escalations, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            "lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n",
+            &VariableDatabase::parse(
+                "lib_LTLIBRARIES = lib/libthing.la\nlibthing_la_SOURCES = main.c\n",
+                Path::new("/src"),
+            ),
             "conv",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -4493,14 +4442,13 @@ gcc -c -o helper.o helper.c\n\
 libtool --tag=CC --mode=link gcc helper.o -o libgnu.la\n\
 make[1]: Leaving directory '/src/gl'\n\
 ";
-        let vars =
-            parse_variables("noinst_LTLIBRARIES = libgnu.la\nlibgnu_la_SOURCES = helper.c\n");
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            "noinst_LTLIBRARIES = libgnu.la\nlibgnu_la_SOURCES = helper.c\n",
+            &VariableDatabase::parse(
+                "noinst_LTLIBRARIES = libgnu.la\nlibgnu_la_SOURCES = helper.c\n",
+                Path::new("/src"),
+            ),
             "conv",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -4527,13 +4475,13 @@ gcc -c -o a.o a.c\n\
 libtool --tag=CC --mode=link gcc a.o -o libthing.la\n\
 make[1]: Leaving directory '/src/lib'\n\
 ";
-        let vars = parse_variables("lib_LTLIBRARIES = libthing.la\nlibthing_la_SOURCES = a.c\n");
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/src")),
-            &declared_targets(&vars),
-            "lib_LTLIBRARIES = libthing.la\nlibthing_la_SOURCES = a.c\n",
+            &VariableDatabase::parse(
+                "lib_LTLIBRARIES = libthing.la\nlibthing_la_SOURCES = a.c\n",
+                Path::new("/src"),
+            ),
             "conv",
-            Path::new("/src"),
             Path::new("/src"),
             Path::new("/src"),
         );
@@ -4545,22 +4493,38 @@ make[1]: Leaving directory '/src/lib'\n\
         );
     }
 
+    // libmicrohttpd's shape: `am__EXEEXT_1` means `test_md5` in one
+    // directory, nothing in the next (its conditional was false) and
+    // `perf_replies` in a third, and each directory's `TESTS` resolves
+    // against its own definition. An empty definition contributes nothing
+    // and erases nothing.
     #[test]
-    fn a_conditional_variable_defined_per_directory_keeps_every_definition() {
-        let db = "am__EXEEXT_1 = test_md5$(EXEEXT)\n\
-             am__EXEEXT_1 = \n\
-             am__EXEEXT_1 = perf_replies$(EXEEXT)\n\
-             check_PROGRAMS = $(am__EXEEXT_1)\n\
-             TESTS = $(check_PROGRAMS)\n";
-        let vars = parse_variables(db);
+    fn each_directory_resolves_its_conditional_tests_against_its_own_definition() {
+        const DB: &str = "\
+# make[1]: Entering directory '/b/src/microhttpd'\n\
+am__EXEEXT_1 = test_md5$(EXEEXT)\n\
+check_PROGRAMS = $(am__EXEEXT_1)\n\
+TESTS = $(check_PROGRAMS)\n\
+# make[1]: Leaving directory '/b/src/microhttpd'\n\
+# make[1]: Entering directory '/b/src/testcurl'\n\
+am__EXEEXT_1 = \n\
+check_PROGRAMS = $(am__EXEEXT_1)\n\
+TESTS = $(check_PROGRAMS)\n\
+# make[1]: Leaving directory '/b/src/testcurl'\n\
+# make[1]: Entering directory '/b/src/perf'\n\
+am__EXEEXT_1 = perf_replies$(EXEEXT)\n\
+check_PROGRAMS = $(am__EXEEXT_1)\n\
+TESTS = $(check_PROGRAMS)\n\
+# make[1]: Leaving directory '/b/src/perf'\n\
+";
         assert_eq!(
-            classify_tests(&vars),
+            classify_tests_per_directory(&parsed(DB)),
             vec![
                 TestEntry::Binary("test_md5".to_string()),
                 TestEntry::Binary("perf_replies".to_string()),
             ],
-            "an empty definition must not erase the real ones, and every \
-             directory's contribution has to survive the flattening"
+            "the empty definition must not erase the real ones, and every \
+             directory's contribution has to survive"
         );
     }
 
@@ -4576,7 +4540,7 @@ make[1]: Leaving directory '/src/lib'\n\
         let db = "am__EXEEXT_2 = test_a$(EXEEXT)\n\
              check_PROGRAMS = $(am__EXEEXT_2)\n\
              TESTS = $(am__EXEEXT_2) $(am__EXEEXT_2)\n";
-        let vars = parse_variables(db);
+        let vars = single_scope(db);
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Binary("test_a".to_string())],
@@ -4591,7 +4555,7 @@ make[1]: Leaving directory '/src/lib'\n\
     // than recurse forever, and it must not silently yield nothing.
     #[test]
     fn a_self_referential_variable_terminates_as_unresolved() {
-        let vars = parse_variables("LOOP = $(LOOP)\nTESTS = $(LOOP)\n");
+        let vars = single_scope("LOOP = $(LOOP)\nTESTS = $(LOOP)\n");
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Unresolved("$(LOOP)".to_string())],
@@ -4604,7 +4568,7 @@ make[1]: Leaving directory '/src/lib'\n\
     // surveyed projects have a TESTS entry no database lookup resolves.
     #[test]
     fn a_tests_entry_that_resolves_to_nothing_is_unresolved_not_guessed() {
-        let vars = parse_variables("check_PROGRAMS = test_a$(EXEEXT)\nTESTS = $(libgd_tests)\n");
+        let vars = single_scope("check_PROGRAMS = test_a$(EXEEXT)\nTESTS = $(libgd_tests)\n");
         assert_eq!(
             classify_tests(&vars),
             vec![TestEntry::Unresolved("$(libgd_tests)".to_string())],
@@ -4614,50 +4578,63 @@ make[1]: Leaving directory '/src/lib'\n\
         );
     }
 
-    // `TESTS` is per-DIRECTORY under recursive make, and the frontend reads
-    // one flattened database. jansson declares `run-suites` in test/ and
-    // `scripts/clang-format-check` at the root; last-wins kept whichever came
-    // second and reported half the suite. Same failure the primaries already
-    // accumulate to avoid.
+    // `TESTS` is per-DIRECTORY under recursive make. jansson declares
+    // `run-suites` in test/ and `scripts/clang-format-check` at the root;
+    // a flattened last-wins kept whichever came second and reported half
+    // the suite. Every scope's `TESTS` is a test, qualified by the
+    // directory that declared it.
     #[test]
     fn tests_declared_in_several_directories_all_survive() {
-        let vars = parse_variables("TESTS = run-suites\nTESTS = scripts/format-check\n");
+        const DB: &str = "\
+# make[1]: Entering directory '/b/test'\n\
+TESTS = run-suites\n\
+# make[1]: Leaving directory '/b/test'\n\
+TESTS = scripts/format-check\n\
+";
         assert_eq!(
-            classify_tests(&vars),
+            classify_tests_per_directory(&parsed(DB)),
             vec![
-                TestEntry::Script("run-suites".to_string()),
                 TestEntry::Script("scripts/format-check".to_string()),
+                TestEntry::Script("test/run-suites".to_string()),
             ],
-            "both declarations must survive the flattening — make never sees \
-             them together, so merging is ours to do"
+            "both declarations survive — make never sees them together, so \
+             combining them is ours to do, by name, above the scopes — with \
+             the root's first"
         );
     }
 
-    // Accumulating across directories means the same declaration arrives more
-    // than once: `make -p` reports a directory's TESTS once per sub-make that
-    // reads it, so jansson's five `TESTS = ` lines are really two distinct
-    // tests. Shipped un-deduplicated, the escalation listed `run-suites` twice
-    // and `clang-format-check` three times, which reads as five separate
-    // problems to whoever has to resolve it.
+    // The same declaration arrives more than once: automake recurses into
+    // `.` for a `SUBDIRS = . sub` Makefile, so `make -p` prints that
+    // directory's database twice, and jansson's five `TESTS = ` lines are
+    // really two distinct tests. Shipped un-deduplicated, the escalation
+    // listed `run-suites` twice and `clang-format-check` three times, which
+    // reads as five separate problems to whoever has to resolve it.
     #[test]
     fn a_test_declared_once_is_not_reported_several_times() {
-        let db = "TESTS = run-suites\nTESTS = scripts/format-check\n\
-             TESTS = run-suites\nTESTS = scripts/format-check\n";
-        let vars = parse_variables(db);
+        const DB: &str = "\
+# make[1]: Entering directory '/b/test'\n\
+TESTS = run-suites\n\
+# make[1]: Leaving directory '/b/test'\n\
+TESTS = scripts/format-check\n\
+# make[1]: Entering directory '/b/test'\n\
+TESTS = run-suites\n\
+# make[1]: Leaving directory '/b/test'\n\
+TESTS = scripts/format-check\n\
+";
         assert_eq!(
-            classify_tests(&vars),
+            classify_tests_per_directory(&parsed(DB)),
             vec![
-                TestEntry::Script("run-suites".to_string()),
                 TestEntry::Script("scripts/format-check".to_string()),
+                TestEntry::Script("test/run-suites".to_string()),
             ],
-            "deduplicated, and in first-seen order — a repeat is the same \
+            "deduplicated, and in scope order — a repeat is the same \
              declaration seen twice, not a second test"
         );
     }
 
     #[test]
     fn a_project_with_no_tests_variable_classifies_nothing() {
-        let vars = parse_variables("check_PROGRAMS = helper$(EXEEXT)\n");
+        let vars = single_scope("check_PROGRAMS = helper$(EXEEXT)\n");
         assert!(
             classify_tests(&vars).is_empty(),
             "gzip declares check_PROGRAMS and no TESTS at all: building a \
@@ -4683,7 +4660,7 @@ am__EXEEXT_3 = sample/hello-world$(EXEEXT) $(am__EXEEXT_2)\n\
 am__EXEEXT_4 = $(am__EXEEXT_3)\n\
 noinst_PROGRAMS = $(am__EXEEXT_4)\n\
 ";
-        let names: Vec<String> = declared_targets(&parse_variables(DATABASE))
+        let names: Vec<String> = declared_targets_in(Path::new("/b"), &single_scope(DATABASE))
             .into_iter()
             .map(|d| format!("{}:{}", d.destination, d.name))
             .collect();
@@ -4717,7 +4694,8 @@ check_PROGRAMS = hwloc_bitmap $(am__EXEEXT_1) $(am__EXEEXT_2)\n\
 TESTS = $(check_PROGRAMS)\n\
 # make[1]: Leaving directory '/b/tests'\n\
 ";
-        let names: Vec<String> = declared_targets_by_directory(DATABASE)
+        let names: Vec<String> = parsed(DATABASE)
+            .declared_targets()
             .into_iter()
             .map(|d| format!("{}:{}", d.destination, d.name))
             .collect();
@@ -4735,7 +4713,7 @@ TESTS = $(check_PROGRAMS)\n\
 
         // And the test list: the undefined $(am__EXEEXT_1) is a false
         // conditional (Windows-only), not an unresolved reference.
-        let entries = classify_tests_per_directory(DATABASE, Path::new("/b"));
+        let entries = classify_tests_per_directory(&parsed(DATABASE));
         assert_eq!(
             entries,
             vec![
@@ -4746,7 +4724,7 @@ TESTS = $(check_PROGRAMS)\n\
         );
 
         // A project's OWN undefined variable is still escalated.
-        let entries = classify_tests(&parse_variables("TESTS = $(MY_SUITE)\n"));
+        let entries = classify_tests(&single_scope("TESTS = $(MY_SUITE)\n"));
         assert_eq!(
             entries,
             vec![TestEntry::Unresolved("$(MY_SUITE)".to_string())]
@@ -4758,10 +4736,10 @@ TESTS = $(check_PROGRAMS)\n\
     // more wins, so it renders once, as the noinst binary it is.
     #[test]
     fn a_name_under_two_primaries_is_declared_once_with_the_more_specific_destination() {
-        let vars = parse_variables(
+        let vars = single_scope(
             "noinst_PROGRAMS = authorization_example\nEXTRA_PROGRAMS = authorization_example demo\ncheck_PROGRAMS = demo\n",
         );
-        let names: Vec<String> = declared_targets(&vars)
+        let names: Vec<String> = declared_targets_in(Path::new("/b"), &vars)
             .iter()
             .map(|d| format!("{}:{}", d.destination, d.name))
             .collect();
@@ -4770,7 +4748,7 @@ TESTS = $(check_PROGRAMS)\n\
 
     #[test]
     fn declared_targets_recovers_names_destinations_and_primaries() {
-        let declared = declared_targets(&parse_variables(DATABASE));
+        let declared = declared_targets_in(Path::new("/b"), &single_scope(DATABASE));
         assert_eq!(
             declared,
             vec![
@@ -4778,38 +4756,52 @@ TESTS = $(check_PROGRAMS)\n\
                     name: "greeter".to_string(),
                     destination: "bin".to_string(),
                     primary: "PROGRAMS".to_string(),
+                    directory: PathBuf::from("/b"),
                 },
                 DeclaredTarget {
                     name: "libgreet.a".to_string(),
                     destination: "noinst".to_string(),
                     primary: "LIBRARIES".to_string(),
+                    directory: PathBuf::from("/b"),
                 },
                 DeclaredTarget {
                     name: "libshout.la".to_string(),
                     destination: "lib".to_string(),
                     primary: "LTLIBRARIES".to_string(),
+                    directory: PathBuf::from("/b"),
                 },
             ],
             "$(EXEEXT) must be expanded from the database, not assumed empty"
         );
     }
 
-    // Verbatim from a real `make -p -n` on xz 5.4.7: recursive make emits one
-    // primary per subdirectory, so the SAME name is defined four times. Taking
-    // the last dropped the project's namesake binary while reporting success.
+    // The shape of a real `make -p -n` on xz 5.4.7: recursive make prints one
+    // database per subdirectory, so the SAME primary is defined in four of
+    // them. Flattened with last-wins, this dropped the project's namesake
+    // binary while reporting success.
     const RECURSIVE_PRIMARIES: &str = "\
-bin_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2)
-bin_PROGRAMS = xz$(EXEEXT)
-bin_PROGRAMS = lzmainfo$(EXEEXT)
+# make[2]: Entering directory '/b/src/liblzma'
 lib_LTLIBRARIES = liblzma.la
 EXEEXT =
+# make[2]: Leaving directory '/b/src/liblzma'
+# make[2]: Entering directory '/b/src/xz'
+bin_PROGRAMS = xz$(EXEEXT)
+EXEEXT =
 xz_SOURCES = src/xz/main.c
+# make[2]: Leaving directory '/b/src/xz'
+# make[2]: Entering directory '/b/src/lzmainfo'
+bin_PROGRAMS = lzmainfo$(EXEEXT)
+EXEEXT =
 lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
+# make[2]: Leaving directory '/b/src/lzmainfo'
+bin_PROGRAMS = $(am__EXEEXT_1) $(am__EXEEXT_2)
+EXEEXT =
 ";
 
     #[test]
     fn a_primary_defined_in_several_subdirectories_keeps_every_target() {
-        let names: Vec<String> = declared_targets(&parse_variables(RECURSIVE_PRIMARIES))
+        let names: Vec<String> = parsed(RECURSIVE_PRIMARIES)
+            .declared_targets()
             .into_iter()
             .map(|t| t.name)
             .collect();
@@ -4820,23 +4812,34 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
                 "lzmainfo".to_string(),
                 "xz".to_string()
             ],
-            "recursive make defines bin_PROGRAMS once per subdirectory; overwriting \
-             silently drops every target but the last. Also: `$(am__EXEEXT_N)` is an \
-             unexpanded reference, not a target name."
+            "recursive make defines bin_PROGRAMS once per subdirectory, and every \
+             scope's declaration is a target. Also: the top level's `$(am__EXEEXT_N)` \
+             references are false conditionals there, not target names."
         );
     }
 
-    // The other direction: accumulating is confined to primaries. A per-target
-    // variable belongs to exactly one directory, so merging its definitions
-    // would concatenate unrelated source lists.
+    // Within one scope the last definition wins for EVERY name, primaries
+    // included: `make -p` prints a variable's final value, so a second
+    // definition in one scope is a restatement, never a second directory.
+    // The flattened model merged primaries here; this is the assertion that
+    // would go red if that merge crept back in.
     #[test]
-    fn a_non_primary_variable_still_takes_the_last_definition() {
-        let vars = parse_variables("xz_SOURCES = first.c\nxz_SOURCES = second.c\n");
+    fn within_one_scope_the_last_definition_wins_for_every_name() {
+        let vars = single_scope("xz_SOURCES = first.c\nxz_SOURCES = second.c\n");
         assert_eq!(
             vars.get("xz_SOURCES").map(String::as_str),
             Some("second.c"),
-            "only primaries accumulate; a per-target variable keeps make's \
-             last-assignment-wins"
+            "a per-target variable keeps make's last-assignment-wins"
+        );
+        let names: Vec<String> = parsed("bin_PROGRAMS = a\nbin_PROGRAMS = b\n")
+            .declared_targets()
+            .into_iter()
+            .map(|t| t.name)
+            .collect();
+        assert_eq!(
+            names,
+            vec!["b".to_string()],
+            "and so does a primary: nothing accumulates inside a scope"
         );
     }
 
@@ -4997,13 +5000,10 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
 
     fn app_graph(stream: &str, deps: &Dependencies) -> (BuildGraph, Vec<NeedsAttention>) {
         let database = "bin_PROGRAMS = app\napp_SOURCES = src/main.c\n";
-        let vars = parse_variables(database);
         let (graph, escalations, _) = to_graph_with_dependencies(
             &parse_commands(stream, Path::new("/proj")),
-            &declared_targets(&vars),
-            database,
+            &VariableDatabase::parse(database, Path::new("/proj")),
             "greet-user",
-            Path::new("/proj"),
             Path::new("/proj"),
             Path::new("/proj"),
             deps,
@@ -5107,7 +5107,7 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
     // install directory under includedir, declared through variables.
     #[test]
     fn installed_headers_are_promoted_to_hdrs_with_their_install_prefix() {
-        let vars = parse_variables(
+        let vars = parsed(
             "include_HEADERS = src/greet.h src/util.h\n\
              EVENT2_EXPORT = include/event2/buffer.h include/event2/event.h\n\
              prefix = /usr/local\n\
@@ -5198,10 +5198,7 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
             sources: vec!["a/x.h".to_string(), "b/y.h".to_string()],
             ..Default::default()
         }];
-        promote_installed_headers(
-            &mut split,
-            &parse_variables("include_HEADERS = a/x.h b/y.h\n"),
-        );
+        promote_installed_headers(&mut split, &parsed("include_HEADERS = a/x.h b/y.h\n"));
         assert_eq!(
             split[0].strip_include_prefix, None,
             "two directories cannot both be the prefix; better none than half right"
@@ -5294,25 +5291,22 @@ gcc -c -o hwloc_bind.o /s/tests/hwloc_bind.c\n\
 gcc -o hwloc_bind hwloc_bind.o\n\
 make[1]: Leaving directory '/b/tests'\n\
 ";
-        let by_dir = parse_variables_by_directory(DATABASE, Path::new("/b"));
+        let db = parsed(DATABASE);
         assert_eq!(
-            by_dir[Path::new("/b/utils")]["hwloc_bind_SOURCES"],
+            db.scope(Path::new("/b/utils")).unwrap()["hwloc_bind_SOURCES"],
             "hwloc-bind.c"
         );
         assert_eq!(
-            by_dir[Path::new("/b/tests")]["hwloc_bind_SOURCES"],
+            db.scope(Path::new("/b/tests")).unwrap()["hwloc_bind_SOURCES"],
             "hwloc_bind.c"
         );
 
-        let vars = parse_variables(DATABASE);
         let (graph, _, _) = to_graph(
             &parse_commands(STREAM, Path::new("/b")),
-            &declared_targets(&vars),
-            DATABASE,
+            &VariableDatabase::parse(DATABASE, Path::new("/b")),
             "hwloc",
             Path::new("/s"),
             Path::new("/s"),
-            Path::new("/b"),
         );
         let sources: Vec<(String, Vec<String>)> = graph
             .targets
@@ -5353,32 +5347,26 @@ TESTS = parent-a.sh parent-b.sh\n\
 # Variables\n\
 TESTS = top.sh\n\
 ";
-        let scopes = directory_scopes(DATABASE);
-        let tests_of = |dir: Option<&str>| -> Vec<String> {
-            scopes
-                .iter()
-                .find(|(d, _)| {
-                    d.as_deref().map(|p| p.to_string_lossy().into_owned())
-                        == dir.map(str::to_string)
-                })
-                .map(|(_, vars)| vars.get("TESTS").cloned().unwrap_or_default())
+        let db = parsed(DATABASE);
+        let tests_of = |dir: &str| -> Vec<String> {
+            db.scope(Path::new(dir))
+                .and_then(|vars| vars.get("TESTS"))
+                .cloned()
                 .unwrap_or_default()
                 .split_whitespace()
                 .map(str::to_string)
                 .collect()
         };
-        assert_eq!(tests_of(Some("/b/utils/sub")), vec!["child.sh"]);
+        assert_eq!(tests_of("/b/utils/sub"), vec!["child.sh"]);
+        assert_eq!(tests_of("/b/utils"), vec!["parent-a.sh", "parent-b.sh"]);
         assert_eq!(
-            tests_of(Some("/b/utils")),
-            vec!["parent-a.sh", "parent-b.sh"]
-        );
-        assert_eq!(
-            tests_of(None),
+            tests_of("/b"),
             vec!["top.sh"],
-            "after every Leaving, the top-level make's own"
+            "after every Leaving, the top-level make's own, keyed by the build root"
         );
+        assert_eq!(db.root()["TESTS"], "top.sh");
 
-        let entries = classify_tests_per_directory(DATABASE, Path::new("/b"));
+        let entries = classify_tests_per_directory(&parsed(DATABASE));
         let names: Vec<String> = entries
             .iter()
             .map(|e| match e {
@@ -5388,12 +5376,13 @@ TESTS = top.sh\n\
         assert_eq!(
             names,
             vec![
+                "top.sh",
                 "utils/sub/child.sh",
                 "utils/parent-a.sh",
                 "utils/parent-b.sh",
-                "top.sh"
             ],
-            "each script qualified by the directory that declared it, once"
+            "each script qualified by the directory that declared it, once; \
+             the root's lead even though make prints its database last"
         );
     }
 }

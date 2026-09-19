@@ -164,22 +164,32 @@ and unreliable for the rest:
 - `*_CPPFLAGS` in the database is pre-expansion and misses what `configure` and
   `AM_CPPFLAGS` contributed. The compile line has everything.
 
-### A per-target variable is read from the directory that built the target
+### The database is one scope per directory, and nothing merges across them
 
-The flattened map is the wrong scope for `<canon>_SOURCES` and its
-siblings: two targets in different directories can canonicalise to one
-variable name — hwloc's utility `hwloc-bind` and its test `hwloc_bind` both
-own `hwloc_bind_SOURCES` — and the flattened map keeps whichever came last,
-so the utility was handed the test's source and the copy failed on a file
-its directory does not have. `make -p -n` prints one database per sub-make,
-and prints it AFTER the sub-make's children have returned — so the text
-following a `Leaving directory` line is the parent's, and the split has to
-be a stack (`directory_scopes`, `parse_variables_by_directory`), not "the
-last directory entered"; the older split handed hwloc's `utils/hwloc`
-database to its last subdirectory and misattributed 67 tests.
-`target_var` reads a target's variable from the directory that linked it
-before falling back to the flattened map. This is the per-directory scoping bzl-oek asks for,
-applied where a wrong answer is a missing file rather than a spurious name.
+`make -p -n` on a recursive project prints one database per sub-make, each
+after its own children have returned, so the text following a `Leaving
+directory` line is the parent's and the split is a stack. The frontend
+holds that as `VariableDatabase`: one scope per build directory, keyed by
+the directory (the top-level make's by the build root), last definition
+wins within a scope — make's own rule — and no merging between scopes.
+Every consumer reads from a scope:
+
+- a target's per-target variables (`<canon>_SOURCES`, ...) from the scope
+  that DECLARED it (`DeclaredTarget::directory`), because two targets in
+  different directories can canonicalise to one name — hwloc's utility
+  `hwloc-bind` and its test `hwloc_bind` both own `hwloc_bind_SOURCES`;
+- each directory's primaries and `TESTS` in that directory's scope, then
+  combined by NAME above the scopes (`declared_targets`,
+  `classify_tests_per_directory`, `installed_headers`), which is where a
+  merge means something;
+- a value `configure` substituted into every Makefile (`PACKAGE`,
+  `VERSION`, `EXEEXT`) from the root scope, and a config header's `@VAR@`s
+  from the scope of the directory the header lands in (`scope_for`).
+
+What no consumer may do is look a name up "anywhere": an `am__*` name a
+scope lacks is a conditional that was false there, and a merged view would
+answer it with another directory's meaning. See "The flattened database
+was a bug class" below for the five times that happened.
 
 ## What the frontend produces
 
@@ -233,7 +243,7 @@ expanded the way make expands it — recursively, from the same database —
 before it is split into names (`expand_references`).
 
 Each directory's primaries are expanded in that directory's OWN scope
-(`declared_targets_by_directory`), never against the flattened database:
+(`VariableDatabase::declared_targets`), never against a merged one:
 recursive make defines `am__EXEEXT_2` once per Makefile (hwloc's
 `tests/hwloc` says `shmem`, its `utils/hwloc` something else), and the
 flattened map keeps one of them, so the other's target was built by `make
@@ -314,11 +324,13 @@ The `#undef` form is matched only at line start, unlike the CMake directive.
 A mid-line `#undef` is ordinary C undefining a macro, and rewriting it would
 corrupt a header rather than configure it.
 
-## The flattened database is a bug class, not a bug
+## The flattened database was a bug class, not a bug
 
-`parse_variables` merges every directory's `make -p` database into one map.
-Five bugs so far were that one decision seen from a different consumer, and
-each was fixed at the consumer:
+Until 2026-09-19 (bzl-7r9.10) the frontend merged every directory's
+`make -p` database into one map — a fixed list of names accumulated
+(`TESTS`, `am__*`, the primaries) and the last definition won for the rest.
+Five bugs were that one decision seen from a different consumer, and each
+was fixed at the consumer with a per-directory read beside the flat map:
 
 1. `TESTS` resolved against another directory's `am__EXEEXT_N` (bzl-oek);
 2. a per-target `_SOURCES` read from the wrong directory (`hwloc_bind`);
@@ -330,11 +342,16 @@ each was fixed at the consumer:
 5. an undefined `$(am__*)` treated as unresolved rather than as a false
    conditional.
 
-Each fix now reads from `directory_scopes`/`parse_variables_by_directory`
-and is pinned. The next consumer of `vars` that behaves oddly on a
-recursive project is almost certainly the sixth instance: reach for the
-per-directory map before anything else. bzl-7r9.10 is the refactor that
-makes the per-directory map the only model.
+The flat map is gone; `VariableDatabase` (above) is the only model, and a
+sixth instance now has to be written deliberately — a consumer reaching
+across scopes by hand — rather than inherited from a lookup that looked
+right. Unit tests pin each of the five. The refactor was gated on the
+corpus sweep and on a byte diff of every fixture's and corpus project's
+generated output before and after — identical, up to two sources of
+run-to-run noise that predate it (a sandbox path in some defines and quoted
+recipes, and parallel make reordering the command stream; a bead holds
+both). That diff is the acceptance test for "the same answers from a
+different model"; counts alone would have passed a reordering.
 
 ## Ordering, and why it is load-bearing
 
