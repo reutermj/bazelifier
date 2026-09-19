@@ -160,10 +160,15 @@ sources both ways and its two consumers produce byte-identical output. What
 does differ is the symbol table — zlib's shared link applies a version script
 that hides internals the static archive exposes.
 
-`dynamic_deps` is emitted only on executables, because `cc_library` has no
-such attribute. A library that links a shared library therefore cannot express
-that in Bazel and would downgrade to a static link; no corpus project hits it
-yet, since every consumer of zlib's shared `libz` is an executable.
+`dynamic_deps` is emitted on executables and on the `cc_shared_library`
+wrapper of a shared library, because `cc_library` has no such attribute. A
+SHARED library that links another shared library — PMIx's libpmix on the
+converted libhwloc and libevent, fixture 013 in miniature — carries the
+edge on its wrapper; without it Bazel links the other library's archive
+into the `.so` and refuses the first binary that uses both ("Two shared
+libraries in dependencies link the same library statically"). A STATIC
+library that links a shared library still cannot express the edge and would
+downgrade to a static link; no corpus project hits that yet (bzl-i4i.4).
 
 A generated `sh_test` wrapping a dynamically linked binary needs
 `LD_LIBRARY_PATH`: the binary finds its `.so` through an `$ORIGIN`-relative
