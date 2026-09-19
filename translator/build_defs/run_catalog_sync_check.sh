@@ -31,16 +31,16 @@ for f in "${catalog_build}" "${rust_source}"; do
   fi
 done
 
-# Every catalog define is an uppercase HAVE_*/SIZEOF_* string literal, and the
+# Every catalog define is an uppercase HAVE_*/SIZEOF_*/ALIGNOF_* string literal, and the
 # catalog has no other such literals, so matching those directly is reliable
 # without parsing Starlark.
-catalog_defines="$(grep -oE '"(HAVE_|SIZEOF_)[A-Z0-9_]+"' "${catalog_build}" |
+catalog_defines="$(grep -oE '"(HAVE_|SIZEOF_|ALIGNOF_)[A-Z0-9_]+"' "${catalog_build}" |
   tr -d '"' | sort -u)"
 
 # Scoped to the CATALOG_DEFINES array so an unrelated HAVE_* elsewhere in the
 # frontend (an escalation string, a test fixture) doesn't count.
 rust_defines="$(sed -n '/const CATALOG_DEFINES/,/\];/p' "${rust_source}" |
-  grep -oE '"(HAVE_|SIZEOF_)[A-Z0-9_]+"' | tr -d '"' | sort -u)"
+  grep -oE '"(HAVE_|SIZEOF_|ALIGNOF_)[A-Z0-9_]+"' | tr -d '"' | sort -u)"
 
 # An empty side means the extraction matched nothing — a checker looking at
 # nothing, which would pass the moment BOTH sides broke. Neither list is ever

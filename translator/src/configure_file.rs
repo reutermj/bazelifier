@@ -590,6 +590,13 @@ const CATALOG_DEFINES: &[&str] = &[
     "HAVE_STRUCT_IFREQ_IFR_MTU",
     "SIZEOF__BOOL",
     "SIZEOF_PID_T",
+    // Harvested from pmix 5.0.11's configure by tools/catalog/harvest.py, 2026-09-19.
+    "ALIGNOF_BOOL",
+    "ALIGNOF_INT",
+    "ALIGNOF_LONG",
+    "ALIGNOF_SIZE_T",
+    "ALIGNOF_LONG_LONG",
+    "ALIGNOF_DOUBLE",
 ];
 
 /// The `@cc_config//catalog:<target>` label for a catalog define, or `None`

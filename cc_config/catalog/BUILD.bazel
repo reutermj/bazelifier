@@ -21,6 +21,24 @@ load(":catalog.bzl", "cc_config_catalog")
 # fact is probed once per toolchain across the whole graph (see
 # ../sharing_test.sh). Target names are the define lowercased.
 cc_config_catalog(
+    # (type, [declaring headers], SIZEOF_ macro) — check_type_size.
+    alignofs = [
+        # Harvested from pmix 5.0.11's configure by tools/catalog/harvest.py, 2026-09-19.
+        (
+            "bool",
+            ["stdbool.h"],
+            "ALIGNOF_BOOL",
+        ),
+        ("int", [], "ALIGNOF_INT"),
+        ("long", [], "ALIGNOF_LONG"),
+        (
+            "size_t",
+            ["stddef.h"],
+            "ALIGNOF_SIZE_T",
+        ),
+        ("long long", [], "ALIGNOF_LONG_LONG"),
+        ("double", [], "ALIGNOF_DOUBLE"),
+    ],
     # (header, HAVE_ macro) — check_include_file.
     headers = [
         ("bsd/stdlib.h", "HAVE_BSD_STDLIB_H"),
@@ -1546,7 +1564,6 @@ cc_config_catalog(
             "HAVE_SOCKLEN_T",
         ),
     ],
-    # (type, [declaring headers], SIZEOF_ macro) — check_type_size.
     types = [
         ("int", [], "SIZEOF_INT"),
         ("long", [], "SIZEOF_LONG"),
@@ -1724,6 +1741,13 @@ config_header(
         ":have_struct_ifreq_ifr_mtu",
         ":sizeof__bool",
         ":sizeof_pid_t",
+        # Harvested from pmix 5.0.11's configure by tools/catalog/harvest.py, 2026-09-19.
+        ":alignof_bool",
+        ":alignof_int",
+        ":alignof_long",
+        ":alignof_size_t",
+        ":alignof_long_long",
+        ":alignof_double",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -1864,6 +1888,13 @@ assert_config_header_test(
         "#define HAVE_STRUCT_IFREQ_IFR_MTU",
         "#define SIZEOF__BOOL 1",
         "#define SIZEOF_PID_T 4",
+        # Harvested from pmix 5.0.11's configure by tools/catalog/harvest.py, 2026-09-19.
+        "#define ALIGNOF_BOOL 1",
+        "#define ALIGNOF_INT 4",
+        "#define ALIGNOF_LONG 8",
+        "#define ALIGNOF_SIZE_T 8",
+        "#define ALIGNOF_LONG_LONG 8",
+        "#define ALIGNOF_DOUBLE 8",
     ],
     must_not_contain = [
         "#define HAVE_XLOCALE_H",  # must not be defined on glibc

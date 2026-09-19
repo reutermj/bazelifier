@@ -13,12 +13,12 @@ addition below. The target name for each is its define lowercased, so the
 translator can derive the label from the `#cmakedefine` name it sees.
 """
 
-load("//cc_config:probe.bzl", "check_include_file", "check_struct_member", "check_symbol_exists", "check_type_exists", "check_type_size")
+load("//cc_config:probe.bzl", "check_include_file", "check_struct_member", "check_symbol_exists", "check_type_alignof", "check_type_exists", "check_type_size")
 
 def _target_name(define):
     return define.lower()
 
-def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], type_exists = [], struct_members = []):
+def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], type_exists = [], struct_members = [], alignofs = []):
     """Declares the catalog probe targets.
 
     Args:
@@ -34,6 +34,9 @@ def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], 
             SIZEOF_ facts above.
       struct_members: list of (struct, member, [headers], define) for
             check_struct_member — AC_CHECK_MEMBERS facts.
+      alignofs: list of (type, [headers], define) for check_type_alignof —
+            AC_CHECK_ALIGNOF facts (ALIGNOF_DOUBLE), the alignment analogue
+            of `types`.
     """
     for header, define in headers:
         check_include_file(
@@ -83,6 +86,14 @@ def cc_config_catalog(name = "catalog", headers = [], symbols = [], types = [], 
             struct = struct,
             member = member,
             headers = member_headers,
+            define = define,
+            visibility = ["//visibility:public"],
+        )
+    for type_name, type_headers, define in alignofs:
+        check_type_alignof(
+            name = _target_name(define),
+            type = type_name,
+            headers = type_headers,
             define = define,
             visibility = ["//visibility:public"],
         )

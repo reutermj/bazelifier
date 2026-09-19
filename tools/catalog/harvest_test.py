@@ -52,6 +52,11 @@ ac_fn_c_check_member "$LINENO" "struct sockaddr_in" "sin_len" "ac_cv_member_stru
   if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (pthread_t))" "ac_cv_sizeof_pthread_t"        "$ac_includes_default
       #include <pthread.h>
 "; then :
+  if ac_fn_c_compute_int "$LINENO" "(long int) offsetof (ac__type_alignof_, y)" "ac_cv_alignof_double"        "$ac_includes_default
+#ifndef offsetof
+# define offsetof(type, member) ((char *) &((type *) 0)->member - (char *) 0)
+#endif
+typedef struct { char x; double y; } ac__type_alignof_;"; then :
 # Check whether --enable-openssl was given.
 if test "${enable_openssl+set}" = set; then :
 $as_echo "#define HAVE_OPENSSL 1" >>confdefs.h
@@ -90,6 +95,9 @@ class ParseTest(unittest.TestCase):
         s = got["SIZEOF_PTHREAD_T"]
         self.assertEqual((s.kind, s.subject), ("sizeof", "pthread_t"))
         self.assertEqual(s.headers, H.DEFAULT_INCLUDES + ["pthread.h"])
+        a = got["ALIGNOF_DOUBLE"]
+        self.assertEqual((a.kind, a.subject, a.headers), ("alignof", "double", H.DEFAULT_INCLUDES),
+                         "AC_CHECK_ALIGNOF names its type only in the probe's typedef")
         self.assertNotIn("HAVE_DO", got, "the loop keyword is not a function")
         self.assertNotIn("HAVE__AC_FUNC", got)
 
@@ -128,7 +136,7 @@ class SelectTest(unittest.TestCase):
         new, skipped = H.select(H.harvest(CONFIGURE_269), None, set(), set())
         self.assertEqual(skipped["not in template"], [])
         self.assertEqual(skipped["no check site"], [])
-        self.assertEqual(len(new), 11, sorted(e.macro for e in new))
+        self.assertEqual(len(new), 12, sorted(e.macro for e in new))
 
 
 class FakeCompiler:
@@ -147,7 +155,7 @@ class FakeCompiler:
         "sys/sysctl.h": set(),
     }
 
-    BUILTIN = {"int", "long", "void *"}
+    BUILTIN = {"int", "long", "void *", "double"}
 
     def compiles(self, source, link=False, defines=()):
         headers = re.findall(r'#include <([^>]+)>', source)
@@ -155,7 +163,7 @@ class FakeCompiler:
             return False  # a header this host lacks
         declared = set().union(*(self.DECLARES[h] for h in headers)) if headers else set()
         declared |= self.BUILTIN
-        for pattern in (r'\(&(\w+)\)', r'sizeof\(s\.(\w+)\)', r'sizeof\(([^)]+)\)'):
+        for pattern in (r'\(&(\w+)\)', r'sizeof\(s\.(\w+)\)', r'sizeof\(([^)]+)\)', r'_Alignof\(([^)]+)\)'):
             m = re.search(pattern, source)
             if m:
                 return m.group(1) in declared
@@ -223,6 +231,11 @@ class VerifyTest(unittest.TestCase):
         self.assertEqual(got["HAVE_UINT16_T"].headers, ["stdint.h"], "not all ten of $ac_includes_default")
         self.assertEqual(got["SIZEOF_PTHREAD_T"].headers, ["pthread.h"])
         self.assertEqual(got["SIZEOF_PTHREAD_T"].value, 8)
+        self.assertEqual((got["ALIGNOF_DOUBLE"].headers, got["ALIGNOF_DOUBLE"].value), ([], 8),
+                         "a builtin type needs no header; the fake answers 8 for every run")
+        self.assertEqual(H.catalog_line(got["ALIGNOF_DOUBLE"]), '("double", [], "ALIGNOF_DOUBLE"),')
+        self.assertEqual(H.template_line(got["ALIGNOF_DOUBLE"]), "#define ALIGNOF_DOUBLE @ALIGNOF_DOUBLE@")
+        self.assertEqual(H.assertion_line(got["ALIGNOF_DOUBLE"]), '"#define ALIGNOF_DOUBLE 8",')
 
     def test_absent_type_keeps_only_the_includable_stated_headers(self):
         got = self.verified()
