@@ -244,6 +244,18 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
         )
         names = comparison_names((work / "BUILD.bazel").read_text(), project)
 
+    # A binary the agent stage RECORDED as omitted — `omitted <binary> <why>`
+    # in the module's TARGETS manifest — has its comparison reported as
+    # omitted: neither passed nor failed, and listed in the row. That is the
+    # channel the deletion guard below asks for. It covers a binary the module
+    # does not build because no converted module provides a library it needs,
+    # and one whose ground truth was built with something the module
+    # deliberately lacks (libevent's regress ran its zlib tests). An
+    # unrecorded disappearance is still a failure; a recorded one is a
+    # decision, and the row says so. See build-verification.md.
+    omitted = omitted_comparisons(project_dir / "TARGETS", project)
+    omitted_here = sorted(n for n in names if n in omitted)
+    names = [n for n in names if n not in omitted]
     # A target the conversion produced and the workspace no longer defines was
     # deleted by the agent stage. Counted as failed rather than skipped: the
     # whole point of freezing is that disappearing is not a way to pass.
@@ -288,8 +300,9 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
                 print(f"  {n}", file=sys.stderr)
             print(
                 "A resolution may not reach green by deleting what was failing. "
-                "Restore the target and make it pass, or record in the generated "
-                "BUILD.bazel why it cannot exist.",
+                "Restore the target and make it pass, or record the omission: an "
+                "`omitted <binary> <why>` line in the module's TARGETS manifest, "
+                "beside the reason in its BUILD.bazel.",
                 file=sys.stderr,
             )
 
@@ -330,7 +343,23 @@ def run_post_agent(project: str, work: pathlib.Path) -> dict:
         "resolved": not items,
         "comparisons_passed": passed,
         "comparisons_failed": failed,
+        "comparisons_omitted": omitted_here,
     }
+
+
+def omitted_comparisons(manifest: pathlib.Path, project: str) -> dict[str, str]:
+    """The comparison targets a module's TARGETS manifest records as omitted,
+    mapped to the recorded reason. Written by the agent stage, never by the
+    translator (see main.rs::write_targets_manifest), which is what makes an
+    entry a decision rather than a default."""
+    if not manifest.is_file():
+        return {}
+    out = {}
+    for line in manifest.read_text().splitlines():
+        parts = line.split(maxsplit=2)
+        if len(parts) >= 2 and parts[0] == "omitted":
+            out[f"{project}_{parts[1]}_matches_ground_truth"] = parts[2] if len(parts) > 2 else ""
+    return out
 
 
 def _header_field(path: pathlib.Path, field: str) -> str:
@@ -519,6 +548,7 @@ def record_post_agent(path: pathlib.Path, result: dict) -> None:
         "open_items": [i["kind"] for i in result["open_items"]],
         "comparisons_passed": result["comparisons_passed"],
         "comparisons_failed": result["comparisons_failed"],
+        "comparisons_omitted": result.get("comparisons_omitted", []),
         "module_tests_passed": result["module_tests_passed"],
         "module_tests_failed": result["module_tests_failed"],
         "green": result["green"],
@@ -565,7 +595,10 @@ def report_post_agent(r: dict) -> str:
     out.append(
         f"comparisons:  {r['comparisons_passed']} passed, "
         f"{r['comparisons_failed']} failed"
+        + (f", {len(r['comparisons_omitted'])} omitted by recorded decision" if r.get("comparisons_omitted") else "")
     )
+    for n in r.get("comparisons_omitted", []):
+        out.append(f"  omitted: {n}")
     out.append(
         f"module tests: {r['module_tests_passed']} passed, "
         f"{r['module_tests_failed']} failed"

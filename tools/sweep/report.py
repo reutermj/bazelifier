@@ -311,7 +311,16 @@ def render_project(rows: list[dict], project: str, post: dict | None) -> str:
             f"{post['comparisons_passed'] + post['comparisons_failed']} comparisons "
             f"and {post['module_tests_passed']} of "
             f"{post['module_tests_passed'] + post['module_tests_failed']} module tests "
-            "passed. Resolutions are ephemeral by design, so this describes one "
+            "passed"
+            + (
+                f"; {len(post['comparisons_omitted'])} comparison(s) omitted by a "
+                "decision recorded in the module ("
+                + ", ".join(html.escape(n) for n in post["comparisons_omitted"])
+                + ")"
+                if post.get("comparisons_omitted")
+                else ""
+            )
+            + ". Resolutions are ephemeral by design, so this describes one "
             "run at one commit rather than a standing property.</p>"
         )
 

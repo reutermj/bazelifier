@@ -53,7 +53,7 @@ const HWLOC_WRAPPER: &str =
     include_str!("../project_notes/hwloc/002-tests-hwloc-check-programs-run-through-wrapper-sh.md");
 
 const LIBEVENT_TESTS: &str = include_str!(
-    "../project_notes/libevent/002-the-registered-tests-need-a-binary-open-mpis-flags-do-not-build.md"
+    "../project_notes/libevent/002-the-registered-tests-drive-test-sh-which-needs-the-autotools-layout.md"
 );
 
 /// Notes for `module_name`, empty when there are none.
@@ -80,7 +80,7 @@ pub fn for_project(module_name: &str) -> Vec<Note> {
                 body: LIBEVENT_STRLCPY,
             },
             Note {
-                filename: "002-the-registered-tests-need-a-binary-open-mpis-flags-do-not-build.md",
+                filename: "002-the-registered-tests-drive-test-sh-which-needs-the-autotools-layout.md",
                 body: LIBEVENT_TESTS,
             },
         ],

@@ -112,6 +112,26 @@ one thing a full read would have caught (bzl-7r9.4). Before writing a runner:
   twice, and restoring the module by hand between attempts is where the
   time went.
 
+## Omitting a binary is a decision to record, and the harness honours a record
+
+An `unconverted_dependency` item is often resolved by NOT building
+something: libevent without OpenSSL has no `libevent_openssl.la`, no
+`sample_https-client`, and a `test/regress` whose ground truth ran zlib
+tests the module cannot. The ground-truth comparison for such a binary
+cannot pass, and deleting it silently is what the frozen-expectation guard
+exists to catch. The channel for a deliberate omission is the module's
+`TARGETS` manifest: append one line per binary,
+
+    omitted <binary> <why, in a few words>
+
+beside the comment in `BUILD.bazel` that says the same. `sweep.py
+--post-agent` then reports that comparison as OMITTED — neither passed nor
+failed, and listed in the recorded row — instead of counting it as a
+deletion. A binary that is gone with no `omitted` line is still counted as
+failed. Use it for a binary the module does not build AND for one whose
+ground truth was built with something the module deliberately lacks; do
+not use it to silence a comparison you cannot explain.
+
 ## Delete the item when you close it
 
 The `.md` file is the open-work marker. `compare_runtime_output.sh` gates on

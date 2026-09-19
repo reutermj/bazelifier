@@ -3,67 +3,41 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # hwloc 2.7.1, the second leaf of the Open MPI chain (bzl-7r9.4), pinned in
 # MODULE.bazel as @hwloc.
 #
-# configure_args: Open MPI passes its bundled hwloc `--enable-plugins`, and
-# that is kept — it compiles dlopen support in, which is part of the build's
-# behaviour whether or not a plugin is built. Every optional external
-# library is disabled by DECISION, recorded here: no converted module
-# provides libxml2, cairo, libudev or the GPU runtimes, Open MPI needs none
-# of them (hwloc's built-in XML backend serves it), and left to the host's
-# package set configure would pick up this machine's libxml2 and build the
-# one dlopen'd plugin (xml_libxml) against a library the module cannot
-# carry. With libxml2 disabled no plugin is built at all.
+# Converted as hwloc ships: its own default configuration is the ground
+# truth (see overview.md, "Convert the project, not the consumer's use of
+# it"). Open MPI's --enable-plugins is Open MPI's business; what this host
+# contributes to a default configure (libxml2, so the xml_libxml plugin
+# builds; ncursesw for lstopo) surfaces as unconverted_dependency items and
+# is decided in the module. *(History: the first pin, 2026-09-19, carried
+# --enable-plugins plus a --disable-X per optional library, and a guessed
+# --disable-pci silently turned off sysfs PCI discovery — project note 001.)*
 #
-# NOT `--disable-pci`, though it looks like the same kind of flag: it also
-# turns off the Linux backend's sysfs PCI discovery (HWLOC_HAVE_LINUXPCI,
-# config/hwloc.m4), which needs no library, and hwloc's own suite then fails
-# its seven PCI topology tests — measured with `make check` under that flag.
-# The libpciaccess-based `pci` component is built only where pciaccess.h is
-# found; a host that has it would surface as an unconverted_dependency item,
-# not as a silent link against it.
-# END STATE (2026-09-19): GREEN from the unpacked workspace after the agent
-# stage — 17/17 comparisons, 180/180 module tests (45 compiled check
-# programs, 122 recorded-topology tests, 11 configure-generated scripts,
-# 2 config-header assertions), no open items; post-agent row in
-# metrics/history_post_agent.jsonl. What it cost:
+# END STATE (2026-09-19, converted as hwloc ships): GREEN from the unpacked
+# workspace after the agent stage — 17/17 comparisons, 180/180 module tests
+# (45 compiled check programs, 122 recorded-topology tests, 11
+# configure-generated scripts, 2 config-header assertions), no open items;
+# post-agent row in metrics/history_post_agent.jsonl. What it cost:
 #
-# - Translator gaps found: 8. Fixed: 6 — a per-target variable read from the
-#   flattened database (hwloc-bind's sources came from the test of the same
-#   canonical name); `make -p` scopes split on Entering only, so a parent's
-#   database went to its last child (67 misattributed tests); primaries
-#   expanded against the flattened map instead of per directory (shmem,
-#   hwloc-hello dropped); an undefined $(am__EXEEXT_N) escalated instead of
-#   expanding to nothing; local_defines not shell-quoted (RUNSTATEDIR's
-#   quotes eaten); assertions forbidding the undef line of a value of 0.
-#   Filed: LOG_COMPILER ignored for check programs (bzl-dsu), a flag paired
-#   with the wrong macro (bzl-iwo).
-# - Escalations at first conversion: 5 items, 219 unmapped config names
-#   (200 + 19) and 214 test entries (67 spurious). At green: 5 items, 130
-#   names, 136 real test entries — 92 facts moved into the catalog (headers,
-#   symbols, declarations, struct members, type presence, sizes).
-# - Agent-stage decisions: 16 probe aliases for facts configure derives
-#   under its own names; ~80 values, grouped by why in the module; a genrule
-#   for the configure-written static-components.h; lstopo built without a
-#   terminal library (the -lncursesw item); two runners reproducing the
-#   topology tests and the .sh.in scripts under automake's layout.
-# - Reversed: --disable-pci (project note 001). Measured with upstream's own
-#   `make check` before trusting the failure — which is how it was caught.
-# - Other projects moved: the per-directory work recovered libmicrohttpd's
-#   full test suite (122 -> 210 targets, 104 -> 174 tests) and closed
-#   bzl-oek; libevent, libidn2, expat, jansson item TEXT changed (catalog).
+# - Translator gaps found and fixed: 6 — make -p read as one flat database
+#   (per-directory scopes, on an Entering/Leaving stack); undefined
+#   $(am__*) conditionals; a target's sources read from the wrong
+#   directory; RUNSTATEDIR's quotes eaten by local_defines; an assertion
+#   forbidding #undef of a probe that answered 0; the Entering-only scope
+#   bug that attributed 67 tests to the wrong directory.
+# - Escalations at first conversion: 8 items, 179 unmapped names; at green
+#   under the default configure: 6 items, 62 names.
+# - Agent-stage decisions: libhwloc without the host's libxml2 (the -lxml2
+#   item; the built-in XML backend serves every XML test); lstopo without a
+#   terminal library (-lncursesw); 16 probe aliases for facts configure
+#   derives under its own names; ~80 values, grouped by why in the module;
+#   a genrule for the configure-written static-components.h; two runners
+#   reproducing the topology tests and the .sh.in scripts under automake's
+#   layout; tests/hwloc's check programs run through wrapper.sh (note 002).
+# - Reversed twice: the first pin's flags (above, note 001), caught by
+#   upstream's own `make check`; then consumer flags on a pin at all.
 convert_autotools_project(
     name = "converted",
     srcs = ["@hwloc//:all_srcs"],
-    configure_args = [
-        "--enable-plugins",
-        "--disable-libxml2",
-        "--disable-cairo",
-        "--disable-libudev",
-        "--disable-opencl",
-        "--disable-cuda",
-        "--disable-nvml",
-        "--disable-rsmi",
-        "--disable-gl",
-    ],
     visibility = [
         "//translator/tests:__pkg__",
         "//translator/tests/corpus:__subpackages__",

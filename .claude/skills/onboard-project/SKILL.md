@@ -162,17 +162,19 @@ A project that does not build natively cannot produce ground truth.
 
 **Three more things before pinning, each learned on hwloc (bzl-7r9.4):**
 
-- **A configure flag is not a decision until you have read what it gates.**
-  `--disable-pci` looked like `--disable-libxml2` and was not: in
-  `config/hwloc.m4` the same option also turns off the Linux backend's sysfs
-  PCI discovery, which needs no library, and hwloc's own suite fails seven
-  tests under it. `grep -n '<flag name>' config/*.m4 configure.ac` and read
-  every branch before recording the flag in `configure_args`.
-- **Run upstream's own `make check` under the pinned flags, in the scratch
-  build, and keep the pass/fail list.** A test upstream fails under this
-  configuration is not the agent's to make green — it is evidence the
-  configuration is wrong, or a test to record as not reproduced with that
-  reason. Without the list you cannot tell a runner bug from a wrong flag.
+- **Pin the project as it ships: no configure flags.** The ground truth is
+  the default configuration, and a consumer's needs are expressed through
+  the module's own options from the consumer's side — see overview.md,
+  "Convert the project, not the consumer's use of it". What this host adds
+  to the default build (a found libxml2) arrives as an
+  `unconverted_dependency` item for the agent stage to decide, with the
+  link line as evidence. hwloc's first pin carried a guessed
+  `--disable-pci` that also disabled sysfs PCI discovery; nothing could
+  catch it because it never went through the escalation path.
+- **Run upstream's own `make check` in the scratch build and keep the
+  pass/fail list.** A test upstream fails on this
+  host is not the agent's to make green — it is a test to record as not
+  reproduced, with that reason. Without the list you cannot tell a runner bug from a wrong flag.
 - **Harvest catalog facts from `configure` itself**, not from the
   `unmapped_config_macros` item: the frontend freezes some probe results as
   values (bzl-kba), and those never reach the item. The `for ac_header in`,

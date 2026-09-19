@@ -97,10 +97,14 @@ consumer, over three weeks. The model was the bug.
 
 ## Changes made
 
-- `.claude/skills/onboard-project`: pin only after reading what each
-  configure flag gates in the project's m4, and run upstream's own
-  `make check` under the pinned flags before the agent stage; harvest
-  catalog facts from `configure` itself.
+- `.claude/skills/onboard-project`: first written as "read what each
+  configure flag gates before pinning", then replaced the same day after a
+  review asked what a pin-time flag was doing at all: the pin carries NO
+  configure flags; the project's default is the ground truth and the host's
+  contributions go through the escalation path (overview.md, "Convert the
+  project, not the consumer's use of it"; bzl-7r9.12). Also: run upstream's
+  own `make check` before the agent stage; harvest catalog facts from
+  `configure` itself.
 - `.claude/skills/resolve-escalations`: read every test driver end to end
   before writing a runner; resolve the module root from the runner's own
   path; keep the resolution as a script applied to a fresh unpack; when a

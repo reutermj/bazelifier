@@ -142,6 +142,34 @@ optimisation to apply quietly. The corollary is that "this is inert here" is
 never sufficient evidence on its own: the question is whether the construct
 is inert *by design* or merely on this platform.
 
+## Convert the project, not the consumer's use of it
+
+A consumer decides WHICH projects get converted and in what order — Open
+MPI's runtime stack is why libevent, hwloc, PMIx and PRRTE are in the
+corpus — and nothing else. Each conversion is of the project as it ships:
+
+- Its default configuration is the ground truth. The frontend passes
+  configure no flags but the install prefix.
+- Its options are surfaced as the module's own flags (`bool_flag`s the
+  frontend recovers from configure). A consumer that needs a non-default
+  option sets the flag from its own module, the way any Bazel consumer
+  configures a dependency; an option the frontend has not modeled is a
+  translator gap, found by the consumer's conversion.
+- What the conversion host contributes to the default build (a library
+  configure found because this machine has it) surfaces as an
+  `unconverted_dependency` item and is resolved by a recorded decision in
+  the project's module — once, valid for every consumer.
+
+The limit to state plainly: the ground truth is generated under ONE
+configuration, so a flag's non-default branch is verified only when some
+corpus project exercises it.
+
+*(History: for one day, 2026-09-18, a `configure_args` attribute carried
+Open MPI's flags into libevent's and hwloc's pins. It let a guessed
+`--disable-pci` into hwloc's, which also disables sysfs PCI discovery, and
+no gate existed to catch the guess — the escalation path would have. See
+docs/retrospectives/2026-09-19-libevent-and-hwloc.md.)*
+
 ## Components
 
 - **Translator (Rust):** owns parsing the source build system and codegen

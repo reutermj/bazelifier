@@ -243,6 +243,21 @@ building against a fixture with nothing to differentiate):
 - **Target inventory**: every CMake codemodel target has a corresponding
   Bazel target that built. Cheap, but only catches gross omissions.
 
+### A recorded omission is not a deletion
+
+The post-agent measurement freezes the set of comparison targets the
+conversion produced and counts any that disappear as failed, so a
+resolution cannot go green by deleting what was failing. The one way past
+that guard is to RECORD the omission: a line `omitted <binary> <why>` in
+the module's `TARGETS` manifest, written by the agent stage beside the
+reason in `BUILD.bazel`. The measurement then reports that comparison as
+omitted — listed in the row, neither passed nor failed. This is the honest
+end state for a binary the module does not build because no converted
+module provides a library it needs (libevent's OpenSSL samples), and for a
+binary whose ground truth was built with something the module deliberately
+lacks (libevent's `test/regress` ran its zlib tests). An unrecorded
+disappearance is still a failure.
+
 ### A run is bounded
 
 Each binary runs under a ten-second `timeout -s KILL`

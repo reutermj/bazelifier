@@ -108,9 +108,8 @@ pub fn discover(
     deliverable_root: &Path,
     deps: &Dependencies,
     install_dir: Option<&Path>,
-    configure_args: &[String],
 ) -> Result<Discovery, Error> {
-    configure(source_dir, build_dir, &deps.configure_env(), configure_args)?;
+    configure(source_dir, build_dir, &deps.configure_env())?;
     // The build IS the interrogation: make echoes every command as it runs
     // them, so its stdout is the resolved command stream.
     let stream = build(build_dir, &[])?;
@@ -805,12 +804,7 @@ fn probed_names(build_dir: &Path) -> std::collections::HashSet<String> {
     names
 }
 
-fn configure(
-    source_dir: &Path,
-    build_dir: &Path,
-    env: &[(String, String)],
-    args: &[String],
-) -> Result<(), Error> {
+fn configure(source_dir: &Path, build_dir: &Path, env: &[(String, String)]) -> Result<(), Error> {
     std::fs::create_dir_all(build_dir)?;
     // Absolutized because the command runs with `current_dir(build_dir)`: a
     // caller-supplied source_dir is usually relative (Bazel passes an
@@ -823,8 +817,16 @@ fn configure(
         // step below writes under it, and dependents read it through a
         // sysroot. Explicit rather than autoconf's default, which is the
         // same value, so the two halves cannot drift.
+        //
+        // And NOTHING else: the ground truth is the project's own default
+        // configuration. A consumer's choices are its own flags on the
+        // converted module's options, and what this host happens to have
+        // installed surfaces as an escalation — see overview.md, "Convert
+        // the project, not the consumer's use of it". *(History: a
+        // configure_args attribute carried Open MPI's flags into libevent's
+        // and hwloc's pins for one day, 2026-09-18, and a guessed
+        // --disable-pci showed why no gate could catch it.)*
         .arg(format!("--prefix={}", crate::dependencies::INSTALL_PREFIX))
-        .args(args)
         .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
         .current_dir(build_dir)
         .output()

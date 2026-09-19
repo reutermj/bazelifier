@@ -33,6 +33,17 @@ Pre-agent alone cannot tell whether an escalation is *resolvable*, and an
 escalation no agent can act on is worse than one that never fired. Post-agent
 alone cannot separate an improved translator from a luckier agent run.
 
+### Omitted comparisons
+
+A post-agent row's `comparisons_omitted` lists the comparison targets the
+agent stage recorded as omitted in the module's `TARGETS` manifest
+(`omitted <binary> <why>`; build-verification.md, "A recorded omission is
+not a deletion"). They count as neither passed nor failed, so a project can
+be green with one — only with the reason on record, which the page shows
+beside the verdict. A comparison that disappears WITHOUT a record is still
+a failure; mutation-verified on libevent (removing one record turns the row
+red).
+
 ## Why `kind` is the key, and nothing else is
 
 Escalations are grouped by the `kind` field in each item's machine-readable

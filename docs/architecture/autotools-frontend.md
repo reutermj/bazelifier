@@ -122,17 +122,15 @@ sequence — where the CMake File API reports dependency order unstably
 chatter with the commands — which is why the frontend recognises only the
 handful of programs that build something and ignores every other line.
 
-### Configure arguments are part of the input
+### Configure runs with no arguments but the prefix
 
-`convert_autotools_project(configure_args = [...])` passes flags to the
-project's configure, and they are recorded on the corpus pin for the same
-reason the pin records a version: they are the build DECISIONS a consumer of
-this project made. libevent as Open MPI builds it is configured with
-`--disable-openssl`; left to the host's package set, configure would find
-this machine's OpenSSL headers and the module would link a library no
-converted module provides. `--prefix` is always `/usr/local`, supplied by
-the frontend, so a dependent's pkg-config relocation works (see
-build-verification.md, "Depending on another converted module").
+The ground truth is the project's own default configuration; the only flag
+the frontend passes is `--prefix=/usr/local`, for pkg-config relocation
+(see build-verification.md, "Depending on another converted module").
+Anything the conversion host contributes to that default — a found
+libxml2 or OpenSSL — reaches the agent as an `unconverted_dependency` item
+rather than being pre-empted at pin time. The principle and its history
+are in overview.md, "Convert the project, not the consumer's use of it".
 
 ## Second source: `make -p`, for identity
 
