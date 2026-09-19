@@ -544,13 +544,19 @@ fn copy_ground_truth_artifacts(
                 .collect();
             names.sort();
             for name in names {
+                // Once per NAME, not per target that links it: PMIx links
+                // libhwloc from libpmix and from every test program, and a
+                // second copy onto the first — read-only, because the
+                // sysroot merge kept Bazel's output modes — fails with
+                // EACCES. The bytes are the same either way.
+                if shared_lib_names.contains(&name) {
+                    continue;
+                }
                 copy_into(&libdir.join(&name), &ground_truth_dir.join(&name))?;
                 if !artifact_paths.contains(&name) {
                     artifact_paths.push(name.clone());
                 }
-                if !shared_lib_names.contains(&name) {
-                    shared_lib_names.push(name);
-                }
+                shared_lib_names.push(name);
             }
         }
     }
@@ -1091,6 +1097,102 @@ mod tests {
     /// enough either: the suite runs its tests as THREADS of one process, so
     /// a sibling's `create_dir_all` races this one's cleanup. The counter is
     /// what makes it per-invocation.
+    // PMIx: libpmix and every test program link the converted hwloc, so the
+    // dependency's shared library is staged once per target that names it.
+    // The sysroot merge copies with Bazel's read-only output modes, so the
+    // second copy onto the first failed with EACCES and the conversion died
+    // on the third node of the chain, where a dependency first had more
+    // than one consumer.
+    #[test]
+    fn a_dependency_library_two_targets_link_is_staged_once() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = unique_temp_dir("stage_once");
+        let module = root.join("greet_module");
+        fs::create_dir_all(&module).unwrap();
+        fs::write(
+            module.join("MODULE.bazel"),
+            "module(\n    name = \"greet\",\n    version = \"1.2\",\n)\n",
+        )
+        .unwrap();
+        fs::write(
+            module.join("TARGETS"),
+            "library libgreet_la libgreet shared\n",
+        )
+        .unwrap();
+        let lib = root.join("greet_install/usr/local/lib");
+        fs::create_dir_all(&lib).unwrap();
+        for name in ["libgreet.so", "libgreet.so.1", "libgreet.so.1.0.0"] {
+            fs::write(lib.join(name), "elf").unwrap();
+            // Bazel's output mode, which fs::copy carries into every copy.
+            fs::set_permissions(lib.join(name), fs::Permissions::from_mode(0o444)).unwrap();
+        }
+        let deps = dependencies::Dependencies::load(
+            &[format!(
+                "{}:{}",
+                module.display(),
+                root.join("greet_install").display()
+            )],
+            &root.join("sysroot"),
+        )
+        .unwrap();
+        let links_greet = || model::Target {
+            kind: model::TargetKind::Executable,
+            external_dependencies: vec![model::ExternalDependency {
+                module: "greet".to_string(),
+                target: "libgreet_la".to_string(),
+                shared: true,
+            }],
+            ..Default::default()
+        };
+        let graph = model::BuildGraph {
+            module: model::ModuleInfo {
+                name: "app".to_string(),
+                version: None,
+            },
+            targets: vec![
+                model::Target {
+                    name: "app".to_string(),
+                    ..links_greet()
+                },
+                model::Target {
+                    name: "app_test".to_string(),
+                    ..links_greet()
+                },
+            ],
+            tests: Vec::new(),
+            config_headers: Vec::new(),
+            unexpressed_tests: Vec::new(),
+            displaced_sources: Vec::new(),
+            dependencies: Vec::new(),
+        };
+        let out = root.join("module");
+        copy_ground_truth_artifacts(&root.join("build"), &out, &graph, &deps)
+            .expect("the second target must not re-copy onto the read-only first copy");
+        for name in ["libgreet.so", "libgreet.so.1", "libgreet.so.1.0.0"] {
+            assert!(
+                out.join("ground_truth").join(name).is_file(),
+                "{name} staged beside the ground truth"
+            );
+        }
+        // Listed once, not once per consumer: the same BUILD a single
+        // consumer produces.
+        let one = model::BuildGraph {
+            targets: vec![model::Target {
+                name: "app".to_string(),
+                ..links_greet()
+            }],
+            ..graph
+        };
+        let out_one = root.join("module_one");
+        copy_ground_truth_artifacts(&root.join("build"), &out_one, &one, &deps).unwrap();
+        assert_eq!(
+            fs::read_to_string(out.join("ground_truth/BUILD.bazel")).unwrap(),
+            fs::read_to_string(out_one.join("ground_truth/BUILD.bazel")).unwrap(),
+            "two consumers of one library render the same ground-truth BUILD as one"
+        );
+        fs::remove_dir_all(&root).ok();
+    }
+
     fn unique_temp_dir(name: &str) -> PathBuf {
         use std::sync::atomic::{AtomicUsize, Ordering};
         static NEXT: AtomicUsize = AtomicUsize::new(0);
