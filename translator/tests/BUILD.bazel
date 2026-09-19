@@ -60,6 +60,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/010-conditional-tests-per-directory:converted",
         "//translator/tests/fixtures/autotools/011-installed-library:converted",
         "//translator/tests/fixtures/autotools/012-links-installed-library:converted",
+        "//translator/tests/fixtures/autotools/013-shared-library-links-installed-library:converted",
     ],
 )
 

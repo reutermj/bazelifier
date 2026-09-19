@@ -1051,33 +1051,19 @@ fn render_cc_rule(
     // build — see docs/architecture/bazel-codegen.md's "Shared libraries".
     //
     // Only on binaries: cc_library has no dynamic_deps attribute, so a
-    // LIBRARY linking a shared library cannot express that in Bazel. Nothing
-    // in the corpus hits it yet; when something does it needs an escalation
-    // rather than this silent static downgrade (bzl-i4i.4).
+    // STATIC library linking a shared library cannot express that in Bazel.
+    // Nothing in the corpus hits it yet; when something does it needs an
+    // escalation rather than this silent static downgrade (bzl-i4i.4). A
+    // SHARED library expresses it on its cc_shared_library wrapper instead
+    // (render_shared_library).
     if target.kind == TargetKind::Executable {
-        let mut dynamic: Vec<String> = target
-            .dependencies
-            .iter()
-            .filter(|d| shared.contains(d.as_str()))
-            .map(|d| format!(":{}", shared_library_name(d)))
-            .collect();
-        // The same edge across a module boundary: the dependency's module
-        // wraps its shared library exactly as this one would
-        // (render_shared_library), so the wrapper's name is derivable.
-        dynamic.extend(
-            target
-                .external_dependencies
-                .iter()
-                .filter(|d| d.shared)
-                .map(|d| format!("@{}//:{}", d.module, shared_library_name(&d.target))),
-        );
-        render_string_list(out, "dynamic_deps", &dynamic);
+        render_string_list(out, "dynamic_deps", &dynamic_deps_of(target, shared));
     }
 
     out.push_str(PUBLIC_VISIBILITY);
     out.push_str(")\n");
 
-    render_shared_library(out, target);
+    render_shared_library(out, target, shared);
 }
 
 /// The `cc_shared_library` name for a library target.
@@ -1091,7 +1077,28 @@ fn shared_library_name(target_name: &str) -> String {
 /// provides `CcSharedLibraryInfo` and not `CcInfo`, so it can never stand in
 /// for the library in a consumer's `deps` — putting it there is an analysis
 /// error. Both rules are emitted and consumers reference both.
-fn render_shared_library(out: &mut String, target: &Target) {
+/// The `dynamic_deps` a target linking shared libraries needs: the sibling
+/// wrappers in this module, and across a module boundary the dependency's
+/// own wrapper, which its module renders exactly as this one would
+/// (`render_shared_library`), so the name is derivable.
+fn dynamic_deps_of(target: &Target, shared: &HashSet<&str>) -> Vec<String> {
+    let mut dynamic: Vec<String> = target
+        .dependencies
+        .iter()
+        .filter(|d| shared.contains(d.as_str()))
+        .map(|d| format!(":{}", shared_library_name(d)))
+        .collect();
+    dynamic.extend(
+        target
+            .external_dependencies
+            .iter()
+            .filter(|d| d.shared)
+            .map(|d| format!("@{}//:{}", d.module, shared_library_name(&d.target))),
+    );
+    dynamic
+}
+
+fn render_shared_library(out: &mut String, target: &Target, shared: &HashSet<&str>) {
     if !target.is_shared {
         return;
     }
@@ -1100,6 +1107,13 @@ fn render_shared_library(out: &mut String, target: &Target) {
         shared_library_name(&target.name)
     ));
     render_string_list(out, "deps", &[format!(":{}", target.name)]);
+    // A shared library that links another shared library — PMIx's libpmix
+    // links the converted libhwloc and libevent — has to say so here, or
+    // Bazel links the other library's archive INTO this one and refuses the
+    // first binary that uses both: "Two shared libraries in dependencies
+    // link the same library statically". The wrapper's dynamic_deps is the
+    // only place a library can express the edge (see the binary case above).
+    render_string_list(out, "dynamic_deps", &dynamic_deps_of(target, shared));
     // Without this Bazel names the output after the TARGET, so an automake
     // `liblzma.la` produces `libliblzma.la_shared.so` — a filename embedding
     // a control-file extension that means nothing in Bazel and matches no
@@ -1427,6 +1441,43 @@ mod tests {
         assert!(
             !untouched.contains("deliberately NOT in"),
             "no displacement, no note:\n{untouched}"
+        );
+    }
+
+    // PMIx: libpmix is a SHARED library that links the converted libhwloc
+    // and libevent. The edge cannot go on its cc_library (no dynamic_deps
+    // there), so it goes on the cc_shared_library wrapper; without it Bazel
+    // linked libhwloc's archive INTO libpmix.so and refused every binary
+    // that used both. Fixture 013 is the same shape in miniature.
+    #[test]
+    fn a_shared_library_linking_a_dependencys_shared_library_gets_dynamic_deps_on_its_wrapper() {
+        let mut g = graph(None);
+        g.dependencies = vec![model::ModuleDependency {
+            name: "greet".to_string(),
+            version: Some("1.2".to_string()),
+        }];
+        g.targets[0].kind = TargetKind::Library;
+        g.targets[0].is_shared = true;
+        g.targets[0].external_dependencies = vec![model::ExternalDependency {
+            module: "greet".to_string(),
+            target: "libgreet_la".to_string(),
+            shared: true,
+        }];
+        let rendered = render(&g).build_bazel;
+        let wrapper = rendered
+            .split("cc_shared_library(")
+            .nth(1)
+            .expect("a shared library gets a wrapper");
+        assert!(
+            wrapper.contains(
+                "    dynamic_deps = [\n        \"@greet//:libgreet_la_shared\",\n    ],\n"
+            ),
+            "the wrapper carries the cross-module dynamic edge:\n{rendered}"
+        );
+        let library = rendered.split("cc_shared_library(").next().unwrap();
+        assert!(
+            !library.contains("dynamic_deps"),
+            "and the cc_library itself still has none — the attribute does not exist there:\n{rendered}"
         );
     }
 
@@ -2395,6 +2446,7 @@ mod tests {
                 soname: Some("liblzma.so.5".to_string()),
                 ..Default::default()
             },
+            &HashSet::new(),
         );
         assert!(
             out.contains(r#"shared_lib_name = "liblzma.so.5""#),
@@ -2414,6 +2466,7 @@ mod tests {
                 soname: None,
                 ..Default::default()
             },
+            &HashSet::new(),
         );
         assert!(
             !out.contains("shared_lib_name"),
