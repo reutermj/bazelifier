@@ -2167,7 +2167,15 @@ pub(crate) fn to_graph_with_dependencies(
         } else {
             declared_raw
                 .split_whitespace()
-                .map(str::to_string)
+                .map(|src| {
+                    lex_yacc_compiled_as(
+                        src,
+                        built.get(&basename(&decl.name)).copied(),
+                        &source_of,
+                        &decl_dir,
+                    )
+                    .unwrap_or_else(|| src.to_string())
+                })
                 .collect()
         };
         // Three categories, not two. Partitioning on `!is_translation_unit`
@@ -2907,6 +2915,45 @@ fn generated_headers_in_build_tree(
             (rel, recipe)
         })
         .collect()
+}
+
+/// The translation unit the build compiled for a lex/yacc input `_SOURCES`
+/// declares, as a path in the declaring directory's frame.
+///
+/// automake lists the grammar (`keyval_lex.l`) and compiles the derived
+/// `keyval_lex.c`; a project that ships the derivative compiles it from the
+/// source tree without running flex at all. PMIx's `libpmixutilkeyval.la`
+/// declares exactly `keyval_lex.h keyval_lex.l`, so the `.l` — neither a
+/// translation unit nor a header — was dropped and the library converted
+/// with no sources, silently. The command stream states which file was
+/// compiled, so it is substituted here; a derivative the build wrote into
+/// the BUILD tree (flex ran) resolves outside the module and escalates
+/// through the ordinary sources-outside-the-module path rather than being
+/// vendored. `None` when the build compiled nothing for the stem — a
+/// conditional the build did not take — and the entry stays as written.
+fn lex_yacc_compiled_as(
+    declared: &str,
+    link: Option<&BuildCommand>,
+    source_of: &HashMap<String, (String, PathBuf)>,
+    decl_dir: &Path,
+) -> Option<String> {
+    let path = Path::new(declared);
+    let ext = path.extension()?.to_str()?;
+    if !matches!(ext, "l" | "ll" | "lpp" | "y" | "yy" | "ypp") {
+        return None;
+    }
+    let stem = path.file_stem()?.to_str()?;
+    link_inputs(link)
+        .iter()
+        .filter_map(|obj| source_of.get(obj.as_str()))
+        .find(|(source, _)| {
+            Path::new(source)
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .is_some_and(|s| s == stem)
+                && is_translation_unit(source)
+        })
+        .map(|(source, dir)| pathdiff(&normalize_lexically(&dir.join(source)), decl_dir))
 }
 
 /// `-I` directories, with the flag stripped and `.`-relative paths kept.
@@ -5280,6 +5327,68 @@ EXEEXT =
             item.gap
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // PMIx: `libpmixutilkeyval_la_SOURCES = keyval_lex.h keyval_lex.l`, and
+    // the tarball ships keyval_lex.c, which the build compiles without
+    // running flex. The `.l` is neither a translation unit nor a header, so
+    // the library converted with NO sources and nothing said so.
+    #[test]
+    fn a_lex_input_is_replaced_by_the_derivative_the_build_compiled() {
+        const DATABASE: &str = "\
+# make[1]: Entering directory '/b/src/util/keyval'\n\
+noinst_LTLIBRARIES = libpmixutilkeyval.la\n\
+libpmixutilkeyval_la_SOURCES = keyval_lex.h keyval_lex.l\n\
+# make[1]: Leaving directory '/b/src/util/keyval'\n\
+";
+        const STREAM: &str = "\
+make[1]: Entering directory '/b/src/util/keyval'\n\
+gcc -DHAVE_CONFIG_H -I. -c -o keyval_lex.o /s/src/util/keyval/keyval_lex.c\n\
+libtool --tag=CC --mode=link gcc keyval_lex.o -o libpmixutilkeyval.la\n\
+make[1]: Leaving directory '/b/src/util/keyval'\n\
+";
+        let (graph, escalations, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/b")),
+            &VariableDatabase::parse(DATABASE, Path::new("/b")),
+            "pmix",
+            Path::new("/s"),
+            Path::new("/s"),
+        );
+        let target = &graph.targets[0];
+        assert!(
+            target
+                .sources
+                .contains(&"src/util/keyval/keyval_lex.c".to_string()),
+            "the compiled derivative is the source; the grammar is not: {:#?}",
+            target.sources
+        );
+        assert!(
+            !target.sources.iter().any(|s| s.ends_with(".l")),
+            "{:#?}",
+            target.sources
+        );
+        assert!(escalations.is_empty(), "{escalations:#?}");
+
+        // The other direction: a grammar whose derivative the build never
+        // compiled (a conditional not taken) stays out, and nothing panics.
+        let (graph, _, _) = to_graph(
+            &parse_commands(
+                "make[1]: Entering directory '/b/src/util/keyval'\n",
+                Path::new("/b"),
+            ),
+            &VariableDatabase::parse(DATABASE, Path::new("/b")),
+            "pmix",
+            Path::new("/s"),
+            Path::new("/s"),
+        );
+        assert!(
+            graph
+                .targets
+                .iter()
+                .all(|t| !t.sources.iter().any(|s| s.ends_with(".c"))),
+            "{:#?}",
+            graph.targets
+        );
     }
 
     // PMIx and hwloc: each MCA framework's `static-components.h` is written
