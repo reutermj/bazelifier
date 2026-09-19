@@ -139,6 +139,38 @@ cc_config_catalog(
         ("sys/timerfd.h", "HAVE_SYS_TIMERFD_H"),
         ("sys/un.h", "HAVE_SYS_UN_H"),
         ("sys/wait.h", "HAVE_SYS_WAIT_H"),
+        # hwloc 2.7.1 (bzl-7r9.4): paths from its configure's `for ac_header in`
+        # lists. Most are other platforms' or optional libraries' (CUDA, ROCm,
+        # X11, Solaris, macOS, BSD) and probe to false here, correctly.
+        ("CL/cl_ext.h", "HAVE_CL_CL_EXT_H"),
+        ("NVCtrl/NVCtrl.h", "HAVE_NVCTRL_NVCTRL_H"),
+        ("OpenCL/cl_ext.h", "HAVE_OPENCL_CL_EXT_H"),
+        ("X11/Xlib.h", "HAVE_X11_XLIB_H"),
+        ("X11/Xutil.h", "HAVE_X11_XUTIL_H"),
+        ("X11/keysym.h", "HAVE_X11_KEYSYM_H"),
+        ("ctype.h", "HAVE_CTYPE_H"),
+        ("cuda.h", "HAVE_CUDA_H"),
+        ("cuda_runtime_api.h", "HAVE_CUDA_RUNTIME_API_H"),
+        ("dirent.h", "HAVE_DIRENT_H"),
+        ("infiniband/verbs.h", "HAVE_INFINIBAND_VERBS_H"),
+        ("kstat.h", "HAVE_KSTAT_H"),
+        ("langinfo.h", "HAVE_LANGINFO_H"),
+        ("level_zero/ze_api.h", "HAVE_LEVEL_ZERO_ZE_API_H"),
+        ("level_zero/zes_api.h", "HAVE_LEVEL_ZERO_ZES_API_H"),
+        ("libudev.h", "HAVE_LIBUDEV_H"),
+        ("mach/mach_host.h", "HAVE_MACH_MACH_HOST_H"),
+        ("mach/mach_init.h", "HAVE_MACH_MACH_INIT_H"),
+        ("mach_init.h", "HAVE_MACH_INIT_H"),
+        ("malloc.h", "HAVE_MALLOC_H"),
+        ("mpi.h", "HAVE_MPI_H"),
+        ("nvml.h", "HAVE_NVML_H"),
+        ("picl.h", "HAVE_PICL_H"),
+        ("rocm_smi/rocm_smi.h", "HAVE_ROCM_SMI_ROCM_SMI_H"),
+        ("sys/domainset.h", "HAVE_SYS_DOMAINSET_H"),
+        ("sys/lgrp_user.h", "HAVE_SYS_LGRP_USER_H"),
+        ("sys/thr.h", "HAVE_SYS_THR_H"),
+        ("sys/utsname.h", "HAVE_SYS_UTSNAME_H"),
+        ("valgrind/valgrind.h", "HAVE_VALGRIND_VALGRIND_H"),
     ],
     # AC_CHECK_MEMBERS facts, from libevent 2.1.12 (bzl-7r9.3): the socket
     # address layouts that split BSD (sin_len, sin6_len) from glibc
@@ -807,6 +839,292 @@ cc_config_catalog(
             ["netdb.h"],
             "HAVE_GETADDRINFO",
         ),
+        # hwloc 2.7.1 (bzl-7r9.4): AC_CHECK_FUNCS, headers by hand and each
+        # compiled against the host toolchain (the BSD/Solaris/macOS/CUDA ones
+        # fail to declare here, which is their correct answer).
+        (
+            "clz",
+            ["strings.h"],
+            "HAVE_CLZ",
+        ),
+        (
+            "clzl",
+            ["strings.h"],
+            "HAVE_CLZL",
+        ),
+        (
+            "cpuset_setaffinity",
+            ["sys/cpuset.h"],
+            "HAVE_CPUSET_SETAFFINITY",
+        ),
+        (
+            "cpuset_setid",
+            ["sys/cpuset.h"],
+            "HAVE_CPUSET_SETID",
+        ),
+        (
+            "ffs",
+            ["strings.h"],
+            "HAVE_FFS",
+        ),
+        (
+            "ffsl",
+            ["strings.h"],
+            "HAVE_FFSL",
+        ),
+        (
+            "fls",
+            ["strings.h"],
+            "HAVE_FLS",
+        ),
+        (
+            "flsl",
+            ["strings.h"],
+            "HAVE_FLSL",
+        ),
+        (
+            "getpagesize",
+            ["unistd.h"],
+            "HAVE_GETPAGESIZE",
+        ),
+        (
+            "host_info",
+            ["mach/mach_host.h"],
+            "HAVE_HOST_INFO",
+        ),
+        (
+            "memalign",
+            ["malloc.h"],
+            "HAVE_MEMALIGN",
+        ),
+        (
+            "mkstemp",
+            ["stdlib.h"],
+            "HAVE_MKSTEMP",
+        ),
+        (
+            "nl_langinfo",
+            ["langinfo.h"],
+            "HAVE_NL_LANGINFO",
+        ),
+        (
+            "openat",
+            ["fcntl.h"],
+            "HAVE_OPENAT",
+        ),
+        (
+            "posix_memalign",
+            ["stdlib.h"],
+            "HAVE_POSIX_MEMALIGN",
+        ),
+        (
+            "putwc",
+            ["wchar.h"],
+            "HAVE_PUTWC",
+        ),
+        (
+            "strftime",
+            ["time.h"],
+            "HAVE_STRFTIME",
+        ),
+        (
+            "uname",
+            ["sys/utsname.h"],
+            "HAVE_UNAME",
+        ),
+        # hwloc's AC_CHECK_DECLS: sysctl names, sysconf constants, affinity
+        # calls, and a few functions checked for declaration rather than
+        # linkage. Ternary, like every HAVE_DECL_ entry.
+        (
+            "GetModuleFileName",
+            ["windows.h"],
+            "HAVE_DECL_GETMODULEFILENAME",
+        ),
+        (
+            "HW_MEMSIZE",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_MEMSIZE",
+        ),
+        (
+            "HW_MEMSIZE64",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_MEMSIZE64",
+        ),
+        (
+            "HW_PHYSMEM",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_PHYSMEM",
+        ),
+        (
+            "HW_PHYSMEM64",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_PHYSMEM64",
+        ),
+        (
+            "HW_REALMEM",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_REALMEM",
+        ),
+        (
+            "HW_REALMEM64",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_REALMEM64",
+        ),
+        (
+            "HW_USERMEM",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_USERMEM",
+        ),
+        (
+            "HW_USERMEM64",
+            ["sys/sysctl.h"],
+            "HAVE_DECL_HW_USERMEM64",
+        ),
+        (
+            "_SC_LARGE_PAGESIZE",
+            ["unistd.h"],
+            "HAVE_DECL__SC_LARGE_PAGESIZE",
+        ),
+        (
+            "_SC_NPROC_CONF",
+            ["unistd.h"],
+            "HAVE_DECL__SC_NPROC_CONF",
+        ),
+        (
+            "_SC_PAGESIZE",
+            ["unistd.h"],
+            "HAVE_DECL__SC_PAGESIZE",
+        ),
+        (
+            "_SC_PAGE_SIZE",
+            ["unistd.h"],
+            "HAVE_DECL__SC_PAGE_SIZE",
+        ),
+        (
+            "_putenv",
+            ["stdlib.h"],
+            "HAVE_DECL__PUTENV",
+        ),
+        (
+            "_strdup",
+            ["string.h"],
+            "HAVE_DECL__STRDUP",
+        ),
+        (
+            "bind",
+            ["sys/socket.h"],
+            "HAVE_DECL_BIND",
+        ),
+        (
+            "fabsf",
+            ["math.h"],
+            "HAVE_DECL_FABSF",
+        ),
+        (
+            "getexecname",
+            ["stdlib.h"],
+            "HAVE_DECL_GETEXECNAME",
+        ),
+        (
+            "getprogname",
+            ["stdlib.h"],
+            "HAVE_DECL_GETPROGNAME",
+        ),
+        (
+            "lgrp_latency_cookie",
+            ["sys/lgrp_user.h"],
+            "HAVE_DECL_LGRP_LATENCY_COOKIE",
+        ),
+        (
+            "modff",
+            ["math.h"],
+            "HAVE_DECL_MODFF",
+        ),
+        (
+            "nvmlDeviceGetMaxPcieLinkGeneration",
+            ["nvml.h"],
+            "HAVE_DECL_NVMLDEVICEGETMAXPCIELINKGENERATION",
+        ),
+        (
+            "pthread_getaffinity_np",
+            ["pthread.h"],
+            "HAVE_DECL_PTHREAD_GETAFFINITY_NP",
+        ),
+        (
+            "pthread_setaffinity_np",
+            ["pthread.h"],
+            "HAVE_DECL_PTHREAD_SETAFFINITY_NP",
+        ),
+        (
+            "sched_getcpu",
+            ["sched.h"],
+            "HAVE_DECL_SCHED_GETCPU",
+        ),
+        (
+            "snprintf",
+            ["stdio.h"],
+            "HAVE_DECL_SNPRINTF",
+        ),
+        (
+            "strtoull",
+            ["stdlib.h"],
+            "HAVE_DECL_STRTOULL",
+        ),
+        # hwloc's remaining AC_CHECK_DECLS, which the frontend had frozen as
+        # values rather than escalating (bzl-kba), so the harvest above missed
+        # them: the BSD bit-scan family (absent on glibc, so 0 here and 1
+        # there), strcasecmp, and valgrind's client macro.
+        (
+            "ffs",
+            ["strings.h"],
+            "HAVE_DECL_FFS",
+        ),
+        (
+            "ffsl",
+            ["strings.h"],
+            "HAVE_DECL_FFSL",
+        ),
+        (
+            "fls",
+            ["strings.h"],
+            "HAVE_DECL_FLS",
+        ),
+        (
+            "flsl",
+            ["strings.h"],
+            "HAVE_DECL_FLSL",
+        ),
+        (
+            "clz",
+            ["strings.h"],
+            "HAVE_DECL_CLZ",
+        ),
+        (
+            "clzl",
+            ["strings.h"],
+            "HAVE_DECL_CLZL",
+        ),
+        (
+            "strcasecmp",
+            ["strings.h"],
+            "HAVE_DECL_STRCASECMP",
+        ),
+        (
+            "strncasecmp",
+            ["strings.h"],
+            "HAVE_DECL_STRNCASECMP",
+        ),
+        (
+            "RUNNING_ON_VALGRIND",
+            ["valgrind/valgrind.h"],
+            "HAVE_DECL_RUNNING_ON_VALGRIND",
+        ),
+        # BSD/macOS sysctl-by-name; hwloc checks it with a custom link test.
+        (
+            "sysctlbyname",
+            ["sys/sysctl.h"],
+            "HAVE_SYSCTLBYNAME",
+        ),
     ],
     # AC_CHECK_TYPES presence facts, from libevent 2.1.12 (bzl-7r9.3); its
     # configure names type and header together.
@@ -876,6 +1194,22 @@ cc_config_catalog(
             ["sys/select.h"],
             "HAVE_FD_MASK",
         ),
+        # hwloc 2.7.1 (bzl-7r9.4).
+        (
+            "pthread_t",
+            ["pthread.h"],
+            "HAVE_PTHREAD_T",
+        ),
+        (
+            "ssize_t",
+            ["sys/types.h"],
+            "HAVE_SSIZE_T",
+        ),
+        (
+            "wchar_t",
+            ["wchar.h"],
+            "HAVE_WCHAR_T",
+        ),
     ],
     # (type, [declaring headers], SIZEOF_ macro) — check_type_size.
     types = [
@@ -916,6 +1250,9 @@ cc_config_catalog(
             ["pthread.h"],
             "SIZEOF_PTHREAD_T",
         ),
+        # hwloc 2.7.1 (bzl-7r9.4).
+        ("unsigned int", [], "SIZEOF_UNSIGNED_INT"),
+        ("unsigned long", [], "SIZEOF_UNSIGNED_LONG"),
     ],
 )
 

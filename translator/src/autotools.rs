@@ -156,7 +156,7 @@ pub fn discover(
     }
 
     let vars = parse_variables(&database);
-    let declared = declared_targets_expanding(&vars, &ambiguous_variables(&database));
+    let declared = declared_targets_by_directory(&database);
 
     // AC_CONFIG_HEADERS, from config.status — see parse_config_headers on why
     // not configure.ac. The template lives in the SOURCE tree (autoconf's
@@ -1038,6 +1038,48 @@ pub(crate) fn parse_variables(database: &str) -> HashMap<String, String> {
     vars
 }
 
+/// The variable database split by the directory whose make printed it.
+///
+/// `make -p -n` on a recursive project prints one database per
+/// sub-make, each preceded by that make's `# make[N]: Entering directory`
+/// announcement (commented, like everything else in -p output). Definitions
+/// before any announcement — the top-level make's own — are keyed by
+/// `build_root`. Within one directory the last definition wins, which is
+/// make's own rule; across directories nothing is merged, which is the
+/// whole point: see `target_var` in `to_graph_with_dependencies`.
+pub(crate) fn parse_variables_by_directory(
+    database: &str,
+    build_root: &Path,
+) -> HashMap<PathBuf, HashMap<String, String>> {
+    let mut by_dir: HashMap<PathBuf, HashMap<String, String>> = HashMap::new();
+    let mut dirs: Vec<PathBuf> = vec![build_root.to_path_buf()];
+    for line in database.lines() {
+        if let Some(rest) = line.strip_prefix("# make[") {
+            if let Some(dir) = rest.split_once("Entering directory ").map(|(_, d)| d) {
+                dirs.push(PathBuf::from(dir.trim().trim_matches(&['\'', '`'][..])));
+            } else if rest.contains("Leaving directory ") && dirs.len() > 1 {
+                dirs.pop();
+            }
+            continue;
+        }
+        if line.starts_with('\t') || line.starts_with('#') {
+            continue;
+        }
+        let Some((name, value)) = line.split_once(" = ") else {
+            continue;
+        };
+        if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            continue;
+        }
+        let current = dirs.last().expect("the build root is never popped").clone();
+        by_dir
+            .entry(current)
+            .or_default()
+            .insert(name.to_string(), value.trim().to_string());
+    }
+    by_dir
+}
+
 /// What an automake `TESTS` entry turns out to be.
 ///
 /// Three variants because real projects use all three, measured across six:
@@ -1112,33 +1154,55 @@ fn classify_tests_per_directory(database: &str, build_root: &Path) -> Vec<TestEn
     entries
 }
 
-/// Splits `make -p` output at its `Entering directory` announcements.
+/// Splits `make -p` output by the directory each line's make was running in.
 ///
 /// Each scope still gets the flattening [`parse_variables`] does, because a
 /// primary genuinely does span directories (xz declares `bin_PROGRAMS` in
 /// four). What must not span them is the `am__*` indirection, and keeping
 /// one map per directory is what stops it.
+///
+/// Tracked as a STACK, not as "the last directory entered": `make -p`
+/// prints a make's database after its sub-makes have returned, so the text
+/// following a `Leaving directory` line is the PARENT's database. Splitting
+/// on `Entering` alone handed hwloc's `utils/hwloc` database — its nine
+/// `TESTS` — to `utils/hwloc/test-hwloc-dump-hwdata`, the last directory
+/// entered before it was printed, and the top-level database to whatever
+/// directory happened to be last; 67 of hwloc's 214 escalated tests were
+/// this misattribution. A directory entered twice (automake recurses into
+/// `.` for a `SUBDIRS = . sub` Makefile) has its chunks parsed together.
 fn directory_scopes(database: &str) -> Vec<(Option<PathBuf>, HashMap<String, String>)> {
-    let mut scopes = Vec::new();
-    let mut current = String::new();
     // `None` for whatever precedes the first announcement — make's own
     // built-in database, which declares no tests.
-    let mut directory: Option<PathBuf> = None;
+    let mut stack: Vec<Option<PathBuf>> = vec![None];
+    let mut chunks: Vec<(Option<PathBuf>, String)> = Vec::new();
+    let mut append = |dir: &Option<PathBuf>, line: &str| {
+        let chunk = match chunks.iter_mut().find(|(d, _)| d == dir) {
+            Some((_, text)) => text,
+            None => {
+                chunks.push((dir.clone(), String::new()));
+                &mut chunks.last_mut().expect("just pushed").1
+            }
+        };
+        chunk.push_str(line);
+        chunk.push('\n');
+    };
     for line in database.lines() {
         if let Some(entered) = entering_directory(line) {
-            if !current.is_empty() {
-                scopes.push((directory.take(), parse_variables(&current)));
-                current.clear();
-            }
-            directory = Some(entered);
+            stack.push(Some(entered));
+            continue;
         }
-        current.push_str(line);
-        current.push('\n');
+        if leaving_directory(line) {
+            if stack.len() > 1 {
+                stack.pop();
+            }
+            continue;
+        }
+        append(stack.last().expect("the base scope is never popped"), line);
     }
-    if !current.is_empty() {
-        scopes.push((directory, parse_variables(&current)));
-    }
-    scopes
+    chunks
+        .into_iter()
+        .map(|(dir, text)| (dir, parse_variables(&text)))
+        .collect()
 }
 
 fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
@@ -1183,6 +1247,14 @@ fn classify_tests(vars: &HashMap<String, String>) -> Vec<TestEntry> {
                     parts.reverse();
                     queue.extend(parts);
                 }
+                // automake's own indirection, undefined in this directory:
+                // the conditional it stood for was false, and make expands
+                // an undefined variable to nothing. hwloc's `check_PROGRAMS`
+                // carries eleven of these for Windows, CUDA and friends.
+                // Only automake's namespace gets that reading — a project's
+                // own undefined variable is still escalated, because the
+                // project may define it somewhere the database does not show.
+                None if name.starts_with("am__") => {}
                 // The database has no such name, or the budget ran out on a
                 // self-reference. Either way this token cannot be resolved.
                 _ => entries.push(TestEntry::Unresolved(token.to_string())),
@@ -1324,76 +1396,42 @@ fn accumulates_across_directories(name: &str) -> bool {
 /// Inferring identity from artifact paths instead breaks on a binary whose
 /// name differs from its target's, on libtool's `.libs/libfoo.so.1.0.0`
 /// versus `libfoo.la`, and on a non-empty `EXEEXT`.
-/// [`declared_targets_expanding`] with nothing marked ambiguous: the
-/// single-directory case, and every frozen capture the tests drive.
-pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTarget> {
-    declared_targets_expanding(vars, &HashSet::new())
-}
-
-/// Variable names the raw database defines MORE THAN ONCE with different
-/// values — one per directory of a recursive project, which the flattened
-/// map cannot tell apart. A primary or `TESTS` defined in four directories
-/// is four declarations, not a conflict, so those are exempt; everything
-/// else, automake's `am__*` internals included, is ambiguous when it is
-/// defined two ways, whatever [`parse_variables`] then does with it.
-pub(crate) fn ambiguous_variables(database: &str) -> HashSet<String> {
-    let mut first: HashMap<&str, &str> = HashMap::new();
-    let mut ambiguous = HashSet::new();
-    for line in database.lines() {
-        if line.starts_with('\t') || line.starts_with('#') {
-            continue;
-        }
-        let Some((name, value)) = line.split_once(" = ") else {
-            continue;
-        };
-        let is_declaration = name == "TESTS"
-            || name
-                .rsplit_once('_')
-                .is_some_and(|(_, p)| matches!(p, "PROGRAMS" | "LIBRARIES" | "LTLIBRARIES"));
-        if is_declaration {
-            continue;
-        }
-        match first.entry(name) {
-            Entry::Vacant(slot) => {
-                slot.insert(value.trim());
-            }
-            Entry::Occupied(slot) if *slot.get() != value.trim() => {
-                ambiguous.insert(name.to_string());
-            }
-            Entry::Occupied(_) => {}
-        }
+/// Every target automake declared, each primary expanded in the scope of
+/// the directory whose Makefile declared it.
+///
+/// Per directory because that is where a primary's references resolve.
+/// automake compiles a conditional target through `$(am__EXEEXT_N)`, and the
+/// counter restarts in every Makefile: hwloc's `tests/hwloc` says
+/// `am__EXEEXT_2 = shmem` while `utils/hwloc` says something else under the
+/// same name, so the flattened map holds one of them and the other target
+/// vanishes — `shmem` was built by `make check` and declared by nothing.
+/// Within one directory the last definition wins, which is make's own rule.
+/// Declarations are then merged by name across directories
+/// ([`dedup_declarations`]).
+pub(crate) fn declared_targets_by_directory(database: &str) -> Vec<DeclaredTarget> {
+    let mut targets = Vec::new();
+    for (_, scope) in directory_scopes(database) {
+        targets.extend(declared_targets(&scope));
     }
-    ambiguous
+    dedup_declarations(targets)
 }
 
 /// Expands `$(NAME)` / `${NAME}` references in a primary's value the way
-/// make would, from the variable database, recursively.
+/// make would, from the variable map, recursively.
 ///
 /// libevent declares every library through one: `lib_LTLIBRARIES =
 /// $(LIBEVENT_LIBS_LA)`, itself `libevent.la ... $(am__append_1)`, and its
 /// programs through automake's `$(am__EXEEXT_N)` chain — so without this the
 /// project declares nothing and converts to zero targets.
 ///
-/// A reference is left as written, and the caller then drops it, when it
-/// names a variable the database defines differently in more than one
-/// directory (`ambiguous`): libmicrohttpd's `am__EXEEXT_1` means `test_md5`
-/// in one directory and `basicauthentication` in another, and the flattened
-/// map holds only the last. Expanding that would declare a target automake
-/// never declared there — bzl-oek — so an ambiguous reference is not a
-/// target. Substitution references (`$(V:.c=.o)`) are likewise left alone;
-/// no primary has needed one. Depth-capped against a self-referencing
+/// A reference the map does not define is left as written, and the caller
+/// then drops it: for automake's own `am__*` names that is a conditional
+/// that was false, and for anything else there is no answer to invent.
+/// Substitution references (`$(V:.c=.o)`) are likewise left alone; no
+/// primary has needed one. Depth-capped against a self-referencing
 /// definition, which make would reject and this must not loop on.
-fn expand_references(
-    value: &str,
-    vars: &HashMap<String, String>,
-    ambiguous: &HashSet<String>,
-) -> String {
-    fn go(
-        value: &str,
-        vars: &HashMap<String, String>,
-        ambiguous: &HashSet<String>,
-        depth: u8,
-    ) -> String {
+fn expand_references(value: &str, vars: &HashMap<String, String>) -> String {
+    fn go(value: &str, vars: &HashMap<String, String>, depth: u8) -> String {
         if depth == 0 || !value.contains('$') {
             return value.to_string();
         }
@@ -1418,8 +1456,8 @@ fn expand_references(
             let name = &after[body_start..end];
             let simple = !name.is_empty() && name.chars().all(|c| c.is_alphanumeric() || c == '_');
             match vars.get(name) {
-                Some(replacement) if simple && !ambiguous.contains(name) => {
-                    out.push_str(&go(replacement, vars, ambiguous, depth - 1));
+                Some(replacement) if simple => {
+                    out.push_str(&go(replacement, vars, depth - 1));
                 }
                 _ => out.push_str(&rest[start..start + 1 + end + 1]),
             }
@@ -1428,13 +1466,13 @@ fn expand_references(
         out.push_str(rest);
         out
     }
-    go(value, vars, ambiguous, 8)
+    go(value, vars, 8)
 }
 
-pub(crate) fn declared_targets_expanding(
-    vars: &HashMap<String, String>,
-    ambiguous: &HashSet<String>,
-) -> Vec<DeclaredTarget> {
+/// The targets one variable map declares. For a single-directory project or
+/// a frozen capture this is the whole answer; a recursive project goes
+/// through [`declared_targets_by_directory`].
+pub(crate) fn declared_targets(vars: &HashMap<String, String>) -> Vec<DeclaredTarget> {
     let mut targets = Vec::new();
     for (var, value) in vars {
         let Some((destination, primary)) = var.rsplit_once('_') else {
@@ -1448,7 +1486,7 @@ pub(crate) fn declared_targets_expanding(
         let destination = destination.rsplit('_').next().unwrap_or(destination);
         // Expanded as a whole before splitting: one reference can stand for
         // several names.
-        let value = expand_references(value, vars, ambiguous);
+        let value = expand_references(value, vars);
         for name in value.split_whitespace() {
             // Through the shared helper, not inline: a target's name and the
             // test entry naming it have to expand identically or the two
@@ -1473,15 +1511,19 @@ pub(crate) fn declared_targets_expanding(
             });
         }
     }
-    // One declaration per NAME. automake lets a program appear under two
-    // primaries — `EXTRA_PROGRAMS = foo` beside a conditional
-    // `noinst_PROGRAMS += foo`, or `check_` beside `noinst_` — and it is one
-    // target either way; libmicrohttpd's authorization_example rendered
-    // twice, and two rules of one name is a load error. The destination
-    // that says most about the target wins: an install destination over
-    // `noinst` (never installed) over `check` (built by `make check` only)
-    // over `EXTRA` (may be built), which is what automake itself does when
-    // the same name is built by plain `make`.
+    dedup_declarations(targets)
+}
+
+/// One declaration per NAME. automake lets a program appear under two
+/// primaries — `EXTRA_PROGRAMS = foo` beside a conditional
+/// `noinst_PROGRAMS += foo`, or `check_` beside `noinst_` — and it is one
+/// target either way; libmicrohttpd's authorization_example rendered
+/// twice, and two rules of one name is a load error. The destination
+/// that says most about the target wins: an install destination over
+/// `noinst` (never installed) over `check` (built by `make check` only)
+/// over `EXTRA` (may be built), which is what automake itself does when
+/// the same name is built by plain `make`.
+fn dedup_declarations(mut targets: Vec<DeclaredTarget>) -> Vec<DeclaredTarget> {
     targets.sort_by(|a, b| {
         a.name
             .cmp(&b.name)
@@ -1492,7 +1534,7 @@ pub(crate) fn declared_targets_expanding(
 }
 
 /// How much a primary's destination says about a target, lowest first: an
-/// install directory, `noinst`, `check`, `EXTRA`. See `declared_targets_expanding`.
+/// install directory, `noinst`, `check`, `EXTRA`. See `dedup_declarations`.
 fn destination_rank(destination: &str) -> u8 {
     match destination {
         "EXTRA" => 3,
@@ -1988,6 +2030,7 @@ pub(crate) fn to_graph_with_dependencies(
     PathBuf,
 ) {
     let vars = &parse_variables(database);
+    let by_dir = parse_variables_by_directory(database, build_root);
     // artifact basename -> the link/archive command that produced it, so a
     // declared target can find the step that built it. Needed before the
     // module root can be chosen, because the root depends on where each
@@ -2007,6 +2050,19 @@ pub(crate) fn to_graph_with_dependencies(
             .and_then(|cmd| cmd.dir.strip_prefix(build_root).ok())
             .map(|rel| source_dir.join(rel))
             .unwrap_or_else(|| source_dir.to_path_buf())
+    };
+    // A per-target variable, read from the directory that BUILT the target
+    // before the flattened map. Two targets in different directories can
+    // canonicalise to one variable name — hwloc's `hwloc-bind` (utils) and
+    // its test `hwloc_bind` (tests) both own `hwloc_bind_SOURCES` — and the
+    // flattened map keeps whichever came last, so utils' program was handed
+    // the test's source and the copy failed on a file that did not exist.
+    let target_var = |name: &str, key: &str| -> Option<&String> {
+        built
+            .get(&basename(name))
+            .and_then(|cmd| by_dir.get(&cmd.dir))
+            .and_then(|scope| scope.get(key))
+            .or_else(|| vars.get(key))
     };
 
     // The module root, widened to cover anything the build references from
@@ -2043,8 +2099,7 @@ pub(crate) fn to_graph_with_dependencies(
         for decl in declared {
             let dir = declaring_dir(&decl.name);
             let canon = canonical_name(&decl.name);
-            let raw = vars
-                .get(&format!("{canon}_SOURCES"))
+            let raw = target_var(&decl.name, &format!("{canon}_SOURCES"))
                 .map(String::as_str)
                 .unwrap_or_default();
             // Same fallback the target loop uses, and for the same reason: an
@@ -2151,8 +2206,7 @@ pub(crate) fn to_graph_with_dependencies(
         // the cause. The command stream has all 80 — this is exactly the split
         // the module doc describes, so when the declaration cannot answer, the
         // stream does.
-        let declared_raw = vars
-            .get(&format!("{canon}_SOURCES"))
+        let declared_raw = target_var(&decl.name, &format!("{canon}_SOURCES"))
             .map(String::as_str)
             .unwrap_or_default();
         let declared_sources: Vec<String> = if declared_raw.contains("$(") {
@@ -2677,7 +2731,6 @@ fn strip_for(path: &str, subdir: &str) -> Option<String> {
 /// installed name is not one strip away. Values are expanded first, because
 /// libevent declares both lists through variables.
 fn installed_headers(vars: &HashMap<String, String>) -> Vec<(String, String)> {
-    let ambiguous = HashSet::new();
     let mut out = Vec::new();
     for (var, value) in vars {
         let Some(prefix) = var.strip_suffix("_HEADERS") else {
@@ -2698,16 +2751,24 @@ fn installed_headers(vars: &HashMap<String, String>) -> Vec<(String, String)> {
         let subdir = if prefix == "include" {
             String::new()
         } else {
+            // Expanded with `includedir` pinned to a marker, because the
+            // database defines it (`${prefix}/include`) and a plain expansion
+            // turns `$(includedir)/hwloc` into `/usr/local/include/hwloc`,
+            // where nothing says which part was the include directory. Only
+            // a directory UNDER includedir makes a header public.
+            const MARKER: &str = "\u{1}INCLUDEDIR\u{1}";
+            let mut pinned = vars.clone();
+            pinned.insert("includedir".to_string(), MARKER.to_string());
             let dir = vars
                 .get(&format!("{prefix}dir"))
-                .map(|d| expand_references(d, vars, &ambiguous))
+                .map(|d| expand_references(d, &pinned))
                 .unwrap_or_default();
-            let Some(rest) = dir.strip_prefix("$(includedir)") else {
+            let Some(rest) = dir.strip_prefix(MARKER) else {
                 continue;
             };
             rest.trim_matches('/').to_string()
         };
-        for raw in expand_references(value, vars, &ambiguous).split_whitespace() {
+        for raw in expand_references(value, vars).split_whitespace() {
             if !raw.contains("$(") {
                 out.push((raw.to_string(), subdir.clone()));
             }
@@ -4607,12 +4668,10 @@ make[1]: Leaving directory '/src/lib'\n\
     // destination prefix is carried because it is where the public/private
     // signal lives — noinst_ means built but never installed.
     #[test]
-    // libevent's shape, verbatim in structure from its `make -p`: every
-    // library behind one variable, every program behind automake's
-    // `$(am__EXEEXT_N)` chain. And the guard: a reference the database
-    // defines two ways is not a target (bzl-oek's libmicrohttpd case).
+    // libevent's shape: every library behind one variable, every program
+    // behind automake's `$(am__EXEEXT_N)` chain, in one directory.
     #[test]
-    fn primaries_declared_through_variables_expand_unless_ambiguous() {
+    fn primaries_declared_through_variables_expand() {
         const DATABASE: &str = "\
 EXEEXT = \n\
 am__append_1 = libevent_pthreads.la\n\
@@ -4621,14 +4680,8 @@ lib_LTLIBRARIES = $(LIBEVENT_LIBS_LA)\n\
 am__EXEEXT_3 = sample/hello-world$(EXEEXT) $(am__EXEEXT_2)\n\
 am__EXEEXT_4 = $(am__EXEEXT_3)\n\
 noinst_PROGRAMS = $(am__EXEEXT_4)\n\
-am__EXEEXT_1 = test_md5$(EXEEXT)\n\
-check_PROGRAMS = $(am__EXEEXT_1)\n\
-am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
 ";
-        let vars = parse_variables(DATABASE);
-        let ambiguous = ambiguous_variables(DATABASE);
-        assert!(ambiguous.contains("am__EXEEXT_1"), "{ambiguous:?}");
-        let names: Vec<String> = declared_targets_expanding(&vars, &ambiguous)
+        let names: Vec<String> = declared_targets(&parse_variables(DATABASE))
             .into_iter()
             .map(|d| format!("{}:{}", d.destination, d.name))
             .collect();
@@ -4640,38 +4693,77 @@ am__EXEEXT_1 = basicauthentication$(EXEEXT)\n\
                 "lib:libevent_pthreads.la",
                 "noinst:sample/hello-world",
             ],
-            "three names through two levels of reference, an undefined \
-             $(am__append_3) dropped, and NOTHING from check_PROGRAMS, whose \
-             only reference is defined two ways"
+            "three names through two levels of reference; an undefined \
+             $(am__append_3) — a false conditional — contributes nothing"
         );
+    }
 
-        // A program under two primaries is ONE target — libmicrohttpd declares
-        // authorization_example as noinst_ and EXTRA_ — and the one that says
-        // more wins, so it renders once, as the noinst binary it is.
-        let vars = parse_variables(
-            "noinst_PROGRAMS = authorization_example\nEXTRA_PROGRAMS = authorization_example demo\ncheck_PROGRAMS = demo\n",
-        );
-        let declared = declared_targets_expanding(&vars, &HashSet::new());
-        let names: Vec<String> = declared
-            .iter()
+    // hwloc: `tests/hwloc` says `am__EXEEXT_2 = shmem` and `utils/hwloc`
+    // reuses the name for something else. Each directory's check_PROGRAMS
+    // must expand in its OWN scope, or one of the two targets vanishes —
+    // shmem did, built by `make check` and declared by nothing.
+    #[test]
+    fn each_directory_expands_its_own_primaries() {
+        const DATABASE: &str = "\
+# make[1]: Entering directory '/b/utils'\n\
+am__EXEEXT_2 = hwloc-ps\n\
+bin_PROGRAMS = hwloc-calc $(am__EXEEXT_2)\n\
+# make[1]: Leaving directory '/b/utils'\n\
+# make[1]: Entering directory '/b/tests'\n\
+am__EXEEXT_2 = shmem\n\
+check_PROGRAMS = hwloc_bitmap $(am__EXEEXT_1) $(am__EXEEXT_2)\n\
+TESTS = $(check_PROGRAMS)\n\
+# make[1]: Leaving directory '/b/tests'\n\
+";
+        let names: Vec<String> = declared_targets_by_directory(DATABASE)
+            .into_iter()
             .map(|d| format!("{}:{}", d.destination, d.name))
             .collect();
         assert_eq!(
             names,
-            vec!["noinst:authorization_example", "check:demo"],
-            "one declaration per name, the more specific destination kept"
+            vec![
+                "bin:hwloc-calc",
+                "bin:hwloc-ps",
+                "check:hwloc_bitmap",
+                "check:shmem",
+            ],
+            "both directories' conditional targets survive, each from its own \
+             definition of am__EXEEXT_2"
         );
 
-        // The same database with the conflict removed declares the check program.
-        let unambiguous = DATABASE.replace("am__EXEEXT_1 = basicauthentication$(EXEEXT)\n", "");
-        let vars = parse_variables(&unambiguous);
-        let declared = declared_targets_expanding(&vars, &ambiguous_variables(&unambiguous));
-        assert!(
-            declared
-                .iter()
-                .any(|d| d.name == "test_md5" && d.destination == "check"),
-            "{declared:#?}"
+        // And the test list: the undefined $(am__EXEEXT_1) is a false
+        // conditional (Windows-only), not an unresolved reference.
+        let entries = classify_tests_per_directory(DATABASE, Path::new("/b"));
+        assert_eq!(
+            entries,
+            vec![
+                TestEntry::Binary("hwloc_bitmap".to_string()),
+                TestEntry::Binary("shmem".to_string()),
+            ],
+            "{entries:#?}"
         );
+
+        // A project's OWN undefined variable is still escalated.
+        let entries = classify_tests(&parse_variables("TESTS = $(MY_SUITE)\n"));
+        assert_eq!(
+            entries,
+            vec![TestEntry::Unresolved("$(MY_SUITE)".to_string())]
+        );
+    }
+
+    // A program under two primaries is ONE target — libmicrohttpd declares
+    // authorization_example as noinst_ and EXTRA_ — and the one that says
+    // more wins, so it renders once, as the noinst binary it is.
+    #[test]
+    fn a_name_under_two_primaries_is_declared_once_with_the_more_specific_destination() {
+        let vars = parse_variables(
+            "noinst_PROGRAMS = authorization_example\nEXTRA_PROGRAMS = authorization_example demo\ncheck_PROGRAMS = demo\n",
+        );
+        let names: Vec<String> = declared_targets(&vars)
+            .iter()
+            .map(|d| format!("{}:{}", d.destination, d.name))
+            .collect();
+        assert_eq!(names, vec!["noinst:authorization_example", "check:demo"]);
     }
 
     #[test]
@@ -5016,6 +5108,8 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
         let vars = parse_variables(
             "include_HEADERS = src/greet.h src/util.h\n\
              EVENT2_EXPORT = include/event2/buffer.h include/event2/event.h\n\
+             prefix = /usr/local\n\
+             includedir = ${prefix}/include\n\
              include_event2dir = $(includedir)/event2\n\
              include_event2_HEADERS = $(EVENT2_EXPORT)\n\
              noinst_HEADERS = src/private.h\n",
@@ -5168,5 +5262,136 @@ lzmainfo_SOURCES = src/lzmainfo/lzmainfo.c
             item.gap
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // hwloc: utils/hwloc builds `hwloc-bind` from hwloc-bind.c and tests/hwloc
+    // builds `hwloc_bind` from hwloc_bind.c; both own `hwloc_bind_SOURCES`.
+    // The flattened map cannot hold both, and taking the last handed the
+    // utility a file that does not exist in its directory.
+    #[test]
+    fn a_per_target_variable_is_read_from_the_directory_that_built_the_target() {
+        const DATABASE: &str = "\
+# make[1]: Entering directory '/b/utils'\n\
+# Variables\n\
+bin_PROGRAMS = hwloc-bind\n\
+hwloc_bind_SOURCES = hwloc-bind.c\n\
+# make[1]: Leaving directory '/b/utils'\n\
+# make[1]: Entering directory '/b/tests'\n\
+# Variables\n\
+check_PROGRAMS = hwloc_bind\n\
+hwloc_bind_SOURCES = hwloc_bind.c\n\
+# make[1]: Leaving directory '/b/tests'\n\
+";
+        const STREAM: &str = "\
+make[1]: Entering directory '/b/utils'\n\
+gcc -c -o hwloc-bind.o /s/utils/hwloc-bind.c\n\
+gcc -o hwloc-bind hwloc-bind.o\n\
+make[1]: Leaving directory '/b/utils'\n\
+make[1]: Entering directory '/b/tests'\n\
+gcc -c -o hwloc_bind.o /s/tests/hwloc_bind.c\n\
+gcc -o hwloc_bind hwloc_bind.o\n\
+make[1]: Leaving directory '/b/tests'\n\
+";
+        let by_dir = parse_variables_by_directory(DATABASE, Path::new("/b"));
+        assert_eq!(
+            by_dir[Path::new("/b/utils")]["hwloc_bind_SOURCES"],
+            "hwloc-bind.c"
+        );
+        assert_eq!(
+            by_dir[Path::new("/b/tests")]["hwloc_bind_SOURCES"],
+            "hwloc_bind.c"
+        );
+
+        let vars = parse_variables(DATABASE);
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/b")),
+            &declared_targets(&vars),
+            DATABASE,
+            "hwloc",
+            Path::new("/s"),
+            Path::new("/s"),
+            Path::new("/b"),
+        );
+        let sources: Vec<(String, Vec<String>)> = graph
+            .targets
+            .iter()
+            .map(|t| (t.name.clone(), t.sources.clone()))
+            .collect();
+        assert_eq!(
+            sources,
+            vec![
+                (
+                    "hwloc-bind".to_string(),
+                    vec!["utils/hwloc-bind.c".to_string()]
+                ),
+                (
+                    "hwloc_bind".to_string(),
+                    vec!["tests/hwloc_bind.c".to_string()]
+                ),
+            ],
+            "each target reads its own directory's declaration"
+        );
+    }
+
+    // `make -p` prints a directory's database AFTER its sub-makes return, so
+    // the parent's TESTS follow the child's `Leaving` line. hwloc's
+    // utils/hwloc has nine TESTS and a SUBDIRS child with one; splitting on
+    // `Entering` alone gave the child all ten.
+    #[test]
+    fn a_database_printed_after_a_child_returns_belongs_to_the_parent() {
+        const DATABASE: &str = "\
+# make[1]: Entering directory '/b/utils'\n\
+# make[2]: Entering directory '/b/utils/sub'\n\
+# Variables\n\
+TESTS = child.sh\n\
+# make[2]: Leaving directory '/b/utils/sub'\n\
+# Variables\n\
+TESTS = parent-a.sh parent-b.sh\n\
+# make[1]: Leaving directory '/b/utils'\n\
+# Variables\n\
+TESTS = top.sh\n\
+";
+        let scopes = directory_scopes(DATABASE);
+        let tests_of = |dir: Option<&str>| -> Vec<String> {
+            scopes
+                .iter()
+                .find(|(d, _)| {
+                    d.as_deref().map(|p| p.to_string_lossy().into_owned())
+                        == dir.map(str::to_string)
+                })
+                .map(|(_, vars)| vars.get("TESTS").cloned().unwrap_or_default())
+                .unwrap_or_default()
+                .split_whitespace()
+                .map(str::to_string)
+                .collect()
+        };
+        assert_eq!(tests_of(Some("/b/utils/sub")), vec!["child.sh"]);
+        assert_eq!(
+            tests_of(Some("/b/utils")),
+            vec!["parent-a.sh", "parent-b.sh"]
+        );
+        assert_eq!(
+            tests_of(None),
+            vec!["top.sh"],
+            "after every Leaving, the top-level make's own"
+        );
+
+        let entries = classify_tests_per_directory(DATABASE, Path::new("/b"));
+        let names: Vec<String> = entries
+            .iter()
+            .map(|e| match e {
+                TestEntry::Script(s) | TestEntry::Binary(s) | TestEntry::Unresolved(s) => s.clone(),
+            })
+            .collect();
+        assert_eq!(
+            names,
+            vec![
+                "utils/sub/child.sh",
+                "utils/parent-a.sh",
+                "utils/parent-b.sh",
+                "top.sh"
+            ],
+            "each script qualified by the directory that declared it, once"
+        );
     }
 }

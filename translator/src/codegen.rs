@@ -559,6 +559,17 @@ fn is_truthy_default(value: &str) -> bool {
 /// It deliberately does NOT assert `HAVE_UNISTD_H 1`. Whether a probe resolves
 /// true is a fact about the CONSUMER's toolchain, and pinning this host's
 /// answer would recreate the exact bug the probing design exists to prevent.
+/// Whether a config-header value renders as `/* #undef NAME */` rather than
+/// a define. Mirrors `_CMAKE_FALSE` in `cc_config/cc_config/
+/// expand_config_header.py`, which is the one that decides; the two have to
+/// agree or an assertion forbids what the header correctly contains.
+fn is_false_value(value: &str) -> bool {
+    matches!(
+        value.to_ascii_lowercase().as_str(),
+        "" | "0" | "off" | "false" | "n" | "no" | "ignore" | "notfound"
+    )
+}
+
 fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader) {
     let name = config_header_name(header);
 
@@ -582,9 +593,16 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
         // `/* #undef NAME */` is exactly what config.status emits for a name
         // it did not resolve, so this matches the real failure and cannot
         // collide with a longer name: the trailing ` */` terminates it.
+        // Only for a value that RENDERS as a define. A value of `0` (or
+        // any other false spelling) renders as the very `/* #undef NAME */`
+        // line this forbids, so forbidding it for every name made a header
+        // with one deliberately-undefined macro fail its own assertion —
+        // hwloc's six `HWLOC_HAVE_<disabled backend>` did. The false ones
+        // are pinned the other way, in `must_contain` below.
         model::ConfigDialect::Undef => header
             .values
             .iter()
+            .filter(|(_, v)| !is_false_value(v))
             .map(|(n, _)| format!("/* #undef {n} */"))
             .collect(),
         // Nothing declares here, so the `@NAME@` check below is the whole
@@ -626,20 +644,35 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
     // CMake value `ab` does not — the threshold would mean something
     // different per frontend, which is exactly what it must not do.
     const MIN_DISTINGUISHING_LEN: usize = 4;
-    let must_contain: Vec<String> = header
-        .values
-        .iter()
-        .map(|(_, value)| value)
-        .filter(|value| {
-            value
-                .strip_prefix('"')
-                .and_then(|v| v.strip_suffix('"'))
-                .unwrap_or(value)
-                .len()
-                >= MIN_DISTINGUISHING_LEN
-        })
-        .cloned()
-        .collect();
+    // A name deliberately left undefined is asserted AS undefined — the one
+    // check that can tell "the agent decided 0" from "nobody answered", and
+    // the positive pin the false half of every option needs.
+    let mut must_contain: Vec<String> = if header.dialect == model::ConfigDialect::Undef {
+        header
+            .values
+            .iter()
+            .filter(|(_, v)| is_false_value(v))
+            .map(|(n, _)| format!("/* #undef {n} */"))
+            .collect()
+    } else {
+        Vec::new()
+    };
+    must_contain.extend(
+        header
+            .values
+            .iter()
+            .map(|(_, value)| value)
+            .filter(|value| {
+                value
+                    .strip_prefix('"')
+                    .and_then(|v| v.strip_suffix('"'))
+                    .unwrap_or(value)
+                    .len()
+                    >= MIN_DISTINGUISHING_LEN
+            })
+            .cloned()
+            .collect::<Vec<_>>(),
+    );
 
     out.push_str(&format!(
         "\nassert_config_header_test(\n    name = \"{name}_test\",\n    header = \":{name}\",\n"
@@ -769,6 +802,22 @@ fn escape_starlark(value: &str) -> String {
 /// empty attributes on every rule is noise. This is what lets
 /// `render_cc_rule` offer every attribute unconditionally and let the
 /// target's own data decide which appear.
+/// Single-quotes a define's VALUE when the shell would otherwise alter it —
+/// a quote, a space, or a metacharacter — so it survives rules_cc's
+/// tokenization intact. `FOO=1` and bare `FOO` are left alone.
+fn shell_quote_define(define: &str) -> String {
+    let Some((name, value)) = define.split_once('=') else {
+        return define.to_string();
+    };
+    if value
+        .chars()
+        .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | '/' | '-' | '+' | ':'))
+    {
+        return define.to_string();
+    }
+    format!("{name}='{}'", value.replace('\'', "'\\''"))
+}
+
 fn render_string_list(out: &mut String, attr: &str, items: &[String]) {
     if items.is_empty() {
         return;
@@ -932,8 +981,20 @@ fn render_cc_rule(
     render_path_list(out, "includes", &includes);
     render_path_list(out, "local_includes", &local_includes);
     // Not render_path_list: a define (`FOO`, `FOO=1`) is not a path and
-    // must not be run through the module-relative assertion.
-    render_string_list(out, "local_defines", &target.local_defines);
+    // must not be run through the module-relative assertion. Shell-quoted,
+    // because rules_cc subjects `local_defines` to Bourne shell tokenization:
+    // autoconf's `-DRUNSTATEDIR=\"/usr/local/var/run\"` arrives here as
+    // `RUNSTATEDIR="/usr/local/var/run"`, and passed through unquoted the
+    // tokenizer eats the quotes and the macro expands to a bare path —
+    // hwloc's topology-linux.c then fails on `undeclared identifier 'usr'`.
+    // Every autoconf project carries such defines; the macros were simply
+    // unused until hwloc.
+    let defines: Vec<String> = target
+        .local_defines
+        .iter()
+        .map(|d| shell_quote_define(d))
+        .collect();
+    render_string_list(out, "local_defines", &defines);
     let mut deps: Vec<String> = target
         .dependencies
         .iter()
@@ -1445,6 +1506,75 @@ mod tests {
         assert!(
             out.contains("    hdrs = [\n        \"src/greet.h\",\n    ],\n    strip_include_prefix = \"src\",\n"),
             "{out}"
+        );
+    }
+
+    // rules_cc tokenizes local_defines like a shell, so a value with quotes
+    // must be quoted for the shell or the quotes vanish (hwloc's
+    // RUNSTATEDIR). A plain value stays plain, so the common case is
+    // unchanged in the generated file.
+    #[test]
+    fn local_defines_with_quotes_or_spaces_are_shell_quoted() {
+        assert_eq!(shell_quote_define("HAVE_FOO=1"), "HAVE_FOO=1");
+        assert_eq!(shell_quote_define("NDEBUG"), "NDEBUG");
+        assert_eq!(
+            shell_quote_define("RUNSTATEDIR=\"/usr/local/var/run\""),
+            "RUNSTATEDIR='\"/usr/local/var/run\"'"
+        );
+        assert_eq!(
+            shell_quote_define("PACKAGE_STRING=\"greeter 1.0\""),
+            "PACKAGE_STRING='\"greeter 1.0\"'"
+        );
+        let mut out = String::new();
+        render_cc_rule(
+            &mut out,
+            &Target {
+                name: "t".to_string(),
+                sources: vec!["t.c".to_string()],
+                local_defines: vec!["RUNSTATEDIR=\"/run\"".to_string()],
+                ..Default::default()
+            },
+            &[],
+            &HashSet::new(),
+        );
+        assert!(
+            out.contains("        \"RUNSTATEDIR='\\\"/run\\\"'\",\n"),
+            "rendered with the shell quotes inside the Starlark string:\n{out}"
+        );
+    }
+
+    // A value of 0 renders as `/* #undef NAME */`; the assertion must
+    // expect that line, not forbid it (hwloc's disabled backends).
+    #[test]
+    fn a_false_value_is_asserted_undefined_not_forbidden() {
+        let mut out = String::new();
+        render_config_header_assertion(
+            &mut out,
+            &model::ConfigHeader {
+                output: "config.h".to_string(),
+                template: "config.h.in".to_string(),
+                template_source: None,
+                catalog_probes: vec![],
+                values: vec![
+                    ("HWLOC_HAVE_NVML".to_string(), "0".to_string()),
+                    ("HWLOC_HAVE_PLUGINS".to_string(), "1".to_string()),
+                ],
+                options: Vec::new(),
+                splices: Vec::new(),
+                unresolved: Vec::new(),
+                dialect: model::ConfigDialect::Undef,
+                shadow_dir: None,
+            },
+        );
+        let (mc, mnc) = out.split_once("must_not_contain").unwrap_or((&out, ""));
+        assert!(
+            mc.contains("\"/* #undef HWLOC_HAVE_NVML */\""),
+            "the 0 is pinned as undefined:\n{out}"
+        );
+        assert!(
+            !mnc.contains("HWLOC_HAVE_NVML */")
+                && mnc.contains("\"/* #undef HWLOC_HAVE_PLUGINS */\""),
+            "and only the 1 forbids its undef line:\n{out}"
         );
     }
 

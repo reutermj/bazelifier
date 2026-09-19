@@ -166,6 +166,23 @@ and unreliable for the rest:
 - `*_CPPFLAGS` in the database is pre-expansion and misses what `configure` and
   `AM_CPPFLAGS` contributed. The compile line has everything.
 
+### A per-target variable is read from the directory that built the target
+
+The flattened map is the wrong scope for `<canon>_SOURCES` and its
+siblings: two targets in different directories can canonicalise to one
+variable name — hwloc's utility `hwloc-bind` and its test `hwloc_bind` both
+own `hwloc_bind_SOURCES` — and the flattened map keeps whichever came last,
+so the utility was handed the test's source and the copy failed on a file
+its directory does not have. `make -p -n` prints one database per sub-make,
+and prints it AFTER the sub-make's children have returned — so the text
+following a `Leaving directory` line is the parent's, and the split has to
+be a stack (`directory_scopes`, `parse_variables_by_directory`), not "the
+last directory entered"; the older split handed hwloc's `utils/hwloc`
+database to its last subdirectory and misattributed 67 tests.
+`target_var` reads a target's variable from the directory that linked it
+before falling back to the flattened map. This is the per-directory scoping bzl-oek asks for,
+applied where a wrong answer is a missing file rather than a spurious name.
+
 ## What the frontend produces
 
 ### Targets, from automake's primaries
@@ -217,13 +234,21 @@ that takes a primary's value literally sees no targets at all. The value is
 expanded the way make expands it — recursively, from the same database —
 before it is split into names (`expand_references`).
 
-The one refusal: a reference to a variable the database defines two
-different ways is left as written and dropped. Recursive make defines
-`am__EXEEXT_1` once per directory (libmicrohttpd: `test_md5` in one,
-`basicauthentication` in another) and the flattened database keeps only
-one; expanding it would declare a target automake never declared in that
-directory, which is the bzl-oek failure. `ambiguous_variables` computes the
-set from the raw database, before flattening.
+Each directory's primaries are expanded in that directory's OWN scope
+(`declared_targets_by_directory`), never against the flattened database:
+recursive make defines `am__EXEEXT_2` once per Makefile (hwloc's
+`tests/hwloc` says `shmem`, its `utils/hwloc` something else), and the
+flattened map keeps one of them, so the other's target was built by `make
+check` and declared by nothing. Within a scope the last definition wins,
+which is make's own rule; declarations are then merged by name. A
+reference to an `am__*` name the scope does not define is a conditional
+that was false and expands to nothing, for primaries and for `TESTS` alike
+(hwloc's `check_PROGRAMS` carries eleven of them, for Windows, CUDA and
+friends); a project's OWN undefined variable in `TESTS` is still escalated,
+since the database may simply not show where it is defined. *(History: the
+first version, 2026-09-18, expanded against the flattened map and refused
+any name it found defined two ways — which dropped exactly the targets
+that needed it.)*
 
 ### Target names are kept, not prettified
 

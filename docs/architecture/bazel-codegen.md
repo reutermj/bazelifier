@@ -204,6 +204,27 @@ registration and selects the host gcc for every fixture (see
     it; 0.2.25 was the first release with the fix to reach the registry, and
     the override went with it.
 
+## `local_defines` are shell-quoted
+
+rules_cc subjects `defines`/`local_defines` to Bourne shell tokenization, so
+a value with embedded quotes loses them: autoconf's
+`-DRUNSTATEDIR=\"/usr/local/var/run\"` arrives as
+`RUNSTATEDIR="/usr/local/var/run"` and, passed through as-is, expands to a
+bare path in C. Codegen single-quotes any value the shell would alter
+(`shell_quote_define`), leaving `FOO=1` untouched. Every autoconf project
+carries such defines (`PACKAGE_STRING="x 1.0"`); they were simply unused in
+C until hwloc's `topology-linux.c` read one.
+
+## Config-header assertions pin false values as undefined
+
+A value of `0` (or `off`, `no`, ...) renders as `/* #undef NAME */`, so the
+generated `assert_config_header_test` puts that line in `must_contain` for a
+false value and in `must_not_contain` only for a true one. The mirror of the
+expander's false set lives in `codegen::is_false_value`. *(History: until
+2026-09-19 every value's undef line was forbidden regardless, so a header
+with one deliberately-undefined macro failed its own assertion — hwloc's
+six disabled backends.)*
+
 ## Formatting and linting
 
 Generated (and hand-written) `BUILD`/`MODULE.bazel`/`.bzl` files are checked

@@ -46,6 +46,12 @@ const LIBEVENT_STRLCPY: &str = include_str!(
     "../project_notes/libevent/001-strlcpy-c-is-compiled-only-where-the-c-library-lacks-strlcpy.md"
 );
 
+const HWLOC_PCI: &str =
+    include_str!("../project_notes/hwloc/001-disable-pci-also-disables-sysfs-pci-discovery.md");
+
+const HWLOC_WRAPPER: &str =
+    include_str!("../project_notes/hwloc/002-tests-hwloc-check-programs-run-through-wrapper-sh.md");
+
 const LIBEVENT_TESTS: &str = include_str!(
     "../project_notes/libevent/002-the-registered-tests-need-a-binary-open-mpis-flags-do-not-build.md"
 );
@@ -76,6 +82,16 @@ pub fn for_project(module_name: &str) -> Vec<Note> {
             Note {
                 filename: "002-the-registered-tests-need-a-binary-open-mpis-flags-do-not-build.md",
                 body: LIBEVENT_TESTS,
+            },
+        ],
+        "hwloc" => vec![
+            Note {
+                filename: "001-disable-pci-also-disables-sysfs-pci-discovery.md",
+                body: HWLOC_PCI,
+            },
+            Note {
+                filename: "002-tests-hwloc-check-programs-run-through-wrapper-sh.md",
+                body: HWLOC_WRAPPER,
             },
         ],
         _ => Vec::new(),
@@ -113,7 +129,7 @@ mod tests {
     // saying nothing.
     #[test]
     fn every_note_has_content() {
-        for name in ["json-c", "libevent"] {
+        for name in ["json-c", "libevent", "hwloc"] {
             for note in for_project(name) {
                 assert!(
                     note.body.len() > 200,

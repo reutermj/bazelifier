@@ -353,3 +353,24 @@ http_archive(
     strip_prefix = "libevent-2.1.12-stable",
     url = "https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz",
 )
+
+# Second node of the Open MPI chain (bzl-7r9): hwloc 2.7.1, the other leaf.
+# Byte-identical to the tarball Open MPI 5.0.11 bundles (diffed 2026-09-18:
+# no differences), so the stock release is converted. Two config headers
+# (public hwloc/autogen/config.h, private), a configure-generated
+# static-components.h, and utilities Open MPI never links. The configure
+# decisions are recorded on the conversion
+# (translator/tests/corpus/hwloc/BUILD.bazel). Release TARBALL; INPUT to
+# the translator only.
+http_archive(
+    name = "hwloc",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-TLCnge2YCwOtjEi+tXQHqmfEuQjkVyKVS5cwN5vH9tU=",
+    strip_prefix = "hwloc-2.7.1",
+    url = "https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.1.tar.gz",
+)
