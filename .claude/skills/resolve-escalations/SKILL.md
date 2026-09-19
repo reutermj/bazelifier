@@ -168,6 +168,13 @@ Re-running `sweep.py --post-agent` checks all four and exits 0 only when they
 hold. It reports the last two separately, because they fail for different
 reasons and a resolution can easily satisfy one and break the other.
 
+**A `values` entry is written verbatim on an autoconf template.** `"0"` is
+`#define NAME 0` — a number the code may compute with (PMIx's
+`PMIX_MINOR_VERSION`) — and only `""` leaves the name undefined. The
+hwloc and libevent resolutions predate this and spelled "undefined" as
+`"0"`; re-applying them means changing those to `""` first, or every
+`#ifdef`-tested macro they meant to leave out turns on.
+
 **Point 4 is the one that gets skipped, and for a config-header resolution it
 is the only check that bites at all.** A wrong `values` entry or a probe wired
 to the wrong fact usually still compiles and still produces byte-identical
