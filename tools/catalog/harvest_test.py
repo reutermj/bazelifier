@@ -164,6 +164,13 @@ class FakeCompiler:
     def run_int(self, source, defines=()):
         return 8
 
+    # Where the preprocessor says each symbol is really declared, when a
+    # catch-all reached it transitively.
+    DECLARED_IN = {("mmap", "unistd.h"): "sys/mman.h"}
+
+    def declaring_header(self, symbol, header, defines=()):
+        return self.DECLARED_IN.get((symbol, header))
+
 
 class VerifyTest(unittest.TestCase):
     def verified(self):
@@ -173,6 +180,7 @@ class VerifyTest(unittest.TestCase):
     def test_symbol_header_is_the_specific_one(self):
         got = self.verified()
         self.assertEqual((got["HAVE_MMAP"].headers, got["HAVE_MMAP"].present), (["sys/mman.h"], True))
+        self.assertEqual(got["HAVE_MMAP"].note, "", "found directly, no detour to report")
         self.assertEqual(got["HAVE_ACCEPT4"].headers, ["sys/socket.h"], "not unistd.h, which also declares it here")
         self.assertEqual(got["HAVE_CLOCK_GETTIME"].source, "table")
 
@@ -186,6 +194,24 @@ class VerifyTest(unittest.TestCase):
         self.assertEqual((s.headers, s.present), ([], False))
         self.assertTrue(s.note.startswith("HEADER?"), s.note)
         self.assertEqual([e.subject for e in H.unresolved([s])], ["strcasecmp"])
+
+    def test_a_transitively_reached_symbol_takes_its_declaring_header(self):
+        fake = FakeCompiler()
+        fake.DECLARES = dict(FakeCompiler.DECLARES)
+        del fake.DECLARES["sys/mman.h"]  # the catch-all is the first hit now
+        fake.DECLARES["sys/mman.h"] = {"mmap"}
+        fake.DECLARES = {**fake.DECLARES, "sys/mman.h": {"mmap"}}
+        # Make unistd.h the first candidate that compiles by removing the
+        # specific header from the search order.
+        saved = H.SYMBOL_HEADER_CANDIDATES[:]
+        H.SYMBOL_HEADER_CANDIDATES[:] = [h for h in saved if h != "sys/mman.h"]
+        try:
+            got = by_macro(H.verify(H.harvest(CONFIGURE_269), fake))
+        finally:
+            H.SYMBOL_HEADER_CANDIDATES[:] = saved
+        self.assertEqual(got["HAVE_MMAP"].headers, ["sys/mman.h"],
+                         "unistd.h compiled first, but the declaration lives in sys/mman.h")
+        self.assertEqual(got["HAVE_MMAP"].note, "declared in sys/mman.h, first reached through unistd.h")
 
     def test_override_wins(self):
         entries = H.harvest(CONFIGURE_271)
@@ -244,6 +270,14 @@ class RenderAndApplyTest(unittest.TestCase):
     ],
     symbols = [
         ("x", ["x.h"], "HAVE_X"),
+        (
+            "CTL_HW",
+            [
+                "sys/types.h",
+                "sys/sysctl.h",
+            ],
+            "HAVE_DECL_CTL_HW",
+        ),
     ],
     type_exists = [
     ],
@@ -293,6 +327,8 @@ assert_config_header_test(
         self.assertIn('        ("a.h", "HAVE_A_H"),\n        # BANNER\n        ("sys/epoll.h", "HAVE_SYS_EPOLL_H"),\n    ],', cat)
         self.assertIn('    struct_members = [\n        # BANNER\n        ("struct sockaddr_in", "sin_len"', cat)
         self.assertIn('("kqueue", ["sys/event.h"], "HAVE_KQUEUE"),  # absent on this host', cat)
+        self.assertIn('            "HAVE_DECL_CTL_HW",\n        ),\n        # BANNER\n        ("kqueue"', cat,
+                      "the block goes after the LAST entry, past a nested headers list that also closes with `],`")
         self.assertIn('("CTL_KERN", ["sys/types.h", "sys/sysctl.h"], "HAVE_DECL_CTL_KERN"),  # absent on this host', cat)
         self.assertIn('    types = [\n        ("int", [], "SIZEOF_INT"),\n        # BANNER\n        ("pthread_t", ["pthread.h"], "SIZEOF_PTHREAD_T"),', cat)
         self.assertIn('        ":have_a_h",\n        # BANNER\n        ":have_sys_epoll_h",\n        ":have_kqueue",', cat)

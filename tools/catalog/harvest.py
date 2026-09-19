@@ -72,7 +72,7 @@ SYMBOL_HEADER_CANDIDATES = [
     "sys/file.h", "sys/prctl.h", "sys/inotify.h", "sys/statvfs.h",
     "sys/mount.h", "sys/param.h", "sys/ipc.h", "sys/shm.h", "sys/sem.h",
     "sys/msg.h", "sys/timeb.h", "sys/times.h", "sys/un.h", "sys/xattr.h",
-    "sys/stat.h", "netdb.h", "arpa/inet.h", "netinet/in.h", "net/if.h",
+    "sys/stat.h", "sys/vfs.h", "sys/statfs.h", "pty.h", "utmp.h", "netdb.h", "arpa/inet.h", "netinet/in.h", "net/if.h",
     "ifaddrs.h", "poll.h", "sched.h", "pthread.h", "signal.h", "dlfcn.h",
     "dirent.h", "fcntl.h", "time.h", "locale.h", "langinfo.h", "iconv.h",
     "wchar.h", "wctype.h", "math.h", "malloc.h", "execinfo.h",
@@ -85,6 +85,9 @@ SYMBOL_HEADER_CANDIDATES = [
 # that has them declares them in. Unverifiable here by construction; the
 # report marks them so and the smoke test asserts the `absent` answer.
 KNOWN_SYMBOL_HEADERS = {
+    "getpeereid": "unistd.h",
+    "getpeerucred": "ucred.h",
+    "strncpy_s": "string.h",
     "kqueue": "sys/event.h",
     "kevent": "sys/event.h",
     "port_create": "port.h",
@@ -274,6 +277,42 @@ class HostCompiler:
         self._cache[key] = result
         return result
 
+    _INCLUDE_ROOTS = ("/usr/include/x86_64-linux-gnu/", "/usr/include/", "/usr/local/include/")
+
+    def declaring_header(self, symbol, header, defines=()):
+        """The public header that DECLARES `symbol` when `header` is included.
+
+        glibc's `sys/*.h` pull in string.h, unistd.h and friends, so "the
+        first header the probe compiles under" is often a transitive one —
+        strnlen through sys/un.h — and a probe written that way reports the
+        symbol ABSENT on a libc whose sys/un.h does not include string.h.
+        The preprocessor's line markers say which file the declaration is
+        really in; that file, when it is a public header, is the entry's.
+        None when the declaring file is internal (`bits/`), or not found.
+        """
+        source = "#include <%s>\n" % header
+        r = subprocess.run([self.cc, *["-D%s" % d for d in defines], "-E", "-x", "c", "-"],
+                           input=source, capture_output=True, text=True)
+        if r.returncode != 0:
+            return None
+        current = None
+        name = re.escape(symbol)
+        # A function prototype, or a one-line typedef (glibc's are).
+        decl = re.compile(r'\b%s\s*\(|typedef\b[^;]*\b%s\s*;' % (name, name))
+        for line in r.stdout.splitlines():
+            if line.startswith("# "):
+                parts = line.split('"')
+                if len(parts) >= 2:
+                    current = parts[1]
+                continue
+            if current and decl.search(line):
+                for root in self._INCLUDE_ROOTS:
+                    if current.startswith(root):
+                        rel = current[len(root):]
+                        return None if rel.startswith("bits/") or rel.startswith("gnu/") else rel
+                return None
+        return None
+
     def compiles(self, source, link=False, defines=()):
         args = [f"-D{d}" for d in defines] + ([] if link else ["-c"])
         return self._run(source, args)[0]
@@ -332,6 +371,12 @@ def verify(entries, compiler, header_overrides=None):
                 candidates, e.source = SYMBOL_HEADER_CANDIDATES, "search"
             chosen = next((h for h in candidates if ok([h])), None)
             if chosen is not None:
+                # The header that really declares it, if the first hit only
+                # reached it transitively (see `declaring_header`).
+                home = compiler.declaring_header(e.subject, chosen, defines)
+                if home and home != chosen and ok([home]):
+                    e.note = "declared in %s, first reached through %s" % (home, chosen)
+                    chosen = home
                 e.headers, e.present = [chosen], True
             elif e.source in ("table", "supplied"):
                 e.headers, e.present = candidates, False
@@ -343,7 +388,15 @@ def verify(entries, compiler, header_overrides=None):
             continue
         # Kinds whose includes configure states: minimise to the first single
         # header that satisfies the probe, else the whole set, else absent.
+        # For a type, the POSIX homes come first among autoconf's defaults,
+        # so pid_t is probed through sys/types.h rather than through
+        # stdlib.h, which declares it on glibc and not everywhere.
         stated = list(e.headers)
+        if e.kind in ("type_exists", "sizeof"):
+            # What the project added beyond the defaults first (it names the
+            # home: sys/socket.h for socklen_t), then the POSIX homes.
+            stated.sort(key=lambda h: 0 if h not in DEFAULT_INCLUDES
+                        else 1 if h in ("sys/types.h", "stdint.h", "stddef.h") else 2)
         if e.kind in ("sizeof", "type_exists") and ok([]):
             e.headers, e.present = [], True
         else:
@@ -440,10 +493,10 @@ def render_report(project, new, skipped, verified):
                 "present" if e.present else "absent") + ("=%s" % e.value if e.value is not None else "")
             if e.headers:
                 hdrs = ", ".join(e.headers)
-            elif e.kind == "header" or not verified:
-                hdrs = "-"
-            else:
+            elif e.note.startswith("HEADER?"):
                 hdrs = "HEADER?"
+            else:
+                hdrs = "-"
             subj = e.subject + ("." + e.member if e.member else "")
             out.append("  %-40s %-28s %-10s %s%s" % (
                 e.macro, subj, verdict, hdrs, ("  # " + e.note) if e.note else ""))
@@ -472,13 +525,18 @@ def apply_catalog(text, new, banner):
         if not group:
             continue
         opener = "    %s = [\n" % SECTION_OF[kind]
-        lines = ["        # %s\n" % banner]
+        lines = ["\n        # %s" % banner]
         for e in group:
             comment = ""
             if e.present is False:
                 comment = "  # absent on this host"
-            lines.append("        %s%s\n" % (catalog_line(e), comment))
-        text = _insert_before(text, "    ],\n", "".join(lines), after=opener)
+            lines.append("\n        %s%s" % (catalog_line(e), comment))
+        # Anchored on the newline: a nested headers list closes with a deeper
+        # `],` that a bare substring search matched first, and the block
+        # landed inside an existing tuple.
+        # `after` stops short of the opener's own newline so an EMPTY
+        # section — whose closing `],` follows it directly — is found too.
+        text = _insert_before(text, "\n    ],\n", "".join(lines), after=opener.rstrip("\n"))
     return text
 
 
