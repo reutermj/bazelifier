@@ -374,3 +374,28 @@ http_archive(
     strip_prefix = "hwloc-2.7.1",
     url = "https://download.open-mpi.org/release/hwloc/v2.7/hwloc-2.7.1.tar.gz",
 )
+
+# OpenPMIx 5.0.11 (2026-06-23), the third node of the Open MPI chain
+# (bzl-7r9.5) and the first corpus project with real cross-module edges:
+# libpmix links the converted libevent (libevent_core, libevent_pthreads)
+# and hwloc, so its conversion takes both as `deps`. The tagged standalone
+# release matching what Open MPI 5.0.11 bundles (5.0.11rc1). Measured
+# before pinning: automake, `configure` shipped, no gnulib replacement
+# headers, 318 C files of which 154 are MCA components across 18
+# frameworks — the "MCA at scale" shape (per-framework static-components.h
+# written by configure, a DSO-vs-static split decided by enable_mca_dso,
+# one component dlopen'd at runtime) that nothing in the corpus has.
+# See translator/tests/corpus/pmix/BUILD.bazel. Release TARBALL; INPUT to
+# the translator only.
+http_archive(
+    name = "pmix",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-4QuqmCGIIUDr0TQFFwLWWxVh/pGVTTl49+osTkzTbn8=",
+    strip_prefix = "pmix-5.0.11",
+    url = "https://github.com/openpmix/openpmix/releases/download/v5.0.11/pmix-5.0.11.tar.bz2",
+)

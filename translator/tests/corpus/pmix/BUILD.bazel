@@ -1,0 +1,26 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# OpenPMIx 5.0.11, the third node of the Open MPI chain (bzl-7r9.5), pinned
+# in MODULE.bazel as @pmix.
+#
+# Converted as PMIx ships: its own default configuration is the ground
+# truth (overview.md, "Convert the project, not the consumer's use of it").
+# The two converted leaves it links are supplied as `deps`, so its configure
+# finds them through the relocated sysroot exactly as a consumer's would
+# (build-verification.md, "Depending on another converted module"), and
+# every link input that resolves into that sysroot becomes a cross-module
+# edge rather than an escalation. What this host contributes beyond that
+# (zlib for the pcompress component, munge, ...) surfaces as
+# unconverted_dependency items and is decided in the module.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@pmix//:all_srcs"],
+    visibility = [
+        "//translator/tests:__pkg__",
+        "//translator/tests/corpus:__subpackages__",
+    ],
+    deps = [
+        "//translator/tests/corpus/hwloc:converted",
+        "//translator/tests/corpus/libevent:converted",
+    ],
+)
