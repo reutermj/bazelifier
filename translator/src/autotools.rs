@@ -2317,6 +2317,7 @@ pub(crate) fn to_graph_with_dependencies(
         // half. The link line carries the resolved `./lib/libhello.a`.
         let mut dependencies: Vec<String> = Vec::new();
         let mut external_dependencies: Vec<ExternalDependency> = Vec::new();
+        let mut linkopts: Vec<String> = Vec::new();
         let mut unresolved: Vec<String> = Vec::new();
         let link_args = link.map(|cmd| cmd.args.as_slice()).unwrap_or(&[]);
         let link_dir = link.map(|cmd| cmd.dir.clone()).unwrap_or_default();
@@ -2337,6 +2338,10 @@ pub(crate) fn to_graph_with_dependencies(
                     // dependency anyone converts, and the llvm toolchain
                     // brings its own.
                     None if !is_toolchain_library(name) => unresolved.push(input.clone()),
+                    // The toolchain's, but still named on the link: see
+                    // `Target::linkopts` for why it is carried, and
+                    // `is_driver_library` for the ones that are not.
+                    None if !is_driver_library(name) => linkopts.push(input.clone()),
                     None => {}
                 }
                 continue;
@@ -2424,6 +2429,7 @@ pub(crate) fn to_graph_with_dependencies(
                 .collect(),
             dependencies,
             external_dependencies,
+            linkopts,
             strip_include_prefix: None,
             includes,
             local_defines,
@@ -3096,6 +3102,14 @@ fn is_library(path: &str) -> bool {
 /// supplies itself, so linking them is not a dependency on the host — and
 /// escalating `-lm` on every project that uses `sqrt` would bury the real
 /// unconverted dependencies. Anything not listed is treated as one.
+/// The subset of [`is_toolchain_library`] the compiler driver links on its
+/// own and a `linkopts` must not repeat: libc, the compiler runtime, and
+/// the C++ standard library, which the module's toolchain replaces with
+/// libc++ — naming `-lstdc++` there would link the wrong one.
+fn is_driver_library(name: &str) -> bool {
+    matches!(name, "c" | "gcc" | "gcc_s" | "stdc++")
+}
+
 fn is_toolchain_library(name: &str) -> bool {
     matches!(
         name,
@@ -5369,6 +5383,38 @@ EXEEXT =
             item.gap
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // PMIx: libpmix links -lutil for openpty, and the module's toolchain
+    // links against a glibc 2.28 sysroot where openpty is only in libutil.
+    // Dropping every toolchain library left twenty binaries unlinkable.
+    #[test]
+    fn a_toolchain_library_on_the_link_line_is_carried_as_a_linkopt() {
+        const STREAM: &str = "\
+gcc -c -o a.o /s/a.c\n\
+libtool --tag=CC --mode=link gcc a.o -o libpmix.la -lm -ldl -lutil -lc -lgcc_s -lstdc++\n\
+";
+        let (graph, escalations, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/s")),
+            &VariableDatabase::parse(
+                "lib_LTLIBRARIES = libpmix.la\nlibpmix_la_SOURCES = a.c\n",
+                Path::new("/s"),
+            ),
+            "pmix",
+            Path::new("/s"),
+            Path::new("/s"),
+        );
+        assert_eq!(
+            graph.targets[0].linkopts,
+            vec!["-lm".to_string(), "-ldl".to_string(), "-lutil".to_string()],
+            "the toolchain's libraries by name, minus the ones the driver owns"
+        );
+        assert!(
+            !escalations
+                .iter()
+                .any(|e| e.kind == "unconverted_dependency"),
+            "none of them is an unconverted dependency: {escalations:#?}"
+        );
     }
 
     // PMIx: bfrops/v12 and bfrops/v20 each compile their own `copy.c` to

@@ -160,6 +160,13 @@ sources both ways and its two consumers produce byte-identical output. What
 does differ is the symbol table — zlib's shared link applies a version script
 that hides internals the static archive exposes.
 
+A toolchain library the link line names (`-lutil`, `-lrt`, `-lm`) is
+carried as `linkopts` on the target rather than dropped: the generated
+module links against the llvm toolchain's own sysroot, a glibc 2.28 where
+`openpty` still lives in libutil, and PMIx's binaries did not link without
+it. `-lc`, `-lgcc_s` and `-lstdc++` are never carried — the driver owns
+them, and the last would name the wrong standard library beside libc++.
+
 `dynamic_deps` is emitted on executables and on the `cc_shared_library`
 wrapper of a shared library, because `cc_library` has no such attribute. A
 SHARED library that links another shared library — PMIx's libpmix on the

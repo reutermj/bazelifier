@@ -1004,6 +1004,7 @@ fn render_cc_rule(
         .map(|d| shell_quote_define(d))
         .collect();
     render_string_list(out, "local_defines", &defines);
+    render_string_list(out, "linkopts", &target.linkopts);
     let mut deps: Vec<String> = target
         .dependencies
         .iter()
@@ -1441,6 +1442,22 @@ mod tests {
         assert!(
             !untouched.contains("deliberately NOT in"),
             "no displacement, no note:\n{untouched}"
+        );
+    }
+
+    #[test]
+    fn linkopts_render_on_the_target_and_only_when_present() {
+        let mut g = graph(None);
+        g.targets[0].linkopts = vec!["-lutil".to_string()];
+        let rendered = render(&g).build_bazel;
+        assert!(
+            rendered.contains("    linkopts = [\n        \"-lutil\",\n    ],\n"),
+            "{rendered}"
+        );
+        let plain = render(&graph(None)).build_bazel;
+        assert!(
+            !plain.contains("linkopts"),
+            "no flags, no attribute:\n{plain}"
         );
     }
 

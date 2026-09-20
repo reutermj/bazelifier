@@ -133,6 +133,15 @@ pub struct Target {
     /// link line names that resolves into NO dependency is not here — it is
     /// escalated (`unconverted_dependency`), never linked from the host.
     pub external_dependencies: Vec<ExternalDependency>,
+    /// Linker flags the target's own link passed that no dependency edge
+    /// expresses: the toolchain's own libraries by name (`-lutil`, `-lrt`,
+    /// `-lm`). Kept rather than dropped because the module's toolchain links
+    /// against its own sysroot — a glibc 2.28, where `openpty` still lives
+    /// in libutil and `-lutil` is the only way to reach it; PMIx's binaries
+    /// failed to link without it. Never `-lc`, `-lgcc_s` or `-lstdc++`,
+    /// which the driver owns (and libc++ replaces the last). Rendered as
+    /// `linkopts`. Frontend-agnostic: a value, never a source.
+    pub linkopts: Vec<String>,
     /// The directory prefix a consumer must NOT see on this target's public
     /// headers, so they are reachable at their INSTALLED path.
     ///
