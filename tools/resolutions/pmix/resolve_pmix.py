@@ -290,6 +290,19 @@ t = targets_manifest.replace("library pmix_mca_pcompress_zlib.la pmix_mca_pcompr
 assert t != targets_manifest
 open(os.path.join(M, "TARGETS"), "w").write(t)
 
+# ---- 5b. build stamps (the shell_expanded_defines item): fixed literals ----
+# pmix_info prints them, so its comparison is recorded as omitted below.
+STAMPS = {"PMIX_BUILD_DATE": "unknown", "PMIX_BUILD_HOST": "bazel", "PMIX_BUILD_USER": "bazel",
+          "PMIX_CC_ABSOLUTE": "clang"}
+for name, literal in STAMPS.items():
+    pat = re.compile(r'"%s=\'\\"[^\n]*?\\"\'",' % name)
+    n = len(pat.findall(s))
+    assert n >= 1, name
+    s = pat.sub('"%s=\'\\"%s\\"\'",  # a build stamp; the recipe computed it with the shell' % (name, literal), s)
+t = open(os.path.join(M, "TARGETS")).read()
+t = t.rstrip("\n") + "\nomitted pmix_info prints the configure/build stamps (date, host, user), which differ from the ground truth by construction\n"
+open(os.path.join(M, "TARGETS"), "w").write(t)
+
 # ---- 6. static-components.h into each framework's base archive --------------
 for fw in FRAMEWORKS:
     i = s.index('    name = "libmca_%s.la",' % fw)
