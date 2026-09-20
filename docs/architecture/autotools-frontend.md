@@ -345,7 +345,15 @@ was fixed at the consumer with a per-directory read beside the flat map:
 The flat map is gone; `VariableDatabase` (above) is the only model, and a
 sixth instance now has to be written deliberately — a consumer reaching
 across scopes by hand — rather than inherited from a lookup that looked
-right. Unit tests pin each of the five. The refactor was gated on the
+right. The sixth instance arrived the next day anyway, from the OTHER
+input: the command stream's object map was keyed by the `-o` value as
+printed, and PMIx's six bfrops components each compile their own `copy.c`
+to `copy.lo` in their own directory, so one archive was handed another's
+source and libpmix's link failed on duplicate symbols. Objects are now
+keyed by their path in the build tree (`object_key`), from the directory
+the command ran in, on both the compile and the link side. The lesson
+generalises past make's database: anything a per-directory build prints
+relatively is ambiguous until its directory is attached. Unit tests pin each of the five. The refactor was gated on the
 corpus sweep and on a byte diff of every fixture's and corpus project's
 generated output before and after — identical, up to two sources of
 run-to-run noise that predate it (a sandbox path in some defines and quoted

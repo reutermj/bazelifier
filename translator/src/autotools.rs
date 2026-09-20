@@ -2022,6 +2022,14 @@ pub(crate) fn to_graph_with_dependencies(
     // object path -> the source it was compiled from, and the flags it
     // carried. Built before the module root, because the root survey needs it
     // to see through an unexpanded `_SOURCES`.
+    //
+    // Keyed by the object's path IN THE BUILD TREE ([`object_key`]), not by
+    // the `-o` value as printed: automake prints per-directory names, and
+    // PMIx's six bfrops components each compile their own `copy.c` to
+    // `copy.lo` in their own directory. Keyed by the printed name, last
+    // write won and one component's archive carried another's source —
+    // duplicate symbols at libpmix's link. `link_inputs` qualifies a link
+    // line's objects the same way, so the two sides meet on the full path.
     let mut source_of: HashMap<String, (String, PathBuf)> = HashMap::new();
     let mut flags_of: HashMap<String, (Vec<String>, Vec<String>)> = HashMap::new();
     for cmd in commands.iter().filter(|c| c.program != "ar") {
@@ -2032,8 +2040,9 @@ pub(crate) fn to_graph_with_dependencies(
             continue;
         }
         if let Some(source) = compiled_source(&cmd.args) {
-            source_of.insert(output.clone(), (source, cmd.dir.clone()));
-            flags_of.insert(output, (includes_of(&cmd.args), defines_of(&cmd.args)));
+            let key = object_key(&cmd.dir, &output);
+            source_of.insert(key.clone(), (source, cmd.dir.clone()));
+            flags_of.insert(key, (includes_of(&cmd.args), defines_of(&cmd.args)));
         }
     }
 
@@ -3042,8 +3051,18 @@ fn link_inputs(cmd: Option<&BuildCommand>) -> Vec<String> {
     cmd.args
         .iter()
         .filter(|a| a.ends_with(".o") || a.ends_with(".lo"))
-        .cloned()
+        .map(|a| object_key(&cmd.dir, a))
         .collect()
+}
+
+/// An object's identity: its path in the build tree, from the directory the
+/// command that named it ran in. The same object is `copy.lo` to the
+/// compile that wrote it and to the link that read it, and `copy.lo` again
+/// in the next component's directory; only the directory tells them apart.
+fn object_key(dir: &Path, object: &str) -> String {
+    normalize_lexically(&dir.join(object))
+        .to_string_lossy()
+        .into_owned()
 }
 
 /// Expresses `path` relative to `base`, walking up with `..` where it must.
@@ -5350,6 +5369,59 @@ EXEEXT =
             item.gap
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // PMIx: bfrops/v12 and bfrops/v20 each compile their own `copy.c` to
+    // `copy.lo`. Keyed by the printed name, the second compile overwrote the
+    // first and v12's archive was handed v20's source.
+    #[test]
+    fn same_named_objects_in_different_directories_stay_with_their_own_target() {
+        const DATABASE: &str = "\
+# make[1]: Entering directory '/b/src/mca/bfrops/v12'\n\
+noinst_LTLIBRARIES = libv12.la\n\
+libv12_la_SOURCES = $(lib_sources)\n\
+# make[1]: Leaving directory '/b/src/mca/bfrops/v12'\n\
+# make[1]: Entering directory '/b/src/mca/bfrops/v20'\n\
+noinst_LTLIBRARIES = libv20.la\n\
+libv20_la_SOURCES = $(lib_sources)\n\
+# make[1]: Leaving directory '/b/src/mca/bfrops/v20'\n\
+";
+        const STREAM: &str = "\
+make[1]: Entering directory '/b/src/mca/bfrops/v12'\n\
+gcc -c -o copy.lo /s/src/mca/bfrops/v12/copy.c\n\
+libtool --tag=CC --mode=link gcc copy.lo -o libv12.la\n\
+make[1]: Leaving directory '/b/src/mca/bfrops/v12'\n\
+make[1]: Entering directory '/b/src/mca/bfrops/v20'\n\
+gcc -c -o copy.lo /s/src/mca/bfrops/v20/copy.c\n\
+libtool --tag=CC --mode=link gcc copy.lo -o libv20.la\n\
+make[1]: Leaving directory '/b/src/mca/bfrops/v20'\n\
+";
+        let (graph, _, _) = to_graph(
+            &parse_commands(STREAM, Path::new("/b")),
+            &VariableDatabase::parse(DATABASE, Path::new("/b")),
+            "pmix",
+            Path::new("/s"),
+            Path::new("/s"),
+        );
+        let sources: Vec<(String, Vec<String>)> = graph
+            .targets
+            .iter()
+            .map(|t| (t.name.clone(), t.sources.clone()))
+            .collect();
+        assert_eq!(
+            sources,
+            vec![
+                (
+                    "libv12.la".to_string(),
+                    vec!["src/mca/bfrops/v12/copy.c".to_string()]
+                ),
+                (
+                    "libv20.la".to_string(),
+                    vec!["src/mca/bfrops/v20/copy.c".to_string()]
+                ),
+            ],
+            "each archive keeps the copy.c compiled in ITS directory"
+        );
     }
 
     // PMIx: every compile carries `-iquote$(top_srcdir)` and the sources
