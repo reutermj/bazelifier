@@ -13,16 +13,38 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # (zlib for the pcompress component, munge, ...) surfaces as
 # unconverted_dependency items and is decided in the module.
 #
-# STATE (2026-09-19, stopping point — RED, with a diagnosis): converts to 95
-# targets, 1 expressible test, 6 items; eight translator gaps it surfaced
-# are fixed and pinned (see bzl-7r9.5's notes for the list). The agent-stage
-# resolution is kept as tools/resolutions/pmix/ (applied together with the
-# adapted hwloc and libevent resolutions it depends on). Applied, every
-# source compiles and all four config-header assertions pass; libpmix.so
-# does not yet LINK: the frontend keys compiled objects by the path the
-# compiler printed, so the six bfrops components' same-named copy.c collide
-# and one archive carries another's file — duplicate symbols. Filed as the
-# last known blocker; fix it, re-apply, then measure.
+# END STATE (2026-09-20, converted as PMIx ships): GREEN from the unpacked
+# workspace after the agent stage — 40/40 comparisons, 1 omitted by
+# recorded decision (pmix_info prints the configure/build stamps), 19/19
+# module tests (4 config-header assertions, the registered pmix_environ
+# test, the 14 perl drivers through run_pmix_perl_test.sh). Post-agent row
+# in metrics/history_post_agent.jsonl. Its dependencies' resolutions had to
+# be applied in the same workspace first (bzl-7r9.17); all three scripts
+# are in tools/resolutions/pmix/. Cost, for the onboarding record:
+#
+# - Translator gaps found and fixed: 11, each its own commit — a
+#   dependency's .so staged once per name, and under the names libtool
+#   states; generated_headers naming configure-written headers; a lex
+#   grammar in _SOURCES replaced by its compiled derivative; ALIGNOF_*
+#   as a catalog kind; config-header values written verbatim (a 0 is a
+#   zero); dynamic_deps on a shared library's wrapper (fixture 013);
+#   -iquote/-isystem as include dirs; compiled objects keyed by
+#   directory (the sixth per-directory instance); toolchain libraries
+#   carried as linkopts; a define holding unexpanded shell escalated as a
+#   stamp. Plus two in cc_config: check_c_source_compiles and
+#   check_type_alignof, and the symbol probe that never linked.
+# - Escalations at first conversion: 6 items, 100 unmapped names; at green
+#   under the default configure: 7 items (the stamp item is new), after
+#   79 catalog facts from the harvester's first real run.
+# - Agent-stage decisions: 38 project-local compile probes from PMIx's own
+#   m4 snippets, 7 symbol probes, 46 values with 3 bool_flags; 15
+#   configure-written static-components.h from the module's own component
+#   targets; libpmix's wrapper absorbing its 50 archives; the pcompress
+#   zlib DSO omitted (bzl-7r9.8); openpty recorded with -lutil because the
+#   fallback branch does not compile (project note 001); the stamps as
+#   fixed literals.
+# - The rest of the corpus did not move (sweep before/after identical
+#   except fixture 013 and PMIx's own new item).
 convert_autotools_project(
     name = "converted",
     srcs = ["@pmix//:all_srcs"],

@@ -2,7 +2,8 @@
 # for 'undefined' since the config-header value fix of 2026-09-19.
 import re, os, glob, json, shutil, sys
 M = sys.argv[1]
-R = "/tmp/claude-1000/-workspaces-bazelifier/0bb7bbbd-6cbf-4128-9413-172653ee329b/scratchpad/hwloc/resolve"
+import os
+R = os.path.dirname(os.path.abspath(__file__))
 p = f"{M}/BUILD.bazel"; s = open(p).read()
 def rep(s, old, new, count=1):
     n = s.count(old); assert n == count, f"{n} != {count}: {old[:100]}"
