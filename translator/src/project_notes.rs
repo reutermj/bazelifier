@@ -52,6 +52,10 @@ const HWLOC_PCI: &str =
 const HWLOC_WRAPPER: &str =
     include_str!("../project_notes/hwloc/002-tests-hwloc-check-programs-run-through-wrapper-sh.md");
 
+const PMIX_OPENPTY: &str = include_str!(
+    "../project_notes/pmix/001-the-openpty-fallback-does-not-compile-so-openpty-must-be-found.md"
+);
+
 const LIBEVENT_TESTS: &str = include_str!(
     "../project_notes/libevent/002-the-registered-tests-drive-test-sh-which-needs-the-autotools-layout.md"
 );
@@ -94,6 +98,10 @@ pub fn for_project(module_name: &str) -> Vec<Note> {
                 body: HWLOC_WRAPPER,
             },
         ],
+        "pmix" => vec![Note {
+            filename: "001-the-openpty-fallback-does-not-compile-so-openpty-must-be-found.md",
+            body: PMIX_OPENPTY,
+        }],
         _ => Vec::new(),
     }
 }
@@ -129,7 +137,7 @@ mod tests {
     // saying nothing.
     #[test]
     fn every_note_has_content() {
-        for name in ["json-c", "libevent", "hwloc"] {
+        for name in ["json-c", "libevent", "hwloc", "pmix"] {
             for note in for_project(name) {
                 assert!(
                     note.body.len() > 200,

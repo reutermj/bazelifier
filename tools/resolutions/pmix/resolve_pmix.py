@@ -92,8 +92,7 @@ symbols = [  # (target, define, symbol, headers, link-under _GNU_SOURCE)
     ("pmix_have_gethostbyname", "PMIX_HAVE_GETHOSTBYNAME", "gethostbyname", ["netdb.h"]),
     ("pmix_have_dirname", "PMIX_HAVE_DIRNAME", "dirname", ["libgen.h"]),
 ]
-aliases = [("pmix_have_clock_gettime", "PMIX_HAVE_CLOCK_GETTIME", "have_clock_gettime"),
-           ("pmix_have_openpty", "PMIX_HAVE_OPENPTY", "have_openpty")]
+aliases = [("pmix_have_clock_gettime", "PMIX_HAVE_CLOCK_GETTIME", "have_clock_gettime")]
 
 rules = ['''
 # ---- Agent-stage resolutions (bzl-7r9.5), each a decision with its reason.
@@ -184,6 +183,15 @@ VALUES = {
     "PMIX_ENABLE_PTY_SUPPORT": "1", "PMIX_ENABLE_DLOPEN_SUPPORT": "1",
     "PMIX_HAVE_VISIBILITY": "1",
     "PMIX_HAVE_CEIL": "1",
+    # openpty: what configure does on THIS toolchain. Its sysroot is a glibc
+    # 2.28, where openpty is declared by pty.h and defined only in libutil,
+    # so AC_SEARCH_LIBS([openpty], [util]) finds it there and adds -lutil
+    # (on the conversion host, glibc 2.39, it was in libc and no flag was
+    # needed — the link line states nothing). The catalog probe cannot link
+    # -lutil and answered false, which sent PMIx down its own-implementation
+    # branch, and that branch does not compile (project note 001). So the
+    # answer is recorded — 1, and -lutil on libpmix.la — rather than probed.
+    "HAVE_OPENPTY": "1", "PMIX_HAVE_OPENPTY": "1",
     "PMIX_NEED_C_BOOL": "1", "PMIX_USE_STDBOOL_H": "1", "PMIX_PTRDIFF_TYPE": "ptrdiff_t",
     "PMIX_PICKY_COMPILERS": "0", "PMIX_MEMORY_SANITIZERS": "0", "PMIX_NO_LIB_DESTRUCTOR": "0",
     "PMIX_WANT_HOME_CONFIG_FILES": "1", "PMIX_WANT_PRETTY_PRINT_STACKTRACE": "1",
@@ -203,8 +211,11 @@ VALUES = {
 covered = probe_defines | set(VALUES) | {d for _, _, d in FLAGS} | {"OAC_HAVE_APPLE"}
 missing = [n for n in unresolved if n not in covered]
 assert not missing, missing
-extra = [n for n in VALUES if n not in unresolved]
+extra = [n for n in VALUES if n not in unresolved and n != "HAVE_OPENPTY"]
 assert not extra, extra
+# the catalog's openpty probe is replaced by the recorded answer above
+assert block.count('        "@cc_config//catalog:have_openpty",\n') == 1
+block = block.replace('        "@cc_config//catalog:have_openpty",\n', "")
 flag_select = "".join('    select({\n        ":%s_on": {"%s": "1"},\n        "//conditions:default": {"%s": "0"},\n    }) | ' % (f, d, d) for f, _, d in FLAGS)
 apple_select = '    select({\n        "@platforms//os:macos": {"OAC_HAVE_APPLE": "1"},\n        "//conditions:default": {"OAC_HAVE_APPLE": "0"},\n    }) | '
 value_lines = "".join("        %s: %s,\n" % (sl(k), sl(v)) for k, v in sorted(VALUES.items()))
@@ -239,6 +250,14 @@ s = s[:start] + block + s[end:]
 
 # ---- 4. libpmix.la absorbs 50 convenience archives (item 003) --------------
 i = s.index('    name = "libpmix.la",')
+j = s.index("    deps = [\n", i)
+k = s.find("    linkopts = [\n", i, j)
+util = '        "-lutil",  # openpty on this toolchain\'s glibc 2.28 sysroot; see the config header\n'
+if k != -1:
+    k += len("    linkopts = [\n")
+    s = s[:k] + util + s[k:]
+else:
+    s = s[:j] + "    linkopts = [\n" + util + "    ],\n" + s[j:]
 deps_start = s.index("    deps = [\n", i)
 deps_end = s.index("    ],\n", deps_start)
 archives = re.findall(r'"(:lib[^"]+\.la)"', s[deps_start:deps_end])
