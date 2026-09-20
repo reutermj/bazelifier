@@ -86,6 +86,26 @@ pub(crate) fn libtool_shared_library(build_dir: &Path, artifact: &str) -> Option
     ))
 }
 
+/// Every name libtool installs a shared library under, from the `.la`'s own
+/// `library_names=` field: `libevent_core-2.1.so.7.0.1 libevent_core-2.1.so.7
+/// libevent_core.so`. The versioned names need not share the unversioned
+/// one's prefix — libevent's carry a `-2.1` infix — so a `<stem>.so*` guess
+/// stages the link farm and misses the very name a binary's DT_NEEDED
+/// carries; the loader then fails with 127 and the comparison reports the
+/// ground truth as unrunnable. `None` for anything but a readable `.la`
+/// with a non-empty field (a static-only library has an empty one).
+pub(crate) fn libtool_library_names(la_path: &Path) -> Option<Vec<String>> {
+    let text = fs::read_to_string(la_path).ok()?;
+    let names: Vec<String> = text
+        .lines()
+        .find_map(|l| l.strip_prefix("library_names="))?
+        .trim_matches('\'')
+        .split_whitespace()
+        .map(str::to_string)
+        .collect();
+    (!names.is_empty()).then_some(names)
+}
+
 /// Whether `path` is a libtool wrapper script rather than the built artifact.
 pub(crate) fn is_libtool_wrapper(path: &Path) -> bool {
     let Ok(text) = fs::read_to_string(path) else {
@@ -230,5 +250,34 @@ mod tests {
              .so chain to stage"
         );
         fs::remove_dir_all(&dir).ok();
+    }
+
+    // libevent's installed names carry a `-2.1` infix, so nothing derivable
+    // from `libevent_core.so` names `libevent_core-2.1.so.7`; the `.la` does.
+    #[test]
+    fn library_names_come_from_the_la_not_from_the_stem() {
+        let dir = std::env::temp_dir().join(format!("bzlf_lanames_{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let la = dir.join("libevent_core.la");
+        std::fs::write(
+            &la,
+            "dlname='libevent_core-2.1.so.7'\nlibrary_names='libevent_core-2.1.so.7.0.1 libevent_core-2.1.so.7 libevent_core.so'\n",
+        )
+        .unwrap();
+        assert_eq!(
+            libtool_library_names(&la),
+            Some(vec![
+                "libevent_core-2.1.so.7.0.1".to_string(),
+                "libevent_core-2.1.so.7".to_string(),
+                "libevent_core.so".to_string(),
+            ])
+        );
+        std::fs::write(&la, "dlname=''\nlibrary_names=''\n").unwrap();
+        assert_eq!(
+            libtool_library_names(&la),
+            None,
+            "static-only: nothing to stage"
+        );
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

@@ -537,11 +537,23 @@ fn copy_ground_truth_artifacts(
             // the binary's DT_NEEDED names the middle one.
             let libdir = real.parent().unwrap_or(Path::new("/"));
             let stem = dependencies::library_stem(&real).unwrap_or_default();
-            let mut names: Vec<String> = fs::read_dir(libdir)?
-                .filter_map(|e| e.ok())
-                .filter_map(|e| e.file_name().into_string().ok())
-                .filter(|n| n.starts_with(&format!("{stem}.so")))
-                .collect();
+            // The chain as libtool states it, when it does: the versioned
+            // names need not share the unversioned prefix (libevent's
+            // `libevent_core-2.1.so.7`), and the one a binary loads is
+            // exactly the one a prefix guess misses. See
+            // `libtool::libtool_library_names`.
+            let mut names: Vec<String> =
+                match libtool::libtool_library_names(&libdir.join(format!("{stem}.la"))) {
+                    Some(stated) => stated
+                        .into_iter()
+                        .filter(|n| libdir.join(n).is_file())
+                        .collect(),
+                    None => fs::read_dir(libdir)?
+                        .filter_map(|e| e.ok())
+                        .filter_map(|e| e.file_name().into_string().ok())
+                        .filter(|n| n.starts_with(&format!("{stem}.so")))
+                        .collect(),
+                };
             names.sort();
             for name in names {
                 // Once per NAME, not per target that links it: PMIx links
@@ -1121,11 +1133,18 @@ mod tests {
         .unwrap();
         let lib = root.join("greet_install/usr/local/lib");
         fs::create_dir_all(&lib).unwrap();
-        for name in ["libgreet.so", "libgreet.so.1", "libgreet.so.1.0.0"] {
+        // libevent's shape: the versioned names carry an infix, so only the
+        // .la can say which files ARE the chain.
+        for name in ["libgreet.so", "libgreet-1.2.so.3", "libgreet-1.2.so.3.0.0"] {
             fs::write(lib.join(name), "elf").unwrap();
             // Bazel's output mode, which fs::copy carries into every copy.
             fs::set_permissions(lib.join(name), fs::Permissions::from_mode(0o444)).unwrap();
         }
+        fs::write(
+            lib.join("libgreet.la"),
+            "dlname='libgreet-1.2.so.3'\nlibrary_names='libgreet-1.2.so.3.0.0 libgreet-1.2.so.3 libgreet.so'\n",
+        )
+        .unwrap();
         let deps = dependencies::Dependencies::load(
             &[format!(
                 "{}:{}",
@@ -1168,10 +1187,10 @@ mod tests {
         let out = root.join("module");
         copy_ground_truth_artifacts(&root.join("build"), &out, &graph, &deps)
             .expect("the second target must not re-copy onto the read-only first copy");
-        for name in ["libgreet.so", "libgreet.so.1", "libgreet.so.1.0.0"] {
+        for name in ["libgreet.so", "libgreet-1.2.so.3", "libgreet-1.2.so.3.0.0"] {
             assert!(
                 out.join("ground_truth").join(name).is_file(),
-                "{name} staged beside the ground truth"
+                "{name} staged beside the ground truth — the .la's names, not a prefix guess"
             );
         }
         // Listed once, not once per consumer: the same BUILD a single
