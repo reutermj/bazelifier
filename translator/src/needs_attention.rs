@@ -959,6 +959,68 @@ pub fn shared_library_absorbs_static_needs_attention(
 /// over config.h) and an agent resolves them together. The recipe lines
 /// from the build's own output ride along because they are the whole
 /// answer: the translator did not parse them, but it can show them.
+/// A `-D` whose value the build's recipe computes with the shell at build
+/// time — `$USER`, a `hostname` call, a date script. make prints the recipe
+/// BEFORE the shell expands it, so the command stream holds the text and
+/// the frontend cannot run it; the value reached the target's
+/// `local_defines` verbatim, the module compiles, and the program prints
+/// `$USER`. PMIx's pmix_info stamps (`PMIX_BUILD_USER`, `_DATE`, `_HOST`)
+/// are the instance; Open MPI's and PRRTE's are the same macros renamed.
+pub fn shell_expanded_defines_needs_attention(defines: &[(String, String)]) -> NeedsAttention {
+    let title = format!(
+        "{} define(s) carry shell the build's recipe expands at build time",
+        defines.len()
+    );
+    let subject = defines
+        .iter()
+        .map(|(_, d)| d.split('=').next().unwrap_or(d))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let list = defines
+        .iter()
+        .map(|(target, define)| format!("- `{target}`: `-D{define}`"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    NeedsAttention {
+        title,
+        kind: "shell_expanded_defines",
+        subject,
+        gap: format!(
+            "These compile definitions contain shell syntax — a variable, a backquoted \
+             command, a `${{...}}` expansion — that the build's own recipe computes when it \
+             runs:\n\n{list}\n\n\
+             make prints a recipe BEFORE the shell expands it, so the command stream this \
+             conversion read holds the text, not the result, and it reached the target's \
+             `local_defines` verbatim. The module compiles: a C string literal may contain \
+             `$USER`. The program then prints it."
+        ),
+        context: format!(
+            "These are build STAMPS — who built it, when, on which host, with which \
+             compiler — and nothing in the project's behaviour depends on their value. \
+             The ground truth carries the conversion host's answers, which no consumer's \
+             build reproduces, and Bazel has no build-time shell in a cc_library to \
+             compute fresh ones with; running the shell at conversion would only bake \
+             this machine's in.\n\n\
+             Replace each with a fixed literal in the generated BUILD.bazel — \
+             `PMIX_BUILD_USER='\"bazel\"'`, `PMIX_BUILD_DATE='\"unknown\"'` — keeping the \
+             quoting the recipe used (a C string literal inside the shell's quotes). A \
+             consumer that wants real stamps has Bazel's `--stamp` and workspace status \
+             for it; that is the consumer's decision, not this conversion's.\n\n\
+             A binary that PRINTS one of these (PMIx's pmix_info) has a ground-truth \
+             comparison that cannot pass: the host's date and user are in the expected \
+             output. Record that comparison as omitted in the module's TARGETS manifest \
+             (`omitted <binary> <why>`) rather than deleting the binary — the omission \
+             channel is what tells the harness the difference is deliberate.\n\n\
+             Resolve this in the GENERATED output only. Do NOT edit the project's \
+             `Makefile.am` or `configure.ac`."
+        ),
+        expected_output: "Every listed define is a fixed literal in the generated BUILD.bazel, \
+             with no `$`, backquote or `${...}` left in a `local_defines` value; any binary \
+             whose output shows a stamp is recorded as omitted in TARGETS, with the reason."
+            .to_string(),
+    }
+}
+
 pub fn generated_headers_needs_attention(headers: &[(String, Vec<String>)]) -> NeedsAttention {
     let title = format!(
         "{} header(s) the build generates have no rule that reproduces them",

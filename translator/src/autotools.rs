@@ -317,6 +317,11 @@ pub fn discover(
     if !generated.is_empty() {
         needs_attention.push(generated_headers_needs_attention(&generated));
     }
+    let stamps = shell_expanded_defines(&graph.targets);
+    if !stamps.is_empty() {
+        needs_attention
+            .push(crate::needs_attention::shell_expanded_defines_needs_attention(&stamps));
+    }
 
     // The same header-staging passes the CMake frontend runs, and for the
     // same reasons: a header reachable on the include path is an input Bazel
@@ -3003,6 +3008,24 @@ fn includes_of(args: &[String]) -> Vec<String> {
     out
 }
 
+/// `(target, define)` for every `local_defines` entry whose value still holds
+/// shell the recipe would have expanded: `$USER`, a backquoted command,
+/// `${HOSTNAME:-...}`. make prints a recipe before the shell runs it, so
+/// these reach the stream as text; see
+/// `needs_attention::shell_expanded_defines_needs_attention`.
+fn shell_expanded_defines(targets: &[Target]) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for target in targets {
+        for define in &target.local_defines {
+            let value = define.split_once('=').map(|(_, v)| v).unwrap_or("");
+            if value.contains('$') || value.contains('`') {
+                out.push((target.name.clone(), define.clone()));
+            }
+        }
+    }
+    out
+}
+
 /// `-D` definitions, with the flag stripped.
 ///
 /// autoconf passes a large block of `-DPACKAGE_*` and `-DHAVE_*` on every
@@ -5415,6 +5438,44 @@ libtool --tag=CC --mode=link gcc a.o -o libpmix.la -lm -ldl -lutil -lc -lgcc_s -
                 .any(|e| e.kind == "unconverted_dependency"),
             "none of them is an unconverted dependency: {escalations:#?}"
         );
+    }
+
+    // PMIx: `-DPMIX_BUILD_USER="\"$USER\""` reaches the stream as text, and
+    // pmix_info printed `Built by: $USER`. The frontend cannot run the
+    // recipe's shell, so it says so; a plain define is not a stamp.
+    #[test]
+    fn a_define_carrying_unexpanded_shell_is_escalated_as_a_stamp() {
+        let targets = vec![Target {
+            name: "pmix_info".to_string(),
+            local_defines: vec![
+                "HAVE_CONFIG_H".to_string(),
+                "PMIX_BUILD_USER=\"$USER\"".to_string(),
+                "PMIX_BUILD_DATE=\"`config/getdate.sh`\"".to_string(),
+                "PMIX_BUILD_HOST=\"${HOSTNAME:-`hostname`}\"".to_string(),
+                "PMIX_CC_ABSOLUTE=\"/bin/gcc\"".to_string(),
+            ],
+            ..Default::default()
+        }];
+        let stamps = shell_expanded_defines(&targets);
+        assert_eq!(
+            stamps
+                .iter()
+                .map(|(_, d)| d.split('=').next().unwrap())
+                .collect::<Vec<_>>(),
+            vec!["PMIX_BUILD_USER", "PMIX_BUILD_DATE", "PMIX_BUILD_HOST"],
+            "the three with shell in the value; a host path is not shell"
+        );
+        let item = crate::needs_attention::shell_expanded_defines_needs_attention(&stamps);
+        assert_eq!(item.kind, "shell_expanded_defines");
+        assert!(
+            item.gap
+                .contains("`pmix_info`: `-DPMIX_BUILD_USER=\"$USER\"`")
+                && item.context.contains("omitted <binary> <why>"),
+            "{}\n{}",
+            item.gap,
+            item.context
+        );
+        assert!(shell_expanded_defines(&[Target::default()]).is_empty());
     }
 
     // PMIx: bfrops/v12 and bfrops/v20 each compile their own `copy.c` to
