@@ -533,16 +533,26 @@ def _check_symbol_exists_impl(ctx):
     includes = "".join(["#include <%s>\n" % h for h in ctx.attr.headers])
 
     # Mirrors CMake's check_symbol_exists snippet: if the symbol is a macro,
-    # the `#ifndef` body is dropped and just referencing it in the ternary
-    # confirms it; if it's a function, taking its address forces the linker
-    # to resolve it — so a declared-but-undefined symbol fails at link. Hence
-    # this is a link probe, not compile-only.
+    # the `#ifndef` proves it and nothing is referenced; if it's a function,
+    # its address is INDEXED BY argc, which the compiler cannot fold away, so
+    # the linker has to resolve it and a declared-but-undefined symbol fails
+    # at link. Hence this is a link probe, not compile-only.
+    #
+    # It was not, until PMIx: the body used to be `(void)((void *)(&sym))`,
+    # a side-effect-free expression the compiler drops, so `openpty` —
+    # declared by the toolchain's glibc 2.28 headers, defined only in its
+    # libutil — answered true and every binary failed to link. Pinned by the
+    # `crypt` probe in this package's BUILD: declared by glibc, defined only
+    # in libcrypt, and it must answer false.
     source = includes + """
-int main(void) {{
+int main(int argc, char **argv) {{
+  (void)argv;
 #ifndef {symbol}
-  (void)((void *)(&{symbol}));
-#endif
+  return ((int *)(&{symbol}))[argc];
+#else
+  (void)argc;
   return 0;
+#endif
 }}
 """.format(symbol = ctx.attr.symbol)
 

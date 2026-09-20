@@ -342,7 +342,8 @@ def probe_source(entry, headers):
         return _inc(headers)
     if entry.kind == "symbol":
         return _inc(headers) + (
-            "\nint main(void) {\n#ifndef %s\n  (void)((void *)(&%s));\n#endif\n  return 0;\n}\n"
+            "\nint main(int argc, char **argv) {\n  (void)argv;\n#ifndef %s\n"
+            "  return ((int *)(&%s))[argc];\n#else\n  (void)argc;\n  return 0;\n#endif\n}\n"
             % (entry.subject, entry.subject))
     if entry.kind == "type_exists":
         return _inc(headers) + "int main(void) { return (int) sizeof(%s) ? 0 : 0; }\n" % entry.subject

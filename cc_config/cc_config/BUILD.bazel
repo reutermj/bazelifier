@@ -90,6 +90,27 @@ assert_probe_result_test(
     probe = ":have_no_such_symbol",
 )
 
+# The link half of the symbol probe, in the direction that can fail: crypt
+# is DECLARED by glibc's crypt.h and DEFINED only in libcrypt, which the
+# probe does not link, so a probe that really links answers false. The old
+# body took the symbol's address and discarded it — an expression the
+# compiler drops — and answered true for anything declared; PMIx's openpty
+# found it (see probe.bzl). On a libc that folds crypt in (musl), this
+# would read true, and the test would be the one that is wrong.
+check_symbol_exists(
+    name = "have_crypt_without_its_library",
+    define = "HAVE_CRYPT",
+    defines = ["_GNU_SOURCE"],
+    headers = ["crypt.h"],
+    symbol = "crypt",
+)
+
+assert_probe_result_test(
+    name = "a_declared_symbol_its_library_does_not_supply_is_absent",
+    expected = False,
+    probe = ":have_crypt_without_its_library",
+)
+
 # bzl-fxa.7: a probe compiled under _GNU_SOURCE. glibc gates strdup (and
 # vasprintf, uselocale, ...) behind _GNU_SOURCE, so a bare probe reports them
 # absent on a strict toolchain, and the project's *_compat.h then defines a
