@@ -106,6 +106,29 @@ pub(crate) fn libtool_library_names(la_path: &Path) -> Option<Vec<String>> {
     (!names.is_empty()).then_some(names)
 }
 
+/// The `-L` directories a libtool archive's `dependency_libs=` states.
+///
+/// libtool adds them to any link that names the archive, so a `-lpmix` on a
+/// link line with no `-L` of its own is found through them — Open MPI's
+/// test/mpool overrides LDFLAGS and still links -lpmix, because
+/// libopen-pal.la carries the sysroot directory. Empty for anything but a
+/// readable `.la`.
+pub(crate) fn libtool_search_dirs(la_path: &Path) -> Vec<PathBuf> {
+    let text = fs::read_to_string(la_path).unwrap_or_default();
+    let Some(libs) = text
+        .lines()
+        .find_map(|l| l.strip_prefix("dependency_libs="))
+    else {
+        return Vec::new();
+    };
+    libs.trim_matches('\'')
+        .split_whitespace()
+        .filter_map(|t| t.strip_prefix("-L"))
+        .filter(|d| !d.is_empty())
+        .map(PathBuf::from)
+        .collect()
+}
+
 /// Every libtool archive `la_path` depends on, transitively, by the paths
 /// each `.la`'s `dependency_libs=` names — `la_path` itself first, then in
 /// the order found, each once.
@@ -319,6 +342,25 @@ mod tests {
         );
 
         assert_eq!(libtool_archive_closure(&top), vec![top, usegreet, greet]);
+    }
+
+    // libopen-pal.la as Open MPI's build leaves it: two -L, archives, flags.
+    #[test]
+    fn the_search_dirs_an_archive_states_are_its_dependency_libs_l_flags() {
+        let dir = std::env::temp_dir().join(format!("la_dirs_{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let la = dir.join("libopen-pal.la");
+        fs::write(
+            &la,
+            "dependency_libs=' -L/sr/usr/local/lib -L/gone /sr/usr/local/lib/libpmix.la -ldl -lm'\n\
+             libdir='/usr/local/lib'\n",
+        )
+        .unwrap();
+        assert_eq!(
+            libtool_search_dirs(&la),
+            vec![PathBuf::from("/sr/usr/local/lib"), PathBuf::from("/gone")]
+        );
+        assert!(libtool_search_dirs(&dir.join("absent.la")).is_empty());
     }
 
     #[test]

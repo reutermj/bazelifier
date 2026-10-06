@@ -1,0 +1,18 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# tool/ overrides LDFLAGS, so its link names -lgreet with no -L of its own;
+# libtool finds it through the -L that libmid.la's dependency_libs states.
+# Open MPI's test/mpool links -lpmix exactly this way, through
+# libopen-pal.la, and the frontend escalated it as a library no converted
+# module builds. Now the archive's stated directories are searched too, so
+# -lgreet resolves to 011's module.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(
+        ["**"],
+        exclude = ["BUILD.bazel"],
+    ),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+    deps = ["//translator/tests/fixtures/autotools/011-installed-library:converted"],
+)

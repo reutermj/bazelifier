@@ -15,5 +15,6 @@ convert_autotools_project(
         "//translator/tests/fixtures/autotools/012-links-installed-library:__pkg__",
         "//translator/tests/fixtures/autotools/013-shared-library-links-installed-library:__pkg__",
         "//translator/tests/fixtures/autotools/015-links-library-with-libtool-dependencies:__pkg__",
+        "//translator/tests/fixtures/autotools/019-link-finds-a-library-through-an-archives-search-dirs:__pkg__",
     ],
 )

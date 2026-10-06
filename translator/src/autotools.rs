@@ -2730,11 +2730,21 @@ pub(crate) fn to_graph_with_dependencies(
         // The `-L` directories, resolved against the directory the link ran
         // in, so a `-l<name>` can be looked up the way the linker looks it
         // up. Collected first because `-L` may follow the `-l` it serves.
+        //
+        // And the `-L` each libtool archive on the line states: libtool adds
+        // those to the link, so a `-l<name>` with no `-L` of its own is found
+        // through them (see `libtool::libtool_search_dirs`).
         let search_dirs: Vec<PathBuf> = link_args
             .iter()
             .filter_map(|a| a.strip_prefix("-L"))
             .filter(|d| !d.is_empty())
             .map(|d| link_dir.join(d))
+            .chain(
+                link_args
+                    .iter()
+                    .filter(|a| a.ends_with(".la"))
+                    .flat_map(|a| crate::libtool::libtool_search_dirs(&link_dir.join(a))),
+            )
             .collect();
         for input in link_args {
             if let Some(name) = input.strip_prefix("-l").filter(|n| !n.is_empty()) {
