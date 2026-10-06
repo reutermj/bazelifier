@@ -2774,6 +2774,14 @@ pub(crate) fn to_graph_with_dependencies(
             // link input no declaration's own link produced — and only when
             // it is not ambiguous.
             let at = normalize_lexically(&link_dir.join(input));
+            // Through a symlink the build itself made: Open MPI links a
+            // statically built component by its installable name,
+            // `libmca_common_monitoring.la`, which an all-local rule points at
+            // the `_noinst.la` that was actually built.
+            let at = match std::fs::read_link(&at) {
+                Ok(target) => normalize_lexically(&at.parent().unwrap_or(&at).join(target)),
+                Err(_) => at,
+            };
             let by_path = declared
                 .iter()
                 .find(|d| artifact_of(d).as_ref() == Some(&at));

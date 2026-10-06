@@ -68,6 +68,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/017-root-include-reaches-nested-header:converted",
         "//translator/tests/fixtures/autotools/018-same-library-name-in-two-directories:converted",
         "//translator/tests/fixtures/autotools/019-link-finds-a-library-through-an-archives-search-dirs:converted",
+        "//translator/tests/fixtures/autotools/020-library-linked-through-a-build-tree-symlink:converted",
     ],
 )
 

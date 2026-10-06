@@ -1,0 +1,13 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The program links libpart.la, a name an all-local rule symlinks to the
+# libpart_noinst.la actually built — Open MPI links its statically built
+# components (libmca_common_monitoring.la and two more) this way. The
+# symlink is in the build tree the conversion reads, so the link input
+# resolves through it to the noinst target instead of escalating as a
+# library nothing builds.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)
