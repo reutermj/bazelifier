@@ -217,5 +217,9 @@ with open(f"{M}/TARGETS", "a") as t:
     t.write("omitted sample_https-client needs OpenSSL; no converted module provides it (built without OpenSSL)\n")
     t.write("omitted sample_le-proxy needs OpenSSL; no converted module provides it (built without OpenSSL)\n")
     t.write("omitted test_regress ground truth ran its OpenSSL and zlib tests; this module builds regress without them (bzl-7r9.8 for zlib)\n")
+    # A benchmark: 25 lines of elapsed microseconds per run. The harness drops
+    # lines that differ between two ground-truth runs, so it passed only when
+    # the timings happened to repeat (2 of 4 reruns on 2026-10-06).
+    t.write("omitted test_bench_cascade prints elapsed microseconds, which differ run to run by construction\n")
 for f in glob.glob(f"{M}/needs_attention/*.md"): os.remove(f)
 print("resolved libevent:", len(lines), "config values,", len(unknown2)+len(resolved2), "private")
