@@ -3348,6 +3348,14 @@ fn generated_headers_in_build_tree(
             }
         }
     }
+    // Only the headers a compile actually OPENED, where the build recorded
+    // that: walking a build-tree include dir recursively sweeps in every
+    // header beneath it, and Open MPI compiles with `-iquote` on the build
+    // ROOT, so the bundled PMIx and PRRTE it configures but never builds put
+    // ~40 headers in front of the agent that nothing includes.
+    if let Some(opened) = opened_headers(&build_root) {
+        found.retain(|rel| opened.contains(rel));
+    }
     found.sort();
     found
         .into_iter()
@@ -3370,6 +3378,74 @@ fn generated_headers_in_build_tree(
             (rel, recipe)
         })
         .collect()
+}
+
+/// Every build-tree header some compile opened, build-relative, from
+/// automake's dependency-tracking files (`.deps/*.Po`, `.deps/*.Plo`) — the
+/// compiler's own `-MD` record, this frontend's analogue of the CMake side's
+/// `ninja -t deps`. Each path in one is relative to the directory the
+/// compile ran in — NOT necessarily the `.deps` directory's parent: under
+/// `subdir-objects` the file sits beside the object
+/// (`ompi/mca/bml/base/.deps/`) while the compile ran in the Makefile's
+/// directory (`ompi/mca/bml`). The file's first token, the object as the
+/// compile named it (`base/bml_base_frame.lo`), says how far up that is.
+///
+/// `None` when the build left no such file (dependency tracking disabled),
+/// so the caller keeps every header rather than concluding none was used.
+fn opened_headers(build_root: &Path) -> Option<HashSet<String>> {
+    let mut opened = HashSet::new();
+    let mut any = false;
+    let mut stack = vec![build_root.to_path_buf()];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            if path.file_name().is_some_and(|n| n == ".deps") {
+                let Ok(files) = std::fs::read_dir(&path) else {
+                    continue;
+                };
+                for file in files.flatten() {
+                    let file = file.path();
+                    if !file.extension().is_some_and(|e| e == "Po" || e == "Plo") {
+                        continue;
+                    }
+                    any = true;
+                    let text = std::fs::read_to_string(&file).unwrap_or_default();
+                    let object = text
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or_default()
+                        .trim_end_matches(':');
+                    let mut compile_dir = dir.clone();
+                    for _ in Path::new(object)
+                        .parent()
+                        .into_iter()
+                        .flat_map(Path::components)
+                    {
+                        compile_dir.pop();
+                    }
+                    for token in text.split_whitespace() {
+                        let token = token.trim_end_matches(':');
+                        if !token.ends_with(".h") {
+                            continue;
+                        }
+                        let at = normalize_lexically(&compile_dir.join(token));
+                        if let Ok(rel) = at.strip_prefix(build_root) {
+                            opened.insert(rel.to_string_lossy().into_owned());
+                        }
+                    }
+                }
+            } else {
+                stack.push(path);
+            }
+        }
+    }
+    any.then_some(opened)
 }
 
 /// The translation unit the build compiled for a lex/yacc input `_SOURCES`
@@ -6317,6 +6393,74 @@ EXEEXT =
     // the graph produces it, so the module would compile against nothing;
     // the item has to name it and carry the recipe. config.h in the same
     // build tree IS produced (a config_header) and must not be listed.
+    // Open MPI compiles with -iquote on the build ROOT, so a recursive walk
+    // finds every generated header in the tree — including the bundled
+    // PMIx's, which it configures and never builds. automake's .deps record
+    // which headers compiles opened; with them, only those are escalated.
+    // Without them (dependency tracking off) nothing can be concluded, and
+    // every header stays.
+    #[test]
+    fn only_generated_headers_a_compile_opened_are_escalated_when_the_build_recorded_it() {
+        let root = std::env::temp_dir().join(format!("bzlf_opened_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let build = root.join("build");
+        let src = root.join("src");
+        std::fs::create_dir_all(build.join("opal/datatype/.deps")).unwrap();
+        std::fs::create_dir_all(build.join("opal/mca/dl/base")).unwrap();
+        std::fs::create_dir_all(build.join("3rd-party/openpmix/include")).unwrap();
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(build.join("opal/mca/dl/base/static-components.h"), "").unwrap();
+        std::fs::write(build.join("3rd-party/openpmix/include/pmix_version.h"), "").unwrap();
+        let stream = format!(
+            "gcc -iquote../.. -c -o x.lo {src}/opal/datatype/x.c\n",
+            src = src.display()
+        );
+        let commands: Vec<BuildCommand> = parse_commands(&stream, &build.join("opal/datatype"));
+        let run = || generated_headers_in_build_tree(&commands, &build, &src, &[], &stream, "");
+
+        let names =
+            |g: Vec<(String, Vec<String>)>| g.into_iter().map(|(n, _)| n).collect::<Vec<_>>();
+        assert_eq!(
+            names(run()),
+            vec![
+                "3rd-party/openpmix/include/pmix_version.h",
+                "opal/mca/dl/base/static-components.h"
+            ],
+            "no .deps: every header under the walked root is kept"
+        );
+
+        std::fs::write(
+            build.join("opal/datatype/.deps/x.Plo"),
+            format!(
+                "x.lo: {src}/opal/datatype/x.c \\\n ../../opal/mca/dl/base/static-components.h\n",
+                src = src.display()
+            ),
+        )
+        .unwrap();
+        assert_eq!(
+            names(run()),
+            vec!["opal/mca/dl/base/static-components.h"],
+            "with .deps: only what a compile opened"
+        );
+
+        // subdir-objects: the dep file beside the object, its paths relative
+        // to the Makefile's directory one level up, as Open MPI's
+        // ompi/mca/bml/base/.deps/bml_base_frame.Plo is.
+        std::fs::remove_file(build.join("opal/datatype/.deps/x.Plo")).unwrap();
+        std::fs::create_dir_all(build.join("opal/mca/dl/base/.deps")).unwrap();
+        std::fs::write(
+            build.join("opal/mca/dl/base/.deps/dl_base.Plo"),
+            "base/dl_base.lo: \\\n ../../../opal/mca/dl/base/static-components.h\n",
+        )
+        .unwrap();
+        assert_eq!(
+            names(run()),
+            vec!["opal/mca/dl/base/static-components.h"],
+            "a subdir-objects dep file resolves from the compile's directory"
+        );
+        let _ = std::fs::remove_dir_all(&root);
+    }
+
     #[test]
     fn a_header_the_build_generated_and_nothing_reproduces_is_escalated_with_its_recipe() {
         let root = std::env::temp_dir().join(format!("bzlf_genhdr_{}", std::process::id()));
