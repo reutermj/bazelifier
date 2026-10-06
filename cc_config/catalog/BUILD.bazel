@@ -38,6 +38,17 @@ cc_config_catalog(
         ),
         ("long long", [], "ALIGNOF_LONG_LONG"),
         ("double", [], "ALIGNOF_DOUBLE"),
+        # Harvested from prte 3.0.14's configure by tools/catalog/harvest.py, 2026-10-06.
+        (
+            "int32_t",
+            ["stdint.h"],
+            "ALIGNOF_INT32_T",
+        ),
+        (
+            "int64_t",
+            ["stdint.h"],
+            "ALIGNOF_INT64_T",
+        ),
     ],
     # (header, HAVE_ macro) — check_include_file.
     headers = [
@@ -212,6 +223,14 @@ cc_config_catalog(
         ("ucred.h", "HAVE_UCRED_H"),  # absent on this host
         ("util.h", "HAVE_UTIL_H"),  # absent on this host
         ("utmp.h", "HAVE_UTMP_H"),
+        # Harvested from prte 3.0.14's configure by tools/catalog/harvest.py, 2026-10-06.
+        ("execinfo.h", "HAVE_EXECINFO_H"),
+        ("linux/ethtool.h", "HAVE_LINUX_ETHTOOL_H"),
+        ("linux/sockios.h", "HAVE_LINUX_SOCKIOS_H"),
+        ("paths.h", "HAVE_PATHS_H"),
+        ("pwd.h", "HAVE_PWD_H"),
+        ("sys/ptrace.h", "HAVE_SYS_PTRACE_H"),
+        ("ucontext.h", "HAVE_UCONTEXT_H"),
     ],
     # AC_CHECK_MEMBERS facts, from libevent 2.1.12 (bzl-7r9.3): the socket
     # address layouts that split BSD (sin_len, sin6_len) from glibc
@@ -379,6 +398,13 @@ cc_config_catalog(
             "ifr_mtu",
             ["net/if.h"],
             "HAVE_STRUCT_IFREQ_IFR_MTU",
+        ),
+        # Harvested from prte 3.0.14's configure by tools/catalog/harvest.py, 2026-10-06.
+        (
+            "struct ethtool_cmd",
+            "speed_hi",
+            ["linux/ethtool.h"],
+            "HAVE_STRUCT_ETHTOOL_CMD_SPEED_HI",
         ),
     ],
     # (symbol, [declaring headers], HAVE_ macro) — check_symbol_exists.
@@ -1419,6 +1445,82 @@ cc_config_catalog(
             ["sys/param.h"],
             "HAVE_DECL_HZ",
         ),
+        # Harvested from prte 3.0.14's configure by tools/catalog/harvest.py, 2026-10-06.
+        (
+            "fileno_unlocked",
+            ["stdio.h"],
+            "HAVE_FILENO_UNLOCKED",
+        ),
+        (
+            "printstack",
+            ["ucontext.h"],
+            "HAVE_PRINTSTACK",
+        ),  # absent on this host
+        (
+            "pthread_condattr_setpshared",
+            ["pthread.h"],
+            "HAVE_PTHREAD_CONDATTR_SETPSHARED",
+        ),
+        (
+            "pthread_mutexattr_setpshared",
+            ["pthread.h"],
+            "HAVE_PTHREAD_MUTEXATTR_SETPSHARED",
+        ),
+        (
+            "setsid",
+            ["unistd.h"],
+            "HAVE_SETSID",
+        ),
+        (
+            "syslog",
+            ["sys/syslog.h"],
+            "HAVE_SYSLOG",
+        ),
+        (
+            "ethtool_cmd_speed",
+            ["linux/ethtool.h"],
+            "HAVE_DECL_ETHTOOL_CMD_SPEED",
+        ),
+        (
+            "SIOCETHTOOL",
+            ["linux/sockios.h"],
+            "HAVE_DECL_SIOCETHTOOL",
+        ),
+        (
+            "RLIMIT_NPROC",
+            ["sys/resource.h"],
+            "HAVE_DECL_RLIMIT_NPROC",
+        ),
+        (
+            "RLIMIT_MEMLOCK",
+            ["sys/resource.h"],
+            "HAVE_DECL_RLIMIT_MEMLOCK",
+        ),
+        (
+            "RLIMIT_NOFILE",
+            ["sys/resource.h"],
+            "HAVE_DECL_RLIMIT_NOFILE",
+        ),
+        (
+            "RLIMIT_FSIZE",
+            ["sys/resource.h"],
+            "HAVE_DECL_RLIMIT_FSIZE",
+        ),
+        (
+            "RLIMIT_CORE",
+            ["sys/resource.h"],
+            "HAVE_DECL_RLIMIT_CORE",
+        ),
+        (
+            "RLIMIT_STACK",
+            ["sys/resource.h"],
+            "HAVE_DECL_RLIMIT_STACK",
+        ),
+        (
+            "RLIMIT_AS",
+            ["sys/resource.h"],
+            "HAVE_DECL_RLIMIT_AS",
+        ),
     ],
     # AC_CHECK_TYPES presence facts, from libevent 2.1.12 (bzl-7r9.3); its
     # configure names type and header together.
@@ -1562,6 +1664,17 @@ cc_config_catalog(
             "socklen_t",
             ["sys/socket.h"],
             "HAVE_SOCKLEN_T",
+        ),
+        # Harvested from prte 3.0.14's configure by tools/catalog/harvest.py, 2026-10-06.
+        (
+            "struct ifreq",
+            ["net/if.h"],
+            "HAVE_STRUCT_IFREQ",
+        ),
+        (
+            "struct ethtool_cmd",
+            ["linux/ethtool.h"],
+            "HAVE_STRUCT_ETHTOOL_CMD",
         ),
     ],
     types = [
@@ -1748,6 +1861,34 @@ config_header(
         ":alignof_size_t",
         ":alignof_long_long",
         ":alignof_double",
+        # Harvested from prte 3.0.14's configure by tools/catalog/harvest.py, 2026-10-06.
+        ":have_execinfo_h",
+        ":have_linux_ethtool_h",
+        ":have_linux_sockios_h",
+        ":have_paths_h",
+        ":have_pwd_h",
+        ":have_sys_ptrace_h",
+        ":have_ucontext_h",
+        ":have_fileno_unlocked",
+        ":have_printstack",
+        ":have_pthread_condattr_setpshared",
+        ":have_pthread_mutexattr_setpshared",
+        ":have_setsid",
+        ":have_syslog",
+        ":have_decl_ethtool_cmd_speed",
+        ":have_decl_siocethtool",
+        ":have_decl_rlimit_nproc",
+        ":have_decl_rlimit_memlock",
+        ":have_decl_rlimit_nofile",
+        ":have_decl_rlimit_fsize",
+        ":have_decl_rlimit_core",
+        ":have_decl_rlimit_stack",
+        ":have_decl_rlimit_as",
+        ":have_struct_ifreq",
+        ":have_struct_ethtool_cmd",
+        ":have_struct_ethtool_cmd_speed_hi",
+        ":alignof_int32_t",
+        ":alignof_int64_t",
     ],
     template = "testdata_catalog_smoke.h.in",
 )
@@ -1895,6 +2036,34 @@ assert_config_header_test(
         "#define ALIGNOF_SIZE_T 8",
         "#define ALIGNOF_LONG_LONG 8",
         "#define ALIGNOF_DOUBLE 8",
+        # Harvested from prte 3.0.14's configure by tools/catalog/harvest.py, 2026-10-06.
+        "#define HAVE_EXECINFO_H",
+        "#define HAVE_LINUX_ETHTOOL_H",
+        "#define HAVE_LINUX_SOCKIOS_H",
+        "#define HAVE_PATHS_H",
+        "#define HAVE_PWD_H",
+        "#define HAVE_SYS_PTRACE_H",
+        "#define HAVE_UCONTEXT_H",
+        "#define HAVE_FILENO_UNLOCKED",
+        "/* #undef HAVE_PRINTSTACK */",
+        "#define HAVE_PTHREAD_CONDATTR_SETPSHARED",
+        "#define HAVE_PTHREAD_MUTEXATTR_SETPSHARED",
+        "#define HAVE_SETSID",
+        "#define HAVE_SYSLOG",
+        "#define HAVE_DECL_ETHTOOL_CMD_SPEED 1",
+        "#define HAVE_DECL_SIOCETHTOOL 1",
+        "#define HAVE_DECL_RLIMIT_NPROC 1",
+        "#define HAVE_DECL_RLIMIT_MEMLOCK 1",
+        "#define HAVE_DECL_RLIMIT_NOFILE 1",
+        "#define HAVE_DECL_RLIMIT_FSIZE 1",
+        "#define HAVE_DECL_RLIMIT_CORE 1",
+        "#define HAVE_DECL_RLIMIT_STACK 1",
+        "#define HAVE_DECL_RLIMIT_AS 1",
+        "#define HAVE_STRUCT_IFREQ",
+        "#define HAVE_STRUCT_ETHTOOL_CMD",
+        "#define HAVE_STRUCT_ETHTOOL_CMD_SPEED_HI",
+        "#define ALIGNOF_INT32_T 4",
+        "#define ALIGNOF_INT64_T 8",
     ],
     must_not_contain = [
         "#define HAVE_XLOCALE_H",  # must not be defined on glibc
