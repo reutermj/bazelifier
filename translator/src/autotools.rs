@@ -1470,11 +1470,18 @@ impl VariableDatabase {
     /// directories ([`dedup_declarations`]): xz declares `bin_PROGRAMS` in
     /// four directories and every one of them is a target.
     pub(crate) fn declared_targets(&self) -> Vec<DeclaredTarget> {
+        dedup_declarations(self.declarations())
+    }
+
+    /// Every directory's declarations, before the merge by name — what
+    /// `separate_colliding_declarations` needs to see a name two directories
+    /// each build.
+    pub(crate) fn declarations(&self) -> Vec<DeclaredTarget> {
         let mut targets = Vec::new();
         for (directory, scope) in self.scopes() {
             targets.extend(declared_targets_in(directory, scope));
         }
-        dedup_declarations(targets)
+        targets
     }
 }
 
@@ -1804,6 +1811,35 @@ fn dedup_declarations(mut targets: Vec<DeclaredTarget>) -> Vec<DeclaredTarget> {
     });
     targets.dedup_by(|a, b| a.name == b.name);
     targets
+}
+
+/// `merged` (one declaration per name), with every name that two or more
+/// directories each BUILD — `built_here` says whether a declaration's own
+/// directory linked it — replaced by those directories' declarations. Split
+/// out so the decision is testable without a build.
+fn separate_colliding_declarations(
+    merged: Vec<DeclaredTarget>,
+    all: Vec<DeclaredTarget>,
+    built_here: impl Fn(&DeclaredTarget) -> bool,
+) -> Vec<DeclaredTarget> {
+    let mut by_name: HashMap<String, Vec<DeclaredTarget>> = HashMap::new();
+    for decl in all.into_iter().filter(|d| built_here(d)) {
+        let same = by_name.entry(decl.name.clone()).or_default();
+        if !same.iter().any(|d| d.directory == decl.directory) {
+            same.push(decl);
+        }
+    }
+    let mut out = Vec::new();
+    for decl in merged {
+        match by_name.remove(&decl.name) {
+            Some(mut each) if each.len() > 1 => {
+                each.sort_by(|a, b| a.directory.cmp(&b.directory));
+                out.extend(each);
+            }
+            _ => out.push(decl),
+        }
+    }
+    out
 }
 
 /// How much a primary's destination says about a target, lowest first: an
@@ -2298,18 +2334,80 @@ pub(crate) fn to_graph_with_dependencies(
     // declared target can find the step that built it. Needed before the
     // module root can be chosen, because the root depends on where each
     // target's sources resolve to and that is per-command.
-    let mut built: HashMap<String, &BuildCommand> = HashMap::new();
+    //
+    // Keyed by the directory make ran in as well: Open MPI's ompi/datatype
+    // and opal/datatype each build a `libdatatype.la`, and keyed by the name
+    // alone one directory's link stood in for the other's declaration.
+    let mut built: HashMap<(PathBuf, String), &BuildCommand> = HashMap::new();
+    let mut built_anywhere: HashMap<String, Vec<&BuildCommand>> = HashMap::new();
     for cmd in commands {
         if let Some(artifact) = produced_artifact(cmd) {
-            built.insert(basename(&artifact), cmd);
+            built.insert((normalize_lexically(&cmd.dir), basename(&artifact)), cmd);
+            built_anywhere
+                .entry(basename(&artifact))
+                .or_default()
+                .push(cmd);
         }
     }
+    // One declaration per target. `declared_targets` merges by name, which is
+    // right when one target is declared twice and wrong when two directories
+    // each build their own — and only the command stream can tell which:
+    // two link commands, each run in its declaring directory. Those stay
+    // separate targets, named with their directory (`target_label_for`).
+    let declared = separate_colliding_declarations(declared, db.declarations(), |d| {
+        built.contains_key(&(normalize_lexically(&d.directory), basename(&d.name)))
+    });
+    let colliding: HashSet<String> = {
+        let mut seen = HashSet::new();
+        declared
+            .iter()
+            .filter(|d| !seen.insert(d.name.clone()))
+            .map(|d| d.name.clone())
+            .collect()
+    };
+    // A declaration's Bazel name: automake's, qualified with its directory
+    // only where two directories build the same one, so every other target
+    // keeps the name automake gave it.
+    let label_of = |decl: &DeclaredTarget| -> String {
+        if colliding.contains(&decl.name) {
+            target_label(&format!(
+                "{}/{}",
+                decl.directory
+                    .strip_prefix(build_root)
+                    .unwrap_or(&decl.directory)
+                    .display(),
+                decl.name
+            ))
+        } else {
+            target_label(&decl.name)
+        }
+    };
+    // The command that built a declared target: the one its own directory's
+    // make ran. A declaration whose make printed no such link — a target
+    // built through a parent Makefile's rule — falls back to the name, but
+    // only when ONE command anywhere produced it; two is a collision, and
+    // picking either is the bug this lookup exists to prevent.
+    let link_of = |decl: &DeclaredTarget| -> Option<&BuildCommand> {
+        let name = basename(&decl.name);
+        built
+            .get(&(normalize_lexically(&decl.directory), name.clone()))
+            .copied()
+            .or_else(|| match built_anywhere.get(&name).map(Vec::as_slice) {
+                Some([only]) => Some(*only),
+                _ => None,
+            })
+    };
+    // Where each declaration's own link command left its artifact, so a link
+    // input naming it by PATH (`one/libutil.la`) finds exactly that one.
+    let artifact_of = |decl: &DeclaredTarget| -> Option<PathBuf> {
+        let cmd = link_of(decl)?;
+        Some(normalize_lexically(&cmd.dir.join(produced_artifact(cmd)?)))
+    };
 
     // The directory a target's `_SOURCES` are declared relative to: the
     // Makefile.am that declared them, expressed in the SOURCE tree.
-    let declaring_dir = |name: &str| -> PathBuf {
-        built
-            .get(&basename(name))
+    let declaring_dir = |decl: &DeclaredTarget| -> PathBuf {
+        link_of(decl)
             .and_then(|cmd| cmd.dir.strip_prefix(build_root).ok())
             .map(|rel| source_dir.join(rel))
             .unwrap_or_else(|| source_dir.to_path_buf())
@@ -2363,7 +2461,7 @@ pub(crate) fn to_graph_with_dependencies(
     let module_root = {
         let mut shipped = Vec::new();
         for decl in &declared {
-            let dir = declaring_dir(&decl.name);
+            let dir = declaring_dir(decl);
             let canon = canonical_name(&decl.name);
             let raw = target_var(decl, &format!("{canon}_SOURCES"))
                 .map(String::as_str)
@@ -2375,7 +2473,7 @@ pub(crate) fn to_graph_with_dependencies(
             // reaching a sibling directory would then be dropped by a root
             // that never widened for it.
             let sources: Vec<String> = if raw.contains("$(") {
-                link_inputs(built.get(&basename(&decl.name)).copied())
+                link_inputs(link_of(decl))
                     .iter()
                     .filter_map(|obj| source_of.get(obj.as_str()))
                     .map(|(source, from)| {
@@ -2395,8 +2493,7 @@ pub(crate) fn to_graph_with_dependencies(
             // structurally identical projects converting differently, which
             // is what bzl-kga was filed about.
             let headers = public_headers(db);
-            let includes = built
-                .get(&basename(&decl.name))
+            let includes = link_of(decl)
                 .map(|cmd| includes_of(&cmd.args))
                 .unwrap_or_default();
             for path in sources.iter().chain(&headers).chain(&includes) {
@@ -2450,12 +2547,12 @@ pub(crate) fn to_graph_with_dependencies(
     let mut outside_module: Vec<(String, Vec<String>)> = Vec::new();
     for decl in &declared {
         let canon = canonical_name(&decl.name);
-        if built.get(&basename(&decl.name)).is_none() {
+        if link_of(decl).is_none() {
             unbuilt.push(decl.name.clone());
             continue;
         }
 
-        let decl_dir = declaring_dir(&decl.name);
+        let decl_dir = declaring_dir(decl);
 
         // Sources come from the DECLARATION, not from the link inputs: a
         // target's _SOURCES is what automake was told, while the link line
@@ -2476,7 +2573,7 @@ pub(crate) fn to_graph_with_dependencies(
             .map(String::as_str)
             .unwrap_or_default();
         let declared_sources: Vec<String> = if declared_raw.contains("$(") {
-            link_inputs(built.get(&basename(&decl.name)).copied())
+            link_inputs(link_of(decl))
                 .iter()
                 .filter_map(|obj| source_of.get(obj.as_str()))
                 .map(|(source, dir)| {
@@ -2491,13 +2588,8 @@ pub(crate) fn to_graph_with_dependencies(
             declared_raw
                 .split_whitespace()
                 .map(|src| {
-                    lex_yacc_compiled_as(
-                        src,
-                        built.get(&basename(&decl.name)).copied(),
-                        &source_of,
-                        &decl_dir,
-                    )
-                    .unwrap_or_else(|| src.to_string())
+                    lex_yacc_compiled_as(src, link_of(decl), &source_of, &decl_dir)
+                        .unwrap_or_else(|| src.to_string())
                 })
                 .collect()
         };
@@ -2604,7 +2696,7 @@ pub(crate) fn to_graph_with_dependencies(
             }
         }
 
-        let link = built.get(&basename(&decl.name));
+        let link = link_of(decl);
         // Relative to the BUILD dir, not the module: this is where the real
         // built binary sits, and copy_ground_truth_artifacts reads it from
         // there. The link command reports `-o tool` from inside app/, so
@@ -2667,11 +2759,25 @@ pub(crate) fn to_graph_with_dependencies(
                 external_dependencies.push(external);
                 continue;
             }
-            match declared
+            // By PATH first: `one/libutil.la` and `two/libutil.la` share a
+            // basename and are two targets. The name is the fallback, for a
+            // link input no declaration's own link produced — and only when
+            // it is not ambiguous.
+            let at = normalize_lexically(&link_dir.join(input));
+            let by_path = declared
                 .iter()
-                .find(|d| basename(&d.name) == basename(input))
-            {
-                Some(dep) if dep.name != decl.name => dependencies.push(target_label(&dep.name)),
+                .find(|d| artifact_of(d).as_ref() == Some(&at));
+            let by_name = || {
+                let mut same = declared
+                    .iter()
+                    .filter(|d| basename(&d.name) == basename(input));
+                match (same.next(), same.next()) {
+                    (Some(only), None) => Some(only),
+                    _ => None,
+                }
+            };
+            match by_path.or_else(by_name) {
+                Some(dep) if !std::ptr::eq(dep, decl) => dependencies.push(label_of(dep)),
                 Some(_) => {}
                 // A library the project links but does not build — $(LIBINTL)
                 // resolves to a system libintl, for instance. Collected rather
@@ -2685,7 +2791,7 @@ pub(crate) fn to_graph_with_dependencies(
         unresolved.sort_unstable();
         unresolved.dedup();
         if !unresolved.is_empty() {
-            external_links.push((target_label(&decl.name), unresolved));
+            external_links.push((label_of(decl), unresolved));
         }
 
         sources.sort_unstable();
@@ -2698,7 +2804,7 @@ pub(crate) fn to_graph_with_dependencies(
         local_defines.dedup();
 
         targets.push(Target {
-            name: target_label(&decl.name),
+            name: label_of(decl),
             kind: match decl.primary.as_str() {
                 "PROGRAMS" => TargetKind::Executable,
                 _ => TargetKind::Library,
@@ -4121,6 +4227,57 @@ gcc -g -O2 -o hello src/hello.o ./lib/libhello.a\n\
     // with two rules of one name that cannot load. A project naming its
     // library after its program is the common shape, so this is pinned
     // directly rather than left to the fixture, which happens not to collide.
+    fn decl(name: &str, dir: &str, destination: &str) -> DeclaredTarget {
+        DeclaredTarget {
+            name: name.to_string(),
+            destination: destination.to_string(),
+            primary: "LTLIBRARIES".to_string(),
+            directory: PathBuf::from(dir),
+        }
+    }
+
+    // Open MPI: ompi/datatype and opal/datatype each build a libdatatype.la.
+    // The merge by name kept one, and the other directory's sources were
+    // rebased against the wrong tree. Both linked in their own directory,
+    // so both are targets.
+    #[test]
+    fn a_name_two_directories_each_build_is_two_targets() {
+        let all = vec![
+            decl("libdatatype.la", "/b/ompi/datatype", "noinst"),
+            decl("libdatatype.la", "/b/opal/datatype", "noinst"),
+        ];
+        let merged = dedup_declarations(all.clone());
+        assert_eq!(merged.len(), 1, "the merge by name is what loses one");
+
+        let separated = separate_colliding_declarations(merged, all, |_| true);
+
+        assert_eq!(
+            separated
+                .iter()
+                .map(|d| d.directory.display().to_string())
+                .collect::<Vec<_>>(),
+            vec!["/b/ompi/datatype", "/b/opal/datatype"]
+        );
+    }
+
+    // The negative: a name declared in two scopes but linked in only one is
+    // ONE target (a parent scope that also prints a child's variables, or a
+    // conditional duplicate) and must stay merged as before.
+    #[test]
+    fn a_name_declared_twice_but_built_once_stays_one_target() {
+        let all = vec![
+            decl("libutil.la", "/b", "EXTRA"),
+            decl("libutil.la", "/b/sub", "noinst"),
+        ];
+        let merged = dedup_declarations(all.clone());
+
+        let separated = separate_colliding_declarations(merged.clone(), all, |d| {
+            d.directory == Path::new("/b/sub")
+        });
+
+        assert_eq!(separated, merged);
+    }
+
     #[test]
     fn target_label_does_not_collapse_a_program_and_its_library() {
         assert_ne!(

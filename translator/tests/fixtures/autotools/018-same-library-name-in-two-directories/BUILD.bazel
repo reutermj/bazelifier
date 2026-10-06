@@ -1,0 +1,15 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Two directories each build a convenience library named libutil.la, with
+# different sources — Open MPI's ompi/datatype and opal/datatype each build
+# a libdatatype.la. Declarations merged by name kept one of the two and
+# took the other's link command, so a source was rebased against the wrong
+# directory and the conversion failed copying a file that does not exist.
+# Both are targets now, named with their directory (one_libutil.la,
+# two_libutil.la); the program needs both symbols, so the comparison fails
+# if either library lost its source.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

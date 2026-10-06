@@ -66,6 +66,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/015-links-library-with-libtool-dependencies:converted",
         "//translator/tests/fixtures/autotools/016-installed-program-alias:converted",
         "//translator/tests/fixtures/autotools/017-root-include-reaches-nested-header:converted",
+        "//translator/tests/fixtures/autotools/018-same-library-name-in-two-directories:converted",
     ],
 )
 
