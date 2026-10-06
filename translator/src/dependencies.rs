@@ -302,10 +302,58 @@ fn merge_tree(
             if let Some(parent) = child_dst.parent() {
                 std::fs::create_dir_all(parent)?;
             }
-            std::fs::copy(&child_src, &child_dst)?;
+            if child_relative.extension().is_some_and(|e| e == "la") {
+                let text = std::fs::read_to_string(&child_src)?;
+                std::fs::write(&child_dst, relocate_libtool_archive(&text, dst))?;
+            } else {
+                std::fs::copy(&child_src, &child_dst)?;
+            }
         }
     }
     Ok(())
+}
+
+/// A libtool archive's text with the OTHER archives its `dependency_libs`
+/// names by install path moved into `sysroot`.
+///
+/// pkg-config files are relocated by `PKG_CONFIG_SYSROOT_DIR`; libtool
+/// archives have no equivalent at link time. A dependency that itself
+/// links a converted module installs `dependency_libs='...
+/// /usr/local/lib/libevent_core.la'`, and creating a libtool library
+/// against it makes libtool open every archive listed there. The path
+/// exists only inside the sysroot, so the dependent's build failed on it
+/// (PRRTE linking PMIx) — and on a host that HAS a file there, it would
+/// silently have linked the host's copy instead.
+///
+/// Only `.la` paths under `INSTALL_PREFIX` move: those are the sysroot's
+/// own files by construction. `-l`/`-L` flags and paths anywhere else are
+/// the dependency's link line as it was, and `libdir` is left alone
+/// because libtool writes it into the rpath of what it links.
+fn relocate_libtool_archive(text: &str, sysroot: &Path) -> String {
+    let prefix = format!("{INSTALL_PREFIX}/");
+    text.lines()
+        .map(|line| {
+            let Some(libs) = line.strip_prefix("dependency_libs=") else {
+                return line.to_string();
+            };
+            let relocated: Vec<String> = libs
+                .trim_matches('\'')
+                .split_whitespace()
+                .map(|token| {
+                    if token.starts_with(&prefix) && token.ends_with(".la") {
+                        sysroot
+                            .join(token.trim_start_matches('/'))
+                            .display()
+                            .to_string()
+                    } else {
+                        token.to_string()
+                    }
+                })
+                .collect();
+            format!("dependency_libs=' {}'", relocated.join(" "))
+        })
+        .map(|line| line + "\n")
+        .collect()
 }
 
 #[derive(Debug)]
@@ -448,6 +496,72 @@ mod tests {
             "the merged tree carries real files, not links into a tree Bazel discards"
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // libpmix.la as PMIx installs it: two archives by install path, flags,
+    // and a -L into PMIx's own (by now deleted) action sysroot. Only the
+    // archives move; everything else is the link line as it was.
+    #[test]
+    fn an_archive_named_by_install_path_moves_into_the_sysroot() {
+        let text = concat!(
+            "dlname='libpmix.so.2'\n",
+            "dependency_libs=' -L/sandbox/1765/sysroot/usr/local/lib -ldl \
+             /usr/local/lib/libevent_core.la /usr/local/lib/libhwloc.la \
+             /opt/elsewhere/libz.la -lm'\n",
+            "libdir='/usr/local/lib'\n",
+        );
+
+        let relocated = relocate_libtool_archive(text, Path::new("/sr"));
+
+        assert!(
+            relocated.contains(
+                "dependency_libs=' -L/sandbox/1765/sysroot/usr/local/lib -ldl \
+                 /sr/usr/local/lib/libevent_core.la /sr/usr/local/lib/libhwloc.la \
+                 /opt/elsewhere/libz.la -lm'\n"
+            ),
+            "{relocated}"
+        );
+        assert!(
+            relocated.contains("libdir='/usr/local/lib'\n")
+                && relocated.contains("dlname='libpmix.so.2'\n"),
+            "nothing but dependency_libs changes: {relocated}"
+        );
+    }
+
+    // The merge applies it: a dependency's installed .la reaches the
+    // sysroot relocated, and any other file byte for byte.
+    #[test]
+    fn merging_relocates_archives_and_copies_everything_else() {
+        let root = scratch("relocate");
+        let install = root.join("install/usr/local/lib");
+        std::fs::create_dir_all(&install).unwrap();
+        std::fs::write(
+            install.join("libuse.la"),
+            "dependency_libs=' /usr/local/lib/libgreet.la'\n",
+        )
+        .unwrap();
+        std::fs::write(
+            install.join("use.pc"),
+            "libdir=/usr/local/lib/libgreet.la\n",
+        )
+        .unwrap();
+        let sysroot = root.join("sysroot");
+
+        merge_tree(&root.join("install"), &sysroot, Path::new(""), &mut |_| {
+            Ok(())
+        })
+        .unwrap();
+
+        let la = std::fs::read_to_string(sysroot.join("usr/local/lib/libuse.la")).unwrap();
+        assert!(
+            la.contains(&format!("{}/usr/local/lib/libgreet.la", sysroot.display())),
+            "{la}"
+        );
+        assert_eq!(
+            std::fs::read_to_string(sysroot.join("usr/local/lib/use.pc")).unwrap(),
+            "libdir=/usr/local/lib/libgreet.la\n",
+            "a .pc is relocated by PKG_CONFIG_SYSROOT_DIR, not rewritten"
+        );
     }
 
     #[test]
