@@ -365,7 +365,18 @@ pub(crate) fn inject_headers_on_include_dirs(targets: &mut [Target], source_dir:
             .map(|p| source_dir.join(p).to_string_lossy().into_owned())
             .collect();
 
-        let declared = target.includes.iter().map(|d| (d, true));
+        // The module root counts when the target puts it on the include path.
+        // It is kept out of `includes` (see `Target::needs_root_include`), so
+        // walking `includes` alone never reached it — PRRTE's
+        // `#include "src/mca/plm/plm_types.h"` under `-iquote$(top_srcdir)`
+        // was not staged. Recursive like any declared dir: what it reaches is
+        // exactly `<root>/<path>` for every quoted path below it.
+        let root = String::new();
+        let declared = target
+            .includes
+            .iter()
+            .chain(target.needs_root_include.then_some(&root))
+            .map(|d| (d, true));
         let implicit_dirs = implicit.iter().map(|d| (d, false));
         for (dir, recursive) in declared.chain(implicit_dirs) {
             // Resolved against the source root rather than assumed absolute.
@@ -554,6 +565,48 @@ mod tests {
             vec!["lib.c".to_string(), "api/lzma.h".to_string()],
             "a module-relative include dir must resolve against the source \
              root; assuming it absolute finds nothing and reports nothing"
+        );
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    // PRRTE compiles src/util/error_strings.c with `-iquote$(top_srcdir)` and
+    // `#include "src/mca/plm/plm_types.h"`: the module root is on the
+    // include path, recorded as `needs_root_include` rather than "." in
+    // `includes`, and a walk of `includes` alone never staged the header.
+    // The negative is the same tree without the root include, where only
+    // the sibling beside the source is reachable.
+    #[test]
+    fn the_module_root_on_the_include_path_stages_the_headers_below_it() {
+        let dir =
+            std::env::temp_dir().join(format!("bzlf_rootinc_{}_{}", std::process::id(), line!()));
+        let util = dir.join("src/util");
+        let plm = dir.join("src/mca/plm");
+        fs::create_dir_all(&util).unwrap();
+        fs::create_dir_all(&plm).unwrap();
+        fs::write(util.join("error_strings.c"), b"int f(void){return 0;}\n").unwrap();
+        fs::write(plm.join("plm_types.h"), b"#pragma once\n").unwrap();
+        let src = dir.to_string_lossy().into_owned();
+        let target = |root: bool| {
+            let mut t = library_target("libprrteutil", Vec::new());
+            t.sources.push("src/util/error_strings.c".to_string());
+            t.needs_root_include = root;
+            t
+        };
+
+        let mut targets = vec![target(true), target(false)];
+        inject_headers_on_include_dirs(&mut targets, Path::new(&src));
+
+        assert!(
+            targets[0]
+                .sources
+                .contains(&"src/mca/plm/plm_types.h".to_string()),
+            "the root is on the include path: {:?}",
+            targets[0].sources
+        );
+        assert_eq!(
+            targets[1].sources,
+            vec!["src/util/error_strings.c".to_string()],
+            "without it nothing below the root is reachable"
         );
         fs::remove_dir_all(&dir).ok();
     }

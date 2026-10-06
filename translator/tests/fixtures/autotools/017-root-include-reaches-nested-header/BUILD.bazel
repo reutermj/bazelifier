@@ -1,0 +1,15 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The module root on the include path reaches a header in another directory
+# by its root-relative path: src/util/main.c includes "src/defs/answer.h"
+# through -iquote$(top_srcdir), and no _SOURCES lists the header. The root
+# is recorded as needs_root_include rather than "." in includes, and the
+# header walk once skipped it, so the header was never staged and the Bazel
+# compile failed (PRRTE's libprrteutil, every source). Fails at BUILD, in the
+# unpacked workspace, without headers::inject_headers_on_include_dirs
+# walking the root.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)
