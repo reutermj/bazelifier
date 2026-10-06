@@ -1,0 +1,25 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# The transitive cross-module edge: this program links 013's libusegreet,
+# which links 011's libgreet. libtool reads libusegreet.la when the link
+# names -lusegreet, and its dependency_libs names libgreet.la by INSTALL
+# path, which exists only inside the merged sysroot. Without relocation
+# the build fails on that path — or, on a host that happens to have one
+# there, silently links the host's copy. PRRTE -> PMIx -> libevent/hwloc
+# is the corpus instance. See dependencies::relocate_libtool_archive.
+#
+# Both dependencies are listed: the sysroot holds the install trees of
+# exactly the modules given here.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(
+        ["**"],
+        exclude = ["BUILD.bazel"],
+    ),
+    source_dir = package_name(),
+    visibility = ["//translator/tests:__pkg__"],
+    deps = [
+        "//translator/tests/fixtures/autotools/011-installed-library:converted",
+        "//translator/tests/fixtures/autotools/013-shared-library-links-installed-library:converted",
+    ],
+)

@@ -10,6 +10,9 @@ convert_autotools_project(
         exclude = ["BUILD.bazel"],
     ),
     source_dir = package_name(),
-    visibility = ["//translator/tests:__pkg__"],
+    visibility = [
+        "//translator/tests:__pkg__",
+        "//translator/tests/fixtures/autotools/015-links-library-with-libtool-dependencies:__pkg__",
+    ],
     deps = ["//translator/tests/fixtures/autotools/011-installed-library:converted"],
 )

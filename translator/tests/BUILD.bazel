@@ -62,6 +62,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/012-links-installed-library:converted",
         "//translator/tests/fixtures/autotools/013-shared-library-links-installed-library:converted",
         "//translator/tests/fixtures/autotools/014-default-off-flags:converted",
+        "//translator/tests/fixtures/autotools/015-links-library-with-libtool-dependencies:converted",
     ],
 )
 

@@ -537,25 +537,37 @@ fn copy_ground_truth_artifacts(
             // the binary's DT_NEEDED names the middle one.
             let libdir = real.parent().unwrap_or(Path::new("/"));
             let stem = dependencies::library_stem(&real).unwrap_or_default();
+            let la = libdir.join(format!("{stem}.la"));
             // The chain as libtool states it, when it does: the versioned
             // names need not share the unversioned prefix (libevent's
             // `libevent_core-2.1.so.7`), and the one a binary loads is
             // exactly the one a prefix guess misses. See
-            // `libtool::libtool_library_names`.
-            let mut names: Vec<String> =
-                match libtool::libtool_library_names(&libdir.join(format!("{stem}.la"))) {
-                    Some(stated) => stated
-                        .into_iter()
-                        .filter(|n| libdir.join(n).is_file())
-                        .collect(),
-                    None => fs::read_dir(libdir)?
-                        .filter_map(|e| e.ok())
-                        .filter_map(|e| e.file_name().into_string().ok())
-                        .filter(|n| n.starts_with(&format!("{stem}.so")))
-                        .collect(),
-                };
+            // `libtool::libtool_library_names`. And not this library alone:
+            // what IT needs at run time is in the sysroot too, named by its
+            // `.la` — see `libtool::libtool_archive_closure`.
+            let mut names: Vec<(PathBuf, String)> = if la.is_file() {
+                libtool::libtool_archive_closure(&la)
+                    .into_iter()
+                    .flat_map(|archive| {
+                        let dir = archive.parent().unwrap_or(Path::new("/")).to_path_buf();
+                        libtool::libtool_library_names(&archive)
+                            .unwrap_or_default()
+                            .into_iter()
+                            .filter(|n| dir.join(n).is_file())
+                            .map(|n| (dir.clone(), n))
+                            .collect::<Vec<_>>()
+                    })
+                    .collect()
+            } else {
+                fs::read_dir(libdir)?
+                    .filter_map(|e| e.ok())
+                    .filter_map(|e| e.file_name().into_string().ok())
+                    .filter(|n| n.starts_with(&format!("{stem}.so")))
+                    .map(|n| (libdir.to_path_buf(), n))
+                    .collect()
+            };
             names.sort();
-            for name in names {
+            for (dir, name) in names {
                 // Once per NAME, not per target that links it: PMIx links
                 // libhwloc from libpmix and from every test program, and a
                 // second copy onto the first — read-only, because the
@@ -564,7 +576,7 @@ fn copy_ground_truth_artifacts(
                 if shared_lib_names.contains(&name) {
                     continue;
                 }
-                copy_into(&libdir.join(&name), &ground_truth_dir.join(&name))?;
+                copy_into(&dir.join(&name), &ground_truth_dir.join(&name))?;
                 if !artifact_paths.contains(&name) {
                     artifact_paths.push(name.clone());
                 }

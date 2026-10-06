@@ -106,6 +106,40 @@ pub(crate) fn libtool_library_names(la_path: &Path) -> Option<Vec<String>> {
     (!names.is_empty()).then_some(names)
 }
 
+/// Every libtool archive `la_path` depends on, transitively, by the paths
+/// each `.la`'s `dependency_libs=` names — `la_path` itself first, then in
+/// the order found, each once.
+///
+/// The closure a loader walks at run time, as libtool states it: a binary
+/// linking libpmix loads libevent_core because libpmix.so NEEDS it, and
+/// libpmix.la says so (`dependency_libs=' ... /usr/local/lib/libevent_core.la'`).
+/// Staging only what a binary links directly left the ground truth of a
+/// program reaching a library through another one unrunnable (exit 127).
+/// Only paths ending `.la` are followed; `-l` flags name nothing libtool
+/// installed, and an archive that does not exist is skipped rather than
+/// guessed at.
+pub(crate) fn libtool_archive_closure(la_path: &Path) -> Vec<PathBuf> {
+    let mut closure = vec![la_path.to_path_buf()];
+    let mut next = 0;
+    while next < closure.len() {
+        let text = fs::read_to_string(&closure[next]).unwrap_or_default();
+        next += 1;
+        let Some(libs) = text
+            .lines()
+            .find_map(|l| l.strip_prefix("dependency_libs="))
+        else {
+            continue;
+        };
+        for token in libs.trim_matches('\'').split_whitespace() {
+            let path = PathBuf::from(token);
+            if token.ends_with(".la") && path.is_file() && !closure.contains(&path) {
+                closure.push(path);
+            }
+        }
+    }
+    closure
+}
+
 /// Whether `path` is a libtool wrapper script rather than the built artifact.
 pub(crate) fn is_libtool_wrapper(path: &Path) -> bool {
     let Ok(text) = fs::read_to_string(path) else {
@@ -254,6 +288,39 @@ mod tests {
 
     // libevent's installed names carry a `-2.1` infix, so nothing derivable
     // from `libevent_core.so` names `libevent_core-2.1.so.7`; the `.la` does.
+    // app -> libuseuse -> libusegreet -> libgreet, as fixture 015 installs
+    // them: each archive once, the starting one first, and a name that is a
+    // flag or a missing file followed nowhere.
+    #[test]
+    fn the_archive_closure_follows_dependency_libs_transitively() {
+        let dir = std::env::temp_dir().join(format!("la_closure_{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let la = |name: &str, deps: &str| {
+            let path = dir.join(format!("{name}.la"));
+            fs::write(
+                &path,
+                format!("dlname='{name}.so.1'\ndependency_libs='{deps}'\n"),
+            )
+            .unwrap();
+            path
+        };
+        let greet = la("libgreet", "");
+        let usegreet = la(
+            "libusegreet",
+            &format!(
+                " -L{} {} -lm /gone/libmissing.la",
+                dir.display(),
+                greet.display()
+            ),
+        );
+        let top = la(
+            "libuseuse",
+            &format!(" {} {}", usegreet.display(), greet.display()),
+        );
+
+        assert_eq!(libtool_archive_closure(&top), vec![top, usegreet, greet]);
+    }
+
     #[test]
     fn library_names_come_from_the_la_not_from_the_stem() {
         let dir = std::env::temp_dir().join(format!("bzlf_lanames_{}", std::process::id()));

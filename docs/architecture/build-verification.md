@@ -432,6 +432,21 @@ library's conversion, never against the host's copy:
   truth**, every name in its chain, because the ground-truth binary's
   `DT_NEEDED` names it and the sysroot is gone by the time the comparison
   runs. The bytes are the dependency's own ground truth.
+- **A dependency of a dependency is the dependent's to list.** PRRTE links
+  PMIx, which links libevent and hwloc, so PRRTE's `deps` names all three:
+  the sysroot holds exactly the install trees given, and three things then
+  have to reach through it (fixture 015 pins each, PRRTE was where they
+  surfaced):
+  - an installed `.la` names the archives IT depends on by install path
+    (`dependency_libs='... /usr/local/lib/libevent_core.la'`), and creating
+    a libtool library opens every one. The merge relocates those paths into
+    the sysroot, as `PKG_CONFIG_SYSROOT_DIR` does for `.pc` files;
+  - ld resolves a linked library's own `DT_NEEDED` from `-rpath-link`, never
+    from `-L`, so `LDFLAGS` carries both. Without it ld falls back to the
+    library's `RUNPATH` — the install prefix on the conversion host;
+  - the ground truth loads that closure at run time, so staging follows
+    each `.la`'s `dependency_libs` rather than stopping at what the binary
+    links directly.
 - **The dependency's module exports its headers at their INSTALLED path**:
   automake's `include_HEADERS = src/greet.h` installs `<includedir>/greet.h`,
   a consumer includes `<greet.h>`, so the library's rule carries
