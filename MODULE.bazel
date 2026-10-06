@@ -421,3 +421,24 @@ http_archive(
     strip_prefix = "prrte-3.0.14",
     url = "https://github.com/openpmix/prrte/releases/download/v3.0.14/prrte-3.0.14.tar.bz2",
 )
+
+# Open MPI 5.0.11, the last node of its own chain (bzl-7r9.7). Converted as
+# it ships: measured 2026-10-06, its default configure against the
+# converted hwloc/libevent/PMIx/PRRTE picks all four EXTERNAL, builds no
+# Fortran bindings (no Fortran compiler) and no OSHMEM (no spml) — the
+# module boundary the epic wanted, with no flags. make builds only the
+# bundled romio341 and treematch from 3rd-party/. 1415 compile units;
+# upstream make check 43/44 pass, 1 skip. Release TARBALL; INPUT to the
+# translator only.
+http_archive(
+    name = "openmpi",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-5mijxKzVDEHcIEyKbdmKYR4PJq+Jz2d1d/qb6KJpgAM=",
+    strip_prefix = "openmpi-5.0.11",
+    url = "https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-5.0.11.tar.bz2",
+)

@@ -49,6 +49,7 @@ validation_workspace(
         "//translator/tests/corpus/hwloc:converted",
         "//translator/tests/corpus/pmix:converted",
         "//translator/tests/corpus/prrte:converted",
+        "//translator/tests/corpus/openmpi:converted",
         "//translator/tests/fixtures/autotools/001-programs-and-libraries:converted",
         "//translator/tests/fixtures/autotools/002-sibling-sources-recursive-make:converted",
         "//translator/tests/fixtures/autotools/003-sibling-outside-project-root:converted",

@@ -1,0 +1,33 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Open MPI 5.0.11 (bzl-7r9.7), pinned in MODULE.bazel as @openmpi.
+#
+# Converted as it ships: its default configure finds the four converted
+# runtime modules through the relocated sysroot and takes each as external,
+# so hwloc, libevent, PMIx and PRRTE are bazel_deps rather than bundled
+# copies, while romio341 and treematch (which have no external option) are
+# built inside this module.
+#
+# END STATE (2026-10-06): converting — 181 targets (55 programs, 123
+# static and 3 shared libraries), 44 registered tests, 20 config headers,
+# 17 escalation items, every one agent work: the config headers
+# (opal_config.h's 752 #undefs and mpi.h among them; six Fortran headers
+# and oshmem_version.h that nothing opens), libmpi/libopen-pal absorbing
+# their archives, 41 generated headers (34 configure-written
+# static-components.h, romio/mpl/treematch's nested-configure headers),
+# three build stamps and one test not built. Red until the agent stage.
+# Four translator gaps fixed on the way, each with a fixture (018-020) or
+# unit tests: one library name in two directories, a -l found through an
+# archive's stated -L, a library linked through a build-tree symlink, and
+# generated headers filtered to the ones a compile opened.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@openmpi//:all_srcs"],
+    visibility = ["//translator/tests:__pkg__"],
+    deps = [
+        "//translator/tests/corpus/hwloc:converted",
+        "//translator/tests/corpus/libevent:converted",
+        "//translator/tests/corpus/pmix:converted",
+        "//translator/tests/corpus/prrte:converted",
+    ],
+)
