@@ -16,7 +16,7 @@ resolved, unknown = {}, {"private": [], "public": []}
 for kind, pat in [("private", "001-*private*"), ("public", "002-*hwloc-autogen*")]:
     f = glob.glob(f"{M}/needs_attention/{pat}")[0]
     for line in open(f):
-        m = re.match(r"^- `([A-Za-z_0-9]+)`(?: — configure resolved this to `(.*)`)?", line)
+        m = re.match(r"^- `([A-Za-z_0-9]+)`(?: — configure resolved this to `([^`]*)`)?", line)
         if not m: continue
         if m.group(2) is not None: resolved.setdefault(m.group(1), m.group(2))
         else: unknown[kind].append(m.group(1))

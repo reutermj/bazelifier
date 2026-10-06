@@ -13,7 +13,7 @@ def names_of(pattern):
     f = glob.glob(f"{M}/needs_attention/{pattern}")[0]
     resolved, unknown = {}, []
     for line in open(f):
-        m = re.match(r"^- `([A-Za-z_0-9]+)`(?: — configure resolved this to `(.*)`)?", line)
+        m = re.match(r"^- `([A-Za-z_0-9]+)`(?: — configure resolved this to `([^`]*)`)?", line)
         if not m: continue
         if m.group(2) is not None: resolved[m.group(1)] = m.group(2)
         else: unknown.append(m.group(1))
@@ -23,7 +23,7 @@ ALIASES = {"HAVE_DEVPOLL": "have_sys_devpoll_h", "HAVE_EVENT_PORTS": "have_port_
            "HAVE_WORKING_KQUEUE": "have_kqueue", "HAVE_EPOLL": "have_epoll_ctl"}
 PROBES = ["@cc_config//catalog:have_getaddrinfo", "@cc_config//catalog:sizeof_pthread_t"]
 # Decisions that override what configure resolved on THIS host.
-DECIDED = {"HAVE_OPENSSL_SSL_H": "", "HAVE_LIBZ": "", "HAVE_ZLIB_H": ""}
+DECIDED = {"HAVE_OPENSSL": "", "HAVE_OPENSSL_SSL_H": "", "HAVE_LIBZ": "", "HAVE_ZLIB_H": ""}
 ONE = {"HAVE_PTHREAD", "HAVE_GETHOSTBYNAME_R_6_ARG"}
 
 rep('load("@cc_config//cc_config:config_header.bzl", "assert_config_header_test", "config_header")\n',
@@ -34,21 +34,6 @@ if 'sh_test.bzl' not in s:
     s = s.replace('load("@rules_cc//cc:cc_shared_library.bzl", "cc_shared_library")\n',
                   'load("@rules_cc//cc:cc_shared_library.bzl", "cc_shared_library")\nload("@rules_shell//shell:sh_test.bzl", "sh_test")\n', 1)
 
-# The frontend surfaced --enable-openssl as this module's own option, with
-# configure's default (on). The decision lives on the option: off by
-# default, because nothing this module can depend on provides OpenSSL.
-rep('''bool_flag(
-    name = "enable_openssl",
-    build_setting_default = True,
-)''', '''# Off by default (configure's default is on): no converted module provides
-# OpenSSL, so the default build must not need it. A consumer with a
-# converted OpenSSL sets --@libevent//:enable_openssl=true — and must also
-# restore libevent_openssl.la, sample_https-client, sample_le-proxy and
-# test/regress_ssl.c, which are omitted below for the same reason.
-bool_flag(
-    name = "enable_openssl",
-    build_setting_default = False,
-)''')
 first = s.index("config_header(\n")
 s = s[:first] + '''# ---- Agent-stage resolutions (bzl-7r9.12), each a decision with its reason.
 #
@@ -57,9 +42,10 @@ s = s[:first] + '''# ---- Agent-stage resolutions (bzl-7r9.12), each a decision 
 # test/regress with regress_ssl.c (the -lssl/-lcrypto items). No converted
 # module provides OpenSSL, and linking the host's copy is what this module
 # exists to rule out, so the module replicates a build WITHOUT it: those
-# three targets are omitted, regress_ssl.c leaves test/regress, the
-# enable_openssl option defaults off (HAVE_OPENSSL follows it) and
-# HAVE_OPENSSL_SSL_H is undefined. Converting OpenSSL is a
+# three targets are omitted, regress_ssl.c leaves test/regress, and
+# HAVE_OPENSSL and HAVE_OPENSSL_SSL_H are undefined. --enable-openssl is not
+# a module option: it gates configure's OpenSSL checks, so the frontend
+# escalates HAVE_OPENSSL rather than surfacing it. Converting OpenSSL is a
 # separate project; when it exists, re-running this conversion with it as a
 # dependency brings the four back with no hand edits.
 #
@@ -157,10 +143,12 @@ b = b[:ui] + "    # The AC_USE_SYSTEM_EXTENSIONS names, resolved as in config.h.
 s = s[:ci] + b + s[ce:]
 
 # assertions that pinned the frozen host answers now decided away
-# HAVE_OPENSSL too: the assertion was generated for the option's configure
-# default (on), and the option now defaults off.
+# HAVE_OPENSSL too: configure resolved it on (it found OpenSSL here).
 for n in list(DECIDED) + ["SIZEOF_PTHREAD_T", "HAVE_EPOLL", "HAVE_GETADDRINFO", "HAVE_OPENSSL"]:
     s = s.replace(f'        "/* #undef {n} */",\n', "").replace(f'        "@{n}@",\n', "")
+    # and the frontend now asserts each resolved VALUE too (#define NAME v),
+    # which for a name decided away is exactly the wrong claim
+    s = re.sub(r'        "#define %s[ "][^\n]*\n' % re.escape(n), "", s)
 
 # ---- OpenSSL targets out; regress without ssl/zlib
 for name in ["libevent_openssl.la_shared", "libevent_openssl.la", "sample_https-client", "sample_le-proxy"]:
@@ -177,7 +165,10 @@ s = re.sub(r'    dynamic_deps = \[\n    \],\n', "", s)
 s = re.sub(r'    deps = \[\n    \],\n', "", s)
 
 # ---- strlcpy.c beside evutil.c (project note 001); the generated header everywhere config.h is
-s = s.replace('        "evutil.c",\n', '        "evutil.c",\n        "strlcpy.c",  # project_notes/001: compiled only where the C library lacks strlcpy\n')
+# (only where the frontend did not already carry it — it does once the
+# ground-truth build itself compiled strlcpy.c)
+if '        "strlcpy.c",\n' not in s:
+    s = s.replace('        "evutil.c",\n', '        "evutil.c",\n        "strlcpy.c",  # project_notes/001: compiled only where the C library lacks strlcpy\n')
 s = s.replace('        ":config_h",\n', '        ":config_h",\n        ":event_config_h",\n')
 rep('''    srcs = [
         "make-event-config.sed",
@@ -223,8 +214,8 @@ shutil.copy(f"{R}/run_layout_script_test.sh", f"{M}/run_layout_script_test.sh");
 # The comparisons these decisions make impossible, recorded where the
 # harness reads them (see build-verification.md, "A recorded omission").
 with open(f"{M}/TARGETS", "a") as t:
-    t.write("omitted sample_https-client needs OpenSSL; no converted module provides it (enable_openssl defaults off)\n")
-    t.write("omitted sample_le-proxy needs OpenSSL; no converted module provides it (enable_openssl defaults off)\n")
+    t.write("omitted sample_https-client needs OpenSSL; no converted module provides it (built without OpenSSL)\n")
+    t.write("omitted sample_le-proxy needs OpenSSL; no converted module provides it (built without OpenSSL)\n")
     t.write("omitted test_regress ground truth ran its OpenSSL and zlib tests; this module builds regress without them (bzl-7r9.8 for zlib)\n")
 for f in glob.glob(f"{M}/needs_attention/*.md"): os.remove(f)
 print("resolved libevent:", len(lines), "config values,", len(unknown2)+len(resolved2), "private")

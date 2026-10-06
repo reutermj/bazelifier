@@ -22,8 +22,7 @@ def sl(v):
 # ---- 1. loads ---------------------------------------------------------------
 rep('load("@cc_config//cc_config:config_header.bzl", "assert_config_header_test", "config_header")\n',
     'load("@cc_config//cc_config:config_header.bzl", "assert_config_header_test", "config_header")\n'
-    'load("@cc_config//cc_config:probe.bzl", "check_c_source_compiles", "check_symbol_exists", "probe_alias")\n'
-    'load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")\n')
+    'load("@cc_config//cc_config:probe.bzl", "check_c_source_compiles", "check_symbol_exists", "probe_alias")\n')
 
 # ---- 2. probes the project runs with its OWN snippets (item 001/002) --------
 # Each snippet is PMIx's, from config/pmix_check_attributes.m4 and
@@ -124,16 +123,6 @@ rules.append('''
 ''')
 for t, d, p in aliases:
     rules.append("probe_alias(\n    name = %s,\n    define = %s,\n    probe = \"@cc_config//catalog:%s\",\n)\n" % (sl(t), sl(d), p))
-rules.append('''
-# Build options a default configure leaves as they are here (0/1 macros it
-# always defines; see configure --help). Debug, IPv6 and timing are pure
-# macros; PTY and dlopen support also select sources and components, so
-# they stay values below with the default configuration's answer.
-''')
-FLAGS = [("enable_debug", False, "PMIX_ENABLE_DEBUG"), ("enable_ipv6", False, "PMIX_ENABLE_IPV6"), ("enable_timing", False, "PMIX_ENABLE_TIMING")]
-for f, default, _ in FLAGS:
-    rules.append('bool_flag(\n    name = "%s",\n    build_setting_default = %s,\n)\n\nconfig_setting(\n    name = "%s_on",\n    flag_values = {":%s": "True"},\n)\n' % (f, default, f, f))
-
 # static-components.h, written by CONFIGURE (config/pmix_mca.m4) from the
 # component list it selected — the list of this module's own component
 # targets, one genrule per framework, in the format configure writes.
@@ -180,7 +169,9 @@ VALUES = {
     "PMIX_C_GCC_INLINE_ASSEMBLY": "1",
     "PMIX_HAVE_LIBEVENT": "1", "PMIX_HAVE_LIBEV": "0",
     "PMIX_HAVE_PDL_SUPPORT": "1", "PMIX_PDL_PLIBLTDL_HAVE_LT_DLADVISE": "1",
-    "PMIX_ENABLE_PTY_SUPPORT": "1", "PMIX_ENABLE_DLOPEN_SUPPORT": "1",
+    # dlopen support also selects sources (pdl components), so the frontend
+    # escalates it rather than offering a header-only flag; the default holds.
+    "PMIX_ENABLE_DLOPEN_SUPPORT": "1",
     "PMIX_HAVE_VISIBILITY": "1",
     "PMIX_HAVE_CEIL": "1",
     # openpty: what configure does on THIS toolchain. Its sysroot is a glibc
@@ -194,21 +185,20 @@ VALUES = {
     "HAVE_OPENPTY": "1", "PMIX_HAVE_OPENPTY": "1",
     "PMIX_NEED_C_BOOL": "1", "PMIX_USE_STDBOOL_H": "1", "PMIX_PTRDIFF_TYPE": "ptrdiff_t",
     "PMIX_PICKY_COMPILERS": "0", "PMIX_MEMORY_SANITIZERS": "0", "PMIX_NO_LIB_DESTRUCTOR": "0",
-    "PMIX_WANT_HOME_CONFIG_FILES": "1", "PMIX_WANT_PRETTY_PRINT_STACKTRACE": "1",
     "PMIX_SHOW_LOAD_ERRORS_DEFAULT": '"none"', "PMIX_IDENT_STRING": '""',
     "PMIX_HAVE_ATTRIBUTE_WEAK_ALIAS": "",  # configure writes an EMPTY define; unused by any source
     # -- stamps and toolchain identity: the module's toolchain is clang
     "PMIX_CC": '"clang"', "PMIX_BUILD_PLATFORM_COMPILER_FAMILYID": "19", "PMIX_BUILD_PLATFORM_COMPILER_VERSION": "0",
     "PMIX_PACKAGE_STRING": '"PMIx Distribution"',
     "PACKAGE_URL": '""', "LT_OBJDIR": '".libs/"',
-    "PMIX_GIT_REPO_BUILD": "", "AC_APPLE_UNIVERSAL_BUILD": "", "YYTEXT_POINTER": "",
+    "PMIX_GIT_REPO_BUILD": "", "AC_APPLE_UNIVERSAL_BUILD": "",
     "inline": "__inline__",  # what THIS project's configure decided (AC_C_INLINE after its own CFLAGS)
     # -- AC_USE_SYSTEM_EXTENSIONS, exactly as configure writes them everywhere
     "_ALL_SOURCE": "1", "_GNU_SOURCE": "1", "_POSIX_PTHREAD_SEMANTICS": "1", "_TANDEM_SOURCE": "1", "__EXTENSIONS__": "1",
     "_MINIX": "", "_POSIX_SOURCE": "", "_POSIX_1_SOURCE": "",
     "OAC_HAVE_SOLARIS": "0",
 }
-covered = probe_defines | set(VALUES) | {d for _, _, d in FLAGS} | {"OAC_HAVE_APPLE"}
+covered = probe_defines | set(VALUES) | {"OAC_HAVE_APPLE"}
 missing = [n for n in unresolved if n not in covered]
 assert not missing, missing
 extra = [n for n in VALUES if n not in unresolved and n != "HAVE_OPENPTY"]
@@ -216,16 +206,18 @@ assert not extra, extra
 # the catalog's openpty probe is replaced by the recorded answer above
 assert block.count('        "@cc_config//catalog:have_openpty",\n') == 1
 block = block.replace('        "@cc_config//catalog:have_openpty",\n', "")
-flag_select = "".join('    select({\n        ":%s_on": {"%s": "1"},\n        "//conditions:default": {"%s": "0"},\n    }) | ' % (f, d, d) for f, _, d in FLAGS)
 apple_select = '    select({\n        "@platforms//os:macos": {"OAC_HAVE_APPLE": "1"},\n        "//conditions:default": {"OAC_HAVE_APPLE": "0"},\n    }) | '
 value_lines = "".join("        %s: %s,\n" % (sl(k), sl(v)) for k, v in sorted(VALUES.items()))
-assert block.count("    values = {\n") == 1
-block = block.replace("    values = {\n", "    values = " + flag_select.lstrip() + apple_select + "{\n" + '''        # ---- resolved by the agent stage; "" is undefined, a 0 is a zero.
+# The frontend's own options (debug, IPv6, timing, PTY, home config files,
+# stack traces) come first as select()s; the plain dict follows them.
+anchor = "    }) | {\n" if "    }) | {\n" in block else "    values = {\n"
+assert block.count(anchor) == 1
+block = block.replace(anchor, anchor[:-2] + apple_select.lstrip() + "{\n" + '''        # ---- resolved by the agent stage; "" is undefined, a 0 is a zero.
         # Atomics: the default configure prefers GCC builtins over C11 and
         # answered the 128-bit compare-and-swap questions by RUNNING a program
         # (lock-free or not), which no probe here can; the x86-64 answers are
-        # recorded. Inline assembly likewise. PTY and dlopen support are the
-        # defaults and also gate sources, so they are values, not flags.
+        # recorded. Inline assembly likewise. dlopen support is the default
+        # and also selects the pdl components, so it is a value, not a flag.
         # Stamps (PMIX_CC, the compiler family id 19 = clang, the package
         # string) name the module's toolchain rather than the conversion
         # host. `inline` is __inline__ because THIS configure decided so.
@@ -319,10 +311,14 @@ for n in range(14):
 s = s.rstrip("\n") + "\n" + tests
 
 open(B, "w").write(s)
-# MODULE.bazel: the options need skylib
+# MODULE.bazel: the OAC_HAVE_APPLE select needs platforms
 mb = os.path.join(M, "MODULE.bazel"); ms = open(mb).read()
 assert 'bazel_dep(name = "cc_config", version = "0.0.0")\n' in ms
-ms = ms.replace('bazel_dep(name = "cc_config", version = "0.0.0")\n', 'bazel_dep(name = "cc_config", version = "0.0.0")\nbazel_dep(name = "bazel_skylib", version = "1.7.1")\nbazel_dep(name = "platforms", version = "1.1.0")\n')
+# (skylib only when the frontend's own options have not already declared it)
+deps = 'bazel_dep(name = "platforms", version = "1.1.0")\n'
+if 'name = "bazel_skylib"' not in ms:
+    deps = 'bazel_dep(name = "bazel_skylib", version = "1.7.1")\n' + deps
+ms = ms.replace('bazel_dep(name = "cc_config", version = "0.0.0")\n', 'bazel_dep(name = "cc_config", version = "0.0.0")\n' + deps)
 open(mb, "w").write(ms)
 # ---- 8. the items are closed -------------------------------------------------
 na = os.path.join(M, "needs_attention")
