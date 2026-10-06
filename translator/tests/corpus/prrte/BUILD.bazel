@@ -9,7 +9,34 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # finds them through the relocated sysroot exactly as a consumer's would,
 # and a link input inside that sysroot becomes a cross-module edge.
 #
-# END STATE: in progress.
+# END STATE (2026-10-06, converted as PRRTE ships): GREEN from the unpacked
+# workspace after the agent stage — 5/5 comparisons (prte, prted, prterun,
+# prun, pterm), 1 omitted by recorded decision (prte_info prints the
+# configure/build stamps), 4/4 module tests (config-header assertions).
+# PRRTE declares no tests. The resolution is tools/resolutions/prrte/,
+# applied after its dependencies' (tools/resolutions/pmix/). The
+# comparisons are shallow: with no arguments every tool reaches show_help,
+# whose text neither side has installed (bzl-7r9.20). Cost, for the
+# onboarding record:
+#
+# - Translator gaps found and fixed: 5, each its own commit — an installed
+#   .la's dependency_libs naming archives by install path; ld needing
+#   -rpath-link for a dependency's own DT_NEEDED; ground truth missing the
+#   transitive shared-library closure (the three a transitive dependent
+#   needs, fixture 015); programs installed under a second name, which
+#   gives this module prterun (fixture 016); and the module root on the
+#   include path never walked for headers (fixture 017). Plus 30 catalog
+#   facts from the harvester.
+# - Escalations: 5 items at first conversion and 5 at green — the PMIx
+#   shape again under a PRTE_ prefix, all agent work.
+# - Agent-stage decisions: 42 project-local compile probes from PRRTE's own
+#   m4, 4 symbol probes, 40 values, 17 configure-written
+#   static-components.h, libprrte absorbing 49 archives, the stamps as
+#   fixed literals, PRTE_PACKAGE_STRING without this host's user@host.
+# - Other projects moved: xz gained 5 alias binaries and hwloc 2 (hwloc
+#   re-recorded green, 19/19); libevent, PMIx and xz stage more headers
+#   from the root include; libevent's bench_cascade, which had passed by
+#   luck on timing output, is now omitted on record.
 convert_autotools_project(
     name = "converted",
     srcs = ["@prrte//:all_srcs"],
