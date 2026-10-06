@@ -40,3 +40,6 @@ test --jobs=16
 # grows until the container is under pressure from the server ALONE, before a
 # single action runs.
 startup --host_jvm_args=-Xmx4g
+
+# Mirrors for upstream URLs that have rotted; see the file for each one.
+common --downloader_config=bazel_downloader.cfg

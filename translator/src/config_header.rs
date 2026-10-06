@@ -22,7 +22,8 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use crate::configure_file::catalog_label;
-use crate::model::ConfigHeader;
+use crate::model::{BuildOption, ConfigHeader};
+use crate::needs_attention::FlagContest;
 
 /// Whether a substituted value is a bare number, and so must NOT be quoted.
 ///
@@ -30,8 +31,26 @@ use crate::model::ConfigHeader;
 /// `AC_DEFINE([PACKAGE], ["xz"])` emits `"xz"`. Getting this backwards fails
 /// in opposite directions — an unquoted string becomes stray identifiers, a
 /// quoted number becomes a type error in `#if`.
-fn is_numeric_literal(value: &str) -> bool {
+pub(crate) fn is_numeric_literal(value: &str) -> bool {
     !value.is_empty() && value.chars().all(|c| c.is_ascii_digit())
+}
+
+/// What re-running `configure` with each boolean flag flipped established —
+/// see `autotools::attribute_flag_effects`.
+#[derive(Debug, Default)]
+pub(crate) struct FlagEffects {
+    /// Macros one flag provably decides, keyed by macro.
+    pub(crate) options: HashMap<String, BuildOption>,
+    /// Macros a flag was SEEN to move that could not be attributed — two
+    /// flags move it, or the flag gates a probe whose answer it may be.
+    ///
+    /// Escalated rather than resolved. What configure wrote for them is the
+    /// DEFAULT build's value, and taking it from the trace or make's database
+    /// as an unconditional value would freeze a choice — the very thing the
+    /// options exist to prevent — while looking resolved. Measured: hwloc's
+    /// HWLOC_HAVE_LIBXML2 and libevent's HAVE_OPENSSL each carry a literal
+    /// `AC_DEFINE([...], [1])` that the trace branch would take.
+    pub(crate) contested: HashMap<String, FlagContest>,
 }
 
 /// Builds the `config_header` plan for an autoconf template, and the macros
@@ -51,7 +70,7 @@ pub(crate) fn plan_config_header(
     template: &str,
     template_text: &str,
     vars: &HashMap<String, String>,
-    flag_macros: &HashMap<String, String>,
+    flag_macros: &FlagEffects,
     traced: &HashMap<String, String>,
 ) -> (ConfigHeader, Vec<String>) {
     let mut probes = Vec::new();
@@ -62,19 +81,19 @@ pub(crate) fn plan_config_header(
     for name in undef_names(template_text) {
         if let Some(label) = catalog_label(&name) {
             probes.push(label);
-        } else if let Some(flag) = flag_macros.get(&name) {
+        } else if flag_macros.contested.contains_key(&name) {
+            // Moves with a flag, but no single flag provably decides it.
+            // See `FlagEffects::contested` for why this precedes the trace.
+            unmapped.push(name);
+        } else if let Some(option) = flag_macros.options.get(&name) {
             // A macro a BOOLEAN build option controls. Resolved rather than
             // escalated because the input states it — `configure` itself
-            // shows the macro appearing and vanishing with the flag — and
-            // resolved BEFORE the variable-database branch because these
-            // names are usually absent from make's database entirely:
-            // HAVE_GREETING lives only in config.status's D[] table.
-            //
-            // The value is `1`, matching what config.status writes for an
-            // AC_DEFINE with no explicit value. Codegen turns the pair into
-            // a bool_flag plus a select(), so the option stays settable.
-            options.push((name.clone(), flag.clone()));
-            values.push((name, "1".to_string()));
+            // shows the macro moving with the flag — and resolved BEFORE the
+            // variable-database branch because these names are usually
+            // absent from make's database entirely: HAVE_GREETING lives
+            // only in config.status's D[] table. Both sides are what
+            // configure wrote; see `autotools::attribute_flag_effects`.
+            options.push(option.clone());
         } else if let Some(value) = traced.get(&name) {
             // An explicit `AC_DEFINE([NAME], [value])` that THIS build
             // selected — see `autotools::resolve_traced_defines`, which
@@ -155,9 +174,6 @@ pub(crate) fn plan_config_header(
             template_source: None,
             catalog_probes: probes,
             values,
-            // Macros a boolean build option controls, elicited by
-            // differential configure rather than read — autoconf states the
-            // mapping nowhere. See `autotools::resolve_flag_macros`.
             options,
             // autoconf assembles a config header by substitution alone.
             splices: Vec::new(),
@@ -369,10 +385,13 @@ pub(crate) fn parse_config_headers(config_status: &str) -> Vec<(String, String)>
 /// whether it holds for the consumer's toolchain — which is exactly the
 /// judgement the escalation exists to ask for.
 ///
-/// Deliberately NOT used to resolve anything. Measured across five projects:
+/// Never trusted on the strength of a NAME. Measured across five projects:
 /// no prefix rule separates a project option (`XML_DTD`) from a host fact
 /// wearing a project-specific name (`BYTEORDER`), because the point of such
-/// a name is that it hides which kind it is. See bzl-yjn.10.
+/// a name is that it hides which kind it is. See bzl-yjn.10. A value is
+/// taken from here only where configure's own BEHAVIOUR separates the kinds:
+/// a macro that moves with a build flag, between two configures of this one
+/// host (`autotools::attribute_flag_effects`).
 pub(crate) fn parse_resolved_macro_values(config_status: &str) -> HashMap<String, String> {
     let mut values = HashMap::new();
     for line in config_status.lines() {
@@ -605,7 +624,7 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
             "config.in",
             "#undef PACKAGE_NAME\n#undef ASSUME_RAM\n",
             &vars,
-            &HashMap::new(),
+            &FlagEffects::default(),
             &HashMap::new(),
         );
 
@@ -695,7 +714,7 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
             "config.h.in",
             "#undef HAVE_LIBUNISTRING\n",
             &vars,
-            &HashMap::new(),
+            &FlagEffects::default(),
             &HashMap::new(),
         );
         assert!(
@@ -723,7 +742,7 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
             "config.h.in",
             "#undef HAVE_THING\n",
             &vars,
-            &HashMap::new(),
+            &FlagEffects::default(),
             &HashMap::new(),
         );
         assert_eq!(
@@ -748,7 +767,7 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
             "config.h.in",
             "#undef PACKAGE_NAME\n#undef NOTE\n",
             &vars,
-            &HashMap::new(),
+            &FlagEffects::default(),
             &HashMap::new(),
         );
         assert_eq!(
@@ -780,7 +799,7 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
             "config.in",
             "#undef PACKAGE\n#undef BITSIZEOF_PTRDIFF_T\n#undef HAVE_UNISTD_H\n",
             &vars,
-            &HashMap::new(),
+            &FlagEffects::default(),
             &HashMap::new(),
         );
 
@@ -804,13 +823,23 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
         );
     }
     // A macro a boolean build option controls is RESOLVED, not escalated:
-    // the input states it (configure shows the macro appearing and vanishing
-    // with the flag), and codegen turns the pair into a bool_flag so the
-    // option stays settable. Before this, HAVE_GREETING escalated as
-    // unmapped and the agent had to decide.
+    // the input states it (configure shows the macro moving with the flag),
+    // and codegen turns it into a bool_flag so the option stays settable.
+    // Before this, HAVE_GREETING escalated as unmapped and the agent had to
+    // decide.
     #[test]
     fn a_flag_controlled_macro_resolves_as_an_option() {
-        let flags = HashMap::from([("HAVE_GREETING".to_string(), "--enable-greeting".to_string())]);
+        let greeting = BuildOption {
+            macro_name: "HAVE_GREETING".to_string(),
+            option: "--enable-greeting".to_string(),
+            default_on: true,
+            on: Some("1".to_string()),
+            off: None,
+        };
+        let flags = FlagEffects {
+            options: HashMap::from([("HAVE_GREETING".to_string(), greeting.clone())]),
+            contested: HashMap::new(),
+        };
         let (header, unmapped) = plan_config_header(
             "config.h",
             "config.h.in",
@@ -823,15 +852,41 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
         assert!(unmapped.is_empty(), "the flag resolves it: {unmapped:?}");
         assert_eq!(
             header.options,
-            vec![("HAVE_GREETING".to_string(), "--enable-greeting".to_string())],
-            "and its provenance is the FLAG, which codegen needs to name the \
-             bool_flag target"
+            vec![greeting],
+            "as the option the probes attributed, unchanged"
         );
-        assert_eq!(
-            header.values,
-            vec![("HAVE_GREETING".to_string(), "1".to_string())],
-            "with the value config.status writes for an AC_DEFINE"
+        assert!(
+            header.values.is_empty(),
+            "and NOT also as an unconditional value: {:?}",
+            header.values
         );
+    }
+
+    // A macro a flag moved but no flag provably decides escalates, even
+    // when the trace offers a literal for it: hwloc's HWLOC_HAVE_LIBXML2 is
+    // `AC_DEFINE([HWLOC_HAVE_LIBXML2], [1])` behind a libxml2 probe, and the
+    // trace branch would freeze this host's answer as a constant.
+    #[test]
+    fn a_contested_macro_escalates_ahead_of_the_trace() {
+        let flags = FlagEffects {
+            options: HashMap::new(),
+            contested: HashMap::from([(
+                "HWLOC_HAVE_LIBXML2".to_string(),
+                FlagContest::GatesChecks("--enable-libxml2".to_string()),
+            )]),
+        };
+        let traced = HashMap::from([("HWLOC_HAVE_LIBXML2".to_string(), "1".to_string())]);
+        let (header, unmapped) = plan_config_header(
+            "config.h",
+            "config.h.in",
+            "#undef HWLOC_HAVE_LIBXML2\n",
+            &HashMap::new(),
+            &flags,
+            &traced,
+        );
+
+        assert_eq!(unmapped, vec!["HWLOC_HAVE_LIBXML2".to_string()]);
+        assert!(header.values.is_empty(), "{:?}", header.values);
     }
 
     // The negative: a name no flag controls still escalates. Resolving one
@@ -844,7 +899,7 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
             "config.h.in",
             "#undef HAVE_SOMETHING\n",
             &HashMap::new(),
-            &HashMap::new(),
+            &FlagEffects::default(),
             &HashMap::new(),
         );
 

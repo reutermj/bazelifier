@@ -324,6 +324,64 @@ The `#undef` form is matched only at line start, unlike the CMake directive.
 A mid-line `#undef` is ordinary C undefining a macro, and rewriting it would
 corrupt a header rather than configure it.
 
+### Build options, elicited by flipping each flag
+
+CMake's cache marks an `option()` as `BOOL` and a probe result as
+`INTERNAL`; autoconf states the flag-to-macro mapping nowhere that is
+resolved output. So the frontend ELICITS it: for every boolean flag
+`configure --help` lists, it runs configure twice more — flag forced on,
+flag forced off — with exactly the ground truth's arguments and
+environment, and diffs the `D[]` tables `config.status` writes. A macro
+whose value differs between the two sides, for exactly one flag, becomes a
+`bool_flag` and a `select()` carrying both values
+(`autotools::attribute_flag_effects`).
+
+Three choices in that sentence each replaced a version that was wrong on a
+real project:
+
+- **Both directions, and the default measured.** Probing only `--disable-`
+  never reaches a default-off option (PMIx's `--enable-debug`). Probing the
+  spelling `--help` lists is a convention, and xz breaks it: it lists
+  `--enable-unaligned-access` for an option that defaults to auto and
+  resolves on. With both sides in hand, the default is whichever side the
+  real build matches.
+- **Values, not presence.** PMIx writes `PMIX_ENABLE_DEBUG` as `0` or `1`
+  and never leaves it undefined, and xz's `HAVE_SYMBOL_VERSIONS_LINUX` is
+  `2`. A presence diff sees nothing move in the first and writes `1` for the
+  second.
+- **The same configure as the ground truth.** Probes that dropped the
+  dependency environment failed outright on a project with converted
+  dependencies, so PMIx had no options at all.
+
+What a flag moves but cannot be expressed as an option is escalated, not
+dropped. It is still a configuration-dependent value, and every later
+resolution branch (the `AC_DEFINE` trace, make's database) would freeze the
+default build's answer as a constant. The escalation names the flag and
+the reason beside the macro (`needs_attention::FlagContest`). Two reasons
+carry most of it:
+
+- **The flag switches sources.** automake conditionals decide which files
+  compile, and `config.status` records each one (`S["COND_TRUE"]`). The
+  module's source set is fixed at the default build's, so a flag that
+  moves a conditional cannot be a header-only `bool_flag` without letting
+  a consumer build a combination the project never does: libmicrohttpd's
+  `--disable-dauth` drops `digestauth.c` as well as clearing
+  `DAUTH_SUPPORT`. Measured over 18 flags on xz, libmicrohttpd, hwloc and
+  expat that pass every other check: 10 switch a conditional, and the
+  frontend had been shipping header-only knobs for 8 of them. The PMIx agent stage had refused the
+  same knob by hand for PTY and dlopen support.
+- **The flag gates a probe.** `--enable-picky` decides whether the compiler
+  is *asked* about a warning, and the `1` is this host's gcc answering. It is recognised by the two sides
+asking different questions in `config.log`. Measured over ten of hwloc's
+flags: the two that only set a value (`--enable-debug`,
+`--enable-32bits-pci-domain`) asked identical questions on both sides, and
+the eight that gate a library, header or compiler check did not.
+
+The residue this cannot see: a check that runs on both sides while the
+flag decides only whether its answer is written down. xz's
+`HAVE_USABLE_CLMUL` is that shape, and its `1` is this host's answer under
+the select.
+
 ## The flattened database was a bug class, not a bug
 
 Until 2026-09-19 (bzl-7r9.10) the frontend merged every directory's

@@ -328,6 +328,60 @@ impl TestDialect {
     }
 }
 
+/// Why a config macro that moves with a build flag was not made an option.
+/// Evidence for the agent, rendered beside the macro in
+/// `unmapped_config_macros` — see `autotools::attribute_flag_effects`, which
+/// decides these.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum FlagContest {
+    /// Several flags move it.
+    SeveralFlags(Vec<String>),
+    /// The flag also decides whether configure runs some of its checks.
+    GatesChecks(String),
+    /// The flag also switches an automake conditional.
+    SwitchesSources(String),
+    /// It is a standard check's answer the flag only skips.
+    SkipsCheck(String),
+    /// The default build matches neither side of the flag.
+    DefaultIsNeither(String),
+    /// The values it moves between are not plain numbers.
+    NotAPlainValue(String),
+}
+
+impl FlagContest {
+    fn describe(&self) -> String {
+        match self {
+            Self::SeveralFlags(flags) => format!(
+                "moves with each of {}, so no one flag decides it",
+                flags
+                    .iter()
+                    .map(|f| format!("`{f}`"))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            Self::GatesChecks(flag) => format!(
+                "moves with `{flag}`, which also decides whether configure runs some of its \
+                 checks — so the value may be a check's answer on this host rather than the \
+                 option's"
+            ),
+            Self::SwitchesSources(flag) => format!(
+                "moves with `{flag}`, which also changes which sources automake compiles — a \
+                 flag that switched only this header would build an inconsistent module"
+            ),
+            Self::SkipsCheck(flag) => {
+                format!("a configure check's answer; `{flag}` only decides whether the check runs")
+            }
+            Self::DefaultIsNeither(flag) => format!(
+                "moves with `{flag}`, but the default build matches neither `{flag}` on nor off \
+                 (an auto-detected default)"
+            ),
+            Self::NotAPlainValue(flag) => {
+                format!("moves with `{flag}` between values that are not plain numbers")
+            }
+        }
+    }
+}
+
 pub fn unmapped_config_macros_needs_attention(
     output: &str,
     template: &str,
@@ -338,6 +392,26 @@ pub fn unmapped_config_macros_needs_attention(
     // — see the note rendered beside the list. Empty for the CMake frontend,
     // which has no `config.status` to read.
     resolved: &HashMap<String, String>,
+) -> NeedsAttention {
+    unmapped_config_macros_with_flags_needs_attention(
+        output,
+        template,
+        macros,
+        dialect,
+        resolved,
+        &HashMap::new(),
+    )
+}
+
+/// `unmapped_config_macros_needs_attention`, with the names a build flag was
+/// seen to move and why none could become an option.
+pub fn unmapped_config_macros_with_flags_needs_attention(
+    output: &str,
+    template: &str,
+    macros: &[String],
+    dialect: ConfigDialect,
+    resolved: &HashMap<String, String>,
+    contested: &HashMap<String, FlagContest>,
 ) -> NeedsAttention {
     let title = format!("Config header '{output}' references names not in the shared catalog");
     NeedsAttention {
@@ -356,9 +430,15 @@ pub fn unmapped_config_macros_needs_attention(
              deliberately NOT matched to the lookalike catalog entry.",
             macros
                 .iter()
-                .map(|m| match resolved.get(m) {
-                    Some(value) => format!("- `{m}` — configure resolved this to `{value}`"),
-                    None => format!("- `{m}`"),
+                .map(|m| {
+                    let mut line = match resolved.get(m) {
+                        Some(value) => format!("- `{m}` — configure resolved this to `{value}`"),
+                        None => format!("- `{m}`"),
+                    };
+                    if let Some(contest) = contested.get(m) {
+                        line.push_str(&format!("; {}", contest.describe()));
+                    }
+                    line
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),
@@ -373,7 +453,7 @@ pub fn unmapped_config_macros_needs_attention(
              `BYTEORDER` resolved to `1234` here and is wrong on a big-endian consumer, and a \
              `<PROJECT>_CPUCORES_SCHED_GETAFFINITY` is Linux-only. The name does not tell you \
              which kind it is, which is exactly why this escalates rather than being resolved \
-             for you.\n\n\
+             for you.{}\n\n\
              Decide, for each name, what it should resolve to under the CONSUMER's toolchain \
              (not this conversion host's). Each will be one of:\n\n\
              - a common toolchain fact the catalog should simply carry — add it to \
@@ -422,6 +502,20 @@ pub fn unmapped_config_macros_needs_attention(
              the linker means the project uses symbol versioning whose `.map` file was not \
              carried over.\n\n\
              Do NOT copy this host's generated header, and do NOT edit the project's {}.",
+            if contested.is_empty() {
+                ""
+            } else {
+                "\n\n\
+                 A name noted as moving with a flag is a BUILD OPTION the translator re-ran \
+                 configure to observe but could not express as a `bool_flag` — the note says \
+                 why. The value configure resolved is the default configuration's, which is the \
+                 one the ground truth was captured from, so it is the answer for this module \
+                 UNLESS the note says it may be a check's answer, in which case decide it as the \
+                 toolchain fact it is. Record the flag beside the value either way. Do not add a \
+                 `bool_flag` that switches only this header when the note says the flag also \
+                 changes which sources compile: the module's source set is fixed, so flipping it \
+                 would build a combination the project never does."
+            },
             dialect.build_files()
         ),
         expected_output: format!(
@@ -1417,6 +1511,61 @@ mod tests {
             "the escalation must keep the resolution consumer-toolchain-correct and forbid \
              host-capture:\n{}",
             item.context
+        );
+    }
+
+    // A name a flag moved carries WHY no option was made of it, beside the
+    // name — the agent's evidence for recording the default value rather
+    // than adding a header-only knob. And the guidance paragraph appears
+    // only when there is such a name, so the other projects' items do not
+    // grow advice about flags they never had.
+    #[test]
+    fn a_flag_moved_macro_says_which_flag_and_why_it_is_not_an_option() {
+        let resolved = HashMap::from([("DAUTH_SUPPORT".to_string(), "1".to_string())]);
+        let macros = ["DAUTH_SUPPORT".to_string(), "HAVE_OTHER".to_string()];
+        let item = unmapped_config_macros_with_flags_needs_attention(
+            "config.h",
+            "config.h.in",
+            &macros,
+            ConfigDialect::Autoconf,
+            &resolved,
+            &HashMap::from([(
+                "DAUTH_SUPPORT".to_string(),
+                FlagContest::SwitchesSources("--enable-dauth".to_string()),
+            )]),
+        );
+
+        assert!(
+            item.gap.contains(
+                "- `DAUTH_SUPPORT` — configure resolved this to `1`; moves with \
+                 `--enable-dauth`, which also changes which sources automake compiles"
+            ),
+            "the reason belongs beside the name:\n{}",
+            item.gap
+        );
+        assert!(
+            item.gap.contains("- `HAVE_OTHER`\n") || item.gap.contains("- `HAVE_OTHER`\n\n"),
+            "a name no flag moved carries no flag note:\n{}",
+            item.gap
+        );
+        assert!(
+            item.context
+                .contains("Do not add a `bool_flag` that switches only this header"),
+            "the item says what to do with such a name:\n{}",
+            item.context
+        );
+
+        let plain = unmapped_config_macros_needs_attention(
+            "config.h",
+            "config.h.in",
+            &macros,
+            ConfigDialect::Autoconf,
+            &resolved,
+        );
+        assert!(
+            !plain.context.contains("BUILD OPTION"),
+            "no flag-moved name, no flag guidance:\n{}",
+            plain.context
         );
     }
 

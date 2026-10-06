@@ -1,0 +1,25 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Build options whose macros only a probe in the RIGHT direction can see
+# (bzl-7r9.14, bzl-iwo). Fixture 009 has one option that defaults ON, so
+# disabling it shows its macro vanishing. Here, two default OFF:
+#
+# - `--enable-debug` keeps FLAGVALUES_ENABLE_DEBUG defined and moves its
+#   VALUE from 0 to 1 — the PMIX_/PRTE_/OPAL_ENABLE_* shape. Resolved as a
+#   presence it would become `1` under the flag and undefined without it,
+#   which breaks `printf("%d", ...)` at compile time rather than at runtime.
+# - `--enable-extra` makes HAVE_EXTRA appear.
+#
+# Disabling either changes nothing, so a probe that only disables reports
+# neither, and both used to escalate as plain values. `--disable-greeting`
+# is alongside so the three directions are probed in one configure and must
+# each claim only their own macro.
+#
+# Ground truth is the DEFAULT build (debug=0, extra off, greeting on). What
+# the comparison cannot see — the flipped side of each select() — the
+# translator's unit tests pin instead (`attribute_flag_effects`).
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

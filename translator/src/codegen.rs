@@ -409,8 +409,8 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader, displace
         }
         out.push_str("    ],\n");
     }
-    if !header.values.is_empty() {
-        // A value the project exposed as an OPTION becomes a `select()` on a
+    if !header.values.is_empty() || !header.options.is_empty() {
+        // A macro the project exposed as an OPTION becomes a `select()` on a
         // flag rather than a frozen entry, so the choice survives conversion.
         // The rest stay a plain dict; the two are concatenated with `|`,
         // which Starlark allows between a select and a dict.
@@ -419,29 +419,26 @@ fn render_config_header(out: &mut String, header: &model::ConfigHeader, displace
         // nothing — `overview.md`'s replicate-behaviour rule is explicit that
         // a decision is something to RECORD, and freezing an option is the
         // quietest way to fail it.
-        let options: std::collections::HashMap<&str, &str> = header
-            .options
-            .iter()
-            .map(|(macro_name, option)| (macro_name.as_str(), option.as_str()))
-            .collect();
         out.push_str("    values = ");
-        for (name, value) in &header.values {
-            let Some(option) = options.get(name.as_str()) else {
-                continue;
+        for option in &header.options {
+            let side = |value: &Option<String>| match value {
+                Some(v) => format!(
+                    "{{\"{}\": \"{}\"}}",
+                    escape_starlark(&option.macro_name),
+                    escape_starlark(v)
+                ),
+                None => "{}".to_string(),
             };
             out.push_str(&format!(
-                "select({{\n        \":{}\": {{\"{}\": \"{}\"}},\n        \
-                 \"//conditions:default\": {{}},\n    }}) | ",
-                option_setting_name(option),
-                escape_starlark(name),
-                escape_starlark(value)
+                "select({{\n        \":{}\": {},\n        \
+                 \"//conditions:default\": {},\n    }}) | ",
+                option_setting_name(&option.option),
+                side(&option.on),
+                side(&option.off)
             ));
         }
         out.push_str("{\n");
         for (name, value) in &header.values {
-            if options.contains_key(name.as_str()) {
-                continue;
-            }
             // Escaped for the same reason every other emitted string is: a
             // value comes from the project, not from us. The Autotools
             // frontend takes these verbatim out of make's variable database,
@@ -494,49 +491,29 @@ fn option_setting_name(option: &str) -> String {
 /// consumer can still flip it — which is what a frozen `values` entry takes
 /// away.
 ///
-/// Only what the input STATES is an option reaches here: CMake marks these
-/// `BOOL`/`STRING` in `cache-v2`, while autoconf has no such marker and
-/// escalates instead. See `model::ConfigHeader::options`.
+/// Only what the input STATES is an option reaches here — see
+/// `model::ConfigHeader::options` for how each frontend establishes it.
 fn render_build_options(out: &mut String, headers: &[model::ConfigHeader]) {
     // Deduped across headers: two config headers in one project can reference
     // the same option, and two targets of one name is a hard analysis error.
     let mut seen = std::collections::HashSet::new();
     for header in headers {
-        for (macro_name, option) in &header.options {
-            if !seen.insert(option.as_str()) {
+        for option in &header.options {
+            if !seen.insert(option.option.as_str()) {
                 continue;
             }
-            let default = header
-                .values
-                .iter()
-                .find(|(n, _)| n == macro_name)
-                .map(|(_, v)| is_truthy_default(v))
-                .unwrap_or(false);
             out.push_str(&format!(
                 "bool_flag(\n    name = \"{}\",\n    build_setting_default = {},\n)\n\n",
-                option_flag_name(option),
-                if default { "True" } else { "False" }
+                option_flag_name(&option.option),
+                if option.default_on { "True" } else { "False" }
             ));
             out.push_str(&format!(
                 "config_setting(\n    name = \"{}\",\n    flag_values = {{\":{}\": \"True\"}},\n)\n\n",
-                option_setting_name(option),
-                option_flag_name(option)
+                option_setting_name(&option.option),
+                option_flag_name(&option.option)
             ));
         }
     }
-}
-
-/// Whether an option's recorded value means ON.
-///
-/// CMake's own false constants, matching `expand_config_header.py`'s
-/// `_CMAKE_FALSE` — an option left `OFF` must default the flag to False, or
-/// the converted module turns on something the project's build did not.
-fn is_truthy_default(value: &str) -> bool {
-    let v = value.trim().to_ascii_lowercase();
-    !matches!(
-        v.as_str(),
-        "" | "0" | "off" | "false" | "n" | "no" | "ignore" | "notfound"
-    ) && !v.ends_with("-notfound")
 }
 
 /// Emits an `assert_config_header_test` for a generated config header.
@@ -626,7 +603,14 @@ fn render_config_header_assertion(out: &mut String, header: &model::ConfigHeader
     // the assertion runs `grep -F` over the finished header and cannot tell
     // which region a match came from.
     if header.splices.is_empty() {
-        must_not_contain.extend(header.values.iter().map(|(n, _)| format!("@{n}@")));
+        must_not_contain.extend(
+            header
+                .values
+                .iter()
+                .map(|(n, _)| n)
+                .chain(header.options.iter().map(|o| &o.macro_name))
+                .map(|n| format!("@{n}@")),
+        );
     }
 
     // Only values that can actually fail a `grep -qF`. An EMPTY value is
@@ -2751,8 +2735,14 @@ mod tests {
             template: "config.h.in".to_string(),
             template_source: None,
             catalog_probes: vec![],
-            values: vec![("ENABLE_GREETING".to_string(), "ON".to_string())],
-            options: vec![("ENABLE_GREETING".to_string(), "ENABLE_GREETING".to_string())],
+            values: vec![],
+            options: vec![model::BuildOption {
+                macro_name: "ENABLE_GREETING".to_string(),
+                option: "ENABLE_GREETING".to_string(),
+                default_on: true,
+                on: Some("ON".to_string()),
+                off: None,
+            }],
             splices: Vec::new(),
             unresolved: Vec::new(),
             dialect: model::ConfigDialect::Cmakedefine,
@@ -2768,9 +2758,10 @@ mod tests {
              project's own build defaulted to:\n{rendered}"
         );
         assert!(
-            rendered.contains("\":enable_greeting_on\": {\"ENABLE_GREETING\": \"ON\"}"),
+            rendered.contains("\":enable_greeting_on\": {\"ENABLE_GREETING\": \"ON\"}")
+                && rendered.contains("\"//conditions:default\": {},"),
             "and the config header selects on it rather than freezing the \
-             value:\n{rendered}"
+             value, leaving it undefined on the side that has none:\n{rendered}"
         );
         assert!(
             rendered.contains("load(\"@bazel_skylib//rules:common_settings.bzl\", \"bool_flag\")"),
@@ -2820,29 +2811,42 @@ mod tests {
         );
     }
 
-    // An option left OFF must default the flag to False, or the converted
-    // module turns on something the project's build did not. Fixture
-    // 014-configure-file-false-option is the corpus case.
+    // An option that is OFF in the project's own build must default the flag
+    // to False, or the converted module builds a different configuration
+    // than the ground truth was captured from. And a macro the option moves
+    // between two VALUES keeps both: PMIx's PMIX_ENABLE_DEBUG is `0`, never
+    // undefined, in a default build (bzl-7r9.14).
     #[test]
-    fn an_option_left_off_defaults_the_flag_to_false() {
+    fn a_default_off_option_renders_both_sides_and_defaults_false() {
         let mut g = graph(None);
         g.config_headers = vec![model::ConfigHeader {
             output: "config.h".to_string(),
             template: "config.h.in".to_string(),
             template_source: None,
             catalog_probes: vec![],
-            values: vec![("ENABLE_RDRAND".to_string(), "OFF".to_string())],
-            options: vec![("ENABLE_RDRAND".to_string(), "ENABLE_RDRAND".to_string())],
+            values: vec![],
+            options: vec![model::BuildOption {
+                macro_name: "PMIX_ENABLE_DEBUG".to_string(),
+                option: "--enable-debug".to_string(),
+                default_on: false,
+                on: Some("1".to_string()),
+                off: Some("0".to_string()),
+            }],
             splices: Vec::new(),
             unresolved: Vec::new(),
-            dialect: model::ConfigDialect::Cmakedefine,
+            dialect: model::ConfigDialect::Undef,
             shadow_dir: None,
         }];
         let rendered = render(&g).build_bazel;
 
         assert!(
             rendered.contains("build_setting_default = False"),
-            "OFF is one of CMake's false constants, not a truthy string:\n{rendered}"
+            "the project's own build has it off:\n{rendered}"
+        );
+        assert!(
+            rendered.contains("\":enable_debug_on\": {\"PMIX_ENABLE_DEBUG\": \"1\"}")
+                && rendered.contains("\"//conditions:default\": {\"PMIX_ENABLE_DEBUG\": \"0\"}"),
+            "both sides are values, so neither may render as undefined:\n{rendered}"
         );
     }
 

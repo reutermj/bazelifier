@@ -40,7 +40,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::headers::is_config_header_output;
-use crate::model::ConfigHeader;
+use crate::model::{BuildOption, ConfigHeader};
 use crate::needs_attention::{
     ConfigDialect, NeedsAttention, generated_config_header_needs_attention,
     unmapped_config_macros_needs_attention,
@@ -840,7 +840,17 @@ fn resolve_config_header(
             // the cache entry's `type`, so this is read rather than guessed —
             // see `model::ConfigHeader::options`.
             if options.contains_key(name) {
-                option_names.push((name.clone(), name.clone()));
+                // The cache holds only the CURRENT setting, so the other side
+                // is unknown and left undefined — which for `#cmakedefine`,
+                // the form options take, is what the false side writes.
+                option_names.push(BuildOption {
+                    macro_name: name.clone(),
+                    option: name.clone(),
+                    default_on: is_truthy(&value),
+                    on: Some(value),
+                    off: None,
+                });
+                continue;
             }
             values.push((name.clone(), value));
         }
@@ -871,6 +881,20 @@ fn resolve_config_header(
         shadow_dir: None,
     };
     (header, unmapped)
+}
+
+/// Whether a CMake option's cached value means ON — the `bool_flag`'s
+/// default.
+///
+/// CMake's own false constants, matching `expand_config_header.py`'s
+/// `_CMAKE_FALSE` — an option left `OFF` must default the flag to False, or
+/// the converted module turns on something the project's build did not.
+fn is_truthy(value: &str) -> bool {
+    let v = value.trim().to_ascii_lowercase();
+    !matches!(
+        v.as_str(),
+        "" | "0" | "off" | "false" | "n" | "no" | "ignore" | "notfound"
+    ) && !v.ends_with("-notfound")
 }
 
 #[cfg(test)]
@@ -1200,15 +1224,44 @@ mod tests {
             resolve_config_header("config.h.in", "config.h", &macros, &cache, &options);
 
         assert!(unmapped.is_empty(), "the cache resolves it: {unmapped:?}");
-        assert_eq!(
-            header.values,
-            vec![("ENABLE_GREETING".to_string(), "ON".to_string())],
-            "the value is still needed — it is the option's DEFAULT"
+        assert!(
+            header.values.is_empty(),
+            "an option's macro is not an unconditional value: {:?}",
+            header.values
         );
         assert_eq!(
             header.options,
-            vec![("ENABLE_GREETING".to_string(), "ENABLE_GREETING".to_string())],
-            "and its provenance is recorded, so codegen can keep it settable"
+            vec![BuildOption {
+                macro_name: "ENABLE_GREETING".to_string(),
+                option: "ENABLE_GREETING".to_string(),
+                default_on: true,
+                on: Some("ON".to_string()),
+                off: None,
+            }],
+            "its provenance is recorded, so codegen can keep it settable, and \
+             ON is the option's DEFAULT"
+        );
+    }
+
+    // An option left OFF must default the flag to False, or the converted
+    // module turns on something the project's build did not. Fixture
+    // 014-configure-file-false-option is the corpus case.
+    #[test]
+    fn an_option_left_off_defaults_to_off() {
+        let macros = parse_template_macros("#cmakedefine ENABLE_RDRAND\n");
+        let cache = HashMap::from([("ENABLE_RDRAND".to_string(), "OFF".to_string())]);
+        let (header, _) =
+            resolve_config_header("config.h.in", "config.h", &macros, &cache, &cache.clone());
+
+        assert_eq!(
+            header
+                .options
+                .iter()
+                .map(|o| o.default_on)
+                .collect::<Vec<_>>(),
+            vec![false],
+            "OFF is one of CMake's false constants, not a truthy string: {:?}",
+            header.options
         );
     }
 

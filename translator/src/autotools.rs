@@ -36,8 +36,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use crate::config_header::{
-    parse_config_file_headers, parse_config_headers, parse_resolved_macro_values,
-    plan_config_header, plan_substitution_header,
+    FlagEffects, is_numeric_literal, parse_config_file_headers, parse_config_headers,
+    parse_resolved_macro_values, plan_config_header, plan_substitution_header,
 };
 use crate::dependencies::Dependencies;
 use crate::error::Error;
@@ -45,13 +45,13 @@ use crate::headers::{
     inject_headers_on_include_dirs, is_buildable_source, is_header_file, is_translation_unit,
 };
 use crate::model::{
-    BuildGraph, Discovery, ExternalDependency, ModuleInfo, Target, TargetKind, Test,
+    BuildGraph, BuildOption, Discovery, ExternalDependency, ModuleInfo, Target, TargetKind, Test,
 };
 use crate::needs_attention::{
-    ConfigDialect, TestDialect, ctest_command_not_a_target_needs_attention,
+    ConfigDialect, FlagContest, TestDialect, ctest_command_not_a_target_needs_attention,
     generated_headers_needs_attention, shared_library_absorbs_static_needs_attention,
     sources_outside_deliverable_needs_attention, unconverted_dependency_needs_attention,
-    unmapped_config_macros_needs_attention,
+    unmapped_config_macros_needs_attention, unmapped_config_macros_with_flags_needs_attention,
 };
 use crate::paths::{absolutize, anchor_for_display, common_ancestor, normalize_lexically};
 
@@ -176,6 +176,7 @@ pub fn discover(
         build_dir,
         &read_configure_flags(source_dir),
         &resolved,
+        &deps.configure_env(),
     );
     for (output, template) in parse_config_headers(&status) {
         let template_path = source_dir.join(&template);
@@ -191,12 +192,13 @@ pub fn discover(
             &traced,
         );
         if !unmapped.is_empty() {
-            needs_attention.push(unmapped_config_macros_needs_attention(
+            needs_attention.push(unmapped_config_macros_with_flags_needs_attention(
                 &output,
                 &template,
                 &unmapped,
                 ConfigDialect::Autoconf,
                 &resolved,
+                &flag_macros.contested,
             ));
         }
         config_headers.push(header);
@@ -218,7 +220,7 @@ pub fn discover(
         };
         let (mut header, unmapped) =
             plan_substitution_header(&output, &template, &text, db.scope_for(&output));
-        header.options = flag_options(&header, &flag_macros);
+        move_flag_options(&mut header, &flag_macros.options);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
                 &output,
@@ -697,94 +699,377 @@ pub(crate) fn parse_configure_flags(help: &str) -> Vec<ConfigureFlag> {
     flags
 }
 
-/// Which config macros each BOOLEAN build option controls, as
-/// `macro -> flag`.
+/// Which config macros each BOOLEAN build option controls, keyed by macro.
 ///
-/// Determined by configuring again with the flag disabled and diffing
-/// `config.status`'s `D[]` table against the baseline: a macro present in
-/// the default build and absent with the flag off is one that flag controls.
-/// autoconf records the mapping nowhere readable — `ac_cs_config` is empty
-/// for a default build, `make -p` carries no `enable_*`, the command stream
-/// never mentions it — so it is ELICITED rather than read (bzl-1p6.1).
+/// Determined by configuring again with each flag forced ON and forced OFF
+/// and diffing `config.status`'s `D[]` tables. autoconf records the mapping
+/// nowhere readable — `ac_cs_config` is empty for a default build, `make -p`
+/// carries no `enable_*`, the command stream never mentions it — so it is
+/// ELICITED rather than read (bzl-1p6.1). The attribution itself is
+/// `attribute_flag_effects`; this runs the configures.
+///
+/// Both directions, because the default cannot be read either. `--help`
+/// conventionally lists the spelling that changes something, but xz lists
+/// `--enable-unaligned-access` for an option that defaults to auto and
+/// resolves ON here, so probing only the listed side moved nothing. Probing
+/// only `--disable-` misses every default-off option (PMIx's
+/// `--enable-debug`). With both, the default is MEASURED: it is whichever
+/// side the real build matches.
 ///
 /// Only boolean flags, because only they map onto a `bool_flag`. A valued
-/// one either toggles many macros at once or changes a macro's VALUE rather
-/// than its presence, and this diff would report the first as a pile of
-/// unrelated booleans and miss the second entirely.
+/// one either toggles many macros at once or picks among several values,
+/// and two configures cannot enumerate either.
 ///
-/// A macro the flag merely GATES A PROBE FOR is excluded: `--disable-poll`
-/// removes both `HAVE_POLL` and `HAVE_POLL_H` from libmicrohttpd's table,
-/// but the second is a `check_include_file` result the flag only skips
-/// running. `config.log` records which names were probed, so the two are
-/// separable — and baking a probe result in as a project choice is exactly
-/// the failure the escalation exists to prevent.
+/// Every probe is the SAME configure the ground truth came from — same
+/// `--prefix`, same dependency environment — plus one flag. Without the
+/// environment, a project with converted dependencies could not find them,
+/// its configure failed for every flag, and nothing was attributed: PMIx's
+/// conversion had no options at all (bzl-7r9.14).
 ///
-/// Costs one configure per flag (~3s measured on xz, 24 boolean flags), on a
-/// pipeline that already configures and builds. Returns an empty map rather
-/// than failing: an option nobody could classify escalates, which is the
-/// status quo.
+/// Costs two configures per flag plus a control, run in parallel. Returns an
+/// empty map rather than failing: an option nobody could classify escalates,
+/// which is the status quo.
 fn resolve_flag_macros(
     source_dir: &Path,
     build_dir: &Path,
     flags: &[ConfigureFlag],
     baseline: &HashMap<String, String>,
-) -> HashMap<String, String> {
-    let mut owned = HashMap::new();
-    let Ok(source) = absolutize(source_dir) else {
-        return owned;
+    env: &[(String, String)],
+) -> FlagEffects {
+    let Ok(configure) = absolutize(source_dir).map(|s| s.join("configure")) else {
+        return FlagEffects::default();
     };
-    let probed = probed_names(build_dir);
-    for flag in flags.iter().filter(|f| !f.valued) {
-        let off = build_dir.with_file_name(format!(
-            "{}_flagprobe",
-            build_dir.file_name().unwrap_or_default().to_string_lossy()
+    let boolean: Vec<&ConfigureFlag> = flags.iter().filter(|f| !f.valued).collect();
+    // Slot 0 is the control: the default configure again, in a directory of
+    // its own exactly like every probe. Then each flag on, then off.
+    let mut work: Vec<Option<String>> = vec![None];
+    for flag in &boolean {
+        work.push(Some(flag.name.clone()));
+        work.push(Some(
+            flag.name
+                .replacen("--enable-", "--disable-", 1)
+                .replacen("--with-", "--without-", 1),
         ));
-        let _ = std::fs::remove_dir_all(&off);
-        if std::fs::create_dir_all(&off).is_err() {
-            continue;
-        }
-        let disabled = flag.name.replacen("--enable-", "--disable-", 1);
-        let disabled = disabled.replacen("--with-", "--without-", 1);
-        let ran = Command::new(source.join("configure"))
-            .arg("-q")
-            .arg(&disabled)
-            .current_dir(&off)
-            .output();
-        if ran.is_ok_and(|o| o.status.success()) {
-            let status = std::fs::read_to_string(off.join("config.status")).unwrap_or_default();
-            let without = crate::config_header::parse_resolved_macro_values(&status);
-            for name in baseline.keys() {
-                // Present by default, gone with the flag off — and not a
-                // probe the flag merely skipped.
-                if !without.contains_key(name) && !probed.contains(name) {
-                    owned.insert(name.clone(), flag.name.clone());
-                }
-            }
-        }
-        let _ = std::fs::remove_dir_all(&off);
     }
-    owned
+    let results: Vec<std::sync::Mutex<Option<Configured>>> =
+        work.iter().map(|_| std::sync::Mutex::new(None)).collect();
+    let next = std::sync::atomic::AtomicUsize::new(0);
+    std::thread::scope(|scope| {
+        for _ in 0..build_jobs().min(work.len()) {
+            scope.spawn(|| {
+                loop {
+                    let i = next.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let Some(arg) = work.get(i) else { break };
+                    let configured = probe_configure(&configure, build_dir, i, arg.as_deref(), env);
+                    *results[i].lock().unwrap() = configured;
+                }
+            });
+        }
+    });
+    let mut results = results.into_iter().map(|m| m.into_inner().unwrap());
+    // Without a control there is no telling a flag's effect from what
+    // varies between ANY two configures, so nothing is attributed.
+    let Some(Some(control)) = results.next() else {
+        return FlagEffects::default();
+    };
+    let mut probes = Vec::new();
+    for flag in boolean {
+        let (Some(on), Some(off)) = (results.next(), results.next()) else {
+            break;
+        };
+        probes.push(FlagProbe { flag, on, off });
+    }
+    attribute_flag_effects(baseline, &control, &probes, &probed_names(build_dir))
 }
 
-/// The `(macro, flag)` pairs for values on this header that a build option
-/// controls, in the shape `model::ConfigHeader::options` takes.
-///
-/// The flag name is carried rather than derived, because codegen turns it
-/// into a `bool_flag` target name and a `--enable-x` does not map to a
-/// label by any rule codegen could apply without knowing autoconf.
-fn flag_options(
-    header: &crate::model::ConfigHeader,
-    flag_macros: &HashMap<String, String>,
-) -> Vec<(String, String)> {
-    header
-        .values
-        .iter()
-        .filter_map(|(name, _)| {
-            flag_macros
-                .get(name)
-                .map(|flag| (name.clone(), flag.clone()))
+/// What one probe configure produced.
+struct Configured {
+    /// `config.status`'s `D[]` table.
+    values: HashMap<String, String>,
+    /// The questions it asked — `config.log`'s `checking ...` lines, without
+    /// their answers. See `parse_checks`.
+    checks: HashSet<String>,
+    /// Each automake conditional and whether it came out true — what decides
+    /// which sources compile. See `parse_conditionals`.
+    conditionals: HashMap<String, bool>,
+}
+
+/// One boolean flag's two probes, forced on and forced off; `None` where
+/// configure refused that setting.
+struct FlagProbe<'a> {
+    flag: &'a ConfigureFlag,
+    on: Option<Configured>,
+    off: Option<Configured>,
+}
+
+/// Runs one configure for the flag probes — the control when `arg` is
+/// `None` — or `None` if configure refused.
+fn probe_configure(
+    configure: &Path,
+    build_dir: &Path,
+    slot: usize,
+    arg: Option<&str>,
+    env: &[(String, String)],
+) -> Option<Configured> {
+    let dir = build_dir.with_file_name(format!(
+        "{}_flagprobe{slot}",
+        build_dir.file_name().unwrap_or_default().to_string_lossy()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).ok()?;
+    let mut command = configure_command(configure, &dir, env);
+    command.arg("-q").args(arg);
+    let configured = command.output().is_ok_and(|o| o.status.success()).then(|| {
+        let read = |name: &str| std::fs::read_to_string(dir.join(name)).unwrap_or_default();
+        Configured {
+            values: crate::config_header::parse_resolved_macro_values(&read("config.status")),
+            checks: parse_checks(&read("config.log")),
+            conditionals: parse_conditionals(&read("config.status")),
+        }
+    });
+    let _ = std::fs::remove_dir_all(&dir);
+    configured
+}
+
+/// The questions a configure asked, from `config.log`'s
+/// `configure:LINE: checking QUESTION` lines. The answer is on a later
+/// `result:` line and deliberately not read: a flag's own report ("checking
+/// whether to enable debug") answers differently on each side by design.
+fn parse_checks(log: &str) -> HashSet<String> {
+    log.lines()
+        .filter_map(|line| {
+            let rest = line.strip_prefix("configure:")?;
+            let (lineno, rest) = rest.split_once(": checking ")?;
+            lineno
+                .chars()
+                .all(|c| c.is_ascii_digit())
+                .then(|| rest.trim().to_string())
         })
         .collect()
+}
+
+/// Each `AM_CONDITIONAL` in a `config.status`, and whether it is true.
+///
+/// automake implements a conditional as a PAIR of substitutions that comment
+/// out one side of every `if COND` in the Makefile: `S["COND_TRUE"]=""` and
+/// `S["COND_FALSE"]="#"` when it holds, the reverse when not. Read as the
+/// pair rather than `_TRUE` alone, because a project is free to substitute a
+/// variable of its own whose name happens to end in `_TRUE`.
+fn parse_conditionals(config_status: &str) -> HashMap<String, bool> {
+    let mut sides: HashMap<&str, (Option<&str>, Option<&str>)> = HashMap::new();
+    for line in config_status.lines() {
+        let Some(rest) = line.strip_prefix("S[\"") else {
+            continue;
+        };
+        let Some((var, value)) = rest.split_once("\"]=") else {
+            continue;
+        };
+        let value = value.trim_matches('"');
+        if let Some(cond) = var.strip_suffix("_TRUE") {
+            sides.entry(cond).or_default().0 = Some(value);
+        } else if let Some(cond) = var.strip_suffix("_FALSE") {
+            sides.entry(cond).or_default().1 = Some(value);
+        }
+    }
+    sides
+        .into_iter()
+        .filter_map(|(cond, sides)| match sides {
+            (Some(""), Some("#")) => Some((cond.to_string(), true)),
+            (Some("#"), Some("")) => Some((cond.to_string(), false)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The options the probes reveal, as `macro -> BuildOption`: a macro whose
+/// `D[]` entry differs between a flag's on and off probes, for exactly one
+/// flag. Split from `resolve_flag_macros` so captured tables can drive it.
+///
+/// Compares VALUES, not presence. PMIx writes `PMIX_ENABLE_DEBUG` as `0` or
+/// `1` and never leaves it undefined, so a presence diff saw nothing move
+/// and the macro escalated although the flag states it. And the value is
+/// what configure wrote, not an assumed `1`: xz's HAVE_SYMBOL_VERSIONS_LINUX
+/// is `2`.
+///
+/// The default is whichever side the real build MATCHES. A side configure
+/// refused is taken to be the default: the other side moved the macro away
+/// from it, and a boolean has only the two.
+///
+/// What is refused is reported as `contested` rather than dropped, so it
+/// escalates instead of falling through to a resolution that would freeze
+/// it — see `FlagEffects`. Each is refused because attributing it would put
+/// a wrong answer where an escalation would have asked:
+///
+/// - every macro of a flag that switches an automake conditional, and so
+///   changes which sources compile. The module's source set is fixed at the
+///   default build's, so a select on the header alone would let a consumer
+///   build a combination the project never does — libmicrohttpd's
+///   `--disable-dauth` drops `digestauth.c` as well as clearing
+///   DAUTH_SUPPORT. The PMIx agent stage refused that knob for PTY and
+///   dlopen support by hand.
+/// - every macro of a flag whose two sides asked DIFFERENT questions. Such
+///   a flag gates probes, and a macro it moves may be a probe's answer —
+///   this host's, frozen under a select. Measured on hwloc: the two flags
+///   that only set values (`--enable-debug`, `--enable-32bits-pci-domain`)
+///   ask identical questions on both sides, while `--enable-picky` gates six
+///   compiler-flag checks and `--enable-embedded-mode` forty-two. Whole
+///   flags rather than macros, because which macro came from which check is
+///   not recorded; a flag that gates a probe AND sets a value of its own
+///   escalates both, which is the safe direction (bzl-iwo).
+/// - a macro that also differs between the control and the real build:
+///   noise every configure has — a timestamp, a path naming the probe's
+///   own directory. Without the control it would land on whichever flag
+///   happened to be probed.
+/// - a macro more than one flag moves. Which one owns it is a judgement,
+///   not an observation.
+/// - a macro configure answered with a standard PROBE (`probed_names`),
+///   even where the flag's questions match: the check runs on both sides
+///   and the value is this host's either way.
+/// - a macro the default build matches on NEITHER side: the default is a
+///   third state (an auto-detection both settings override), so no
+///   bool_flag default reproduces it.
+/// - a side that is neither undefined nor a number. The ones measured are
+///   presence or small integers; a string a flag swaps is unmeasured, so it
+///   escalates rather than being guessed at.
+fn attribute_flag_effects(
+    baseline: &HashMap<String, String>,
+    control: &Configured,
+    probes: &[FlagProbe],
+    probed: &HashSet<String>,
+) -> FlagEffects {
+    let names = |a: &HashMap<String, String>, b: &HashMap<String, String>| -> HashSet<String> {
+        a.keys().chain(b.keys()).cloned().collect()
+    };
+    let noise: HashSet<String> = names(baseline, &control.values)
+        .into_iter()
+        .filter(|n| baseline.get(n) != control.values.get(n))
+        .collect();
+    // Every flag seen to move each macro, with why it cannot own it (`None`
+    // if nothing about the flag rules it out).
+    let mut movers: HashMap<String, Vec<FlagMove>> = HashMap::new();
+    for probe in probes {
+        let on = probe.on.as_ref().unwrap_or(control);
+        let off = probe.off.as_ref().unwrap_or(control);
+        let flag = &probe.flag.name;
+        let ruled_out = if on.conditionals != off.conditionals {
+            Some(FlagContest::SwitchesSources(flag.clone()))
+        } else if on.checks != off.checks {
+            Some(FlagContest::GatesChecks(flag.clone()))
+        } else {
+            None
+        };
+        let (on, off) = (&on.values, &off.values);
+        for name in names(on, off) {
+            if on.get(&name) == off.get(&name) || noise.contains(&name) {
+                continue;
+            }
+            let ruled_out = if probed.contains(&name) {
+                Some(FlagContest::SkipsCheck(flag.clone()))
+            } else {
+                ruled_out.clone()
+            };
+            movers.entry(name.clone()).or_default().push(FlagMove {
+                flag,
+                on: on.get(&name).cloned(),
+                off: off.get(&name).cloned(),
+                ruled_out,
+            });
+        }
+    }
+    let mut effects = FlagEffects::default();
+    for (name, moves) in movers {
+        let mv = match <[_; 1]>::try_from(moves) {
+            Ok([mv]) => mv,
+            Err(moves) => {
+                let flags = moves.iter().map(|m| m.flag.clone()).collect();
+                effects
+                    .contested
+                    .insert(name, FlagContest::SeveralFlags(flags));
+                continue;
+            }
+        };
+        match flag_option(&name, baseline, mv) {
+            Ok(option) => {
+                effects.options.insert(name, option);
+            }
+            Err(contest) => {
+                effects.contested.insert(name, contest);
+            }
+        }
+    }
+    effects
+}
+
+/// One flag's effect on one macro, before attribution decides it.
+struct FlagMove<'a> {
+    flag: &'a String,
+    on: Option<String>,
+    off: Option<String>,
+    ruled_out: Option<FlagContest>,
+}
+
+/// The option one flag's move makes of a macro, or why it makes none.
+fn flag_option(
+    name: &str,
+    baseline: &HashMap<String, String>,
+    mv: FlagMove,
+) -> Result<BuildOption, FlagContest> {
+    if let Some(contest) = mv.ruled_out {
+        return Err(contest);
+    }
+    let default = baseline.get(name).cloned();
+    let default_on = if default == mv.on {
+        true
+    } else if default == mv.off {
+        false
+    } else {
+        return Err(FlagContest::DefaultIsNeither(mv.flag.clone()));
+    };
+    let plain = |v: &Option<String>| v.as_deref().is_none_or(is_numeric_literal);
+    if !plain(&mv.on) || !plain(&mv.off) {
+        return Err(FlagContest::NotAPlainValue(mv.flag.clone()));
+    }
+    Ok(BuildOption {
+        macro_name: name.to_string(),
+        option: mv.flag.clone(),
+        default_on,
+        on: mv.on,
+        off: mv.off,
+    })
+}
+
+/// Moves the values on an `AC_CONFIG_FILES` header that a build option
+/// controls into `model::ConfigHeader::options`.
+///
+/// The value here comes from make's database, not from `D[]`, so only the
+/// DEFAULT side is known. The other side is left undefined — a guess, but
+/// the only one available, and it keeps the default build exact.
+fn move_flag_options(
+    header: &mut crate::model::ConfigHeader,
+    flag_macros: &HashMap<String, BuildOption>,
+) {
+    let (options, values): (Vec<_>, Vec<_>) = std::mem::take(&mut header.values)
+        .into_iter()
+        .partition(|(name, _)| flag_macros.contains_key(name));
+    header.values = values;
+    header.options = options
+        .into_iter()
+        .map(|(name, value)| {
+            let flag = &flag_macros[&name];
+            let (on, off) = if flag.default_on {
+                (Some(value), None)
+            } else {
+                (None, Some(value))
+            };
+            BuildOption {
+                macro_name: name,
+                option: flag.option.clone(),
+                default_on: flag.default_on,
+                on,
+                off,
+            }
+        })
+        .collect();
 }
 
 /// The macro names `configure` answered with a PROBE, from `config.log`'s
@@ -793,21 +1078,31 @@ fn flag_options(
 /// The discriminator between a macro a flag defines and one it merely gates
 /// a probe for. Without it, `--disable-poll` looks like it owns
 /// `HAVE_POLL_H`, which is a `check_include_file` result.
-fn probed_names(build_dir: &Path) -> std::collections::HashSet<String> {
-    let log = std::fs::read_to_string(build_dir.join("config.log")).unwrap_or_default();
-    let mut names = std::collections::HashSet::new();
+fn probed_names(build_dir: &Path) -> HashSet<String> {
+    parse_probed_names(&std::fs::read_to_string(build_dir.join("config.log")).unwrap_or_default())
+}
+
+/// `probed_names` over `config.log` text. Split so a captured log can drive
+/// it.
+fn parse_probed_names(log: &str) -> HashSet<String> {
+    // (cache-variable prefix, the macro autoconf names after it). The sizes
+    // carry no HAVE_: `ac_cv_sizeof_pthread_t` defines SIZEOF_PTHREAD_T.
+    const KINDS: &[(&str, &str)] = &[
+        ("ac_cv_header_", "HAVE_"),
+        ("ac_cv_func_", "HAVE_"),
+        ("ac_cv_type_", "HAVE_"),
+        ("ac_cv_have_decl_", "HAVE_"),
+        ("ac_cv_sizeof_", "SIZEOF_"),
+        ("ac_cv_alignof_", "ALIGNOF_"),
+    ];
+    let mut names = HashSet::new();
     for line in log.lines() {
         let line = line.trim();
-        for prefix in [
-            "ac_cv_header_",
-            "ac_cv_func_",
-            "ac_cv_type_",
-            "ac_cv_have_decl_",
-        ] {
+        for (prefix, macro_prefix) in KINDS {
             if let Some(rest) = line.strip_prefix(prefix)
                 && let Some((var, _)) = rest.split_once('=')
             {
-                names.insert(format!("HAVE_{}", var.to_ascii_uppercase()));
+                names.insert(format!("{macro_prefix}{}", var.to_ascii_uppercase()));
             }
         }
     }
@@ -822,23 +1117,7 @@ fn configure(source_dir: &Path, build_dir: &Path, env: &[(String, String)]) -> R
     // the working directory changes. Same reason cmake_api absolutizes before
     // comparing paths.
     let configure = absolutize(source_dir)?.join("configure");
-    let output = Command::new(&configure)
-        // A prefix pkg-config's relocation can stand in for: the install
-        // step below writes under it, and dependents read it through a
-        // sysroot. Explicit rather than autoconf's default, which is the
-        // same value, so the two halves cannot drift.
-        //
-        // And NOTHING else: the ground truth is the project's own default
-        // configuration. A consumer's choices are its own flags on the
-        // converted module's options, and what this host happens to have
-        // installed surfaces as an escalation — see overview.md, "Convert
-        // the project, not the consumer's use of it". *(History: a
-        // configure_args attribute carried Open MPI's flags into libevent's
-        // and hwloc's pins for one day, 2026-09-18, and a guessed
-        // --disable-pci showed why no gate could catch it.)*
-        .arg(format!("--prefix={}", crate::dependencies::INSTALL_PREFIX))
-        .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
-        .current_dir(build_dir)
+    let output = configure_command(&configure, build_dir, env)
         .output()
         .map_err(|e| {
             // A source tree with configure.ac but no configure has not been
@@ -861,6 +1140,30 @@ fn configure(source_dir: &Path, build_dir: &Path, env: &[(String, String)]) -> R
         });
     }
     Ok(())
+}
+
+/// The ground-truth configure invocation, shared with the flag probes so the
+/// two cannot drift — see `resolve_flag_macros` for what drifting cost.
+fn configure_command(configure: &Path, dir: &Path, env: &[(String, String)]) -> Command {
+    let mut command = Command::new(configure);
+    command
+        // A prefix pkg-config's relocation can stand in for: the install
+        // step below writes under it, and dependents read it through a
+        // sysroot. Explicit rather than autoconf's default, which is the
+        // same value, so the two halves cannot drift.
+        //
+        // And NOTHING else: the ground truth is the project's own default
+        // configuration. A consumer's choices are its own flags on the
+        // converted module's options, and what this host happens to have
+        // installed surfaces as an escalation — see overview.md, "Convert
+        // the project, not the consumer's use of it". *(History: a
+        // configure_args attribute carried Open MPI's flags into libevent's
+        // and hwloc's pins for one day, 2026-09-18, and a guessed
+        // --disable-pci showed why no gate could catch it.)*
+        .arg(format!("--prefix={}", crate::dependencies::INSTALL_PREFIX))
+        .envs(env.iter().map(|(k, v)| (k.as_str(), v.as_str())))
+        .current_dir(dir);
+    command
 }
 
 /// `make install` into `dest` as a `DESTDIR`, after the ground-truth build.
@@ -903,14 +1206,7 @@ fn build(build_dir: &Path, extra_args: &[&str]) -> Result<String, Error> {
     //
     // Honoured from MAKEFLAGS when Bazel sets it (the jobserver), so a
     // future --local_cpu_resources change does not need this line updated.
-    let jobs = std::env::var("BAZELIFIER_BUILD_JOBS")
-        .ok()
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or_else(|| {
-            std::thread::available_parallelism()
-                .map(|n| (n.get() / 2).max(1))
-                .unwrap_or(1)
-        });
+    let jobs = build_jobs();
     let output = Command::new("make")
         .arg(format!("-j{jobs}"))
         // automake's escape hatch from AM_SILENT_RULES. A project that
@@ -943,6 +1239,19 @@ fn build(build_dir: &Path, extra_args: &[&str]) -> Result<String, Error> {
         });
     }
     Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+/// How many jobs a conversion may run at once — `build`'s `-j`, and the
+/// flag probes' parallelism. See `build` for why it is half the cores.
+fn build_jobs() -> usize {
+    std::env::var("BAZELIFIER_BUILD_JOBS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or_else(|| {
+            std::thread::available_parallelism()
+                .map(|n| (n.get() / 2).max(1))
+                .unwrap_or(1)
+        })
 }
 
 /// Builds the project's `check_PROGRAMS` and returns their command stream.
@@ -4270,6 +4579,483 @@ make[1]: Leaving directory '/build/gl'\n\
         assert!(
             !flags.iter().any(|f| f.name.starts_with("--disable-")),
             "no flag should keep the negative spelling: {flags:#?}"
+        );
+    }
+
+    fn table(entries: &[(&str, &str)]) -> HashMap<String, String> {
+        entries
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
+    }
+
+    fn flag(name: &str) -> ConfigureFlag {
+        ConfigureFlag {
+            name: name.to_string(),
+            valued: false,
+        }
+    }
+
+    // A probe's table is the control's with the flag's changes applied:
+    // a name missing from a table means the macro VANISHED, so a hand-built
+    // partial table makes every flag claim everything and the ambiguity
+    // rule then hides whatever else a test meant to check.
+    fn probe_of(
+        control: &HashMap<String, String>,
+        changes: &[(&str, Option<&str>)],
+    ) -> Option<Configured> {
+        let mut table = control.clone();
+        for (name, value) in changes {
+            match value {
+                Some(v) => table.insert(name.to_string(), v.to_string()),
+                None => table.remove(*name),
+            };
+        }
+        Some(configured(table))
+    }
+
+    // Every probe in these tests asks the same questions, unless the test
+    // is about questions.
+    fn configured(values: HashMap<String, String>) -> Configured {
+        Configured {
+            values,
+            checks: HashSet::from(["for gcc".to_string()]),
+            conditionals: HashMap::from([("COND_W32".to_string(), false)]),
+        }
+    }
+
+    // PMIx's shape: a default-OFF flag that moves a macro between two
+    // VALUES. Present in every table, so a presence diff saw nothing, and a
+    // probe that only disabled saw nothing either (bzl-7r9.14).
+    #[test]
+    fn a_flag_that_moves_a_value_owns_it_with_both_sides() {
+        let default = table(&[("PMIX_ENABLE_DEBUG", "0")]);
+        let debug = flag("--enable-debug");
+        let probes = [FlagProbe {
+            flag: &debug,
+            on: probe_of(&default, &[("PMIX_ENABLE_DEBUG", Some("1"))]),
+            off: probe_of(&default, &[]),
+        }];
+
+        let effects = attribute_flag_effects(
+            &default,
+            &configured(default.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        assert_eq!(
+            owned.get("PMIX_ENABLE_DEBUG"),
+            Some(&BuildOption {
+                macro_name: "PMIX_ENABLE_DEBUG".to_string(),
+                option: "--enable-debug".to_string(),
+                default_on: false,
+                on: Some("1".to_string()),
+                off: Some("0".to_string()),
+            }),
+            "{owned:#?}"
+        );
+    }
+
+    // xz's shape: `--help` lists `--enable-unaligned-access`, which by
+    // convention means default off — but the default is auto and resolves
+    // ON here. The default is read off which side the real build matches,
+    // and the value is configure's (`2`), not an assumed `1`.
+    #[test]
+    fn the_default_is_the_side_the_real_build_matches() {
+        let default = table(&[
+            ("TUKLIB_FAST_UNALIGNED_ACCESS", "1"),
+            ("HAVE_SYMBOL_VERSIONS_LINUX", "2"),
+        ]);
+        let unaligned = flag("--enable-unaligned-access");
+        let versions = flag("--enable-symbol-versions");
+        let probes = [
+            FlagProbe {
+                flag: &unaligned,
+                on: probe_of(&default, &[]),
+                off: probe_of(&default, &[("TUKLIB_FAST_UNALIGNED_ACCESS", None)]),
+            },
+            FlagProbe {
+                flag: &versions,
+                on: probe_of(&default, &[]),
+                off: probe_of(&default, &[("HAVE_SYMBOL_VERSIONS_LINUX", None)]),
+            },
+        ];
+
+        let effects = attribute_flag_effects(
+            &default,
+            &configured(default.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        let summary = |n: &str| {
+            owned
+                .get(n)
+                .map(|o| (o.option.as_str(), o.default_on, o.on.clone(), o.off.clone()))
+        };
+        assert_eq!(
+            summary("TUKLIB_FAST_UNALIGNED_ACCESS"),
+            Some((
+                "--enable-unaligned-access",
+                true,
+                Some("1".to_string()),
+                None
+            )),
+            "{owned:#?}"
+        );
+        assert_eq!(
+            summary("HAVE_SYMBOL_VERSIONS_LINUX"),
+            Some((
+                "--enable-symbol-versions",
+                true,
+                Some("2".to_string()),
+                None
+            )),
+            "{owned:#?}"
+        );
+        assert!(
+            effects.contested.is_empty(),
+            "an attributed macro is not also contested: {:?}",
+            effects.contested
+        );
+    }
+
+    // A setting configure refuses (a `--with-X` whose X is absent) leaves
+    // that side as the default: the other side moved the macro away from
+    // it, and a boolean has only the two.
+    #[test]
+    fn a_refused_side_is_the_default() {
+        let default = table(&[("HAVE_GREETING", "1")]);
+        let greeting = flag("--enable-greeting");
+        let probes = [FlagProbe {
+            flag: &greeting,
+            on: None,
+            off: probe_of(&default, &[("HAVE_GREETING", None)]),
+        }];
+
+        let effects = attribute_flag_effects(
+            &default,
+            &configured(default.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        assert_eq!(
+            owned
+                .get("HAVE_GREETING")
+                .map(|o| (o.default_on, o.on.clone(), o.off.clone())),
+            Some((true, Some("1".to_string()), None)),
+            "{owned:#?}"
+        );
+    }
+
+    // The refusals. Each is a macro that DID move with exactly one flag, so
+    // a diff alone would attribute it — and each attribution would be wrong.
+    // One per test, so each refusal can fail on its own.
+    //
+    // The stamp here coincides with one probe — a minute-resolution date
+    // that two configures straddled — which is the case only the control
+    // catches: every side differing would already fail the default match.
+    #[test]
+    fn a_macro_that_moves_between_any_two_configures_is_noise() {
+        let default = table(&[("CONFIGURE_MINUTE", "1201")]);
+        let control = table(&[("CONFIGURE_MINUTE", "1202")]);
+        let threads = flag("--enable-threads");
+        let probes = [FlagProbe {
+            flag: &threads,
+            on: probe_of(&control, &[("CONFIGURE_MINUTE", Some("1201"))]),
+            off: probe_of(&control, &[("CONFIGURE_MINUTE", Some("1203"))]),
+        }];
+
+        let effects = attribute_flag_effects(
+            &default,
+            &configured(control.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        assert!(owned.is_empty(), "no flag owns a stamp: {owned:#?}");
+        assert!(
+            effects.contested.is_empty(),
+            "and it is not the flag's to contest either — it escalates or not \
+             on its own merits: {:?}",
+            effects.contested
+        );
+    }
+
+    // hwloc's `--enable-picky` moves HWLOC_HAVE_GCC_W_CAST_FUNCTION_TYPE,
+    // but only because it decides whether the compiler is ASKED about the
+    // warning — the `1` is this host's gcc answering. Its two sides ask
+    // different questions, and that is what gives it away (bzl-iwo).
+    #[test]
+    fn a_flag_that_gates_a_question_owns_nothing() {
+        let control = table(&[]);
+        let picky = flag("--enable-picky");
+        let mut on = probe_of(
+            &control,
+            &[("HWLOC_HAVE_GCC_W_CAST_FUNCTION_TYPE", Some("1"))],
+        );
+        on.as_mut()
+            .unwrap()
+            .checks
+            .insert("if gcc supports -Wcast-function-type".to_string());
+        let probes = [FlagProbe {
+            flag: &picky,
+            on,
+            off: probe_of(&control, &[]),
+        }];
+
+        let effects = attribute_flag_effects(
+            &control,
+            &configured(control.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        assert!(
+            owned.is_empty(),
+            "a probe's answer, not a choice: {owned:#?}"
+        );
+        assert_eq!(
+            effects.contested.get("HWLOC_HAVE_GCC_W_CAST_FUNCTION_TYPE"),
+            Some(&FlagContest::GatesChecks("--enable-picky".to_string())),
+            "and it MOVED, so it escalates rather than freezing: {:?}",
+            effects.contested
+        );
+    }
+
+    // libmicrohttpd's `--disable-dauth` clears DAUTH_SUPPORT AND drops
+    // digestauth.c through `if ENABLE_DAUTH`. A select on the header alone
+    // would build the other combination, so the flag owns nothing — the
+    // shape the PMIx agent stage refused by hand for PTY and dlopen support.
+    #[test]
+    fn a_flag_that_switches_sources_owns_nothing() {
+        let control = table(&[("DAUTH_SUPPORT", "1")]);
+        let dauth = flag("--enable-dauth");
+        let mut off = probe_of(&control, &[("DAUTH_SUPPORT", None)]);
+        off.as_mut()
+            .unwrap()
+            .conditionals
+            .insert("ENABLE_DAUTH".to_string(), false);
+        let mut on = probe_of(&control, &[]);
+        on.as_mut()
+            .unwrap()
+            .conditionals
+            .insert("ENABLE_DAUTH".to_string(), true);
+        let probes = [FlagProbe {
+            flag: &dauth,
+            on,
+            off,
+        }];
+
+        let effects = attribute_flag_effects(
+            &control,
+            &configured(control.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+
+        assert!(effects.options.is_empty(), "{:#?}", effects.options);
+        assert_eq!(
+            effects.contested.get("DAUTH_SUPPORT"),
+            Some(&FlagContest::SwitchesSources("--enable-dauth".to_string())),
+            "{:?}",
+            effects.contested
+        );
+    }
+
+    // Lines captured from xz 5.4's config.status. A conditional is the PAIR;
+    // a lone `_TRUE` is some project's own variable and not a conditional.
+    #[test]
+    fn conditionals_are_read_as_true_false_pairs() {
+        let conditionals = parse_conditionals(concat!(
+            "S[\"COND_SMALL_FALSE\"]=\"#\"\n",
+            "S[\"COND_SMALL_TRUE\"]=\"\"\n",
+            "S[\"COND_W32_FALSE\"]=\"\"\n",
+            "S[\"COND_W32_TRUE\"]=\"#\"\n",
+            "S[\"ALWAYS_TRUE\"]=\"yes\"\n",
+        ));
+        assert_eq!(
+            conditionals,
+            HashMap::from([
+                ("COND_SMALL".to_string(), true),
+                ("COND_W32".to_string(), false),
+            ])
+        );
+    }
+
+    // Lines captured from hwloc 2.x's config.log. Only the question is kept:
+    // the `result:` line answers differently on each side of every flag that
+    // reports itself, so comparing answers would refuse everything.
+    #[test]
+    fn checks_are_the_questions_configure_asked() {
+        let checks = parse_checks(concat!(
+            "configure:14368: checking whether to build shared libraries\n",
+            "configure:14393: result: yes\n",
+            "configure:24241: checking if gcc supports -Wcast-function-type\n",
+            "configure:24254: gcc -c -Wcast-function-type -Werror  conftest.c >&5\n",
+            "| /* checking in a dumped conftest.c is not a question */\n",
+        ));
+        assert_eq!(
+            checks,
+            HashSet::from([
+                "whether to build shared libraries".to_string(),
+                "if gcc supports -Wcast-function-type".to_string(),
+            ])
+        );
+    }
+
+    #[test]
+    fn a_macro_two_flags_move_belongs_to_neither() {
+        let control = table(&[("SHARED", "1")]);
+        let threads = flag("--enable-threads");
+        let other = flag("--enable-other");
+        let probes = [&threads, &other].map(|flag| FlagProbe {
+            flag,
+            on: probe_of(&control, &[]),
+            off: probe_of(&control, &[("SHARED", None)]),
+        });
+
+        let effects = attribute_flag_effects(
+            &control,
+            &configured(control.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        assert!(
+            owned.is_empty(),
+            "which one owns it is a judgement: {owned:#?}"
+        );
+        assert_eq!(
+            effects.contested.get("SHARED"),
+            Some(&FlagContest::SeveralFlags(vec![
+                "--enable-threads".to_string(),
+                "--enable-other".to_string()
+            ])),
+            "{:?}",
+            effects.contested
+        );
+    }
+
+    #[test]
+    fn a_probe_the_flag_skipped_is_not_the_flags() {
+        let control = table(&[("SIZEOF_PTHREAD_T", "8")]);
+        let threads = flag("--enable-thread-support");
+        let probes = [FlagProbe {
+            flag: &threads,
+            on: probe_of(&control, &[]),
+            off: probe_of(&control, &[("SIZEOF_PTHREAD_T", None)]),
+        }];
+        let probed = HashSet::from(["SIZEOF_PTHREAD_T".to_string()]);
+
+        let effects =
+            attribute_flag_effects(&control, &configured(control.clone()), &probes, &probed);
+        let owned = effects.options;
+
+        assert!(
+            owned.is_empty(),
+            "this host's answer, never `1` under a select (bzl-iwo): {owned:#?}"
+        );
+        assert_eq!(
+            effects.contested.get("SIZEOF_PTHREAD_T"),
+            Some(&FlagContest::SkipsCheck(
+                "--enable-thread-support".to_string()
+            )),
+            "{:?}",
+            effects.contested
+        );
+    }
+
+    #[test]
+    fn a_default_neither_side_reproduces_is_refused() {
+        let control = table(&[("BACKEND", "2")]);
+        let backend = flag("--enable-backend");
+        let probes = [FlagProbe {
+            flag: &backend,
+            on: probe_of(&control, &[("BACKEND", Some("1"))]),
+            off: probe_of(&control, &[("BACKEND", Some("0"))]),
+        }];
+
+        let effects = attribute_flag_effects(
+            &control,
+            &configured(control.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        assert!(owned.is_empty(), "auto is a third state: {owned:#?}");
+        assert_eq!(
+            effects.contested.get("BACKEND"),
+            Some(&FlagContest::DefaultIsNeither(
+                "--enable-backend".to_string()
+            )),
+            "{:?}",
+            effects.contested
+        );
+    }
+
+    #[test]
+    fn a_string_a_flag_swaps_escalates() {
+        let control = table(&[("NAME", "\"full\"")]);
+        let lite = flag("--enable-lite");
+        let probes = [FlagProbe {
+            flag: &lite,
+            on: probe_of(&control, &[("NAME", Some("\"lite\""))]),
+            off: probe_of(&control, &[]),
+        }];
+
+        let effects = attribute_flag_effects(
+            &control,
+            &configured(control.clone()),
+            &probes,
+            &HashSet::new(),
+        );
+        let owned = effects.options;
+
+        assert!(
+            owned.is_empty(),
+            "unmeasured, so not guessed at: {owned:#?}"
+        );
+        assert_eq!(
+            effects.contested.get("NAME"),
+            Some(&FlagContest::NotAPlainValue("--enable-lite".to_string())),
+            "{:?}",
+            effects.contested
+        );
+    }
+
+    // A size probe is a probe too. libevent's SIZEOF_PTHREAD_T vanishes
+    // with --disable-thread-support only because the check is skipped, and
+    // owning it as an option rendered the size as `1` (bzl-iwo). Lines
+    // captured from autoconf 2.71's config.log.
+    #[test]
+    fn size_and_alignment_probes_are_probes() {
+        let names = parse_probed_names(concat!(
+            "ac_cv_alignof_double=8\n",
+            "ac_cv_header_poll_h=yes\n",
+            "ac_cv_sizeof_pthread_t=8\n",
+            "ac_cv_sizeof_void_p=8\n",
+        ));
+        for name in [
+            "SIZEOF_PTHREAD_T",
+            "SIZEOF_VOID_P",
+            "ALIGNOF_DOUBLE",
+            "HAVE_POLL_H",
+        ] {
+            assert!(names.contains(name), "{name} missing from {names:?}");
+        }
+        assert!(
+            !names.contains("HAVE_SIZEOF_PTHREAD_T"),
+            "a size is not a HAVE_: {names:?}"
         );
     }
 

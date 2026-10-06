@@ -304,6 +304,32 @@ pub enum ConfigDialect {
     Substitution,
 }
 
+/// One config-header macro a build option decides — see
+/// [`ConfigHeader::options`].
+///
+/// Both sides are carried, because an option does not only make a macro
+/// appear: PMIx writes `PMIX_ENABLE_DEBUG` as `0` or `1` and never leaves it
+/// undefined, so a pair of "defined to X" and "absent" would render the
+/// default build's `0` as an undefined name that `#if` and `printf("%d")`
+/// both read differently. Values follow the same quoting invariant as
+/// [`ConfigHeader::values`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BuildOption {
+    pub macro_name: String,
+    /// The option as the frontend names it — a cache entry
+    /// (`ENABLE_GREETING`) or the flag a consumer types
+    /// (`--enable-greeting`). Codegen derives the `bool_flag` name from it.
+    pub option: String,
+    /// Whether the project's OWN default build has the option on. This is
+    /// the `bool_flag`'s default, so getting it backwards silently converts a
+    /// different configuration than the ground truth was captured from.
+    pub default_on: bool,
+    /// The macro's value with the option on; `None` leaves it undefined.
+    pub on: Option<String>,
+    /// The macro's value with the option off; `None` leaves it undefined.
+    pub off: Option<String>,
+}
+
 /// A `configure_file`-generated config header the translator reproduces via a
 /// `cc_config//:config_header` rule, so it's computed against the consumer's
 /// toolchain rather than baked from the conversion host. Recovered from the
@@ -388,8 +414,10 @@ pub struct ConfigHeader {
     /// may legitimately generate its own `string.h` that shadows nothing.
     /// The frontend knows, because it saw the recipe.
     pub shadow_dir: Option<String>,
-    /// Which of `values` came from a user-settable BUILD OPTION rather than
-    /// a toolchain probe, as `(name, option_name)`.
+    /// Macros a user-settable BUILD OPTION decides, rather than a toolchain
+    /// probe. Disjoint from `values`: a name is in one or the other, because
+    /// `values` is what holds for EVERY configuration and these hold for one
+    /// setting of the option.
     ///
     /// The distinction is not visible in the value. `ENABLE_GREETING=ON` and
     /// `HAVE_STDIO_H=1` are both "a name with a value", but the first is a
@@ -400,14 +428,14 @@ pub struct ConfigHeader {
     ///
     /// Populated only where the input STATES it. CMake's `cache-v2` marks
     /// user-facing entries `BOOL`/`STRING` and probe results `INTERNAL`, so
-    /// the CMake frontend can fill this deterministically. autoconf has no
-    /// equivalent marker — `configure` is a shell script — so the Autotools
-    /// frontend leaves it empty and escalates instead, per CLAUDE.md's
-    /// escalate-don't-guess rule.
+    /// the CMake frontend reads it. autoconf has no equivalent marker, so the
+    /// Autotools frontend elicits it by re-running `configure` with each flag
+    /// flipped and diffing what it writes — see
+    /// `autotools::attribute_flag_effects`.
     ///
     /// Codegen renders these as a `bazel_skylib` flag plus a `select()`, so
     /// the option survives conversion as an option.
-    pub options: Vec<(String, String)>,
+    pub options: Vec<BuildOption>,
     /// Whole files the recipe splices into the template, as
     /// `(marker, path)` — sed's `r` command, in the order the recipe gives
     /// them.
