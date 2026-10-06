@@ -1,0 +1,25 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# PRRTE 3.0.14, the fourth node of the Open MPI chain (bzl-7r9.6), pinned
+# in MODULE.bazel as @prrte.
+#
+# Converted as PRRTE ships: its default configuration is the ground truth
+# (overview.md, "Convert the project, not the consumer's use of it"). The
+# three converted modules it links are supplied as `deps`, so its configure
+# finds them through the relocated sysroot exactly as a consumer's would,
+# and a link input inside that sysroot becomes a cross-module edge.
+#
+# END STATE: in progress.
+convert_autotools_project(
+    name = "converted",
+    srcs = ["@prrte//:all_srcs"],
+    visibility = [
+        "//translator/tests:__pkg__",
+        "//translator/tests/corpus:__subpackages__",
+    ],
+    deps = [
+        "//translator/tests/corpus/hwloc:converted",
+        "//translator/tests/corpus/libevent:converted",
+        "//translator/tests/corpus/pmix:converted",
+    ],
+)

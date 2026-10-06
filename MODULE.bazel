@@ -399,3 +399,25 @@ http_archive(
     strip_prefix = "pmix-5.0.11",
     url = "https://github.com/openpmix/openpmix/releases/download/v5.0.11/pmix-5.0.11.tar.bz2",
 )
+
+# PRRTE 3.0.14, the fourth node of the Open MPI chain (bzl-7r9.6) and the
+# version Open MPI 5.0.11 bundles. Chosen by the epic, not by selection:
+# it is the runtime mpirun execs. Measured before pinning: automake,
+# `configure` shipped, 260 C files, the same MCA shape as PMIx (18
+# frameworks, ~50 convenience archives into libprrte) — so PMIx's fixes
+# meet a second project here, the n=2 the corpus rules ask for before a
+# shape is trusted. New: prterun exists only as an install-exec-hook
+# symlink to prte (src/tools/prte/Makefile.am), and Open MPI's mpirun
+# execs it by name. Release TARBALL; INPUT to the translator only.
+http_archive(
+    name = "prrte",
+    build_file_content = """filegroup(
+    name = "all_srcs",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-w9jo9510mN0Yuw4/1aK3YZIsPh5nuUoj065sS2+OjQ4=",
+    strip_prefix = "prrte-3.0.14",
+    url = "https://github.com/openpmix/prrte/releases/download/v3.0.14/prrte-3.0.14.tar.bz2",
+)
