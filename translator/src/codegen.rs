@@ -127,10 +127,13 @@ fn render_module_bazel(graph: &BuildGraph) -> String {
     } else {
         format!("bazel_dep(name = \"cc_config\", version = \"{CC_CONFIG_VERSION}\")\n")
     };
-    // `bool_flag` lives in bazel_skylib, so the dep appears only for a
-    // project that exposes an option. Emitted unconditionally it would be an
+    // `bool_flag` and `native_binary` live in bazel_skylib, so the dep
+    // appears only for a project that exposes an option or installs a
+    // program under a second name. Emitted unconditionally it would be an
     // unused dependency in most modules.
-    let skylib = if graph.config_headers.iter().all(|h| h.options.is_empty()) {
+    let skylib = if graph.config_headers.iter().all(|h| h.options.is_empty())
+        && graph.program_aliases.is_empty()
+    {
         String::new()
     } else {
         format!("bazel_dep(name = \"bazel_skylib\", version = \"{BAZEL_SKYLIB_VERSION}\")\n")
@@ -216,6 +219,9 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
     if has_options {
         out.push_str("load(\"@bazel_skylib//rules:common_settings.bzl\", \"bool_flag\")\n");
     }
+    if !graph.program_aliases.is_empty() {
+        out.push_str("load(\"@bazel_skylib//rules:native_binary.bzl\", \"native_binary\")\n");
+    }
     if !rules.is_empty() || !graph.tests.is_empty() || !graph.config_headers.is_empty() {
         out.push('\n');
     }
@@ -250,12 +256,34 @@ fn render_build_bazel(graph: &BuildGraph) -> String {
         render_cc_rule(&mut out, target, &graph.config_headers, &shared);
     }
 
+    for (alias, target) in &graph.program_aliases {
+        out.push('\n');
+        render_program_alias(&mut out, alias, target);
+    }
+
     for test in &graph.tests {
         out.push('\n');
         render_sh_test(&mut out, test);
     }
 
     out
+}
+
+/// A program installed under a second name — see
+/// `model::BuildGraph::program_aliases`.
+///
+/// A real FILE named `alias`, not a Bazel `alias()`: the program dispatches
+/// on `argv[0]`, and an `alias()` is only a second label for the same file,
+/// so `bazel run :unxz` would run a binary called `xz`. The program goes in
+/// `data` so its runfiles — the shared libraries a `cc_binary` loads through
+/// `$ORIGIN` — come with the copy.
+fn render_program_alias(out: &mut String, alias: &str, target: &str) {
+    out.push_str(&format!(
+        "native_binary(\n    name = \"{name}\",\n    src = \":{target}\",\n    out = \"{name}\",\n    \
+         data = [\":{target}\"],\n    visibility = [\"//visibility:public\"],\n)\n",
+        name = escape_starlark(alias),
+        target = escape_starlark(target),
+    ));
 }
 
 /// Renders one `config_header` rule: the `cc_config` probe-driven
@@ -1655,6 +1683,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
             config_headers: vec![],
@@ -1691,6 +1720,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
             config_headers: vec![],
@@ -1759,6 +1789,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
             config_headers: vec![],
@@ -1799,6 +1830,7 @@ mod tests {
                 },
                 tests: vec![],
                 unexpressed_tests: Vec::new(),
+                program_aliases: Vec::new(),
                 displaced_sources: Vec::new(),
                 dependencies: Vec::new(),
                 config_headers: vec![],
@@ -1900,6 +1932,7 @@ mod tests {
             }],
             tests: vec![test],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
             config_headers: vec![],
@@ -2064,6 +2097,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
             config_headers: vec![],
@@ -2120,6 +2154,7 @@ mod tests {
             },
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
             config_headers: vec![],
@@ -2847,6 +2882,45 @@ mod tests {
             rendered.contains("\":enable_debug_on\": {\"PMIX_ENABLE_DEBUG\": \"1\"}")
                 && rendered.contains("\"//conditions:default\": {\"PMIX_ENABLE_DEBUG\": \"0\"}"),
             "both sides are values, so neither may render as undefined:\n{rendered}"
+        );
+    }
+
+    // An installed second name becomes a real file of that name, so the
+    // program sees it as argv[0], with skylib's load and its dependency.
+    // And a module without one gains neither.
+    #[test]
+    fn a_program_alias_is_a_file_of_that_name() {
+        let mut g = graph(None);
+        g.program_aliases = vec![("prterun".to_string(), "prte".to_string())];
+        let rendered = render(&g);
+
+        assert!(
+            rendered.build_bazel.contains(
+                "native_binary(\n    name = \"prterun\",\n    src = \":prte\",\n    \
+                 out = \"prterun\",\n    data = [\":prte\"],"
+            ),
+            "{}",
+            rendered.build_bazel
+        );
+        assert!(
+            rendered
+                .build_bazel
+                .contains("load(\"@bazel_skylib//rules:native_binary.bzl\", \"native_binary\")"),
+            "{}",
+            rendered.build_bazel
+        );
+        assert!(
+            rendered.module_bazel.contains("bazel_skylib"),
+            "{}",
+            rendered.module_bazel
+        );
+
+        let plain = render(&graph(None));
+        assert!(
+            !plain.build_bazel.contains("native_binary")
+                && !plain.module_bazel.contains("bazel_skylib"),
+            "{}",
+            plain.build_bazel
         );
     }
 

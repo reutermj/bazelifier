@@ -1,0 +1,14 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# A program installed under a second name by an install-exec-hook symlink,
+# dispatching on argv[0] — xz's unxz/xzcat, hwloc's lstopo and PRRTE's
+# prterun, which Open MPI's mpirun execs by name. Nothing in the build's
+# command stream produces `farewell`; the conversion's own `make install`
+# does, and the module must give it a file of that name: an alias() would
+# run a binary called greeter and print "hello". Both names get a
+# ground-truth comparison, so the farewell one fails unless argv[0] did.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

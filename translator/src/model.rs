@@ -512,6 +512,18 @@ pub struct BuildGraph {
     /// So this is not a second list of tests to render. Nothing emits a rule
     /// for these; they exist so the module arrives RESOLVABLE.
     pub unexpressed_tests: Vec<Test>,
+    /// Other names a built program is installed under, as `(alias, target)`
+    /// — the target being an `Executable` in `targets`.
+    ///
+    /// automake installs these from an `install-exec-hook` that symlinks the
+    /// program under a second name, and the program dispatches on `argv[0]`:
+    /// xz decompresses when run as `unxz`, hwloc's `lstopo` is
+    /// `lstopo-no-graphics`, and Open MPI's mpirun execs PRRTE's `prte` as
+    /// `prterun`. No compile or link command produces them, so a conversion
+    /// that reads only the build drops them silently. Read from the install
+    /// tree the conversion itself produced — see `installed_program_aliases`
+    /// in `main.rs`.
+    pub program_aliases: Vec<(String, String)>,
     /// Module-relative paths of checked-in files the module deliberately
     /// OMITS because a config header generates a file at the same path; see
     /// [`BuildGraph::displace_sources_shadowed_by_config_headers`].
@@ -634,6 +646,7 @@ mod tests {
             ],
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             config_headers: vec![header("zconf.h", None), header("gl/string.h", Some("gl"))],
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
@@ -680,6 +693,7 @@ mod tests {
             }],
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             config_headers: vec![header("string.h", Some("gl"))],
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
@@ -711,6 +725,7 @@ mod tests {
             }],
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             config_headers: vec![header("expat_config.h", None), header("other.h", None)],
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),

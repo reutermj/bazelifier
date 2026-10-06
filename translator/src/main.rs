@@ -207,6 +207,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     discovery
         .graph
         .displace_sources_shadowed_by_config_headers(|path| module_root.join(path).is_file());
+    // Here for the same reason: the install tree is neither frontend's —
+    // both hand it the same directory, and what is installed under a second
+    // name is a fact about the tree, not about how it was built.
+    if let Some(dir) = &args.install_dir {
+        discovery.graph.program_aliases = installed_program_aliases(dir, &discovery.graph)?;
+    }
     let graph = &discovery.graph;
     let generated = codegen::render(graph);
 
@@ -378,6 +384,53 @@ fn write_project_notes(out_module: &Path, module_name: &str) -> std::io::Result<
     Ok(())
 }
 
+/// The programs the install tree holds under a second name: a SYMLINK in
+/// `<prefix>/bin` whose target is a program this module builds, as
+/// `(alias, target name)`, sorted.
+///
+/// Read off the conversion's own `make install`, the resolved output of the
+/// project's install hook, rather than parsed out of `install-exec-hook`
+/// shell. A link to anything else — a script the module does not build, a
+/// program behind a conditional this configuration skipped — is left out:
+/// there is nothing here to give the name to.
+fn installed_program_aliases(
+    install_dir: &Path,
+    graph: &model::BuildGraph,
+) -> std::io::Result<Vec<(String, String)>> {
+    let bin = install_dir
+        .join(dependencies::INSTALL_PREFIX.trim_start_matches('/'))
+        .join("bin");
+    let Ok(entries) = fs::read_dir(&bin) else {
+        return Ok(Vec::new());
+    };
+    let programs: std::collections::HashMap<&str, &str> = graph
+        .targets
+        .iter()
+        .filter(|t| t.kind == model::TargetKind::Executable)
+        .filter_map(|t| {
+            let artifact = Path::new(t.artifacts.first()?).file_name()?.to_str()?;
+            Some((artifact, t.name.as_str()))
+        })
+        .collect();
+    let mut aliases = Vec::new();
+    for entry in entries {
+        let entry = entry?;
+        let Ok(link) = fs::read_link(entry.path()) else {
+            continue;
+        };
+        let Some(points_at) = link.file_name().and_then(|n| n.to_str()) else {
+            continue;
+        };
+        if let (Some(target), Ok(alias)) =
+            (programs.get(points_at), entry.file_name().into_string())
+        {
+            aliases.push((alias, target.to_string()));
+        }
+    }
+    aliases.sort();
+    Ok(aliases)
+}
+
 /// Writes `TARGETS`, a machine-readable list of what this module emitted, for
 /// the validation harness to read instead of regexing `BUILD.bazel`.
 ///
@@ -401,6 +454,15 @@ fn write_targets_manifest(out_module: &Path, graph: &model::BuildGraph) -> std::
         .filter(|t| t.kind == model::TargetKind::Executable)
         .map(|t| t.name.as_str())
         .collect();
+    // A program's second name is a binary of its own to a consumer, and gets
+    // its own comparison: the ground truth runs under that name too, which
+    // is what checks the program's argv[0] dispatch survived.
+    binaries.extend(
+        graph
+            .program_aliases
+            .iter()
+            .map(|(alias, _)| alias.as_str()),
+    );
     binaries.sort_unstable();
     lines.extend(binaries.iter().map(|n| format!("binary {n}")));
 
@@ -583,6 +645,25 @@ fn copy_ground_truth_artifacts(
                 shared_lib_names.push(name);
             }
         }
+    }
+
+    // Each second name, as a copy of the program's ground truth beside it, so
+    // it runs with that name as argv[0] and finds the same staged libraries.
+    for (alias, target) in &graph.program_aliases {
+        let Some((_, artifact)) = executables.iter().find(|(name, _)| name == target).cloned()
+        else {
+            continue;
+        };
+        let staged = Path::new(&artifact)
+            .with_file_name(alias)
+            .display()
+            .to_string();
+        copy_into(
+            &libtool::ground_truth_source(build_dir, &artifact),
+            &ground_truth_dir.join(&staged),
+        )?;
+        artifact_paths.push(staged.clone());
+        executables.push((alias.clone(), staged));
     }
 
     fs::write(
@@ -885,6 +966,36 @@ fn copy_into(src: &Path, dst: &Path) -> std::io::Result<()> {
 
 #[cfg(test)]
 mod tests {
+
+    // prterun -> prte as PRRTE installs it: a link to a built program is a
+    // second name, a link to anything else and a plain file are not.
+    #[test]
+    fn an_installed_link_to_a_built_program_is_an_alias() {
+        let root = std::env::temp_dir().join(format!("aliases_{}", std::process::id()));
+        let bin = root.join("usr/local/bin");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&bin).unwrap();
+        fs::write(bin.join("prte"), "").unwrap();
+        fs::write(bin.join("prted"), "").unwrap();
+        std::os::unix::fs::symlink("prte", bin.join("prterun")).unwrap();
+        std::os::unix::fs::symlink("pmixcc", bin.join("pcc")).unwrap();
+        let program = |name: &str| model::Target {
+            name: name.to_string(),
+            kind: model::TargetKind::Executable,
+            artifacts: vec![format!("src/tools/{name}/{name}")],
+            ..Default::default()
+        };
+        let graph = model::BuildGraph {
+            targets: vec![program("prte"), program("prted")],
+            ..two_target_graph()
+        };
+
+        assert_eq!(
+            installed_program_aliases(&root, &graph).unwrap(),
+            vec![("prterun".to_string(), "prte".to_string())]
+        );
+    }
+
     // Bazel stages an action's inputs as symlinks, so under Bazel EVERY
     // entry is one and the dangling-link guard discarded all of them:
     // `copy_test_runtime_data` was a silent no-op for every corpus project,
@@ -1024,6 +1135,7 @@ mod tests {
             ],
             tests: vec![],
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             config_headers: vec![],
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
@@ -1193,6 +1305,7 @@ mod tests {
             tests: Vec::new(),
             config_headers: Vec::new(),
             unexpressed_tests: Vec::new(),
+            program_aliases: Vec::new(),
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
         };

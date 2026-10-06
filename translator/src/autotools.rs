@@ -2927,6 +2927,8 @@ pub(crate) fn to_graph_with_dependencies(
             // both frontends share; see main.rs.
             displaced_sources: Vec::new(),
             dependencies: Vec::new(),
+            // Read from the install tree by the driver; see main.rs.
+            program_aliases: Vec::new(),
         },
         needs_attention,
         module_root.clone(),
