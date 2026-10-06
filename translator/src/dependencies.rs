@@ -134,9 +134,18 @@ impl Dependencies {
                 "CPPFLAGS".to_string(),
                 format!("-I{}", prefix.join("include").display()),
             ),
+            // `-L` finds what a link NAMES; `-rpath-link` is where ld looks
+            // for what those libraries need in turn (their DT_NEEDED), which
+            // it never searches `-L` for. Without it ld falls back to each
+            // library's own RUNPATH — the install prefix on THIS host — and
+            // either fails or resolves against the host's copy. Link-time
+            // only: nothing is recorded in the output.
             (
                 "LDFLAGS".to_string(),
-                format!("-L{}", prefix.join("lib").display()),
+                format!(
+                    "-L{lib} -Wl,-rpath-link,{lib}",
+                    lib = prefix.join("lib").display()
+                ),
             ),
         ]
     }
@@ -586,6 +595,29 @@ mod tests {
             "{text}"
         );
         std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    // A dependency's shared library needs ITS dependencies resolved at link
+    // time, and ld looks for those on -rpath-link, never on -L. Fixture
+    // 015 is the end-to-end case: libusegreet.so needs libgreet.so.1.
+    #[test]
+    fn the_link_flags_tell_ld_where_a_dependencys_own_needs_live() {
+        let root = scratch("rpath_link");
+        let (module, install) = fake_dependency(&root, "greet", "1.0");
+        let sysroot = root.join("sysroot");
+        let deps = Dependencies::load(
+            &[format!("{}:{}", module.display(), install.display())],
+            &sysroot,
+        )
+        .unwrap();
+
+        let env: HashMap<_, _> = deps.configure_env().into_iter().collect();
+        let lib = sysroot.join("usr/local/lib");
+        assert_eq!(
+            env.get("LDFLAGS"),
+            Some(&format!("-L{0} -Wl,-rpath-link,{0}", lib.display())),
+            "{env:#?}"
+        );
     }
 
     #[test]
