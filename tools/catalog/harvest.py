@@ -559,13 +559,24 @@ def apply_defines(text, new, banner):
     return _insert_before(text, "];", block, after="const CATALOG_DEFINES")
 
 
+def smoked(new):
+    """The entries the smoke test can pin: all but a size or alignment the
+    host does not have. Its probe writes an empty value, which a `@VAR@`
+    template leaves literal, so neither `#define X <n>` nor `#undef X` is the
+    right expectation — Open MPI's `short float` and `int128_t` emitted
+    `#define SIZEOF_SHORT_FLOAT None` and failed the smoke test. The catalog
+    entry itself still lands; only its smoke line is skipped."""
+    return [e for e in new if not (e.kind in ("sizeof", "alignof") and e.value is None)]
+
+
 def apply_smoke_template(text, new):
     if not text.endswith("\n"):
         text += "\n"
-    return text + "".join(template_line(e) + "\n" for e in new)
+    return text + "".join(template_line(e) + "\n" for e in smoked(new))
 
 
 def apply_smoke_build(text, new, banner):
+    new = smoked(new)
     probes = "        # %s\n" % banner + "".join('        ":%s",\n' % e.macro.lower() for e in new)
     text = _insert_before(text, "    ],\n    template =", probes, after='name = "catalog_smoke_h"')
     asserts = "        # %s\n" % banner + "".join("        %s\n" % assertion_line(e) for e in new)
@@ -603,6 +614,11 @@ def main(argv=None):
     ap.add_argument("--all", action="store_true", help="report every check site, template or not")
     ap.add_argument("--header", action="append", default=[], metavar="SYMBOL=HEADER",
                     help="header for an AC_CHECK_FUNCS symbol no candidate declares")
+    ap.add_argument("--exclude", action="append", default=[], metavar="REGEX",
+                    help="leave out macros matching REGEX: a check against an optional "
+                         "third-party library (Open MPI's UCX/libfabric/hcoll probes) is a fact "
+                         "about that library, not the toolchain, and must not reach a catalog "
+                         "every later project reads (repeatable)")
     ap.add_argument("--cc", default=os.environ.get("CC", "cc"))
     ap.add_argument("--no-verify", action="store_true", help="parse only; no host compiles")
     ap.add_argument("--apply", action="store_true", help="write the entries into the four catalog files")
@@ -617,6 +633,11 @@ def main(argv=None):
     existing = catalog_macros(os.path.join(args.root, "cc_config/catalog/BUILD.bazel"))
     flagged = set(flag_macros(join_continuations(text)))
     new, skipped = select(entries, wanted, existing, flagged)
+    if args.exclude:
+        excluded = [e for e in new if any(re.search(x, e.macro) for x in args.exclude)]
+        new = [e for e in new if e not in excluded]
+        if excluded:
+            print("excluded by --exclude: %d (%s)" % (len(excluded), " ".join(e.macro for e in excluded)))
     if not args.no_verify:
         overrides = dict(h.split("=", 1) for h in args.header)
         verify(new, HostCompiler(args.cc), overrides)
