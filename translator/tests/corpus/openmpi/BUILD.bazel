@@ -8,18 +8,37 @@ load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_pro
 # copies, while romio341 and treematch (which have no external option) are
 # built inside this module.
 #
-# END STATE (2026-10-06): converting — 181 targets (55 programs, 123
-# static and 3 shared libraries), 44 registered tests, 20 config headers,
-# 17 escalation items, every one agent work: the config headers
-# (opal_config.h's 752 #undefs and mpi.h among them; six Fortran headers
-# and oshmem_version.h that nothing opens), libmpi/libopen-pal absorbing
-# their archives, 41 generated headers (34 configure-written
-# static-components.h, romio/mpl/treematch's nested-configure headers),
-# three build stamps and one test not built. Red until the agent stage.
-# Four translator gaps fixed on the way, each with a fixture (018-020) or
-# unit tests: one library name in two directories, a -l found through an
-# archive's stated -L, a library linked through a build-tree symlink, and
-# generated headers filtered to the ones a compile opened.
+# END STATE (2026-10-06): GREEN from the unpacked workspace after the agent
+# stage — 13/13 comparisons (ompi_info, reduce_local and test_overhead
+# omitted on record: stamps and benchmark timings), 68/68 module tests (44
+# registered tests, mpool_memkind a SKIP as upstream records it, and the
+# config-header assertions). hwloc, libevent, PMIx and PRRTE re-measured
+# green in the same workspace. The resolution is tools/resolutions/openmpi/,
+# applied after its dependencies'. The comparisons run single programs;
+# comparing a real `mpirun -n 2` job is the open design question on the
+# epic. Cost, for the onboarding record:
+#
+# - Translator gaps found and fixed: 11, each its own commit with a fixture
+#   (018-025) or unit tests — one library name in two directories; a -l
+#   found through an archive's stated -L; a library linked through a
+#   build-tree symlink; generated headers filtered to the ones a compile
+#   opened; config headers of nested configures (romio, mpl); -m machine
+#   flags carried, from a target's own objects only; substitution values
+#   from config.status's S[] table; the _SOURCES of a library whose name
+#   part-came from configure; automake's exit-77 SKIP. Plus the catalog
+#   harvest of Open MPI's configure (with --exclude for third-party library
+#   checks) and a project note (openpty, shared with PMIx).
+# - Escalations: 17 items at first conversion, 20 at green — nested
+#   configures added three config headers to resolve, and four
+#   unconverted_dependency items went away as link resolution improved.
+# - Agent-stage decisions: 45 compile probes, 23 symbol probes, 26
+#   alignment aliases, configure's value for the rest of 15 config headers;
+#   34 static-components.h byte-identical to the native build's; 6 other
+#   generated headers; transitive archive absorption into libmpi (70) and
+#   libopen-pal (51); -lutil and -lrt for the toolchain's glibc 2.28; two
+#   test runners (atomics thread counts, dlopen_test's plugin layout).
+# - Other projects: no counts moved across the eleven fixes; PMIx's rules
+#   gained its -mcx16; every automake test now carries its skip code.
 convert_autotools_project(
     name = "converted",
     srcs = ["@openmpi//:all_srcs"],
