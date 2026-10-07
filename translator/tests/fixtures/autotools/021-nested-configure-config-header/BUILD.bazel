@@ -1,0 +1,13 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# Two nested configures (AC_CONFIG_SUBDIRS). `sub` writes subconf.h, which
+# the program compiles against; it is stated only by sub/config.status, which
+# the frontend once never read, so nothing reproduced the header. `unused`
+# writes unusedconf.h, which nothing includes — as Open MPI configures the
+# bundled PMIx and PRRTE and never builds them — and must not be planned or
+# escalated: only headers a compile opened (.deps) are.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

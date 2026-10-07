@@ -232,6 +232,82 @@ pub fn discover(
         }
         config_headers.push(header);
     }
+    // Config headers a NESTED configure wrote (AC_CONFIG_SUBDIRS): its own
+    // config.status in a subdirectory of the build tree, stating its headers
+    // relative to that subdirectory. Open MPI's romio341 and romio's mpl each
+    // have one, and their sources compile against those headers. Planned with
+    // the same machinery as the top-level ones, minus the flag probes — a
+    // nested configure takes the options its parent passes it, not the
+    // consumer's.
+    //
+    // Only for a sub-project some compile USES, where the build recorded that:
+    // Open MPI also configures the bundled PMIx and PRRTE and never builds
+    // them, and planning their config headers would escalate thousands of
+    // names nothing includes. Used means a compile opened any header in the
+    // sub-project's build tree — not necessarily the config header itself:
+    // romio's sources open mplconfig.h, which mpl's perl script derives from
+    // its config.h at configure time, so config.h is needed though nothing
+    // includes it. Without dependency tracking every sub-project is kept.
+    let opened = opened_headers(&normalize_lexically(&absolutize(build_dir)?));
+    let used = |sub: &Path| {
+        opened
+            .as_ref()
+            .is_none_or(|o| o.iter().any(|h| Path::new(h).starts_with(sub)))
+    };
+    for sub in nested_config_statuses(build_dir) {
+        if !used(&sub) {
+            continue;
+        }
+        let sub_status =
+            std::fs::read_to_string(build_dir.join(&sub).join("config.status")).unwrap_or_default();
+        let sub_resolved = parse_resolved_macro_values(&sub_status);
+        let under = |p: &str| {
+            normalize_lexically(&sub.join(p))
+                .to_string_lossy()
+                .into_owned()
+        };
+        let headers: Vec<(String, String, bool)> = parse_config_headers(&sub_status)
+            .into_iter()
+            .map(|(o, t)| (under(&o), under(&t), true))
+            .chain(
+                parse_config_file_headers(&sub_status)
+                    .into_iter()
+                    .map(|o| (under(&o), format!("{}.in", under(&o)), false)),
+            )
+            .collect();
+        if headers.is_empty() {
+            continue;
+        }
+        let sub_traced =
+            resolve_traced_defines(&source_dir.join(&sub), &build_dir.join(&sub), &sub_resolved);
+        for (output, template, undef_dialect) in headers {
+            let Ok(text) = std::fs::read_to_string(source_dir.join(&template)) else {
+                continue;
+            };
+            let (header, unmapped) = if undef_dialect {
+                plan_config_header(
+                    &output,
+                    &template,
+                    &text,
+                    db.scope_for(&output),
+                    &FlagEffects::default(),
+                    &sub_traced,
+                )
+            } else {
+                plan_substitution_header(&output, &template, &text, db.scope_for(&output))
+            };
+            if !unmapped.is_empty() {
+                needs_attention.push(unmapped_config_macros_needs_attention(
+                    &output,
+                    &template,
+                    &unmapped,
+                    ConfigDialect::Autoconf,
+                    &sub_resolved,
+                ));
+            }
+            config_headers.push(header);
+        }
+    }
     let project_name = db
         .root()
         .get("PACKAGE")
@@ -3380,6 +3456,30 @@ fn generated_headers_in_build_tree(
         .collect()
 }
 
+/// The subdirectories of the build tree, build-relative and sorted, that
+/// hold a NESTED configure's `config.status` — each an `AC_CONFIG_SUBDIRS`
+/// project the top-level configure ran. The top level's own is not among
+/// them.
+fn nested_config_statuses(build_dir: &Path) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    let mut stack = vec![PathBuf::new()];
+    while let Some(rel) = stack.pop() {
+        let Ok(entries) = std::fs::read_dir(build_dir.join(&rel)) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            if entry.path().is_dir() {
+                stack.push(rel.join(&name));
+            } else if name == "config.status" && !rel.as_os_str().is_empty() {
+                found.push(rel.clone());
+            }
+        }
+    }
+    found.sort();
+    found
+}
+
 /// Every build-tree header some compile opened, build-relative, from
 /// automake's dependency-tracking files (`.deps/*.Po`, `.deps/*.Plo`) — the
 /// compiler's own `-MD` record, this frontend's analogue of the CMake side's
@@ -5141,6 +5241,28 @@ make[1]: Leaving directory '/build/gl'\n\
                 ("COND_W32".to_string(), false),
             ])
         );
+    }
+
+    // A nested configure leaves its own config.status in a subdirectory; the
+    // top level's is not one of them.
+    #[test]
+    fn nested_config_statuses_are_the_subdirectories_that_hold_one() {
+        let root = std::env::temp_dir().join(format!("bzlf_nested_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        for dir in ["", "3rd-party/romio341", "3rd-party/romio341/mpl", "opal"] {
+            std::fs::create_dir_all(root.join(dir)).unwrap();
+        }
+        for dir in ["", "3rd-party/romio341", "3rd-party/romio341/mpl"] {
+            std::fs::write(root.join(dir).join("config.status"), "").unwrap();
+        }
+        assert_eq!(
+            nested_config_statuses(&root),
+            vec![
+                PathBuf::from("3rd-party/romio341"),
+                PathBuf::from("3rd-party/romio341/mpl")
+            ]
+        );
+        let _ = std::fs::remove_dir_all(&root);
     }
 
     // Lines captured from hwloc 2.x's config.log. Only the question is kept:
