@@ -1,0 +1,409 @@
+{
+  "config_headers": 1,
+  "escalations": [
+    {
+      "digest": "0c3d271c5f5b93cf",
+      "kind": "unconverted_dependency",
+      "subject": "-lz"
+    },
+    {
+      "digest": "6e295f4d72e623fd",
+      "kind": "unmapped_config_macros",
+      "subject": "MHD_config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "unconverted_dependency": 1,
+    "unmapped_config_macros": 1
+  },
+  "module": "libmicrohttpd",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "authorization_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "basicauthentication",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "benchmark",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "benchmark_https",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "chunked_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "demo",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "digest_auth_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "digest_auth_example_adv",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "dual_stack_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "fileserver_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "fileserver_example_dirs",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "fileserver_example_external_select",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "hellobrowser",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "http_chunked_compression",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "http_compression",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "largepost",
+      "sources": 93
+    },
+    {
+      "kind": "shared_library",
+      "name": "libmicrohttpd.la",
+      "sources": 112
+    },
+    {
+      "kind": "executable",
+      "name": "logging",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "minimal_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "minimal_example_comet",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "minimal_example_empty",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "perf_replies",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "post_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "querystring_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "refuse_post_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "responseheaders",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "sessions",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "simplepost",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "suspend_resume_epoll",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_auth_parse",
+      "sources": 95
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_chunked_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_chunked_hard_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_chunked_shutdown",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_chunked_steps_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_chunked_steps_hard_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_chunked_steps_shutdown",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_hard_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_shutdown",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_steps_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_steps_hard_close",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_client_put_steps_shutdown",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_daemon",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_dauth_userdigest",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_dauth_userhash",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_http_reasons",
+      "sources": 95
+    },
+    {
+      "kind": "executable",
+      "name": "test_md5",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_mhd_version",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_options",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_postprocessor",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_postprocessor_amp",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_postprocessor_large",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_postprocessor_md",
+      "sources": 97
+    },
+    {
+      "kind": "executable",
+      "name": "test_response_entries",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_set_panic",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_sha1",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_sha256",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_sha512_256",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_shutdown_poll",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_shutdown_select",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_start_stop",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_base64",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_bin_hex",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_compare",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_from_value",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_pct",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_quote",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_to_value",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_token",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_token_remove",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_str_tokens_remove",
+      "sources": 94
+    },
+    {
+      "kind": "executable",
+      "name": "test_upgrade",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_upgrade_large",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "test_upgrade_vlarge",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "timeout",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "upgrade_example",
+      "sources": 93
+    },
+    {
+      "kind": "executable",
+      "name": "websocket_threaded_example",
+      "sources": 93
+    }
+  ],
+  "tests": 45,
+  "version": "1.0.1"
+}

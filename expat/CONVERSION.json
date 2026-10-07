@@ -1,0 +1,63 @@
+{
+  "config_headers": 1,
+  "escalations": [
+    {
+      "digest": "fe549b039d5cbc19",
+      "kind": "unmapped_config_macros",
+      "subject": "expat_config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "unmapped_config_macros": 1
+  },
+  "module": "expat",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "benchmark",
+      "sources": 33
+    },
+    {
+      "kind": "executable",
+      "name": "element_declarations",
+      "sources": 33
+    },
+    {
+      "kind": "executable",
+      "name": "elements",
+      "sources": 33
+    },
+    {
+      "kind": "shared_library",
+      "name": "libexpat.la",
+      "sources": 33
+    },
+    {
+      "kind": "static_library",
+      "name": "libtestpat.la",
+      "sources": 33
+    },
+    {
+      "kind": "executable",
+      "name": "outline",
+      "sources": 33
+    },
+    {
+      "kind": "executable",
+      "name": "runtests",
+      "sources": 46
+    },
+    {
+      "kind": "executable",
+      "name": "runtests_cxx",
+      "sources": 46
+    },
+    {
+      "kind": "executable",
+      "name": "xmlwf",
+      "sources": 36
+    }
+  ],
+  "tests": 2,
+  "version": "2.6.2"
+}

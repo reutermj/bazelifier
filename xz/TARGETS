@@ -1,0 +1,36 @@
+binary create_compress_files
+binary lzcat
+binary lzma
+binary lzmadec
+binary lzmainfo
+binary test_bcj_exact_size
+binary test_block_header
+binary test_check
+binary test_filter_flags
+binary test_filter_str
+binary test_hardware
+binary test_index
+binary test_index_hash
+binary test_lzip_decoder
+binary test_memlimit
+binary test_stream_flags
+binary test_vli
+binary unlzma
+binary unxz
+binary xz
+binary xzcat
+binary xzdec
+library liblzma.la liblzma shared
+test test_bcj_exact_size_test test_bcj_exact_size
+test test_block_header_test test_block_header
+test test_check_test test_check
+test test_filter_flags_test test_filter_flags
+test test_filter_str_test test_filter_str
+test test_hardware_test test_hardware
+test test_index_test test_index
+test test_index_hash_test test_index_hash
+test test_lzip_decoder_test test_lzip_decoder
+test test_memlimit_test test_memlimit
+test test_stream_flags_test test_stream_flags
+test test_vli_test test_vli
+assertion config_h_test

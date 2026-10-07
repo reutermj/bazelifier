@@ -1,0 +1,12 @@
+binary benchmark
+binary element_declarations
+binary elements
+binary outline
+binary runtests
+binary runtests_cxx
+binary xmlwf
+library libexpat.la libexpat shared
+library libtestpat.la libtestpat static
+test runtests_test runtests
+test runtests_cxx_test runtests_cxx
+assertion expat_config_h_test

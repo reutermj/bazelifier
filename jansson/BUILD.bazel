@@ -1,0 +1,923 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_shared_library.bzl", "cc_shared_library")
+load("@cc_config//cc_config:config_header.bzl", "assert_config_header_test", "config_header")
+load("@cc_config//cc_config:probe.bzl", "check_symbol_exists")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
+
+bool_flag(
+    name = "enable_urandom",
+    build_setting_default = True,
+)
+
+config_setting(
+    name = "enable_urandom_on",
+    flag_values = {":enable_urandom": "True"},
+)
+
+bool_flag(
+    name = "enable_windows_cryptoapi",
+    build_setting_default = True,
+)
+
+config_setting(
+    name = "enable_windows_cryptoapi_on",
+    flag_values = {":enable_windows_cryptoapi": "True"},
+)
+
+check_symbol_exists(
+    name = "jansson_have_close",
+    define = "HAVE_CLOSE",
+    headers = ["unistd.h"],
+    symbol = "close",
+)
+
+check_symbol_exists(
+    name = "jansson_have_getpid",
+    define = "HAVE_GETPID",
+    headers = ["unistd.h"],
+    symbol = "getpid",
+)
+
+check_symbol_exists(
+    name = "jansson_have_localeconv",
+    define = "HAVE_LOCALECONV",
+    headers = ["locale.h"],
+    symbol = "localeconv",
+)
+
+check_symbol_exists(
+    name = "jansson_have_read",
+    define = "HAVE_READ",
+    headers = ["unistd.h"],
+    symbol = "read",
+)
+
+check_symbol_exists(
+    name = "jansson_have_sched_yield",
+    define = "HAVE_SCHED_YIELD",
+    headers = ["sched.h"],
+    symbol = "sched_yield",
+)
+
+config_header(
+    name = "jansson_private_config_h",
+    output = "jansson_private_config.h",
+    template = "jansson_private_config.h.in",
+    probes = [
+        "@cc_config//catalog:have_dlfcn_h",
+        "@cc_config//catalog:have_endian_h",
+        "@cc_config//catalog:have_fcntl_h",
+        "@cc_config//catalog:have_gettimeofday",
+        "@cc_config//catalog:have_inttypes_h",
+        "@cc_config//catalog:have_locale_h",
+        "@cc_config//catalog:have_open",
+        "@cc_config//catalog:have_sched_h",
+        "@cc_config//catalog:have_stdint_h",
+        "@cc_config//catalog:have_stdio_h",
+        "@cc_config//catalog:have_stdlib_h",
+        "@cc_config//catalog:have_string_h",
+        "@cc_config//catalog:have_strings_h",
+        "@cc_config//catalog:have_strtoll",
+        "@cc_config//catalog:have_sys_param_h",
+        "@cc_config//catalog:have_sys_stat_h",
+        "@cc_config//catalog:have_sys_time_h",
+        "@cc_config//catalog:have_sys_types_h",
+        "@cc_config//catalog:have_unistd_h",
+        "@cc_config//catalog:stdc_headers",
+        ":jansson_have_close",
+        ":jansson_have_getpid",
+        ":jansson_have_localeconv",
+        ":jansson_have_read",
+        ":jansson_have_sched_yield",
+    ],
+    values = select({
+        ":enable_urandom_on": {"USE_URANDOM": "1"},
+        "//conditions:default": {},
+    }) | select({
+        ":enable_windows_cryptoapi_on": {"USE_WINDOWS_CRYPTOAPI": "1"},
+        "//conditions:default": {},
+    }) | {
+        "INITIAL_HASHTABLE_ORDER": "3",  # --enable-initial-hashtable-order default
+        "LT_OBJDIR": "\".libs/\"",
+        "PACKAGE_URL": "\"\"",
+        # AC_C_INLINE defines `inline` only for a compiler lacking it, and
+        # autoconf's fallback typedefs only for a toolchain lacking stdint.h.
+        "inline": "",
+        "_UINT32_T": "",
+        "_UINT8_T": "",
+        "int32_t": "",
+        "uint16_t": "",
+        "uint32_t": "",
+        "uint8_t": "",
+        "HAVE_ATOMIC_BUILTINS": "1",
+        "HAVE_LONG_LONG_INT": "1",
+        "HAVE_SYNC_BUILTINS": "1",
+        "HAVE_UNSIGNED_LONG_LONG_INT": "1",
+        "PACKAGE": "\"jansson\"",
+        "PACKAGE_BUGREPORT": "\"https://github.com/akheron/jansson/issues\"",
+        "PACKAGE_NAME": "\"jansson\"",
+        "PACKAGE_STRING": "\"jansson 2.14\"",
+        "PACKAGE_TARNAME": "\"jansson\"",
+        "PACKAGE_VERSION": "\"2.14\"",
+        "VERSION": "\"2.14\"",
+    },
+)
+
+assert_config_header_test(
+    name = "jansson_private_config_h_test",
+    header = ":jansson_private_config_h",
+    must_contain = [
+        "#define HAVE_ATOMIC_BUILTINS 1",
+        "#define HAVE_LONG_LONG_INT 1",
+        "#define HAVE_SYNC_BUILTINS 1",
+        "#define HAVE_UNSIGNED_LONG_LONG_INT 1",
+        "#define PACKAGE \"jansson\"",
+        "#define PACKAGE_BUGREPORT \"https://github.com/akheron/jansson/issues\"",
+        "#define PACKAGE_NAME \"jansson\"",
+        "#define PACKAGE_STRING \"jansson 2.14\"",
+        "#define PACKAGE_TARNAME \"jansson\"",
+        "#define PACKAGE_VERSION \"2.14\"",
+        "#define VERSION \"2.14\"",
+        "\"jansson\"",
+        "\"https://github.com/akheron/jansson/issues\"",
+        "\"jansson\"",
+        "\"jansson 2.14\"",
+        "\"jansson\"",
+        "\"2.14\"",
+        "\"2.14\"",
+    ],
+    must_not_contain = [
+        "/* #undef HAVE_ATOMIC_BUILTINS */",
+        "/* #undef HAVE_LONG_LONG_INT */",
+        "/* #undef HAVE_SYNC_BUILTINS */",
+        "/* #undef HAVE_UNSIGNED_LONG_LONG_INT */",
+        "/* #undef PACKAGE */",
+        "/* #undef PACKAGE_BUGREPORT */",
+        "/* #undef PACKAGE_NAME */",
+        "/* #undef PACKAGE_STRING */",
+        "/* #undef PACKAGE_TARNAME */",
+        "/* #undef PACKAGE_VERSION */",
+        "/* #undef VERSION */",
+        "@HAVE_ATOMIC_BUILTINS@",
+        "@HAVE_LONG_LONG_INT@",
+        "@HAVE_SYNC_BUILTINS@",
+        "@HAVE_UNSIGNED_LONG_LONG_INT@",
+        "@PACKAGE@",
+        "@PACKAGE_BUGREPORT@",
+        "@PACKAGE_NAME@",
+        "@PACKAGE_STRING@",
+        "@PACKAGE_TARNAME@",
+        "@PACKAGE_VERSION@",
+        "@VERSION@",
+        "@USE_URANDOM@",
+        "@USE_WINDOWS_CRYPTOAPI@",
+    ],
+)
+
+config_header(
+    name = "src_jansson_config_h",
+    output = "src/jansson_config.h",
+    template = "src/jansson_config.h.in",
+    values = {
+        "var": "@var@",  # a comment's example, which config.status leaves alone
+        "json_have_atomic_builtins": "1",
+        "json_have_localeconv": "1",
+        "json_have_long_long": "1",
+        "json_have_sync_builtins": "1",
+        "json_inline": "inline",
+    },
+)
+
+assert_config_header_test(
+    name = "src_jansson_config_h_test",
+    header = ":src_jansson_config_h",
+    must_contain = [
+        "inline",
+    ],
+    must_not_contain = [
+        "@json_have_atomic_builtins@",
+        "@json_have_localeconv@",
+        "@json_have_long_long@",
+        "@json_have_sync_builtins@",
+        "@json_inline@",
+    ],
+)
+
+cc_binary(
+    name = "json_process",
+    srcs = [
+        "test/bin/json_process.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/bin",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "libjansson.la",
+    srcs = [
+        "src/dump.c",
+        "src/error.c",
+        "src/hashtable.c",
+        "src/hashtable_seed.c",
+        "src/load.c",
+        "src/memory.c",
+        "src/pack_unpack.c",
+        "src/strbuffer.c",
+        "src/strconv.c",
+        "src/utf.c",
+        "src/value.c",
+        "src/version.c",
+        "src/hashtable.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    hdrs = [
+        "android/jansson_config.h",
+        "src/jansson.h",
+    ],
+    includes = [
+        "src",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "libjansson_ver",
+    outs = ["libjansson.ver"],
+    cmd = "printf 'libjansson.so.4 {\n  global:\n    json_*;\n    jansson_*;\n  local:\n    *;\n};\n' > $@",
+)
+
+cc_shared_library(
+    name = "libjansson.la_shared",
+    additional_linker_inputs = [":libjansson_ver"],
+    user_link_flags = [
+        "-Wl,--version-script=$(location :libjansson_ver)",
+        "-Wl,-Bsymbolic-functions",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    shared_lib_name = "libjansson.so.4",
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_array",
+    srcs = [
+        "test/suites/api/test_array.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_chaos",
+    srcs = [
+        "test/suites/api/test_chaos.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_copy",
+    srcs = [
+        "test/suites/api/test_copy.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_dump",
+    srcs = [
+        "test/suites/api/test_dump.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_dump_callback",
+    srcs = [
+        "test/suites/api/test_dump_callback.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_equal",
+    srcs = [
+        "test/suites/api/test_equal.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_fixed_size",
+    srcs = [
+        "test/suites/api/test_fixed_size.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_load",
+    srcs = [
+        "test/suites/api/test_load.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_load_callback",
+    srcs = [
+        "test/suites/api/test_load_callback.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_loadb",
+    srcs = [
+        "test/suites/api/test_loadb.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_memory_funcs",
+    srcs = [
+        "test/suites/api/test_memory_funcs.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_number",
+    srcs = [
+        "test/suites/api/test_number.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_object",
+    srcs = [
+        "test/suites/api/test_object.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_pack",
+    srcs = [
+        "test/suites/api/test_pack.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_simple",
+    srcs = [
+        "test/suites/api/test_simple.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_sprintf",
+    srcs = [
+        "test/suites/api/test_sprintf.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_unpack",
+    srcs = [
+        "test/suites/api/test_unpack.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "test_version",
+    srcs = [
+        "test/suites/api/test_version.c",
+        "android/jansson_config.h",
+        "src/hashtable.h",
+        "src/jansson.h",
+        "src/jansson_private.h",
+        "src/lookup3.h",
+        "src/strbuffer.h",
+        "src/utf.h",
+        "test/ossfuzz/testinput.h",
+        "test/suites/api/util.h",
+        ":jansson_private_config_h",
+        ":src_jansson_config_h",
+    ],
+    includes = [
+        "src",
+        "test/suites/api",
+        ".",
+    ],
+    local_defines = [
+        "HAVE_CONFIG_H",
+    ],
+    deps = [
+        ":libjansson.la",
+    ],
+    dynamic_deps = [
+        ":libjansson.la_shared",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# automake's TESTS (item 003): test/run-suites, in the build layout it expects.
+# scripts/clang-format-check is deliberately not reproduced — a formatting
+# lint over `git ls-files`, not a check of the build.
+sh_test(
+    name = "run_suites_test",
+    srcs = ["run_suites_test.sh"],
+    data = [
+        ":json_process",
+        ":libjansson.la_shared",
+        ":test_array",
+        ":test_chaos",
+        ":test_copy",
+        ":test_dump",
+        ":test_dump_callback",
+        ":test_equal",
+        ":test_fixed_size",
+        ":test_load",
+        ":test_load_callback",
+        ":test_loadb",
+        ":test_memory_funcs",
+        ":test_number",
+        ":test_object",
+        ":test_pack",
+        ":test_simple",
+        ":test_sprintf",
+        ":test_unpack",
+        ":test_version",
+    ] + glob(["test/**", "src/jansson.def"]),
+    env = {"SKIP_EXIT_CODE": "77"},
+)

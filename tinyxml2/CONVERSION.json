@@ -1,0 +1,20 @@
+{
+  "config_headers": 0,
+  "escalations": [],
+  "escalations_by_kind": {},
+  "module": "tinyxml2",
+  "targets": [
+    {
+      "kind": "static_library",
+      "name": "tinyxml2",
+      "sources": 1
+    },
+    {
+      "kind": "executable",
+      "name": "xmltest",
+      "sources": 2
+    }
+  ],
+  "tests": 1,
+  "version": "11.0.0"
+}

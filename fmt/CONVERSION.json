@@ -1,0 +1,153 @@
+{
+  "config_headers": 0,
+  "escalations": [
+    {
+      "digest": "6fc18010925f1b32",
+      "kind": "header_visibility",
+      "subject": "gtest"
+    },
+    {
+      "digest": "037074e369963b1f",
+      "kind": "header_visibility",
+      "subject": "test-main"
+    }
+  ],
+  "escalations_by_kind": {
+    "header_visibility": 2
+  },
+  "module": "FMT",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "args-test",
+      "sources": 11
+    },
+    {
+      "kind": "executable",
+      "name": "assert-test",
+      "sources": 9
+    },
+    {
+      "kind": "executable",
+      "name": "base-test",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "c-test",
+      "sources": 8
+    },
+    {
+      "kind": "executable",
+      "name": "chrono-test",
+      "sources": 13
+    },
+    {
+      "kind": "executable",
+      "name": "color-test",
+      "sources": 13
+    },
+    {
+      "kind": "executable",
+      "name": "compile-test",
+      "sources": 18
+    },
+    {
+      "kind": "executable",
+      "name": "enforce-checks-test",
+      "sources": 14
+    },
+    {
+      "kind": "static_library",
+      "name": "fmt",
+      "sources": 3
+    },
+    {
+      "kind": "static_library",
+      "name": "fmt-c",
+      "sources": 3
+    },
+    {
+      "kind": "executable",
+      "name": "format-impl-test",
+      "sources": 29
+    },
+    {
+      "kind": "executable",
+      "name": "format-test",
+      "sources": 12
+    },
+    {
+      "kind": "static_library",
+      "name": "gtest",
+      "sources": 4
+    },
+    {
+      "kind": "executable",
+      "name": "gtest-extra-test",
+      "sources": 13
+    },
+    {
+      "kind": "executable",
+      "name": "no-builtin-types-test",
+      "sources": 28
+    },
+    {
+      "kind": "executable",
+      "name": "os-test",
+      "sources": 12
+    },
+    {
+      "kind": "executable",
+      "name": "ostream-test",
+      "sources": 16
+    },
+    {
+      "kind": "executable",
+      "name": "perf-sanity",
+      "sources": 9
+    },
+    {
+      "kind": "executable",
+      "name": "posix-mock-test",
+      "sources": 28
+    },
+    {
+      "kind": "executable",
+      "name": "printf-test",
+      "sources": 18
+    },
+    {
+      "kind": "executable",
+      "name": "ranges-test",
+      "sources": 12
+    },
+    {
+      "kind": "executable",
+      "name": "scan-test",
+      "sources": 28
+    },
+    {
+      "kind": "executable",
+      "name": "std-test",
+      "sources": 16
+    },
+    {
+      "kind": "static_library",
+      "name": "test-main",
+      "sources": 26
+    },
+    {
+      "kind": "executable",
+      "name": "unicode-test",
+      "sources": 28
+    },
+    {
+      "kind": "executable",
+      "name": "xchar-test",
+      "sources": 18
+    }
+  ],
+  "tests": 21,
+  "version": null
+}

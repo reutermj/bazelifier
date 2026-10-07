@@ -1,0 +1,36 @@
+binary json_parse
+binary test1
+binary test1Formatted
+binary test2
+binary test2Formatted
+binary test4
+binary testReplaceExisting
+binary test_cast
+binary test_charcase
+binary test_compare
+binary test_deep_copy
+binary test_deep_nesting
+binary test_double_serializer
+binary test_float
+binary test_int_add
+binary test_int_get
+binary test_json_patch
+binary test_json_pointer
+binary test_locale
+binary test_null
+binary test_object_iterator
+binary test_parse
+binary test_parse_int64
+binary test_printbuf
+binary test_safe_json_pointer_set
+binary test_set_serializer
+binary test_set_value
+binary test_strerror
+binary test_util_file
+binary test_visit
+library json-c libjson-c shared
+library json-c-static libjson-c static
+assertion apps_config_h_test
+assertion config_h_test
+assertion json_config_h_test
+assertion json_h_test

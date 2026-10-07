@@ -1,0 +1,3 @@
+binary xmltest
+library tinyxml2 libtinyxml2 static
+test xmltest_test xmltest

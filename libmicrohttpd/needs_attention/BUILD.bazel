@@ -1,0 +1,8 @@
+filegroup(
+    name = "all",
+    srcs = glob(
+        ["*.md"],
+        allow_empty = True,
+    ) + ["MANIFEST"],
+    visibility = ["//visibility:public"],
+)

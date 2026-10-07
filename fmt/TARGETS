@@ -1,0 +1,47 @@
+binary args-test
+binary assert-test
+binary base-test
+binary c-test
+binary chrono-test
+binary color-test
+binary compile-test
+binary enforce-checks-test
+binary format-impl-test
+binary format-test
+binary gtest-extra-test
+binary no-builtin-types-test
+binary os-test
+binary ostream-test
+binary perf-sanity
+binary posix-mock-test
+binary printf-test
+binary ranges-test
+binary scan-test
+binary std-test
+binary unicode-test
+binary xchar-test
+library fmt libfmt static
+library fmt-c libfmt-c static
+library gtest libgtest static
+library test-main libtest-main static
+test args-test_test args-test
+test assert-test_test assert-test
+test base-test_test base-test
+test c-test_test c-test
+test chrono-test_test chrono-test
+test color-test_test color-test
+test compile-test_test compile-test
+test enforce-checks-test_test enforce-checks-test
+test format-impl-test_test format-impl-test
+test format-test_test format-test
+test gtest-extra-test_test gtest-extra-test
+test no-builtin-types-test_test no-builtin-types-test
+test os-test_test os-test
+test ostream-test_test ostream-test
+test posix-mock-test_test posix-mock-test
+test printf-test_test printf-test
+test ranges-test_test ranges-test
+test scan-test_test scan-test
+test std-test_test std-test
+test unicode-test_test unicode-test
+test xchar-test_test xchar-test

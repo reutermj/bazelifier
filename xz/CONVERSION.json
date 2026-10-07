@@ -1,0 +1,114 @@
+{
+  "config_headers": 1,
+  "escalations": [
+    {
+      "digest": "c645d2e771668254",
+      "kind": "ctest_command_not_a_target",
+      "subject": "tests/test_files.sh, tests/test_suffix.sh, tests/test_compress_prepared_bcj_sparc, tests/test_compress_prepared_bcj_x86, tests/test_compress_generated_abc, tests/test_compress_generated_random, tests/test_compress_generated_text, tests/test_scripts.sh"
+    },
+    {
+      "digest": "087fec5bcc5906d3",
+      "kind": "unmapped_config_macros",
+      "subject": "config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "unmapped_config_macros": 1
+  },
+  "module": "xz",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "create_compress_files",
+      "sources": 102
+    },
+    {
+      "kind": "shared_library",
+      "name": "liblzma.la",
+      "sources": 181
+    },
+    {
+      "kind": "executable",
+      "name": "lzmadec",
+      "sources": 104
+    },
+    {
+      "kind": "executable",
+      "name": "lzmainfo",
+      "sources": 104
+    },
+    {
+      "kind": "executable",
+      "name": "test_bcj_exact_size",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_block_header",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_check",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_filter_flags",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_filter_str",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_hardware",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_index",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_index_hash",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_lzip_decoder",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_memlimit",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_stream_flags",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "test_vli",
+      "sources": 102
+    },
+    {
+      "kind": "executable",
+      "name": "xz",
+      "sources": 118
+    },
+    {
+      "kind": "executable",
+      "name": "xzdec",
+      "sources": 104
+    }
+  ],
+  "tests": 12,
+  "version": "5.4.7"
+}

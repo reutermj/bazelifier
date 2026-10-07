@@ -1,0 +1,205 @@
+{
+  "config_headers": 4,
+  "escalations": [
+    {
+      "digest": "942a82658fafbfd1",
+      "kind": "ctest_command_not_a_target",
+      "subject": "test_json_parse_cli, test1, test2, test4, testReplaceExisting, test_cast, test_charcase, test_compare, test_deep_copy, test_deep_nesting, test_double_serializer, test_float, test_int_add, test_int_get, test_locale, test_null, test_parse, test_parse_int64, test_printbuf, test_set_serializer, test_set_value, test_strerror, test_util_file, test_visit, test_object_iterator, test_json_pointer, test_safe_json_pointer_set, test_json_patch"
+    },
+    {
+      "digest": "8cae93e51bac737e",
+      "kind": "inert_convenience_targets",
+      "subject": "distcheck"
+    },
+    {
+      "digest": "24088754e5c2938f",
+      "kind": "unmapped_config_macros",
+      "subject": "apps_config.h"
+    },
+    {
+      "digest": "08bf5891471bfd87",
+      "kind": "unmapped_config_macros",
+      "subject": "config.h"
+    },
+    {
+      "digest": "8a10b85046fd194a",
+      "kind": "unmapped_config_macros",
+      "subject": "json.h"
+    },
+    {
+      "digest": "bd3f01a7a5d1b55b",
+      "kind": "unmapped_config_macros",
+      "subject": "json_config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "inert_convenience_targets": 1,
+    "unmapped_config_macros": 4
+  },
+  "module": "json-c",
+  "targets": [
+    {
+      "kind": "shared_library",
+      "name": "json-c",
+      "sources": 23
+    },
+    {
+      "kind": "static_library",
+      "name": "json-c-static",
+      "sources": 23
+    },
+    {
+      "kind": "executable",
+      "name": "json_parse",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test1",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test1Formatted",
+      "sources": 25
+    },
+    {
+      "kind": "executable",
+      "name": "test2",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test2Formatted",
+      "sources": 25
+    },
+    {
+      "kind": "executable",
+      "name": "test4",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "testReplaceExisting",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_cast",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_charcase",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_compare",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_deep_copy",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_deep_nesting",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_double_serializer",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_float",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_int_add",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_int_get",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_json_patch",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_json_pointer",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_locale",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_null",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_object_iterator",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_parse",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_parse_int64",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_printbuf",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_safe_json_pointer_set",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_set_serializer",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_set_value",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_strerror",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_util_file",
+      "sources": 24
+    },
+    {
+      "kind": "executable",
+      "name": "test_visit",
+      "sources": 24
+    }
+  ],
+  "tests": 0,
+  "version": "0.19"
+}

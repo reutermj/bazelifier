@@ -1,0 +1,67 @@
+binary decode
+binary example-toascii
+binary example-tounicode
+binary idn2
+binary libidn2_register_fuzzer
+binary libidn2_to_ascii_8z_fuzzer
+binary libidn2_to_unicode_8z8z_fuzzer
+binary lookup
+binary register
+binary test-IdnaTest-inc
+binary test-IdnaTest-txt
+binary test-compat-punycode
+binary test-glibc
+binary test-locale
+binary test-lookup
+binary test-punycode
+binary test-register
+binary test-strerror
+binary test-tounicode
+binary test-version
+library libgnu.la libgnu static
+library libidn2.la libidn2 shared
+library libidn2_cmd.la libidn2_cmd static
+library libunistring.la libunistring static
+test libidn2_register_fuzzer_test libidn2_register_fuzzer
+test libidn2_to_ascii_8z_fuzzer_test libidn2_to_ascii_8z_fuzzer
+test libidn2_to_unicode_8z8z_fuzzer_test libidn2_to_unicode_8z8z_fuzzer
+test test-IdnaTest-inc_test test-IdnaTest-inc
+test test-IdnaTest-txt_test test-IdnaTest-txt
+test test-compat-punycode_test test-compat-punycode
+test test-glibc_test test-glibc
+test test-locale_test test-locale
+test test-lookup_test test-lookup
+test test-punycode_test test-punycode
+test test-register_test test-register
+test test-strerror_test test-strerror
+test test-tounicode_test test-tounicode
+test test-version_test test-version
+assertion config_h_test
+assertion gl_alloca_h_test
+assertion gl_error_h_test
+assertion gl_fcntl_h_test
+assertion gl_limits_h_test
+assertion gl_stat_h_test
+assertion gl_stdckdint_h_test
+assertion gl_stddef_h_test
+assertion gl_stdio_h_test
+assertion gl_stdlib_h_test
+assertion gl_string_h_test
+assertion gl_time_h_test
+assertion gl_types_h_test
+assertion gl_unistd_h_test
+assertion lib_idn2_h_test
+assertion unistring_iconv_h_test
+assertion unistring_inttypes_h_test
+assertion unistring_limits_h_test
+assertion unistring_stddef_h_test
+assertion unistring_stdlib_h_test
+assertion unistring_string_h_test
+assertion unistring_types_h_test
+assertion unistring_uniconv_h_test
+assertion unistring_unictype_h_test
+assertion unistring_uninorm_h_test
+assertion unistring_unistd_h_test
+assertion unistring_unistr_h_test
+assertion unistring_unitypes_h_test
+assertion unistring_wchar_h_test

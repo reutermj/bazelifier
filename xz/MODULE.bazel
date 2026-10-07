@@ -1,0 +1,12 @@
+module(
+    name = "xz",
+    version = "5.4.7",
+)
+
+bazel_dep(name = "rules_cc", version = "0.2.25")
+bazel_dep(name = "llvm", version = "0.8.14")
+bazel_dep(name = "rules_shell", version = "0.8.0")
+bazel_dep(name = "cc_config", version = "0.0.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+
+register_toolchains("@llvm//toolchain:all")

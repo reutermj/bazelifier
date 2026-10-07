@@ -1,0 +1,129 @@
+{
+  "config_headers": 2,
+  "escalations": [
+    {
+      "digest": "72626a3a7b6a8cf5",
+      "kind": "ctest_command_not_a_target",
+      "subject": "scripts/clang-format-check, test/run-suites"
+    },
+    {
+      "digest": "e935befc4dc3b4de",
+      "kind": "unmapped_config_macros",
+      "subject": "jansson_private_config.h"
+    },
+    {
+      "digest": "c26059ec8fcd22ca",
+      "kind": "unmapped_config_macros",
+      "subject": "src/jansson_config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "unmapped_config_macros": 2
+  },
+  "module": "jansson",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "json_process",
+      "sources": 10
+    },
+    {
+      "kind": "shared_library",
+      "name": "libjansson.la",
+      "sources": 19
+    },
+    {
+      "kind": "executable",
+      "name": "test_array",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_chaos",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_copy",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_dump",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_dump_callback",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_equal",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_fixed_size",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_load",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_load_callback",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_loadb",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_memory_funcs",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_number",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_object",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_pack",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_simple",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_sprintf",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_unpack",
+      "sources": 10
+    },
+    {
+      "kind": "executable",
+      "name": "test_version",
+      "sources": 10
+    }
+  ],
+  "tests": 0,
+  "version": "2.14"
+}

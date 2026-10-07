@@ -1,0 +1,22 @@
+binary json_process
+binary test_array
+binary test_chaos
+binary test_copy
+binary test_dump
+binary test_dump_callback
+binary test_equal
+binary test_fixed_size
+binary test_load
+binary test_load_callback
+binary test_loadb
+binary test_memory_funcs
+binary test_number
+binary test_object
+binary test_pack
+binary test_simple
+binary test_sprintf
+binary test_unpack
+binary test_version
+library libjansson.la libjansson shared
+assertion jansson_private_config_h_test
+assertion src_jansson_config_h_test

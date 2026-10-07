@@ -1,0 +1,156 @@
+{
+  "config_headers": 29,
+  "escalations": [
+    {
+      "digest": "d2223818c8338a22",
+      "kind": "ctest_command_not_a_target",
+      "subject": "tests/test-idn2.sh"
+    },
+    {
+      "digest": "168b3f9aa1959737",
+      "kind": "generated_headers",
+      "subject": "gl/sys/stat.h, gl/sys/types.h, unistring/sys/types.h"
+    },
+    {
+      "digest": "f74f9ed6b199d18a",
+      "kind": "shared_library_absorbs_static",
+      "subject": "libidn2.la"
+    },
+    {
+      "digest": "78c691184f5454eb",
+      "kind": "unmapped_config_macros",
+      "subject": "config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "generated_headers": 1,
+    "shared_library_absorbs_static": 1,
+    "unmapped_config_macros": 1
+  },
+  "module": "libidn2",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "decode",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "example-toascii",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "example-tounicode",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "idn2",
+      "sources": 113
+    },
+    {
+      "kind": "static_library",
+      "name": "libgnu.la",
+      "sources": 122
+    },
+    {
+      "kind": "shared_library",
+      "name": "libidn2.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libidn2_cmd.la",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "libidn2_register_fuzzer",
+      "sources": 114
+    },
+    {
+      "kind": "executable",
+      "name": "libidn2_to_ascii_8z_fuzzer",
+      "sources": 114
+    },
+    {
+      "kind": "executable",
+      "name": "libidn2_to_unicode_8z8z_fuzzer",
+      "sources": 114
+    },
+    {
+      "kind": "static_library",
+      "name": "libunistring.la",
+      "sources": 158
+    },
+    {
+      "kind": "executable",
+      "name": "lookup",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "register",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-IdnaTest-inc",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-IdnaTest-txt",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-compat-punycode",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-glibc",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-locale",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-lookup",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-punycode",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-register",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-strerror",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-tounicode",
+      "sources": 113
+    },
+    {
+      "kind": "executable",
+      "name": "test-version",
+      "sources": 113
+    }
+  ],
+  "tests": 14,
+  "version": "2.3.7"
+}

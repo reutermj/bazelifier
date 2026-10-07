@@ -1,0 +1,48 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+cc_library(
+    name = "tinyxml2",
+    srcs = [
+        "tinyxml2.cpp",
+    ],
+    hdrs = [
+        "tinyxml2.h",
+    ],
+    includes = [
+        ".",
+    ],
+    local_defines = [
+        "_FILE_OFFSET_BITS=64",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_binary(
+    name = "xmltest",
+    srcs = [
+        "xmltest.cpp",
+        "tinyxml2.h",
+    ],
+    local_defines = [
+        "_FILE_OFFSET_BITS=64",
+    ],
+    deps = [
+        ":tinyxml2",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+sh_test(
+    name = "xmltest_test",
+    srcs = ["run_registered_test.sh"],
+    args = [
+         "xmltest",
+         ".",
+         ", Fail 0",
+    ],
+    data = [
+         ":xmltest",
+    ] + glob(["**"], exclude = ["BUILD.bazel", "MODULE.bazel"]),
+)

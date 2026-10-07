@@ -1,0 +1,15 @@
+binary infcover
+binary minigzip
+binary static_minigzip
+binary zlib_example
+binary zlib_example64
+binary zlib_static_example
+binary zlib_static_example64
+library zlib libz shared
+library zlibstatic libz static
+test zlib_coverage_test infcover
+test zlib_example_test zlib_example
+test zlib_example64_test zlib_example64
+test zlib_static_example_test zlib_static_example
+test zlib_static_example64_test zlib_static_example64
+assertion zconf_h_test
