@@ -1,0 +1,100 @@
+binary abi_no_init
+binary abi_with_init
+binary alloc
+binary asyncgroup
+binary client
+binary client2
+binary client3
+binary client4
+binary debugger
+binary debuggerd
+binary dmodex
+binary dynamic
+binary fault
+binary group
+binary group_dmodex
+binary group_lcl_cid
+binary hello
+binary jctrl
+binary launcher
+binary log
+binary nodeinfo
+binary palloc
+binary pattrs
+binary pctrl
+binary pevent
+binary plookup
+binary pmix_client
+binary pmix_environ
+binary pmix_info
+binary pmix_regex
+binary pmix_test
+binary pmixcc
+binary pps
+binary pquery
+binary pset
+binary pub
+binary pubi
+binary pubstress
+binary resolve
+binary simple_resolve
+binary tool
+binary toolqry
+library libmca_bfrops.la libmca_bfrops static
+library libmca_gds.la libmca_gds static
+library libmca_pcompress.la libmca_pcompress static
+library libmca_pdl.la libmca_pdl static
+library libmca_pif.la libmca_pif static
+library libmca_pinstalldirs.la libmca_pinstalldirs static
+library libmca_plog.la libmca_plog static
+library libmca_pmdl.la libmca_pmdl static
+library libmca_pnet.la libmca_pnet static
+library libmca_preg.la libmca_preg static
+library libmca_psec.la libmca_psec static
+library libmca_psensor.la libmca_psensor static
+library libmca_psquash.la libmca_psquash static
+library libmca_pstat.la libmca_pstat static
+library libmca_ptl.la libmca_ptl static
+library libpmix.la libpmix shared
+library libpmix_class.la libpmix_class static
+library libpmix_mca_base.la libpmix_mca_base static
+library libpmix_mca_bfrops_v12.la libpmix_mca_bfrops_v12 static
+library libpmix_mca_bfrops_v20.la libpmix_mca_bfrops_v20 static
+library libpmix_mca_bfrops_v21.la libpmix_mca_bfrops_v21 static
+library libpmix_mca_bfrops_v3.la libpmix_mca_bfrops_v3 static
+library libpmix_mca_bfrops_v4.la libpmix_mca_bfrops_v4 static
+library libpmix_mca_bfrops_v41.la libpmix_mca_bfrops_v41 static
+library libpmix_mca_gds_hash.la libpmix_mca_gds_hash static
+library libpmix_mca_gds_shmem2.la libpmix_mca_gds_shmem2 static
+library libpmix_mca_pdl_pdlopen.la libpmix_mca_pdl_pdlopen static
+library libpmix_mca_pif_linux_ipv6.la libpmix_mca_pif_linux_ipv6 static
+library libpmix_mca_pif_posix_ipv4.la libpmix_mca_pif_posix_ipv4 static
+library libpmix_mca_pinstalldirs_config.la libpmix_mca_pinstalldirs_config static
+library libpmix_mca_pinstalldirs_env.la libpmix_mca_pinstalldirs_env static
+library libpmix_mca_plog_default.la libpmix_mca_plog_default static
+library libpmix_mca_plog_stdfd.la libpmix_mca_plog_stdfd static
+library libpmix_mca_plog_syslog.la libpmix_mca_plog_syslog static
+library libpmix_mca_pmdl_ompi.la libpmix_mca_pmdl_ompi static
+library libpmix_mca_pnet_opa.la libpmix_mca_pnet_opa static
+library libpmix_mca_preg_compress.la libpmix_mca_preg_compress static
+library libpmix_mca_preg_native.la libpmix_mca_preg_native static
+library libpmix_mca_preg_raw.la libpmix_mca_preg_raw static
+library libpmix_mca_psec_native.la libpmix_mca_psec_native static
+library libpmix_mca_psec_none.la libpmix_mca_psec_none static
+library libpmix_mca_psensor_file.la libpmix_mca_psensor_file static
+library libpmix_mca_psensor_heartbeat.la libpmix_mca_psensor_heartbeat static
+library libpmix_mca_psquash_flex128.la libpmix_mca_psquash_flex128 static
+library libpmix_mca_psquash_native.la libpmix_mca_psquash_native static
+library libpmix_mca_pstat_linux.la libpmix_mca_pstat_linux static
+library libpmix_mca_ptl_client.la libpmix_mca_ptl_client static
+library libpmix_mca_ptl_server.la libpmix_mca_ptl_server static
+library libpmix_mca_ptl_tool.la libpmix_mca_ptl_tool static
+library libpmix_util.la libpmix_util static
+library libpmixglobal.la libpmixglobal static
+library libpmixutilkeyval.la libpmixutilkeyval static
+test pmix_environ_test pmix_environ
+assertion include_pmix_common_h_test
+assertion include_pmix_version_h_test
+assertion src_include_pmix_config_h_test
+assertion src_mca_pinstalldirs_config_pinstall_dirs_h_test
+omitted pmix_info prints the configure/build stamps (date, host, user), which differ from the ground truth by construction

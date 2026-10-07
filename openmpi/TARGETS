@@ -1,0 +1,258 @@
+binary atomic_barrier
+binary atomic_barrier_noinline
+binary atomic_cmpset
+binary atomic_cmpset_noinline
+binary atomic_math
+binary atomic_math_noinline
+binary atomic_spinlock
+binary atomic_spinlock_noinline
+binary bipartite_graph
+binary check_monitoring
+binary checksum
+binary ddt_pack
+binary ddt_raw
+binary ddt_raw2
+binary ddt_test
+binary dlopen_test
+binary example_reduce_count
+binary external32
+binary large_data
+binary monitoring_test
+binary mpiCC
+binary mpic++
+binary mpicc
+binary mpicxx
+binary mpiexec
+binary mpirun
+binary mpool_memkind
+binary ompi_info
+binary ompi_rb_tree
+binary opal_atomic_thread_bench
+binary opal_bit_ops
+binary opal_bitmap
+binary opal_condition
+binary opal_cstring
+binary opal_datatype_test
+binary opal_fifo
+binary opal_hash_table
+binary opal_lifo
+binary opal_list
+binary opal_path_nfs
+binary opal_pointer_array
+binary opal_proc_table
+binary opal_sha256
+binary opal_thread
+binary opal_value_array
+binary opal_wrapper
+binary oshrun
+binary parrived_null_inactive
+binary partial
+binary partitioned_proc_null
+binary position
+binary position_noncontig
+binary predefined_gap_test
+binary predefined_pad_test
+binary reduce_local
+binary spc_test
+binary test_overhead
+binary test_pvar_access
+binary to_self
+binary unpack_hetero
+binary unpack_ooo
+library libdatatype_reliable.la libdatatype_reliable static
+library libdebuggers.la libdebuggers static
+library liblocal_ops_avx.la liblocal_ops_avx static
+library liblocal_ops_avx2.la liblocal_ops_avx2 static
+library liblocal_ops_avx512.la liblocal_ops_avx512 static
+library libmca_accelerator.la libmca_accelerator static
+library libmca_accelerator_null.la libmca_accelerator_null static
+library libmca_allocator.la libmca_allocator static
+library libmca_allocator_basic.la libmca_allocator_basic static
+library libmca_allocator_bucket.la libmca_allocator_bucket static
+library libmca_backtrace.la libmca_backtrace static
+library libmca_backtrace_execinfo.la libmca_backtrace_execinfo static
+library libmca_base.la libmca_base static
+library libmca_bml.la libmca_bml static
+library libmca_bml_r2.la libmca_bml_r2 static
+library libmca_btl.la libmca_btl static
+library libmca_btl_self.la libmca_btl_self static
+library libmca_btl_sm.la libmca_btl_sm static
+library libmca_btl_tcp.la libmca_btl_tcp static
+library libmca_coll.la libmca_coll static
+library libmca_coll_adapt.la libmca_coll_adapt static
+library libmca_coll_basic.la libmca_coll_basic static
+library libmca_coll_ftagree.la libmca_coll_ftagree static
+library libmca_coll_han.la libmca_coll_han static
+library libmca_coll_inter.la libmca_coll_inter static
+library libmca_coll_libnbc.la libmca_coll_libnbc static
+library libmca_coll_monitoring.la libmca_coll_monitoring static
+library libmca_coll_self.la libmca_coll_self static
+library libmca_coll_sm.la libmca_coll_sm static
+library libmca_coll_sync.la libmca_coll_sync static
+library libmca_coll_tuned.la libmca_coll_tuned static
+library libmca_common_monitoring_noinst.la libmca_common_monitoring_noinst static
+library libmca_common_ompio_noinst.la libmca_common_ompio_noinst static
+library libmca_dl.la libmca_dl static
+library libmca_dl_dlopen.la libmca_dl_dlopen static
+library libmca_fbtl.la libmca_fbtl static
+library libmca_fbtl_posix.la libmca_fbtl_posix static
+library libmca_fcoll.la libmca_fcoll static
+library libmca_fcoll_dynamic.la libmca_fcoll_dynamic static
+library libmca_fcoll_dynamic_gen2.la libmca_fcoll_dynamic_gen2 static
+library libmca_fcoll_individual.la libmca_fcoll_individual static
+library libmca_fcoll_vulcan.la libmca_fcoll_vulcan static
+library libmca_fs.la libmca_fs static
+library libmca_fs_ufs.la libmca_fs_ufs static
+library libmca_hook.la libmca_hook static
+library libmca_hook_comm_method.la libmca_hook_comm_method static
+library libmca_hwloc.la libmca_hwloc static
+library libmca_if.la libmca_if static
+library libmca_if_linux_ipv6.la libmca_if_linux_ipv6 static
+library libmca_if_posix_ipv4.la libmca_if_posix_ipv4 static
+library libmca_installdirs.la libmca_installdirs static
+library libmca_installdirs_config.la libmca_installdirs_config static
+library libmca_installdirs_env.la libmca_installdirs_env static
+library libmca_io.la libmca_io static
+library libmca_io_ompio.la libmca_io_ompio static
+library libmca_io_romio341.la libmca_io_romio341 static
+library libmca_memchecker.la libmca_memchecker static
+library libmca_memcpy.la libmca_memcpy static
+library libmca_memory.la libmca_memory static
+library libmca_memory_patcher.la libmca_memory_patcher static
+library libmca_mpool.la libmca_mpool static
+library libmca_mpool_hugepage.la libmca_mpool_hugepage static
+library libmca_mtl.la libmca_mtl static
+library libmca_op.la libmca_op static
+library libmca_op_avx.la libmca_op_avx static
+library libmca_osc.la libmca_osc static
+library libmca_osc_monitoring.la libmca_osc_monitoring static
+library libmca_osc_rdma.la libmca_osc_rdma static
+library libmca_osc_sm.la libmca_osc_sm static
+library libmca_part.la libmca_part static
+library libmca_part_persist.la libmca_part_persist static
+library libmca_patcher.la libmca_patcher static
+library libmca_patcher_overwrite.la libmca_patcher_overwrite static
+library libmca_pmix.la libmca_pmix static
+library libmca_pml.la libmca_pml static
+library libmca_pml_cm.la libmca_pml_cm static
+library libmca_pml_monitoring.la libmca_pml_monitoring static
+library libmca_pml_ob1.la libmca_pml_ob1 static
+library libmca_pml_v.la libmca_pml_v static
+library libmca_rcache.la libmca_rcache static
+library libmca_rcache_grdma.la libmca_rcache_grdma static
+library libmca_reachable.la libmca_reachable static
+library libmca_reachable_weighted.la libmca_reachable_weighted static
+library libmca_sharedfp.la libmca_sharedfp static
+library libmca_sharedfp_individual.la libmca_sharedfp_individual static
+library libmca_sharedfp_lockedfile.la libmca_sharedfp_lockedfile static
+library libmca_sharedfp_sm.la libmca_sharedfp_sm static
+library libmca_shmem.la libmca_shmem static
+library libmca_shmem_mmap.la libmca_shmem_mmap static
+library libmca_shmem_posix.la libmca_shmem_posix static
+library libmca_shmem_sysv.la libmca_shmem_sysv static
+library libmca_smsc.la libmca_smsc static
+library libmca_smsc_cma.la libmca_smsc_cma static
+library libmca_threads.la libmca_threads static
+library libmca_threads_pthreads.la libmca_threads_pthreads static
+library libmca_timer.la libmca_timer static
+library libmca_timer_linux.la libmca_timer_linux static
+library libmca_topo.la libmca_topo static
+library libmca_topo_basic.la libmca_topo_basic static
+library libmca_topo_treematch.la libmca_topo_treematch static
+library libmca_vprotocol.la libmca_vprotocol static
+library libmca_vprotocol_pessimist.la libmca_vprotocol_pessimist static
+library libmpi.la libmpi shared
+library libmpi_c.la libmpi_c static
+library libmpi_c_profile.la libmpi_c_profile static
+library libmpi_mpit.la libmpi_mpit static
+library libmpi_mpit_profile.la libmpi_mpit_profile static
+library libmpiext_affinity_c.la libmpiext_affinity_c static
+library libmpiext_cuda_c.la libmpiext_cuda_c static
+library libmpiext_ftmpi_c.la libmpiext_ftmpi_c static
+library libmpiext_rocm_c.la libmpiext_rocm_c static
+library libmpl.la libmpl static
+library libompi_dbg_msgq.la libompi_dbg_msgq shared
+library libompi_debugger_canary.la libompi_debugger_canary static
+library libopalutil.la libopalutil static
+library libopalutil_core.la libopalutil_core static
+library libopalutilkeyval.la libopalutilkeyval static
+library libopen-pal.la libopen-pal shared
+library libopen-pal_core.la libopen-pal_core static
+library libopen-palmca_common_sm_noinst.la libopen-palmca_common_sm_noinst static
+library libpmpiext_ftmpi_c.la libpmpiext_ftmpi_c static
+library libromio_dist.la libromio_dist static
+library libsupport.a libsupport static
+library libtreematch.la libtreematch static
+library ompi_datatype_libdatatype.la libdatatype static
+library opal_datatype_libdatatype.la libdatatype static
+test atomic_barrier_test atomic_barrier
+test atomic_barrier_noinline_test atomic_barrier_noinline
+test atomic_cmpset_test atomic_cmpset
+test atomic_cmpset_noinline_test atomic_cmpset_noinline
+test atomic_math_test atomic_math
+test atomic_math_noinline_test atomic_math_noinline
+test atomic_spinlock_test atomic_spinlock
+test atomic_spinlock_noinline_test atomic_spinlock_noinline
+test bipartite_graph_test bipartite_graph
+test checksum_test checksum
+test ddt_pack_test ddt_pack
+test ddt_raw_test ddt_raw
+test ddt_raw2_test ddt_raw2
+test ddt_test_test ddt_test
+test dlopen_test_test dlopen_test
+test external32_test external32
+test large_data_test large_data
+test mpool_memkind_test mpool_memkind
+test ompi_rb_tree_test ompi_rb_tree
+test opal_atomic_thread_bench_test opal_atomic_thread_bench
+test opal_bit_ops_test opal_bit_ops
+test opal_bitmap_test opal_bitmap
+test opal_condition_test opal_condition
+test opal_cstring_test opal_cstring
+test opal_datatype_test_test opal_datatype_test
+test opal_fifo_test opal_fifo
+test opal_hash_table_test opal_hash_table
+test opal_lifo_test opal_lifo
+test opal_list_test opal_list
+test opal_path_nfs_test opal_path_nfs
+test opal_pointer_array_test opal_pointer_array
+test opal_proc_table_test opal_proc_table
+test opal_sha256_test opal_sha256
+test opal_thread_test opal_thread
+test opal_value_array_test opal_value_array
+test parrived_null_inactive_test parrived_null_inactive
+test partial_test partial
+test partitioned_proc_null_test partitioned_proc_null
+test position_test position
+test position_noncontig_test position_noncontig
+test predefined_gap_test_test predefined_gap_test
+test predefined_pad_test_test predefined_pad_test
+test unpack_hetero_test unpack_hetero
+test unpack_ooo_test unpack_ooo
+assertion 3rd_party_romio341_adio_include_romioconf_h_test
+assertion 3rd_party_romio341_include_mpio_h_test
+assertion 3rd_party_romio341_mpl_include_config_h_test
+assertion 3rd_party_romio341_mpl_include_mpl_timer_h_test
+assertion ompi_include_mpi_h_test
+assertion ompi_include_mpif_config_h_test
+assertion ompi_include_mpif_h_test
+assertion ompi_include_ompi_version_h_test
+assertion ompi_mpi_fortran_configure_fortran_output_h_test
+assertion ompi_mpi_fortran_use_mpi_f08_mod_mpi_f08_interfaces_h_test
+assertion ompi_mpi_fortran_use_mpi_ignore_tkr_mpi_ignore_tkr_file_interfaces_h_test
+assertion ompi_mpi_fortran_use_mpi_ignore_tkr_mpi_ignore_tkr_interfaces_h_test
+assertion ompi_mpi_fortran_use_mpi_ignore_tkr_mpi_ignore_tkr_removed_interfaces_h_test
+assertion ompi_mpi_fortran_use_mpi_tkr_fortran_sizes_h_test
+assertion ompi_mpiext_cuda_c_mpiext_cuda_c_h_test
+assertion ompi_mpiext_rocm_c_mpiext_rocm_c_h_test
+assertion ompi_mpiext_shortfloat_c_mpiext_shortfloat_c_h_test
+assertion ompi_mpiext_shortfloat_mpif_h_mpiext_shortfloat_mpifh_h_test
+assertion ompi_mpiext_shortfloat_use_mpi_f08_mpiext_shortfloat_usempif08_h_test
+assertion opal_include_opal_config_h_test
+assertion opal_include_opal_version_h_test
+assertion opal_mca_installdirs_config_install_dirs_h_test
+assertion oshmem_include_oshmem_version_h_test
+assertion oshmem_include_shmem_h_test
+omitted ompi_info prints the configure/build stamps (date, host, user, compiler), which differ from the ground truth by construction
+omitted reduce_local a benchmark: prints elapsed times, which differ run to run by construction
+omitted test_overhead a benchmark: prints elapsed times, which differ run to run by construction

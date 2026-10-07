@@ -1,0 +1,129 @@
+binary cpukinds
+binary cpuset_bitmap_cpubind
+binary cpuset_nodeset
+binary get-knl-modes
+binary gl
+binary glibc-sched
+binary gpu
+binary hwloc-annotate
+binary hwloc-bind
+binary hwloc-calc
+binary hwloc-diff
+binary hwloc-distrib
+binary hwloc-dump-hwdata
+binary hwloc-gather-cpuid
+binary hwloc-hello
+binary hwloc-hello-cpp
+binary hwloc-info
+binary hwloc-ls
+binary hwloc-patch
+binary hwloc-ps
+binary hwloc-tweak-osindex
+binary hwloc_api_version
+binary hwloc_backends
+binary hwloc_bind
+binary hwloc_bitmap
+binary hwloc_bitmap_compare_inclusion
+binary hwloc_bitmap_first_last_weight
+binary hwloc_bitmap_singlify
+binary hwloc_bitmap_string
+binary hwloc_distances
+binary hwloc_get_area_memlocation
+binary hwloc_get_cache_covering_cpuset
+binary hwloc_get_closest_objs
+binary hwloc_get_largest_objs_inside_cpuset
+binary hwloc_get_last_cpu_location
+binary hwloc_get_next_obj_covering_cpuset
+binary hwloc_get_obj_below_array_by_type
+binary hwloc_get_obj_covering_cpuset
+binary hwloc_get_obj_inside_cpuset
+binary hwloc_get_obj_with_same_locality
+binary hwloc_get_shared_cache_covering_obj
+binary hwloc_groups
+binary hwloc_insert_misc
+binary hwloc_iodevs
+binary hwloc_is_thissystem
+binary hwloc_list_components
+binary hwloc_obj_infos
+binary hwloc_object_userdata
+binary hwloc_pci_backend
+binary hwloc_synthetic
+binary hwloc_topology_abi
+binary hwloc_topology_allow
+binary hwloc_topology_diff
+binary hwloc_topology_dup
+binary hwloc_topology_restrict
+binary hwloc_type_depth
+binary hwloc_type_sscanf
+binary lstopo
+binary lstopo-no-graphics
+binary memattrs
+binary nodeset_membind_policy
+binary sharedcaches
+binary shmem
+binary xmlbuffer
+library libhwloc-port-aix.la libhwloc-port-aix shared
+library libhwloc-port-bgq.la libhwloc-port-bgq shared
+library libhwloc-port-cuda.la libhwloc-port-cuda shared
+library libhwloc-port-darwin.la libhwloc-port-darwin shared
+library libhwloc-port-freebsd.la libhwloc-port-freebsd shared
+library libhwloc-port-gl.la libhwloc-port-gl shared
+library libhwloc-port-hpux.la libhwloc-port-hpux shared
+library libhwloc-port-levelzero.la libhwloc-port-levelzero shared
+library libhwloc-port-netbsd.la libhwloc-port-netbsd shared
+library libhwloc-port-nvml.la libhwloc-port-nvml shared
+library libhwloc-port-opencl.la libhwloc-port-opencl shared
+library libhwloc-port-rsmi.la libhwloc-port-rsmi shared
+library libhwloc-port-solaris.la libhwloc-port-solaris shared
+library libhwloc-port-windows.la libhwloc-port-windows shared
+library libhwloc.la libhwloc shared
+library liblstopo-port-android.a liblstopo-port-android static
+library liblstopo-port-windows.a liblstopo-port-windows static
+library libutils_common.la libutils_common static
+test cpukinds_test cpukinds
+test cpuset_nodeset_test cpuset_nodeset
+test gl_test gl
+test glibc-sched_test glibc-sched
+test hwloc-hello_test hwloc-hello
+test hwloc-hello-cpp_test hwloc-hello-cpp
+test hwloc_api_version_test hwloc_api_version
+test hwloc_backends_test hwloc_backends
+test hwloc_bind_test hwloc_bind
+test hwloc_bitmap_test hwloc_bitmap
+test hwloc_bitmap_compare_inclusion_test hwloc_bitmap_compare_inclusion
+test hwloc_bitmap_first_last_weight_test hwloc_bitmap_first_last_weight
+test hwloc_bitmap_singlify_test hwloc_bitmap_singlify
+test hwloc_bitmap_string_test hwloc_bitmap_string
+test hwloc_distances_test hwloc_distances
+test hwloc_get_area_memlocation_test hwloc_get_area_memlocation
+test hwloc_get_cache_covering_cpuset_test hwloc_get_cache_covering_cpuset
+test hwloc_get_closest_objs_test hwloc_get_closest_objs
+test hwloc_get_largest_objs_inside_cpuset_test hwloc_get_largest_objs_inside_cpuset
+test hwloc_get_last_cpu_location_test hwloc_get_last_cpu_location
+test hwloc_get_next_obj_covering_cpuset_test hwloc_get_next_obj_covering_cpuset
+test hwloc_get_obj_below_array_by_type_test hwloc_get_obj_below_array_by_type
+test hwloc_get_obj_covering_cpuset_test hwloc_get_obj_covering_cpuset
+test hwloc_get_obj_inside_cpuset_test hwloc_get_obj_inside_cpuset
+test hwloc_get_obj_with_same_locality_test hwloc_get_obj_with_same_locality
+test hwloc_get_shared_cache_covering_obj_test hwloc_get_shared_cache_covering_obj
+test hwloc_groups_test hwloc_groups
+test hwloc_insert_misc_test hwloc_insert_misc
+test hwloc_iodevs_test hwloc_iodevs
+test hwloc_is_thissystem_test hwloc_is_thissystem
+test hwloc_list_components_test hwloc_list_components
+test hwloc_obj_infos_test hwloc_obj_infos
+test hwloc_object_userdata_test hwloc_object_userdata
+test hwloc_pci_backend_test hwloc_pci_backend
+test hwloc_synthetic_test hwloc_synthetic
+test hwloc_topology_abi_test hwloc_topology_abi
+test hwloc_topology_allow_test hwloc_topology_allow
+test hwloc_topology_diff_test hwloc_topology_diff
+test hwloc_topology_dup_test hwloc_topology_dup
+test hwloc_topology_restrict_test hwloc_topology_restrict
+test hwloc_type_depth_test hwloc_type_depth
+test hwloc_type_sscanf_test hwloc_type_sscanf
+test memattrs_test memattrs
+test shmem_test shmem
+test xmlbuffer_test xmlbuffer
+assertion include_hwloc_autogen_config_h_test
+assertion include_private_autogen_config_h_test

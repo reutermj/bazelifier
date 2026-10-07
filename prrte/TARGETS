@@ -1,0 +1,62 @@
+binary prte
+binary prte_info
+binary prted
+binary prterun
+binary prun
+binary pterm
+library libprrte.la libprrte shared
+library libprrteutil.la libprrteutil static
+library libprrteutilhostfile.la libprrteutilhostfile static
+library libprtemca_errmgr.la libprtemca_errmgr static
+library libprtemca_errmgr_dvm.la libprtemca_errmgr_dvm static
+library libprtemca_errmgr_prted.la libprtemca_errmgr_prted static
+library libprtemca_ess.la libprtemca_ess static
+library libprtemca_ess_env.la libprtemca_ess_env static
+library libprtemca_ess_hnp.la libprtemca_ess_hnp static
+library libprtemca_ess_slurm.la libprtemca_ess_slurm static
+library libprtemca_filem.la libprtemca_filem static
+library libprtemca_filem_raw.la libprtemca_filem_raw static
+library libprtemca_grpcomm.la libprtemca_grpcomm static
+library libprtemca_grpcomm_direct.la libprtemca_grpcomm_direct static
+library libprtemca_iof.la libprtemca_iof static
+library libprtemca_iof_hnp.la libprtemca_iof_hnp static
+library libprtemca_iof_prted.la libprtemca_iof_prted static
+library libprtemca_odls.la libprtemca_odls static
+library libprtemca_odls_default.la libprtemca_odls_default static
+library libprtemca_oob.la libprtemca_oob static
+library libprtemca_oob_tcp.la libprtemca_oob_tcp static
+library libprtemca_plm.la libprtemca_plm static
+library libprtemca_plm_slurm.la libprtemca_plm_slurm static
+library libprtemca_plm_ssh.la libprtemca_plm_ssh static
+library libprtemca_prtebacktrace.la libprtemca_prtebacktrace static
+library libprtemca_prtebacktrace_execinfo.la libprtemca_prtebacktrace_execinfo static
+library libprtemca_prtedl.la libprtemca_prtedl static
+library libprtemca_prtedl_dlopen.la libprtemca_prtedl_dlopen static
+library libprtemca_prteinstalldirs.la libprtemca_prteinstalldirs static
+library libprtemca_prteinstalldirs_config.la libprtemca_prteinstalldirs_config static
+library libprtemca_prteinstalldirs_env.la libprtemca_prteinstalldirs_env static
+library libprtemca_prtereachable.la libprtemca_prtereachable static
+library libprtemca_prtereachable_weighted.la libprtemca_prtereachable_weighted static
+library libprtemca_ras.la libprtemca_ras static
+library libprtemca_ras_pbs.la libprtemca_ras_pbs static
+library libprtemca_ras_simulator.la libprtemca_ras_simulator static
+library libprtemca_ras_slurm.la libprtemca_ras_slurm static
+library libprtemca_ras_testrm.la libprtemca_ras_testrm static
+library libprtemca_rmaps.la libprtemca_rmaps static
+library libprtemca_rmaps_ppr.la libprtemca_rmaps_ppr static
+library libprtemca_rmaps_rank_file.la libprtemca_rmaps_rank_file static
+library libprtemca_rmaps_round_robin.la libprtemca_rmaps_round_robin static
+library libprtemca_rmaps_seq.la libprtemca_rmaps_seq static
+library libprtemca_rtc.la libprtemca_rtc static
+library libprtemca_rtc_hwloc.la libprtemca_rtc_hwloc static
+library libprtemca_schizo.la libprtemca_schizo static
+library libprtemca_schizo_ompi.la libprtemca_schizo_ompi static
+library libprtemca_schizo_prte.la libprtemca_schizo_prte static
+library libprtemca_state.la libprtemca_state static
+library libprtemca_state_dvm.la libprtemca_state_dvm static
+library libprtemca_state_prted.la libprtemca_state_prted static
+assertion include_prte_version_h_test
+assertion src_include_prte_config_h_test
+assertion src_include_version_h_test
+assertion src_mca_prteinstalldirs_config_install_dirs_h_test
+omitted prte_info prints the configure/build stamps (date, host, user, paths), which differ from the ground truth by construction
