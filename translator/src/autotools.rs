@@ -37,7 +37,7 @@ use std::process::Command;
 
 use crate::config_header::{
     FlagEffects, is_numeric_literal, parse_config_file_headers, parse_config_headers,
-    parse_resolved_macro_values, plan_config_header, plan_substitution_header,
+    parse_resolved_macro_values, parse_substitutions, plan_config_header, plan_substitution_header,
 };
 use crate::dependencies::Dependencies;
 use crate::error::Error;
@@ -218,8 +218,12 @@ pub fn discover(
         let Ok(text) = std::fs::read_to_string(source_dir.join(&template)) else {
             continue;
         };
-        let (mut header, unmapped) =
-            plan_substitution_header(&output, &template, &text, db.scope_for(&output));
+        let (mut header, unmapped) = plan_substitution_header(
+            &output,
+            &template,
+            &text,
+            &substitution_values(db.scope_for(&output), &status),
+        );
         move_flag_options(&mut header, &flag_macros.options);
         if !unmapped.is_empty() {
             needs_attention.push(unmapped_config_macros_needs_attention(
@@ -294,7 +298,12 @@ pub fn discover(
                     &sub_traced,
                 )
             } else {
-                plan_substitution_header(&output, &template, &text, db.scope_for(&output))
+                plan_substitution_header(
+                    &output,
+                    &template,
+                    &text,
+                    &substitution_values(db.scope_for(&output), &sub_status),
+                )
             };
             if !unmapped.is_empty() {
                 needs_attention.push(unmapped_config_macros_needs_attention(
@@ -3474,6 +3483,18 @@ fn generated_headers_in_build_tree(
             (rel, recipe)
         })
         .collect()
+}
+
+/// The values a substitution header takes: make's database, overlaid by
+/// `config.status`'s own `S[]` table, which is what it actually substitutes
+/// — see `config_header::parse_substitutions` for the value make loses.
+fn substitution_values(
+    scope: &HashMap<String, String>,
+    config_status: &str,
+) -> HashMap<String, String> {
+    let mut values = scope.clone();
+    values.extend(parse_substitutions(config_status));
+    values
 }
 
 /// The subdirectories of the build tree, build-relative and sorted, that

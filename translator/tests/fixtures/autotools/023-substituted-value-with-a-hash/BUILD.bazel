@@ -1,0 +1,14 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# An AC_SUBST value that is a whole preprocessor line, substituted into an
+# AC_CONFIG_FILES header: romio's mpio.h.in carries
+# @DEFINE_HAVE_MPI_GREQUEST@ = "#define HAVE_MPI_GREQUEST 1". make's
+# variable database holds it as EMPTY ('#' starts a Makefile comment), so the
+# frontend escalated it as unresolved and the define was lost. config.status's
+# own S[] table is the substitution's source now; the comparison prints
+# "feature on" only if it survived.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

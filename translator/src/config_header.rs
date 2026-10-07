@@ -374,6 +374,45 @@ pub(crate) fn parse_config_headers(config_status: &str) -> Vec<(String, String)>
         .collect()
 }
 
+/// Every `AC_SUBST` value `config.status` substitutes into an
+/// `AC_CONFIG_FILES` output, from its own `S[]` table.
+///
+/// The authoritative copy for a substitution header, and the only intact
+/// one for a value containing `#`: make's variable database holds
+/// `DEFINE_HAVE_MPI_GREQUEST = #define HAVE_MPI_GREQUEST 1` as EMPTY,
+/// because `#` starts a comment in a Makefile, so romio's mpio.h lost the
+/// define and every MPIO_Request became the wrong type. A long value is
+/// split across lines (`S["X"]="part1"\` then `"part2"`), joined here.
+pub(crate) fn parse_substitutions(config_status: &str) -> HashMap<String, String> {
+    let mut values = HashMap::new();
+    let mut lines = config_status.lines();
+    while let Some(line) = lines.next() {
+        let Some(rest) = line.strip_prefix("S[\"") else {
+            continue;
+        };
+        let Some((name, mut rest)) = rest.split_once("\"]=") else {
+            continue;
+        };
+        let mut value = String::new();
+        loop {
+            let continued = rest.ends_with('\\');
+            let part = rest.trim_end_matches('\\');
+            let part = part.strip_prefix('"').unwrap_or(part);
+            let part = part.strip_suffix('"').unwrap_or(part);
+            value.push_str(&part.replace("\\\"", "\""));
+            if !continued {
+                break;
+            }
+            match lines.next() {
+                Some(next) => rest = next,
+                None => break,
+            }
+        }
+        values.insert(name.to_string(), value);
+    }
+    values
+}
+
 /// The values `configure` resolved for each config-header macro, read from
 /// `config.status`'s own `D[]` table — the table it uses to write the header.
 ///
@@ -706,6 +745,34 @@ D[\"PACKAGE_URL\"]=\" \\\"\\\"\"\n";
     // libidn2 also fails to COMPILE on it (clang rejects a string literal at
     // the start of a preprocessor expression), which is luck: a macro used
     // only in `#ifdef` would have taken the wrong branch in silence.
+    // Lines captured from romio341's config.status (Open MPI 5.0.11): a value
+    // carrying `#`, which make's database holds as empty, and a long value
+    // continued onto the next line.
+    #[test]
+    fn substitutions_are_read_from_the_s_table() {
+        let status = concat!(
+            "S[\"DEFINE_HAVE_MPI_GREQUEST\"]=\"#define HAVE_MPI_GREQUEST 1\"\n",
+            "S[\"LDFLAGS\"]=\"-L/a -Wl,-rpath-lin\"\\\n",
+            "\"k,/a\"\n",
+            "S[\"EXEEXT\"]=\"\"\n",
+            "D[\"PACKAGE\"]=\" \\\"romio\\\"\"\n",
+        );
+        let s = parse_substitutions(status);
+        assert_eq!(
+            s.get("DEFINE_HAVE_MPI_GREQUEST").map(String::as_str),
+            Some("#define HAVE_MPI_GREQUEST 1")
+        );
+        assert_eq!(
+            s.get("LDFLAGS").map(String::as_str),
+            Some("-L/a -Wl,-rpath-link,/a")
+        );
+        assert_eq!(s.get("EXEEXT").map(String::as_str), Some(""));
+        assert!(
+            !s.contains_key("PACKAGE"),
+            "a D[] entry is not a substitution: {s:?}"
+        );
+    }
+
     #[test]
     fn a_shell_no_is_not_a_value() {
         let vars = HashMap::from([("HAVE_LIBUNISTRING".to_string(), "no".to_string())]);
