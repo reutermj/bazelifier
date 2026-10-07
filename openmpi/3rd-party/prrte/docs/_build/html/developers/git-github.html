@@ -1,0 +1,198 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.2. GitHub, Git, and related topics &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.3. Manually installing the GNU Autootools" href="gnu-autotools.html" />
+    <link rel="prev" title="12.1. Prerequisites" href="prerequisites.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.2. GitHub, Git, and related topics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#github">12.2.1. GitHub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#git-commits-open-source-contributor-s-declaration">12.2.2. Git commits: open source / contributor’s declaration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#git-branch-scheme">12.2.3. Git branch scheme</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.3. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.4. Installing and running Sphinx (building the PRRTE docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.5. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.2. </span>GitHub, Git, and related topics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/git-github.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="github-git-and-related-topics">
+<h1><span class="section-number">12.2. </span>GitHub, Git, and related topics<a class="headerlink" href="#github-git-and-related-topics" title="Link to this heading"></a></h1>
+<section id="github">
+<h2><span class="section-number">12.2.1. </span>GitHub<a class="headerlink" href="#github" title="Link to this heading"></a></h2>
+<p>PRRTE’s Git repositories are <a class="reference external" href="https://github.com/openpmix/prrte">hosted at GitHub</a>.</p>
+<ol class="arabic">
+<li><p>First, you will need a Git client. We recommend getting the latest
+version available. If you do not have the command <code class="docutils literal notranslate"><span class="pre">git</span></code> in your
+path, you will likely need to download and install Git.</p></li>
+<li><p><a class="reference external" href="https://github.com/openpmix/prrte/">prrte</a> is the main PRRTE
+repository where most active development is done.  Git clone this
+repository.  Note that the use of the <code class="docutils literal notranslate"><span class="pre">--recursive</span></code> CLI option is
+necessary because PRRTE uses Git submodules:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ git clone --recursive https://github.com/openpmix/prrte.git
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Note that Git is natively capable of using many forms of web
+proxies. If your network setup requires the user of a web proxy,
+<a class="reference external" href="https://git-scm.com/">consult the Git documentation for more details</a>.</p>
+</section>
+<section id="git-commits-open-source-contributor-s-declaration">
+<h2><span class="section-number">12.2.2. </span>Git commits: open source / contributor’s declaration<a class="headerlink" href="#git-commits-open-source-contributor-s-declaration" title="Link to this heading"></a></h2>
+<p>In order to remain open source, all new commits to the PRRTE
+repository must include a <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line, indicating the
+submitter’s agreement to the <a class="reference internal" href="../contributing.html#contributing-contributors-declaration-label"><span class="std std-ref">PRRTE Contributor’s Declaration</span></a>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">-s</span></code> option to <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span></code> to
+automatically add the <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line to your commit
+message.</p>
+</div>
+</section>
+<section id="git-branch-scheme">
+<span id="git-github-branch-scheme-label"></span><h2><span class="section-number">12.2.3. </span>Git branch scheme<a class="headerlink" href="#git-branch-scheme" title="Link to this heading"></a></h2>
+<p>Generally, PRRTE has two types of branches in its Git repository:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">main</span></code>:</p>
+<ul class="simple">
+<li><p>All active development occurs on the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch (new features,
+bug fixes, etc.).</p></li>
+</ul>
+</li>
+<li><p>Release branches of the form <code class="docutils literal notranslate"><span class="pre">vMAJOR.MINOR.x</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">v4.0.x</span></code>,
+<code class="docutils literal notranslate"><span class="pre">v4.1.x</span></code>, <code class="docutils literal notranslate"><span class="pre">v5.0.x</span></code>).</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">.x</span></code> suffix indicates that this branch is used to create
+all releases in the PRRTE vMAJOR.MINOR series.</p></li>
+<li><p>Periodically, the PRRTE community will make a new release
+branch, typically from <code class="docutils literal notranslate"><span class="pre">main</span></code>.</p></li>
+<li><p>A Git tag of the form <code class="docutils literal notranslate"><span class="pre">vMAJOR.MINOR.RELEASE</span></code> is used to
+indicate the specific commit on a release branch from where
+official PRRTE release tarball was created (e.g., <code class="docutils literal notranslate"><span class="pre">v4.1.0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">v4.1.1</span></code>, <code class="docutils literal notranslate"><span class="pre">v4.1.2</span></code>, etc.).</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="prerequisites.html" class="btn btn-neutral float-left" title="12.1. Prerequisites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gnu-autotools.html" class="btn btn-neutral float-right" title="12.3. Manually installing the GNU Autootools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,2160 @@
+'\" t
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPIRUN" "1" "Sep 16, 2026" "" "Open MPI"
+.sp
+mpirun, mpiexec — Execute serial and parallel jobs in Open MPI.
+.sp
+\fBNOTE:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fBmpirun\fP and \fBmpiexec\fP are synonyms for each other.
+Indeed, they are symbolic links to the same executable.
+Using either of the names will produce the exact same
+behavior.
+.UNINDENT
+.UNINDENT
+.SH SYNOPSIS
+.sp
+Single Process Multiple Data (SPMD) Model:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+mpirun [ options ] <program> [ <args> ]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Multiple Instruction Multiple Data (MIMD) Model:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+mpirun [ global_options ]
+       [ local_options1 ] <program1> [ <args1> ] :
+       [ local_options2 ] <program2> [ <args2> ] :
+       ... :
+       [ local_optionsN ] <programN> [ <argsN> ]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Note that in both models, invoking \fBmpirun\fP via an absolute path
+name is equivalent to specifying the \fB\-\-prefix\fP option with a
+\fB<dir>\fP value equivalent to the directory where \fBmpirun\fP resides,
+minus its last subdirectory.  For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ /usr/local/bin/mpirun ...
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+is equivalent to
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-prefix /usr/local
+.EE
+.UNINDENT
+.UNINDENT
+.SH QUICK SUMMARY
+.sp
+If you are simply looking for how to run an MPI application, you
+probably want to use a command line of the following form:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun [ \-n X ] [ \-\-hostfile <filename> ]  <program>
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+This will run \fBX\fP copies of \fB<program>\fP in your current run\-time
+environment (if running under a supported resource manager, Open MPI’s
+\fBmpirun\fP will usually automatically use the corresponding resource
+manager process starter, as opposed to \fBssh\fP (for example), which
+require the use of a hostfile, or will default to running all \fBX\fP
+copies on the localhost), scheduling (by default) in a round\-robin
+fashion by CPU slot.  See the rest of this documentation for more
+details.
+.sp
+Please note that \fBmpirun\fP automatically binds processes to hardware
+resources. Three binding patterns are used in the absence of any
+further directives (See \fI\%map/rank/bind defaults\fP for more details):
+.INDENT 0.0
+.IP \(bu 2
+\fBBind to core\fP:     when the number of processes is <= 2
+.IP \(bu 2
+\fBBind to package\fP:  when the number of processes is > 2
+.IP \(bu 2
+\fBBind to none\fP:     when oversubscribed
+.UNINDENT
+.sp
+If your application uses threads, then you probably want to ensure
+that you are either not bound at all (by specifying \fB\-\-bind\-to none\fP),
+or bound to multiple cores using an appropriate binding level or
+specific number of processing elements per application process.
+.SH OPEN MPI’S USE OF PRRTE
+.sp
+Open MPI uses the PMIx Reference Runtime Environment (PRRTE) as the
+main engine for launching, monitoring, and terminating MPI processes.
+.sp
+Much of the documentation below is directly imported from PRRTE.  As
+such, it frequently refers to PRRTE concepts and command line options.
+Except where noted, these concepts and command line argument are all
+applicable to Open MPI as well.  Open MPI extends the available PRRTE
+command line options, and also slightly modifies the PRRTE’s default
+behaviors in a few cases.  These will be specifically described in the
+documentation below.
+.SH COMMAND LINE OPTIONS
+.sp
+The core of Open MPI’s \fBmpirun\fP processing is performed via the
+\X'tty: link https://docs.prrte.org/'\fI\%PRRTE\fP\X'tty: link'\&.  Specifically: \fBmpirun\fP is
+effectively a wrapper around \fBprterun\fP, but \fBmpirun\fP’s CLI options
+are slightly different than PRRTE’s CLI commands.
+.SS No content
+.sp
+There is no meaningful content in this file because Open MPI was either:
+.INDENT 0.0
+.IP \(bu 2
+Built without PRRTE support.
+.IP \(bu 2
+Built with a PRRTE that was too old to include machine\-readable
+documentation that could be incorporated into Open MPI’s
+documentation.
+.UNINDENT
+.sp
+If you build Open MPI with a newer version of PRRTE (and have the
+Sphinx tool available when you run Open MPI’s \fBconfigure\fP command),
+you should get more meaningful documentation here.
+.sp
+Hence, there is no documentation for this section.
+.sp
+Sorry!
+.SH OPTIONS (OLD / HARD-CODED CONTENT — TO BE AUDITED
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old content"
+.sp
+This is the old section of manually hard\-coded content.  It should
+probably be read / audited and see what we want to keep and what we
+want to discard.
+.sp
+Feel free to refer to \X'tty: link https://docs.prrte.org/'\fI\%https://docs.prrte.org/\fP\X'tty: link' rather than
+replicating content here (e.g., for the definition of a slot and
+other things).
+.UNINDENT
+.UNINDENT
+.sp
+mpirun will send the name of the directory where it was invoked on the
+local node to each of the remote nodes, and attempt to change to that
+directory.  See the “Current Working Directory” section below for
+further details.
+.INDENT 0.0
+.IP \(bu 2
+\fB<program>\fP: The program executable. This is identified as the
+first non\-recognized argument to mpirun.
+.IP \(bu 2
+\fB<args>\fP: Pass these run\-time arguments to every new process.
+These must always be the last arguments to mpirun. If an app context
+file is used, \fB<args>\fP will be ignored.
+.IP \(bu 2
+\fB\-h\fP, \fB\-\-help\fP: Display help for this command
+.IP \(bu 2
+\fB\-q\fP, \fB\-\-quiet\fP: Suppress informative messages from orterun
+during application execution.
+.IP \(bu 2
+\fB\-v\fP, \fB\-\-verbose\fP:\(ga Be verbose
+.IP \(bu 2
+\fB\-V\fP, \fB\-\-version\fP: Print version number.  If no other arguments
+are given, this will also cause orterun to exit.
+.IP \(bu 2
+\fB\-N <num>\fP: Launch num processes per node on all allocated nodes
+(synonym for \fB\-\-npernode\fP).
+.IP \(bu 2
+\fB\-\-display\-map\fP: Display a table showing the mapped location of
+each process prior to launch.
+.IP \(bu 2
+\fB\-\-display\-allocation\fP: Display the detected resource allocation.
+.IP \(bu 2
+\fB\-\-output\-proctable\fP: Output the debugger proctable after launch.
+.IP \(bu 2
+\fB\-\-dvm\fP: Create a persistent distributed virtual machine (DVM).
+.IP \(bu 2
+\fB\-\-max\-vm\-size <size>\fP: Number of daemons to start.
+.UNINDENT
+.sp
+Use one of the following options to specify which hosts (nodes) of the
+cluster to run on. Note that as of the start of the v1.8 release,
+mpirun will launch a daemon onto each host in the allocation (as
+modified by the following options) at the very beginning of execution,
+regardless of whether or not application processes will eventually be
+mapped to execute there. This is done to allow collection of hardware
+topology information from the remote nodes, thus allowing us to map
+processes against known topology. However, it is a change from the
+behavior in prior releases where daemons were only launched after
+mapping was complete, and thus only occurred on nodes where
+application processes would actually be executing.
+.INDENT 0.0
+.IP \(bu 2
+\fB\-H\fP, \fB\-\-host <host1,host2,...,hostN>\fP: list of hosts on which to
+invoke processes.
+.IP \(bu 2
+\fB\-\-hostfile <hostfile>\fP: Provide a hostfile to use.
+.IP \(bu 2
+\fB\-\-default\-hostfile <hostfile>\fP: Provide a default hostfile.
+.IP \(bu 2
+\fB\-\-machinefile <machinefile>\fP: Synonym for \fB\-\-hostfile\fP\&.
+.IP \(bu 2
+\fB\-\-cpu\-set <list>\fP: Restrict launched processes to the specified
+logical CPUs on each node (comma\-separated list). Note that the
+binding options will still apply within the specified envelope
+— e.g., you can elect to bind each process to only one CPU
+within the specified CPU set.
+.UNINDENT
+.sp
+The following options specify the number of processes to launch. Note
+that none of the options imply a particular binding policy — e.g.,
+requesting N processes for each package does not imply that the
+processes will be bound to the package.
+.INDENT 0.0
+.IP \(bu 2
+\fB\-n\fP, \fB\-\-n\fP, \fB\-c\fP, \fB\-np <#>\fP: Run this many copies of the
+program on the given nodes.  This option indicates that the
+specified file is an executable program and not an application
+context. If no value is provided for the number of copies to execute
+(i.e., neither the \fB\-n\fP nor its synonyms are provided on the
+command line), Open MPI will automatically execute a copy of the
+program on each process slot (see PRRTE’s \X'tty: link https://docs.prrte.org/en/latest/placement/overview.html#definition-of-slot'\fI\%definition of “slot”\fP\X'tty: link'
+for description of a “process slot”). This feature, however, can
+only be used in the SPMD model and will return an error (without
+beginning execution of the application) otherwise.
+.sp
+\fBNOTE:\fP
+.INDENT 2.0
+.INDENT 3.5
+The \fB\-n\fP option is the preferred option to be used to specify the
+number of copies of the program to be executed, but the alternate
+options are also accepted.
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+\fB\-\-map\-by ppr:N:<object>\fP: Launch N times the number of objects of
+the specified type on each node.
+.IP \(bu 2
+\fB\-\-npersocket <#persocket>\fP: On each node, launch this many
+processes times the number of processor sockets on the node.
+The \-npersocket option also turns on the \fB\-\-bind\-to\-socket\fP
+option.  (deprecated in favor of \fB\-\-map\-by ppr:n:package\fP)
+.IP \(bu 2
+\fB\-\-npernode <#pernode>\fP: On each node, launch this many processes.
+(deprecated in favor of \fB\-\-map\-by ppr:n:node\fP).
+.IP \(bu 2
+\fB\-\-pernode\fP: On each node, launch one process — equivalent to
+\fB\-\-npernode 1\fP\&.  (deprecated in favor of \fB\-\-map\-by ppr:1:node\fP)
+.UNINDENT
+.sp
+To map processes:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-map\-by <object>\fP: Map to the specified object, defaults to
+\fBpackage\fP\&. Supported options include \fBslot\fP, \fBhwthread\fP, \fBcore\fP,
+\fBL1cache\fP, \fBL2cache\fP, \fBL3cache\fP, \fBpackage\fP, \fBnuma\fP,
+\fBnode\fP, \fBseq\fP, \fBrankfile\fP, \fBpe\-list=#\fP, and \fBppr\fP\&.
+Any object can include modifiers by adding a \fB:\fP and any combination
+of the following:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fBpe=n\fP: bind \fBn\fP processing elements to each proc
+.IP \(bu 2
+\fBspan\fP: load balance the processes across the allocation
+.IP \(bu 2
+\fBoversubscribe\fP: allow more processes on a node than processing elements
+.IP \(bu 2
+\fBnooversubscribe\fP: do \fInot\fP allow more processes on a node than processing elements (default)
+.IP \(bu 2
+\fBnolocal\fP: do not place processes on the same host as the \fBmpirun\fP process
+.IP \(bu 2
+\fBhwtcpus\fP: use hardware threads as CPU slots for mapping
+.IP \(bu 2
+\fBcorecpus\fP: use processor cores as CPU slots for mapping (default)
+.IP \(bu 2
+\fBfile=filename\fP: used with \fBrankfile\fP; use \fBfilename\fP to specify the file to use
+.IP \(bu 2
+\fBordered\fP: used with \fBpe\-list\fP to bind each process to one of the specified processing elements
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+\fBNOTE:\fP
+.INDENT 2.0
+.INDENT 3.5
+\fBsocket\fP is also accepted as an alias for \fBpackage\fP\&.
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+\fB\-\-bycore\fP: Map processes by core (deprecated in favor of
+\fB\-\-map\-by core\fP).
+.IP \(bu 2
+\fB\-\-byslot\fP: Map and rank processes round\-robin by slot (deprecated
+in favor of \fB\-\-map\-by slot\fP).
+.IP \(bu 2
+\fB\-\-nolocal\fP: Do not run any copies of the launched application on
+the same node as orterun is running.  This option will override
+listing the localhost with \fB\-\-host\fP or any other host\-specifying
+mechanism. Alias for \fB\-\-map\-by :nolocal\fP\&.
+.IP \(bu 2
+\fB\-\-nooversubscribe\fP: Do not oversubscribe any nodes; error
+(without starting any processes) if the requested number of
+processes would cause oversubscription.  This option implicitly sets
+“max_slots” equal to the “slots” value for each node. (Enabled by
+default). Alias for \fB\-\-map\-by :nooversubscribe\fP\&.
+.IP \(bu 2
+\fB\-\-oversubscribe\fP: Nodes are allowed to be oversubscribed, even on
+a managed system, and overloading of processing elements.
+Alias for \fB\-\-map\-by :oversubscribe\fP\&.
+.IP \(bu 2
+\fB\-\-bynode\fP: Launch processes one per node, cycling by node in a
+round\-robin fashion.  This spreads processes evenly among nodes and
+assigns \fBMPI_COMM_WORLD\fP ranks in a round\-robin, “by node” manner.
+(deprecated in favor of \fB\-\-map\-by node\fP)
+.IP \(bu 2
+\fB\-\-cpu\-list <cpus>\fP: Comma\-delimited list of processor IDs to
+which to bind processes [default=\(ga\(gaNULL\(ga\(ga].  Processor IDs are
+interpreted as hwloc logical core IDs.
+.sp
+\fBNOTE:\fP
+.INDENT 2.0
+.INDENT 3.5
+You can run Run the hwloc \fBlstopo(1)\fP command to see a
+list of available cores and their logical IDs.
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+To order processes’ ranks in \fBMPI_COMM_WORLD\fP:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-rank\-by <mode>\fP: Rank in round\-robin fashion according to the
+specified mode, defaults to slot. Supported options include
+\fBslot\fP, \fBnode\fP, \fBfill\fP, and \fBspan\fP\&.
+.UNINDENT
+.sp
+For process binding:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-bind\-to <object>\fP: Bind processes to the specified object,
+defaults to \fBcore\fP\&.  Supported options include \fBslot\fP,
+\fBhwthread\fP, \fBcore\fP, \fBl1cache\fP, \fBl2cache\fP, \fBl3cache\fP,
+\fBpackage\fP, \fBnuma\fP, and \fBnone\fP\&.
+.IP \(bu 2
+\fB\-\-cpus\-per\-proc <#perproc>\fP: Bind each process to the specified
+number of cpus.  (deprecated in favor of \fB\-\-map\-by <obj>:PE=n\fP)
+.IP \(bu 2
+\fB\-\-cpus\-per\-rank <#perrank>\fP: Alias for \fB\-\-cpus\-per\-proc\fP\&.
+(deprecated in favor of \fB\-\-map\-by <obj>:PE=n\fP)
+.IP \(bu 2
+\fB\-\-bind\-to\-core\fP Bind processes to cores (deprecated in favor of
+\fB\-\-bind\-to core\fP)
+.IP \(bu 2
+\fB\-\-bind\-to\-socket\fP: Bind processes to processor sockets
+(deprecated in favor of \fB\-\-bind\-to package\fP)
+.IP \(bu 2
+\fB\-\-report\-bindings\fP: Report any bindings for launched processes.
+.UNINDENT
+.sp
+For rankfiles:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-rankfile <rankfile>\fP: Provide a rankfile file.
+(deprecated in favor of \fB\-\-map\-by rankfile:file=FILE\fP)
+.UNINDENT
+.sp
+To manage standard I/O:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-output\-filename <filename>\fP: Redirect the stdout, stderr, and
+stddiag of all processes to a process\-unique version of the
+specified filename. Any directories in the filename will
+automatically be created.  Each output file will consist of
+\fBfilename.id\fP, where the \fBid\fP will be the processes’ rank in
+\fBMPI_COMM_WORLD\fP, left\-filled with zero’s for correct ordering in
+listings. A relative path value will be converted to an absolute
+path based on the cwd where mpirun is executed. Note that this will
+not work on environments where the file system on compute nodes
+differs from that where \fI\%mpirun(1)\fP is
+executed.
+.IP \(bu 2
+\fB\-\-stdin <rank>\fP: The \fBMPI_COMM_WORLD\fP rank of the process that is
+to receive stdin.  The default is to forward stdin to \fBMPI_COMM_WORLD\fP
+rank 0, but this option can be used to forward stdin to any
+process. It is also acceptable to specify none, indicating that no
+processes are to receive stdin.
+.IP \(bu 2
+\fB\-\-merge\-stderr\-to\-stdout\fP: Merge stderr to stdout for each
+process.
+.IP \(bu 2
+\fB\-\-tag\-output\fP: Tag each line of output to stdout, stderr, and
+stddiag with \fB[jobid, MCW_rank]<stdxxx>\fP indicating the process
+jobid and \fBMPI_COMM_WORLD\fP rank of the process that generated the
+output, and the channel which generated it.
+.IP \(bu 2
+\fB\-\-timestamp\-output\fP: Timestamp each line of output to stdout,
+stderr, and stddiag.
+.IP \(bu 2
+\fB\-\-xml\fP: Provide all output to stdout, stderr, and stddiag in an
+XML format.
+.IP \(bu 2
+\fB\-\-xml\-file <filename>\fP Provide all output in XML format to the
+specified file.
+.IP \(bu 2
+\fB\-\-xterm <ranks>\fP: Display the output from the processes
+identified by their \fBMPI_COMM_WORLD\fP ranks in separate xterm
+windows. The ranks are specified as a comma\-separated list of
+ranges, with a \fB\-1\fP indicating all. A separate window will be created
+for each specified process.
+.sp
+\fBNOTE:\fP
+.INDENT 2.0
+.INDENT 3.5
+xterm will normally terminate the window upon termination
+of the process running within it. However, by adding a
+\fB!\fP to the end of the list of specified ranks, the
+proper options will be provided to ensure that xterm keeps
+the window open after the process terminates, thus
+allowing you to see the process’ output.  Each xterm
+window will subsequently need to be manually closed.
+Note: In some environments, xterm may require that the
+executable be in the user’s path, or be specified in
+absolute or relative terms. Thus, it may be necessary to
+specify a local executable as \fB\&./my_mpi_app\fP instead of just
+\fBmy_mpi_app\fP\&. If xterm fails to find the executable, \fBmpirun\fP
+will hang, but still respond correctly to a ctrl\-C.  If
+this happens, please check that the executable is being
+specified correctly and try again.
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+To manage files and runtime environment:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-path <path>\fP: \fB<path>\fP that will be used when attempting to
+locate the requested executables.  This is used prior to using the
+local \fBPATH\fP environment variable setting.
+.IP \(bu 2
+\fB\-\-prefix <dir>\fP: Prefix directory that will be used to set the
+\fBPATH\fP and \fBLD_LIBRARY_PATH\fP on the remote node before invoking
+Open MPI or the target process.  See the \fI\%Remote Execution\fP section, below.
+.IP \(bu 2
+\fB\-\-noprefix\fP: Disable the automatic \fB\-\-prefix\fP behavior
+.IP \(bu 2
+\fB\-\-preload\-binary\fP: Copy the specified executable(s) to remote
+machines prior to starting remote processes. The executables will be
+copied to the Open MPI session directory and will be deleted upon
+completion of the job.
+.IP \(bu 2
+\fB\-\-preload\-files <files>\fP: Preload the comma\-separated list of
+files to the current working directory of the remote machines where
+processes will be launched prior to starting those processes.
+.IP \(bu 2
+\fB\-\-set\-cwd\-to\-session\-dir\fP: Set the working directory of the
+started processes to their session directory.
+.IP \(bu 2
+\fB\-\-wd <dir>\fP: Synonym for \fB\-wdir\fP\&.
+.IP \(bu 2
+\fB\-\-wdir <dir>\fP: Change to the directory \fB<dir>\fP before the
+user’s program executes.  See the \fI\%Current Working Directory\fP section for notes on
+relative paths.  Note: If the \fB\-\-wdir\fP option appears both on the
+command line and in an application context, the context will take
+precedence over the command line. Thus, if the path to the desired
+wdir is different on the backend nodes, then it must be specified as
+an absolute path that is correct for the backend node.
+.IP \(bu 2
+\fB\-x <env>\fP: Export the specified environment variables to the
+remote nodes before executing the program.  Only one environment
+variable can be specified per \fB\-x\fP option.  Existing environment
+variables can be specified or new variable names specified with
+corresponding values.  For example:
+.INDENT 2.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-x DISPLAY \-x OFILE=/tmp/out ...
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+The parser for the \fB\-x\fP option is not very sophisticated; it does
+not even understand quoted values.  Users are advised to set
+variables in the environment, and then use \fB\-x\fP to export (not
+define) them.
+.UNINDENT
+.sp
+Setting MCA parameters:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-gmca <key> <value>\fP: Pass global MCA parameters that are
+applicable to all contexts.  \fB<key>\fP is the parameter name;
+\fB<value>\fP is the parameter value.
+.IP \(bu 2
+\fB\-\-mca <key> <value>\fP: Send arguments to various MCA modules.  See
+the \fI\%Setting MCA Parameters\fP section for more details.
+.sp
+\fBNOTE:\fP
+.INDENT 2.0
+.INDENT 3.5
+Open MPI will attempt to discern PMIx and PRRTE MCA
+parameters passed via \fB\-\-mca\fP and handle them
+appropriately, but it may not always guess correctly.  It
+is best to use \fB\-\-pmixmca\fP and \fB\-\-prtemca\fP when
+passing MCA parameters to PMIx and PRRTE, respectively.
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+\fB\-\-pmixmca <key> <value>\fP: Send arguments to MCA modules in the
+PMIx subsystem.  See the \fI\%Setting MCA Parameters\fP section for more details.
+.IP \(bu 2
+\fB\-\-prtemca <key> <value>\fP: Send arguments to MCA modules in the
+PMIx Reference Runtime Environment (PRRTE) subsystem.  See the
+\fI\%Setting MCA Parameters\fP
+section for more details.
+.IP \(bu 2
+\fB\-\-tune <tune_file>\fP: Specify a tune file to set arguments for
+various MCA modules and environment variables.  See the :ref:\(ga
+Setting MCA parameters and environment variables from file
+<man1\-mpirun\-setting\-mca\-params\-from\-file>\(ga. \fB\-\-am <arg>\fP is an alias for \fB\-\-tune <arg>\fP\&.
+.UNINDENT
+.sp
+For debugging:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-get\-stack\-traces\fP: When paired with the \fB\-\-timeout\fP option,
+\fBmpirun\fP will obtain and print out stack traces from all launched
+processes that are still alive when the timeout expires.  Note that
+obtaining stack traces can take a little time and produce a lot of
+output, especially for large process\-count jobs.
+.IP \(bu 2
+\fB\-\-timeout <seconds>\fP: The maximum number of seconds that
+\fBmpirun\fP will run.  After this many seconds, \fBmpirun\fP will abort
+the launched job and exit with a non\-zero exit status.  Using
+\fB\-\-timeout\fP can be also useful when combined with the
+\fB\-\-get\-stack\-traces\fP option.
+.UNINDENT
+.sp
+There are also other options:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-allow\-run\-as\-root\fP: Allow \fBmpirun\fP to run when executed by
+the root user (\fBmpirun\fP defaults to aborting when launched as the
+root user).  Be sure to see the \fI\%Running as root\fP section for more detail.
+.IP \(bu 2
+\fB\-\-app <appfile>\fP: Provide an appfile, ignoring all other command
+line options.
+.IP \(bu 2
+\fB\-\-continuous\fP: Job is to run until explicitly terminated.
+.IP \(bu 2
+\fB\-\-disable\-recovery\fP: Disable recovery (resets all recovery
+options to off).
+.IP \(bu 2
+\fB\-\-do\-not\-launch\fP: Perform all necessary operations to prepare to
+launch the application, but do not actually launch it.
+.IP \(bu 2
+\fB\-\-enable\-recovery\fP: Enable recovery from process failure (default:
+disabled)
+.IP \(bu 2
+\fB\-\-leave\-session\-attached\fP: Do not detach back\-end daemons used by
+this application. This allows error messages from the daemons as
+well as the underlying environment (e.g., when failing to launch a
+daemon) to be output.
+.IP \(bu 2
+\fB\-\-max\-restarts <num>\fP: Max number of times to restart a failed
+process.
+.IP \(bu 2
+\fB\-\-personality <list>\fP: Comma\-separated list of programming model,
+languages, and containers being used (default=\(ga\(gaompi\(ga\(ga).
+.IP \(bu 2
+\fB\-\-ppr <list>\fP: Comma\-separated list of number of processes on a
+given resource type (default: none). Alias for \fB\-\-map\-by ppr:N:OBJ\fP\&.
+.IP \(bu 2
+\fB\-\-report\-child\-jobs\-separately\fP: Return the exit status of the
+primary job only.
+.IP \(bu 2
+\fB\-\-report\-events <URI>\fP: Report events to a tool listening at the
+specified URI.
+.IP \(bu 2
+\fB\-\-report\-pid <channel>\fP: Print out \fBmpirun\fP’s PID during
+startup. The channel must be either a \fB\-\fP to indicate that the PID
+is to be output to stdout, a \fB+\fP to indicate that the PID is to be
+output to stderr, or a filename to which the PID is to be written.
+.IP \(bu 2
+\fB\-\-report\-uri <channel>\fP: Print out \fBmpirun\fP’s URI during
+startup. The channel must be either a \fB\-\fP to indicate that the URI
+is to be output to stdout, a \fB+\fP to indicate that the URI is to be
+output to stderr, or a filename to which the URI is to be written.
+.IP \(bu 2
+\fB\-\-show\-progress\fP: Output a brief periodic report on launch
+progress.
+.IP \(bu 2
+\fB\-\-terminate\fP: Terminate the DVM.
+.IP \(bu 2
+\fB\-\-use\-hwthread\-cpus\fP: Use hardware threads as independent CPUs.
+.sp
+Note that if a number of slots is not provided to Open MPI (e.g.,
+via the \fBslots\fP keyword in a hostfile or from a resource manager
+such as Slurm), the use of this option changes the default
+calculation of number of slots on a node.  See the PRRTE’s
+\X'tty: link https://docs.prrte.org/en/latest/placement/overview.html#definition-of-slot'\fI\%definition of “slot”\fP\X'tty: link'
+for more details.
+.sp
+Also note that the use of this option changes the Open MPI’s
+definition of a “processor element” from a processor core to a
+hardware thread.  See
+PRRTE’s \X'tty: link https://docs.prrte.org/en/latest/placement/overview.html#definition-of-pe'\fI\%definition of a “processor element”\fP\X'tty: link'
+for more details.
+.UNINDENT
+.sp
+The following options are useful for developers; they are not
+generally useful to most Open MPI users:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-debug\-daemons\fP: Enable debugging of the run\-time daemons used
+by this application.
+.IP \(bu 2
+\fB\-\-debug\-daemons\-file\fP: Enable debugging of the run\-time daemons
+used by this application, storing output in files.
+.IP \(bu 2
+\fB\-\-display\-devel\-map\fP: Display a more detailed table showing the
+mapped location of each process prior to launch.
+.IP \(bu 2
+\fB\-\-display\-topo\fP: Display the topology as part of the process map
+just before launch.
+.IP \(bu 2
+\fB\-\-launch\-agent\fP: Name of the executable that is to be used to
+start processes on the remote nodes. The default is \fBprted\fP\&. This
+option can be used to test new daemon concepts, or to pass options
+back to the daemons without having mpirun itself see them. For
+example, specifying a launch agent of \fBprted \-\-prtemca odls_base_verbose
+5\fP allows the developer to ask the \fBprted\fP for debugging output
+without clutter from \fBmpirun\fP itself.
+.IP \(bu 2
+\fB\-\-report\-state\-on\-timeout\fP: When paired with the \fB\-\-timeout\fP
+command line option, report the run\-time subsystem state of each
+process when the timeout expires.
+.UNINDENT
+.sp
+There may be other options listed with \fBmpirun \-\-help\fP\&.
+.SS Environment Variables
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+.IP \(bu 2
+\fBMPIEXEC_TIMEOUT\fP: Synonym for the \fB\-\-timeout\fP command line option.
+.UNINDENT
+.SH DESCRIPTION
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+One invocation of \fBmpirun\fP starts an MPI application running under Open
+MPI. If the application is single process multiple data (SPMD), the
+application can be specified on the \fBmpirun\fP command line.
+.sp
+If the application is multiple instruction multiple data (MIMD),
+comprising of multiple programs, the set of programs and argument can
+be specified in one of two ways: Extended Command Line Arguments, and
+Application Context.
+.sp
+An application context describes the MIMD program set including all
+arguments in a separate file.  This file essentially contains multiple
+mpirun command lines, less the command name itself.  The ability to
+specify different options for different instantiations of a program is
+another reason to use an application context.
+.sp
+Extended command line arguments allow for the description of the
+application layout on the command line using colons (\fB:\fP) to
+separate the specification of programs and arguments. Some options are
+globally set across all specified programs (e.g., \fB\-\-hostfile\fP),
+while others are specific to a single program (e.g., \fB\-n\fP).
+.SS Specifying Host Nodes
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+Host nodes can be identified on the \fBmpirun\fP command line with the
+\fB\-\-host\fP option or in a hostfile.
+.sp
+For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-H aa,aa,bb ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Launches two processes on node \fBaa\fP and one on \fBbb\fP\&.
+.sp
+Or, consider the hostfile:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ cat myhostfile
+aa slots=2
+bb slots=2
+cc slots=2
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Here, we list both the host names (\fBaa\fP, \fBbb\fP, and \fBcc\fP) but
+also how many slots there are for each.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-hostfile myhostfile ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will launch two processes on each of the three nodes.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-hostfile myhostfile \-\-host aa ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will launch two processes, both on node \fBaa\fP\&.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-hostfile myhostfile \-\-host dd ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will find no hosts to run on and will abort with an error.  That is,
+the specified host \fBdd\fP is not in the specified hostfile.
+.sp
+When running under resource managers (e.g., Slurm, Torque, etc.), Open
+MPI will obtain both the hostnames and the number of slots directly
+from the resource manager.
+.SS Specifying Number of Processes
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+As we have just seen, the number of processes to run can be set using the
+hostfile.  Other mechanisms exist.
+.sp
+The number of processes launched can be specified as a multiple of the
+number of nodes or processor packages available.  For example,
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-H aa,bb \-\-map\-by ppr:2:package ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+launches processes 0\-3 on node \fBaa\fP and process 4\-7 on node \fBbb\fP
+(assuming \fBaa\fP and \fBbb\fP both contain 4 slots each).
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-H aa,bb \-\-map\-by ppr:2:node ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+launches processes 0\-1 on node \fBaa\fP and processes 2\-3 on node \fBbb\fP\&.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-H aa,bb \-\-map\-by ppr:1:node ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+launches one process per host node.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+mpirun \-H aa,bb \-\-pernode ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+is the same as \fB\-\-map\-by ppr:1:node\fP and \fB\-\-npernode 1\fP\&.
+.sp
+Another alternative is to specify the number of processes with the \fB\-n\fP
+option.  Consider now the hostfile:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ cat myhostfile
+aa slots=4
+bb slots=4
+cc slots=4
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Now run with \fBmyhostfile\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-hostfile myhostfile \-n 6 ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will launch processes 0\-3 on node \fBaa\fP and processes 4\-5 on node
+\fBbb\fP\&.  The remaining slots in the hostfile will not be used since
+the \fB\-n\fP option indicated that only 6 processes should be launched.
+.SS Mapping Processes to Nodes: Using Policies
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+The examples above illustrate the default mapping of process processes
+to nodes.  This mapping can also be controlled with various \fBmpirun\fP
+options that describe mapping policies.
+.sp
+Consider the same hostfile as above, again with \fB\-n 6\fP\&.  The table
+below lists a few \fBmpirun\fP variations, and shows which
+\fBMPI_COMM_WORLD\fP ranks end up on which node:
+.TS
+box center;
+l|l|l|l.
+T{
+Command
+T}	T{
+Node \fBaa\fP
+T}	T{
+Node \fBbb\fP
+T}	T{
+Node \fBcc\fP
+T}
+_
+T{
+\fBmpirun\fP
+T}	T{
+0 1 2 3
+T}	T{
+4 5
+T}	T{
+T}
+_
+T{
+\fBmpirun \-\-map\-by node\fP
+T}	T{
+0 3
+T}	T{
+1 4
+T}	T{
+2 5
+T}
+_
+T{
+\fBmpirun \-\-nolocal\fP
+T}	T{
+T}	T{
+0 1 2 3
+T}	T{
+4 5
+T}
+.TE
+.sp
+The \fB\-\-map\-by node\fP option will load balance the processes across the
+available nodes, numbering each process in a round\-robin fashion.
+.sp
+The \fB\-\-nolocal\fP option prevents any processes from being mapped onto
+the local host (in this case node \fBaa\fP).  While \fBmpirun\fP typically
+consumes few system resources, \fB\-\-nolocal\fP can be helpful for
+launching very large jobs where mpirun may actually need to use
+noticeable amounts of memory and/or processing time.
+.sp
+Just as \fB\-n\fP can specify fewer processes than there are slots, it
+can also oversubscribe the slots.  For example, with the same
+hostfile:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-hostfile myhostfile \-n 14 ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will launch processes 0\-3 on node \fBaa\fP, 4\-7 on \fBbb\fP, and 8\-11 on
+\fBcc\fP\&.  It will then add the remaining two processes to whichever
+nodes it chooses.
+.sp
+One can also specify limits to oversubscription.  For example, with the
+same hostfile:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-hostfile myhostfile \-n 14 \-\-nooversubscribe ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will produce an error since \fB\-\-nooversubscribe\fP prevents
+oversubscription.
+.sp
+Limits to oversubscription can also be specified in the hostfile
+itself:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ cat myhostfile
+aa slots=4 max_slots=4
+bb         max_slots=4
+cc slots=4
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+The \fBmax_slots\fP field specifies such a limit.  When it does, the slots
+value defaults to the limit.  Now:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-hostfile myhostfile \-n 14 ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+causes the first 12 processes to be launched as before, but the
+remaining two processes will be forced onto node \fBcc\fP\&.  The other
+two nodes are protected by the hostfile against oversubscription by
+this job.
+.sp
+Using the \fB\-\-nooversubscribe\fP option can be helpful since Open MPI
+currently does not get \fBmax_slots\fP values from the resource manager.
+.sp
+Of course, \fB\-n\fP can also be used with the \fB\-H\fP or \fB\-host\fP
+option.  For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-H aa,bb \-n 8 ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+launches 8 processes.  Since only two hosts are specified, after the
+first two processes are mapped, one to \fBaa\fP and one to \fBbb\fP, the
+remaining processes oversubscribe the specified hosts.
+.sp
+And here is a MIMD example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-H aa \-n 1 hostname : \-H bb,cc \-n 2 uptime
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will launch process 0 running hostname on node \fBaa\fP and processes 1
+and 2 each running uptime on nodes \fBbb\fP and \fBcc\fP, respectively.
+.SS Mapping, Ranking, and Binding: Oh My!
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+Open MPI employs a three\-phase procedure for assigning process locations
+and ranks:
+.INDENT 0.0
+.IP 1. 3
+\fBMapping\fP: Assigns a default location to each process
+.IP 2. 3
+\fBRanking\fP: Assigns an \fBMPI_COMM_WORLD\fP rank value to each process
+.IP 3. 3
+\fBBinding\fP: Constrains each process to run on specific processors
+.UNINDENT
+.sp
+The mapping step is used to assign a default location to each process
+based on the mapper being employed. Mapping by slot, node, and
+sequentially results in the assignment of the processes to the node
+level. In contrast, mapping by object, allows the mapper to assign the
+process to an actual object on each node.
+.sp
+Note that the location assigned to the process is independent of where
+it will be bound — the assignment is used solely as input to the
+binding algorithm.
+.sp
+The mapping of process processes to nodes can be defined not just with
+general policies but also, if necessary, using arbitrary mappings that
+cannot be described by a simple policy.  One can use the “sequential
+mapper,” which reads the hostfile line by line, assigning processes to
+nodes in whatever order the hostfile specifies.  Use the \fB\-\-\-map\-by seq\fP option.  For example, using the same hostfile as before:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-hostfile myhostfile \-\-map\-by seq ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+will launch three processes, one on each of nodes \fBaa\fP, \fBbb\fP, and \fBcc\fP,
+respectively.  The slot counts don’t matter; one process is launched
+per line on whatever node is listed on the line.
+.sp
+Another way to specify arbitrary mappings is with a rankfile, which
+gives you detailed control over process binding as well.  Rankfiles
+are discussed \fI\%below\fP\&.
+.sp
+The second phase focuses on the ranking of the process within the
+job’s \fBMPI_COMM_WORLD\fP\&.  Open MPI separates this from the mapping
+procedure to allow more flexibility in the relative placement of MPI
+processes. This is best illustrated by considering the following
+cases where we used the \fB\-\-np 8 \-\-map\-by ppr:2:package \-\-host aa:4,bb:4\fP option:
+.TS
+box center;
+l|l|l.
+T{
+Option
+T}	T{
+Node \fBaa\fP
+T}	T{
+Node \fBbb\fP
+T}
+_
+T{
+\fB\-\-rank\-by fill\fP (i.e., dense packing) Default
+T}	T{
+0 1 | 2 3
+T}	T{
+4 5 | 6 7
+T}
+_
+T{
+\fB\-\-rank\-by span\fP (i.e., sparse or load balanced packing)
+T}	T{
+0 4 | 1 5
+T}	T{
+2 6 | 3 7
+T}
+_
+T{
+\fB\-\-rank\-by node\fP
+T}	T{
+0 2 | 4 6
+T}	T{
+1 3 | 5 7
+T}
+.TE
+.sp
+Ranking by \fBfill\fP assigns MCW ranks in a simple progression across each
+node. Ranking by \fBspan\fP and by \fBslot\fP provide the identical
+result — a round\-robin progression of the packages across all nodes
+before returning to the first package on the first node. Ranking by
+\fBnode\fP assigns MCW ranks iterating first across nodes then by package.
+.sp
+The binding phase actually binds each process to a given set of
+processors. This can improve performance if the operating system is
+placing processes suboptimally.  For example, it might oversubscribe
+some multi\-core processor packages, leaving other packages idle; this
+can lead processes to contend unnecessarily for common resources.  Or,
+it might spread processes out too widely; this can be suboptimal if
+application performance is sensitive to interprocess communication
+costs.  Binding can also keep the operating system from migrating
+processes excessively, regardless of how optimally those processes
+were placed to begin with.
+.sp
+The processors to be used for binding can be identified in terms of
+topological groupings — e.g., binding to an \fBl3cache\fP will
+bind each process to all processors within the scope of a single L3
+cache within their assigned location. Thus, if a process is assigned
+by the mapper to a certain package, then a \fB\-\-bind\-to l3cache\fP
+directive will cause the process to be bound to the processors that
+share a single L3 cache within that package.
+.sp
+Alternatively, processes can be mapped and bound to specified cores using
+the \fB\-\-map\-by pe\-list=\fP option. For example, \fB\-\-map\-by pe\-list=0,2,5\fP
+will map three processes all three of which will be bound to logical cores
+\fB0,2,5\fP\&. If you intend to bind each of the three processes to different
+cores then the \fB:ordered\fP qualifier can be used like
+\fB\-\-map\-by pe\-list=0,2,5:ordered\fP\&. In this example, the first process
+on a node will be bound to CPU 0, the second process on the node will
+be bound to CPU 2, and the third process on the node will be bound to
+CPU 5.
+.sp
+Finally, \fB\-\-report\-bindings\fP can be used to report bindings.
+.sp
+As an example, consider a node with two processor packages, each
+comprised of four cores, and each of those cores contains one hardware
+thread.  The \fB\-\-report\-bindings\fP option shows the binding of each process in a
+descriptive manner. Below are some examples.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-report\-bindings \-\-map\-by core \-\-bind\-to core
+[...] Rank 0 bound to package[0][core:0]
+[...] Rank 1 bound to package[0][core:1]
+[...] Rank 2 bound to package[0][core:2]
+[...] Rank 3 bound to package[0][core:3]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+In the above case, the processes bind to successive cores.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-report\-bindings \-\-map\-by package \-\-bind\-to package
+[...] Rank 0 bound to package[0][core:0\-3]
+[...] Rank 1 bound to package[0][core:0\-3]
+[...] Rank 2 bound to package[1][core:4\-7]
+[...] Rank 3 bound to package[1][core:4\-7]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+In the above case, processes bind to all cores on successive packages.
+The processes cycle through the processor packages in a
+round\-robin fashion as many times as are needed. By default, the processes
+are ranked in a \fBfill\fP manner.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-report\-bindings \-\-map\-by package \-\-bind\-to package \-\-rank\-by span
+[...] Rank 0 bound to package[0][core:0\-3]
+[...] Rank 1 bound to package[1][core:4\-7]
+[...] Rank 2 bound to package[0][core:0\-3]
+[...] Rank 3 bound to package[1][core:4\-7]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+The above case demonstrates the difference
+in ranking when the \fBspan\fP qualifier is used instead of the default.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-report\-bindings \-\-map\-by slot:PE=2 \-\-bind\-to core
+[...] Rank 0 bound to package[0][core:0\-1]
+[...] Rank 1 bound to package[0][core:2\-3]
+[...] Rank 2 bound to package[0][core:4\-5]
+[...] Rank 3 bound to package[0][core:6\-7]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+In the above case, the output shows us that 2 cores have been bound per
+process.  Specifically, the mapping by \fBslot\fP with the \fBPE=2\fP qualifier
+indicated that each slot (i.e., process) should consume two processor
+elements.  By default, Open MPI defines “processor element” as “core”,
+and therefore the \fB\-\-bind\-to core\fP caused each process to be bound to
+both of the cores to which it was mapped.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-report\-bindings \-\-map\-by slot:PE=2 \-\-use\-hwthread\-cpus
+[...]] Rank 0 bound to package[0][hwt:0\-1]
+[...]] Rank 1 bound to package[0][hwt:2\-3]
+[...]] Rank 2 bound to package[0][hwt:4\-5]
+[...]] Rank 3 bound to package[0][hwt:6\-7]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+In the above case, we replace the \fB\-\-bind\-to core\fP with
+\fB\-\-use\-hwthread\-cpus\fP\&. The \fB\-\-use\-hwthread\-cpus\fP is converted into
+\fB\-\-bind\-to hwthread\fP and tells the \fB\-\-report\-bindings\fP output to show the
+hardware threads to which a process is bound. In this case, processes are
+bound to 2 hardware threads per process.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-report\-bindings \-\-bind\-to none
+[...] Rank 0 is not bound (or bound to all available processors)
+[...] Rank 1 is not bound (or bound to all available processors)
+[...] Rank 2 is not bound (or bound to all available processors)
+[...] Rank 3 is not bound (or bound to all available processors)
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+In the above case, binding is turned off and are reported as such.
+.sp
+Open MPI’s support for process binding depends on the underlying
+operating system.  Therefore, certain process binding options may not
+be available on every system.
+.sp
+Process binding can also be set with MCA parameters.  Their usage is
+less convenient than that of \fBmpirun\fP options.  On the other hand,
+MCA parameters can be set not only on the mpirun command line, but
+alternatively in a system or user \fBmca\-params.conf\fP file or as
+environment variables, as described in the \fI\%Setting MCA
+Parameters\fP\&. These are MCA parameters for
+the PRRTE runtime so the command line argument \fB\-\-prtemca\fP
+(yes, \fBprte\fP with a single \fBr\fP, not two \fBr\fP’s) must be used to
+pass the MCA parameter key/value pair. Alternatively, the MCA parameter
+key/value pair may be specific on the command line by prefixing the key with
+\fBPRTE_MCA_\fP (again, that is not a typo: \fBPRTE\fP not \fBPRRTE\fP).
+Some examples include:
+.TS
+box center;
+l|l|l.
+T{
+Option
+T}	T{
+PRRTE MCA parameter key
+T}	T{
+Value
+T}
+_
+T{
+\fB\-\-map\-by core\fP
+T}	T{
+\fBrmaps_default_mapping_policy\fP
+T}	T{
+\fBcore\fP
+T}
+_
+T{
+\fB\-\-map\-by package\fP
+T}	T{
+\fBrmaps_default_mapping_policy\fP
+T}	T{
+\fBpackage\fP
+T}
+_
+T{
+\fB\-\-rank\-by fill\fP
+T}	T{
+\fBrmaps_default_ranking_policy\fP
+T}	T{
+\fBfill\fP
+T}
+_
+T{
+\fB\-\-bind\-to core\fP
+T}	T{
+\fBhwloc_default_binding_policy\fP
+T}	T{
+\fBcore\fP
+T}
+_
+T{
+\fB\-\-bind\-to package\fP
+T}	T{
+\fBhwloc_default_binding_policy\fP
+T}	T{
+\fBpackage\fP
+T}
+_
+T{
+\fB\-\-bind\-to none\fP
+T}	T{
+\fBhwloc_default_binding_policy\fP
+T}	T{
+\fBnone\fP
+T}
+.TE
+.SS Defaults for Mapping, Ranking, and Binding
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+If the user does not specify each of \fB\-\-map\-by\fP, \fB\-\-rank\-by\fP, and \fB\-\-bind\-to\fP option then the default values are as follows:
+.INDENT 0.0
+.IP \(bu 2
+If no options are specified then
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+If the number of processes is less than or equal to 2, then:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-map\-by\fP is \fBcore\fP
+.IP \(bu 2
+\fB\-\-bind\-to\fP is \fBcore\fP
+.IP \(bu 2
+\fB\-\-rank\-by\fP is \fBspan\fP
+.IP \(bu 2
+Result: \fB\-\-map\-by core \-\-bind\-to core \-\-rank\-by span\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Otherwise:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-map\-by\fP is \fBpackage\fP
+.IP \(bu 2
+\fB\-\-bind\-to\fP is \fBpackage\fP
+.IP \(bu 2
+\fB\-\-rank\-by\fP is \fBfill\fP
+.IP \(bu 2
+Result: \fB\-\-map\-by package \-\-bind\-to package \-\-rank\-by fill\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+If only \fB\-\-map\-by OBJ\fP (where \fBOBJ\fP is something like \fBcore\fP) is specified, then:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-map\-by\fP specified \fBOBJ\fP
+.IP \(bu 2
+\fB\-\-bind\-to\fP uses the same \fBOBJ\fP as \fB\-\-map\-by\fP
+.IP \(bu 2
+\fB\-\-rank\-by\fP defaults to \fBfill\fP
+.IP \(bu 2
+Result: \fB\-\-map\-by OBJ \-\-bind\-to OBJ \-\-rank\-by fill\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+If only \fB\-\-bind\-to OBJ\fP (where \fBOBJ\fP is something like \fBcore\fP) is specified, then:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-map\-by\fP is either \fBcore\fP or \fBpackage\fP depending on the number of processes
+.IP \(bu 2
+\fB\-\-bind\-to\fP specified \fBOBJ\fP
+.IP \(bu 2
+\fB\-\-rank\-by\fP defaults to \fBfill\fP
+.IP \(bu 2
+Result: \fB\-\-map\-by OBJ \-\-bind\-to OBJ \-\-rank\-by fill\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+If \fB\-\-map\-by OBJ1 \-\-bind\-to OBJ2\fP, then:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-map\-by\fP specified \fBOBJ1\fP
+.IP \(bu 2
+\fB\-\-bind\-to\fP specified \fBOBJ2\fP
+.IP \(bu 2
+\fB\-\-rank\-by\fP defaults to \fBfill\fP
+.IP \(bu 2
+Result: \fB\-\-map\-by OBJ2 \-\-bind\-to OBJ2 \-\-rank\-by fill\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Consider 2 identical hosts (\fBhostA\fP and \fBhostB\fP) with 2 packages (denoted by \fB[]\fP) each with 8 cores (denoted by \fB/../\fP) and 2 hardware threads per core (denoted by a \fB\&.\fP).
+.sp
+Default of \fB\-\-map\-by core \-\-bind\-to core \-\-rank\-by span\fP when the number of processes is less than or equal to 2.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 2 \-\-host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/../../../../../../..][../../../../../../../..]
+R1  hostA  [../BB/../../../../../..][../../../../../../../..]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Default of \fB\-\-map\-by package \-\-bind\-to package \-\-rank\-by fill\fP when the number of processes is greater than 2.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/BB/BB/BB/BB/BB/BB/BB][../../../../../../../..]
+R1  hostA  [BB/BB/BB/BB/BB/BB/BB/BB][../../../../../../../..]
+R2  hostA  [../../../../../../../..][BB/BB/BB/BB/BB/BB/BB/BB]
+R3  hostA  [../../../../../../../..][BB/BB/BB/BB/BB/BB/BB/BB]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+If only \fB\-\-map\-by OBJ\fP is specified, then it implies \fB\-\-bind\-to OBJ \-\-rank\-by fill\fP\&. The example below results in \fB\-\-map\-by hwthread \-\-bind\-to hwthread \-\-rank\-by fill\fP
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-map\-by hwthread \-\-host hostA:4,hostB:2 ./a.out
+R0  hostA  [B./../../../../../../..][../../../../../../../..]
+R1  hostA  [.B/../../../../../../..][../../../../../../../..]
+R0  hostA  [../B./../../../../../..][../../../../../../../..]
+R1  hostA  [../.B/../../../../../..][../../../../../../../..]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+If only \fB\-\-bind\-to OBJ\fP is specified, then \fB\-\-map\-by\fP is determined by the number of processes and \fB\-\-rank\-by fill\fP\&. The example below results in \fB\-\-map\-by package \-\-bind\-to core \-\-rank\-by fill\fP
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-bind\-to core \-\-host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/../../../../../../..][../../../../../../../..]
+R1  hostA  [../BB/../../../../../..][../../../../../../../..]
+R2  hostA  [../../../../../../../..][BB/../../../../../../..]
+R3  hostA  [../../../../../../../..][../BB/../../../../../..]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+The mapping pattern might be better seen if we change the default \fB\-\-rank\-by\fP from \fBfill\fP to \fBspan\fP\&. First, the processes are mapped by package iterating between the two marking a core at a time. Next, the processes are ranked in a spanning manner that load balances them across the object they were mapped against. Finally, the processes are bound to the core that they were mapped against.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-np 4 \-\-bind\-to core \-\-rank\-by span \-\-host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/../../../../../../..][../../../../../../../..]
+R1  hostA  [../../../../../../../..][BB/../../../../../../..]
+R2  hostA  [../BB/../../../../../..][../../../../../../../..]
+R3  hostA  [../../../../../../../..][../BB/../../../../../..]
+.EE
+.UNINDENT
+.UNINDENT
+.SS Rankfiles
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+Rankfiles are text files that specify detailed information about how
+individual processes should be mapped to nodes, and to which
+processor(s) they should be bound.  Each line of a rankfile specifies
+the location of one process (for MPI jobs, the process’ “rank” refers
+to its rank in \fBMPI_COMM_WORLD\fP).  The general form of each line in the
+rankfile is:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+rank <N>=<hostname> slot=<slot list>
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ cat myrankfile
+rank 0=aa slot=1:0\-2
+rank 1=bb slot=0:0,1
+rank 2=cc slot=2\-3
+shell$ mpirun \-H aa,bb,cc,dd \-\-map\-by rankfile:file=myrankfile ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Means that:
+.INDENT 0.0
+.IP \(bu 2
+Rank 0 runs on node aa, bound to logical package 1, cores 0\-2.
+.IP \(bu 2
+Rank 1 runs on node bb, bound to logical package 0, cores 0 and 1.
+.IP \(bu 2
+Rank 2 runs on node cc, bound to logical cores 2 and 3.
+.UNINDENT
+.sp
+Note that only logical processor locations are supported. By default, the values specified are assumed to be cores. If you intend to specify specific hardware threads then you must add the \fB:hwtcpus\fP qualifier to the \fB\-\-map\-by\fP command line option (e.g., \fB\-\-map\-by rankfile:file=myrankfile:hwtcpus\fP).
+.sp
+If the binding specification overlaps between any two ranks then an error occurs. If you intend to allow processes to share the same logical processing unit then you must pass the \fB\-\-bind\-to :overload\-allowed\fP command line option to tell the runtime to ignore this check.
+.sp
+The hostnames listed above are “absolute,” meaning that actual
+resolvable hostnames are specified.  However, hostnames can also be
+specified as “relative,” meaning that they are specified in relation
+to an externally\-specified list of hostnames (e.g., by \fBmpirun\fP’s
+\fB\-\-host\fP argument, a hostfile, or a job scheduler).
+.sp
+The “relative” specification is of the form \fB+n<X>\fP, where X is an
+integer specifying the Xth hostname in the set of all available
+hostnames, indexed from 0.  For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ cat myrankfile
+rank 0=+n0 slot=1:0\-2
+rank 1=+n1 slot=0:0,1
+rank 2=+n2 slot=2\-3
+shell$ mpirun \-H aa,bb,cc,dd \-\-map\-by rankfile:file=myrankfile ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+All package/core slot locations are specified as logical indexes.
+.sp
+\fBNOTE:\fP
+.INDENT 0.0
+.INDENT 3.5
+The Open MPI v1.6 series used physical indexes. Starting in Open MPI v5.0 only logical indexes are supported and the \fBrmaps_rank_file_physical\fP MCA parameter is no longer recognized.
+.UNINDENT
+.UNINDENT
+.sp
+You can use tools such as Hwloc’s \fIlstopo(1)\fP to find the logical
+indexes of package and cores.
+.SS Application Context or Executable Program?
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+To distinguish the two different forms, mpirun looks on the command
+line for \fB\-\-app\fP option.  If it is specified, then the file named on
+the command line is assumed to be an application context.  If it is
+not specified, then the file is assumed to be an executable program.
+.SS Locating Files
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+If no relative or absolute path is specified for a file, Open MPI will
+first look for files by searching the directories specified by the
+\fB\-\-path\fP option.  If there is no \fB\-\-path\fP option set or if the
+file is not found at the \fB\-\-path\fP location, then Open MPI will
+search the user’s \fBPATH\fP environment variable as defined on the
+source node(s).
+.sp
+If a relative directory is specified, it must be relative to the
+initial working directory determined by the specific starter used. For
+example when using the ssh starter, the initial directory is \fB$HOME\fP
+by default.  Other starters may set the initial directory to the
+current working directory from the invocation of \fBmpirun\fP\&.
+.SS Current Working Directory
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+The \fB\-\-wdir\fP \fBmpirun\fP option (and its synonym, \fB\-\-wd\fP) allows
+the user to change to an arbitrary directory before the program is
+invoked.  It can also be used in application context files to specify
+working directories on specific nodes and/or for specific
+applications.
+.sp
+If the \fB\-\-wdir\fP option appears both in a context file and on the
+command line, the context file directory will override the command
+line value.
+.sp
+If the \fB\-wdir\fP option is specified, Open MPI will attempt to change
+to the specified directory on all of the remote nodes. If this fails,
+\fBmpirun\fP will abort.
+.sp
+If the \fB\-wdir\fP option is not specified, Open MPI will send the
+directory name where \fBmpirun\fP was invoked to each of the remote
+nodes.  The remote nodes will try to change to that directory.  If
+they are unable (e.g., if the directory does not exist on that node),
+then Open MPI will use the default directory determined by the
+starter.
+.sp
+All directory changing occurs before the user’s program is invoked; it
+does not wait until \fI\%MPI_INIT(3)\fP is called.
+.SS Standard I/O
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+Open MPI directs UNIX standard input to \fB/dev/null\fP on all processes
+except the \fBMPI_COMM_WORLD\fP rank 0 process. The \fBMPI_COMM_WORLD\fP rank 0
+process inherits standard input from \fBmpirun\fP\&.
+.sp
+\fBNOTE:\fP
+.INDENT 0.0
+.INDENT 3.5
+The node that invoked \fBmpirun\fP need not be the same as the
+node where the \fBMPI_COMM_WORLD\fP rank 0 process resides. Open
+MPI handles the redirection of \fBmpirun\fP’s standard input
+to the rank 0 process.
+.UNINDENT
+.UNINDENT
+.sp
+Open MPI directs UNIX standard output and error from remote nodes to
+the node that invoked \fBmpirun\fP and prints it on the standard
+output/error of \fBmpirun\fP\&.  Local processes inherit the standard
+output/error of \fBmpirun\fP and transfer to it directly.
+.sp
+Thus it is possible to redirect standard I/O for Open MPI applications
+by using the typical shell redirection procedure on \fBmpirun\fP\&.  For
+example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-n 2 my_app < my_input > my_output
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Note that in this example only the \fBMPI_COMM_WORLD\fP rank 0 process will
+receive the stream from \fBmy_input\fP on stdin.  The stdin on all the other
+nodes will be tied to \fB/dev/null\fP\&.  However, the stdout from all nodes
+will be collected into the \fBmy_output\fP file.
+.SS Signal Propagation
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+When \fBmpirun\fP receives a SIGTERM and SIGINT, it will attempt to kill
+the entire job by sending all processes in the job a SIGTERM, waiting
+a small number of seconds, then sending all processes in the job a
+SIGKILL.
+.sp
+SIGUSR1 and SIGUSR2 signals received by \fBmpirun\fP are propagated to all
+processes in the job.
+.sp
+A SIGTSTOP signal to \fBmpirun\fP will cause a SIGSTOP signal to be sent
+to all of the programs started by \fBmpirun\fP and likewise a SIGCONT
+signal to \fBmpirun\fP will cause a SIGCONT sent.
+.sp
+Other signals are not currently propagated by \fBmpirun\fP\&.
+.SS Process Termination / Signal Handling
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+During the run of an MPI application, if any process dies abnormally
+(either exiting before invoking \fI\%MPI_FINALIZE(3)\fP,
+or dying as the result of a signal), \fBmpirun\fP will print out an
+error message and kill the rest of the MPI application.
+.sp
+User signal handlers should probably avoid trying to cleanup MPI state
+(Open MPI is currently not async\-signal\-safe; see
+\fI\%MPI_INIT_THREAD(3)\fP for details about
+MPI_THREAD_MULTIPLE and thread safety).  For example, if a
+segmentation fault occurs in \fI\%MPI_SEND(3)\fP (perhaps
+because a bad buffer was passed in) and a user signal handler is
+invoked, if this user handler attempts to invoke \fI\%MPI_FINALIZE(3)\fP, Bad Things could happen since Open MPI was already
+“in” MPI when the error occurred.  Since \fBmpirun\fP will notice that the
+process died due to a signal, it is probably not necessary (and
+safest) for the user to only clean up non\-MPI state.
+.SS Process Environment
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+Processes in the MPI application inherit their environment from the
+PRRTE daemon upon the node on which they are running.  The
+environment is typically inherited from the user’s shell.  On remote
+nodes, the exact environment is determined by the boot MCA module
+used.  The rsh launch module, for example, uses either rsh/ssh to
+launch the PRRTE daemon on remote nodes, and typically executes one
+or more of the user’s shell\-setup files before launching the PRRTE
+daemon.  When running dynamically linked applications which require
+the \fBLD_LIBRARY_PATH\fP environment variable to be set, care must be
+taken to ensure that it is correctly set when booting Open MPI.
+.sp
+See the \fI\%Remote Execution\fP section
+for more details.
+.SS Remote Execution
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+Open MPI requires that the \fBPATH\fP environment variable be set to
+find executables on remote nodes (this is typically only necessary in
+rsh\- or ssh\-based environments — batch/scheduled environments
+typically copy the current environment to the execution of remote
+jobs, so if the current environment has \fBPATH\fP and/or
+\fBLD_LIBRARY_PATH\fP set properly, the remote nodes will also have it
+set properly).  If Open MPI was compiled with shared library support,
+it may also be necessary to have the \fBLD_LIBRARY_PATH\fP environment
+variable set on remote nodes as well (especially to find the shared
+libraries required to run user MPI applications).
+.sp
+However, it is not always desirable or possible to edit shell startup
+files to set \fBPATH\fP and/or \fBLD_LIBRARY_PATH\fP\&.  The \fB\-\-prefix\fP
+option is provided for some simple configurations where this is not
+possible.
+.sp
+The \fB\-\-prefix\fP option takes a single argument: the base directory on
+the remote node where Open MPI is installed.  Open MPI will use this
+directory to set the remote \fBPATH\fP and \fBLD_LIBRARY_PATH\fP before
+executing any Open MPI or user applications.  This allows running Open
+MPI jobs without having pre\-configured the \fBPATH\fP and
+\fBLD_LIBRARY_PATH\fP on the remote nodes.
+.sp
+Open MPI adds the basename of the current node’s \fB$bindir\fP (the
+directory where Open MPI’s executables were installed) to the prefix
+and uses that to set the \fBPATH\fP on the remote node.  Similarly, Open
+MPI adds the basename of the current node’s \fB$libdir\fP (the directory
+where Open MPI’s libraries were installed) to the prefix and uses that
+to set the \fBLD_LIBRARY_PATH\fP on the remote node.  For example:
+.INDENT 0.0
+.IP \(bu 2
+Local bindir: \fB/local/node/directory/bin\fP
+.IP \(bu 2
+Local libdir: \fB/local/node/directory/lib64\fP
+.UNINDENT
+.sp
+If the following command line is used:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-prefix /remote/node/directory
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Open MPI will add \fB/remote/node/directory/bin\fP to the \fBPATH\fP and
+\fB/remote/node/directory/lib64\fP to the \fBLD_LIBRARY_PATH\fP on the
+remote node before attempting to execute anything.
+.sp
+The \fB\-\-prefix\fP option is not sufficient if the installation paths on
+the remote node are different than the local node (e.g., if \fB/lib\fP
+is used on the local node, but \fB/lib64\fP is used on the remote node),
+or if the installation paths are something other than a subdirectory
+under a common prefix.
+.sp
+Note that executing \fBmpirun\fP via an absolute pathname is equivalent
+to specifying \fB\-\-prefix\fP without the last subdirectory in the
+absolute pathname to \fBmpirun\fP\&.  For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ /usr/local/bin/mpirun ...
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+is equivalent to
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-prefix /usr/local
+.EE
+.UNINDENT
+.UNINDENT
+.SS Exported Environment Variables
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+All environment variables that are named in the form \fBOMPI_*\fP will
+automatically be exported to new processes on the local and remote
+nodes.  Environmental parameters can also be set/forwarded to the new
+processes using the MCA parameter \fBmca_base_env_list\fP\&. The \fB\-x\fP
+option to mpirun has been deprecated, but the syntax of the MCA param
+follows that prior example. While the syntax of the \fB\-x\fP option and
+MCA param allows the definition of new variables, note that the parser
+for these options are currently not very sophisticated — it does
+not even understand quoted values.  Users are advised to set variables
+in the environment and use the option to export them; not to define
+them.
+.SS Setting MCA Parameters
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+The \fB\-\-mca\fP switch allows the passing of parameters to various MCA
+(Modular Component Architecture) modules.  MCA modules have direct
+impact on MPI programs because they allow tunable parameters to be set
+at run time (such as which BTL communication device driver to use,
+what parameters to pass to that BTL, etc.).
+.sp
+The \fB\-\-mca\fP switch takes two arguments: \fB<key>\fP and \fB<value>\fP\&.
+The \fB<key>\fP argument generally specifies which MCA module will
+receive the value.  For example, the \fB<key>\fP \fBbtl\fP is used to
+select which BTL to be used for transporting MPI messages.  The
+\fB<value>\fP argument is the value that is passed.  For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-mca btl tcp,self \-n 1 my_mpi_app
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+This tells Open MPI to use the \fBtcp\fP and \fBself\fP BTLs, and to run a
+single copy of \fBmy_mpi_app\fP an allocated node.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-\-mca btl self \-n 1 my_mpi_app
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Tells Open MPI to use the \fBself\fP BTL, and to run a single copy of
+\fBmy_mpi_app\fP an allocated node.
+.sp
+The \fB\-\-mca\fP switch can be used multiple times to specify different
+<key> and/or \fB<value>\fP arguments.  If the same \fB<key>\fP is
+specified more than once, the \fB<value>\(ga\(gas are concatenated with a
+comma (\fP,\(ga\(ga) separating them.
+.sp
+Note that the \fB\-\-mca\fP switch is simply a shortcut for setting
+environment variables.  The same effect may be accomplished by setting
+corresponding environment variables before running \fBmpirun\fP\&.  The form
+of the environment variables that Open MPI sets is:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+OMPI_MCA_<key>=<value>
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Thus, the \fB\-\-mca\fP switch overrides any previously set environment
+variables.  The \fB\-\-mca\fP settings similarly override MCA parameters
+set in the \fB$OPAL_PREFIX/etc/openmpi\-mca\-params.conf\fP or
+\fB$HOME/.openmpi/mca\-params.conf\fP file.
+.sp
+Unknown \fB<key>\fP arguments are still set as environment variable —
+they are not checked (by mpirun) for correctness.  Illegal or
+incorrect \fB<value>\fP arguments may or may not be reported — it
+depends on the specific MCA module.
+.sp
+To find the available component types under the MCA architecture, or
+to find the available parameters for a specific component, use the
+ompi_info command.  See the \fI\%ompi_info(1)\fP man
+page for detailed information on this command.
+.SS Setting MCA parameters and environment variables from file
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+The \fB\-\-tune\fP command line option and its synonym \fB\-\-mca\fP
+\fBmca_base_envar_file_prefix\fP allows a user to set MCA parameters and
+environment variables with the syntax described below.  This option
+requires a single file or list of files separated by “,” to follow.
+.sp
+A valid line in the file may contain zero or more \fB\-x\fP or
+\fB\-\-mca\fP\&. The following patterns are supported:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-mca var val\fP
+.IP \(bu 2
+\fB\-\-mca var \(dqval\(dq\fP
+.IP \(bu 2
+\fB\-x var=val\fP
+.IP \(bu 2
+\fB\-x var\fP
+.UNINDENT
+.sp
+If any argument is duplicated in the file, the last value read will be
+used.
+.sp
+MCA parameters and environment specified on the command line
+have higher precedence than variables specified in the file.
+.SS Running as root
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+\fBWARNING:\fP
+.INDENT 0.0
+.INDENT 3.5
+The Open MPI team \fBstrongly\fP advises against executing
+\fBmpirun\fP as the root user.  MPI applications should be
+run as regular (non\-root) users.
+.UNINDENT
+.UNINDENT
+.sp
+\fBmpirun\fP will refuse to run as root by default.
+.sp
+To override this default, you can add the \fB\-\-allow\-run\-as\-root\fP
+option to the mpirun command line, or you can set the environmental
+parameters \fBOMPI_ALLOW_RUN_AS_ROOT=1\fP and
+\fBOMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1\fP\&.  Note that it takes setting two
+environment variables to effect the same behavior as
+\fB\-\-allow\-run\-as\-root\fP in order to stress the Open MPI team’s strong
+advice against running as the root user.
+.sp
+After extended discussions with communities who use containers (where
+running as the root user is the default), there was a persistent
+desire to be able to enable root execution of \fBmpirun\fP via an
+environmental control (vs. the existing \fB\-\-allow\-run\-as\-root\fP
+command line parameter).  The compromise of using two environment
+variables was reached: it allows root execution via an environmental
+control, but it conveys the Open MPI team’s strong recommendation
+against this behavior.
+.SS Exit status
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+There is no standard definition for what \fBmpirun\fP should return as
+an exit status. After considerable discussion, we settled on the
+following method for assigning the \fBmpirun\fP exit status (note: in
+the following description, the “primary” job is the initial
+application started by mpirun — all jobs that are spawned by
+that job are designated “secondary” jobs):
+.INDENT 0.0
+.IP \(bu 2
+If all processes in the primary job normally terminate with exit
+status 0, \fBmpirun\fP returns 0.
+.IP \(bu 2
+If one or more processes in the primary job normally terminate with
+non\-zero exit status, \fBmpirun\fP returns the exit status of the
+process with the lowest \fBMPI_COMM_WORLD\fP rank to have a non\-zero
+status.
+.IP \(bu 2
+If all processes in the primary job normally terminate with exit
+status 0, and one or more processes in a secondary job normally
+terminate with non\-zero exit status, \fBmpirun\fP:
+.INDENT 2.0
+.IP 1. 3
+Returns the exit status of the process with the lowest
+\fBMPI_COMM_WORLD\fP rank in the lowest jobid to have a non\-zero
+status, and
+.IP 2. 3
+Outputs a message summarizing the exit status of the primary and
+all secondary jobs.
+.UNINDENT
+.IP \(bu 2
+If the command line option \fB\-\-report\-child\-jobs\-separately\fP is
+set, we will return \fIonly\fP the exit status of the primary job. Any
+non\-zero exit status in secondary jobs will be reported solely in a
+summary print statement.
+.UNINDENT
+.sp
+By default, the job will abort when any process terminates with
+non\-zero status. The MCA parameter \fB\-\-prtemca state_base_error_non_zero_exit\fP
+can be set to “false” (or “0”) to cause Open MPI to not abort a job if
+one or more processes return a non\-zero status. In that situation the
+Open MPI records and notes that processes exited with non\-zero
+termination status to report the appropriate exit status of \fBmpirun\fP (per
+bullet points above).
+.SH EXAMPLES
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+Be sure also to see the examples throughout the sections above.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ mpirun \-n 4 \-\-mca btl tcp,sm,self prog1
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Run 4 copies of \fBprog1\fP using the \fBtcp\fP, \fBsm\fP (shared memory),
+and \fBself\fP (process loopback) BTL’s for the transport of MPI
+messages.
+.SH RETURN VALUE
+.INDENT 0.0
+.INDENT 3.5
+.IP "This is old, hard\-coded content"
+.sp
+Is this content still current / accurate?  Should it be updated and
+retained, or removed?
+.UNINDENT
+.UNINDENT
+.sp
+\fBmpirun\fP returns 0 if all processes started by mpirun exit after
+calling \fI\%MPI_FINALIZE(3)\fP\&.  A non\-zero value is
+returned if an internal error occurred in mpirun, or one or more
+processes exited before calling \fI\%MPI_FINALIZE(3)\fP\&.
+If an internal error occurred in mpirun, the corresponding error code
+is returned.  In the event that one or more processes exit before
+calling \fI\%MPI_FINALIZE(3)\fP, the return value of
+the \fBMPI_COMM_WORLD\fP rank of the process that mpirun first notices died
+before calling \fI\%MPI_FINALIZE(3)\fP will be
+returned.  Note that, in general, this will be the first process that
+died but is not guaranteed to be so.
+.sp
+If the \fB\-\-timeout\fP command line option is used and the timeout
+expires before the job completes (thereby forcing mpirun to kill the
+job) mpirun will return an exit status equivalent to the value of
+ETIMEDOUT (which is typically 110 on Linux and OS X systems).
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fI\%MPI_INIT(3)\fP,
+\fI\%MPI_INIT_THREAD(3)\fP,
+\fI\%MPI_FINALIZE(3)\fP,
+\fI\%ompi_info(1)\fP
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

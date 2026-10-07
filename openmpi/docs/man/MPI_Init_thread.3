@@ -1,0 +1,347 @@
+'\" t
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_INIT_THREAD" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fI\%MPI_Init_thread\fP — Initializes the MPI world model
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_Init_thread(int *argc, char ***argv,
+     int required, int *provided)
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE MPI
+! or the older form: INCLUDE \(aqmpif.h\(aq
+MPI_INIT_THREAD(REQUIRED, PROVIDED, IERROR)
+     INTEGER REQUIRED, PROVIDED, IERROR
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran 2008 Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE mpi_f08
+MPI_Init_thread(required, provided, ierror)
+     INTEGER, INTENT(IN) :: required
+     INTEGER, INTENT(OUT) :: provided
+     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBargc\fP: C only: Pointer to the number of arguments.
+.IP \(bu 2
+\fBargv\fP: C only: Argument vector.
+.IP \(bu 2
+\fBrequired\fP: Desired level of thread support (integer).
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBprovided\fP: Available level of thread support (integer).
+.IP \(bu 2
+\fBierror\fP: Fortran only: Error status (integer).
+.UNINDENT
+.SH DESCRIPTION
+.sp
+This routine, or \fI\%MPI_Init\fP, initializes the MPI world
+model.  Either of these routines must be called before MPI
+communication routines are called within the MPI world model.  The MPI
+world model can be initialized at most exactly once in the lifetime of
+an MPI process.  This is different than the MPI session model, which
+can be initialized and finalized multiple times in an MPI process.
+See \fI\%MPI_Session_init\fP and \fI\%MPI_Session_finalize\fP\&.
+.sp
+See \X'tty: link https://www.mpi-forum.org/'\fI\%MPI\-5.0:11.4.1\fP\X'tty: link' for a list of MPI
+functionality that is available (e.g., even when the MPI
+world model has not yet initialized or has already been finalized).
+.sp
+The MPI world model can be initialized at most once; subsequent calls
+to \fI\%MPI_Init\fP or \fI\%MPI_Init_thread\fP are erroneous.
+.sp
+Alternatively, instead of the MPI world model, MPI applications can
+use the sessions model; see \fI\%MPI_Session_init\fP\&.
+.sp
+Upon return, the level of thread support available to the program is
+set in \fIprovided\fP\&. In Open MPI, the value is dependent on how the
+library was configured and built. Note that there is no guarantee that
+\fIprovided\fP will be greater than or equal to \fIrequired\fP\&.
+.sp
+Open MPI accepts the C \fIargc\fP and \fIargv\fP arguments to main, but
+neither modifies, interprets, nor distributes them:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int main(int argv, char *argv[]) {
+    int provided;
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+    /* ...body of main MPI program... */
+    MPI_Finalize();
+    return 0;
+}
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+\fI\%MPI_Init_thread\fP has both a direct and an indirect mechanism to
+request a specific level of thread support.  \fI\%MPI_Init\fP only has
+an indirect mechanism to request a specific level of thread support.
+.SS Direct request of thread level
+.sp
+\fI\%MPI_Init_thread\fP has the \fIrequired\fP parameter, which can be set
+to any one of the following constants (from \fBmpi.h\fP):
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_THREAD_SINGLE\fP: Indicating that only one thread will execute.
+.IP \(bu 2
+\fBMPI_THREAD_FUNNELED\fP: Indicating that if the process is
+multithreaded, only the thread that called \fI\%MPI_Init_thread\fP
+will make MPI calls.
+.IP \(bu 2
+\fBMPI_THREAD_SERIALIZED\fP: Indicating that if the process is
+multithreaded, only one thread will make MPI library calls at one
+time.
+.IP \(bu 2
+\fBMPI_THREAD_MULTIPLE\fP: Indicating that if the process is
+multithreaded, multiple threads may call MPI at once with no
+restrictions.
+.UNINDENT
+.sp
+The values of these constants adhere to the following relationships:
+.sp
+.ce
+\ebegin{eqnarray}
+    MPI\e_THREAD\e_SINGLE     & < & MPI\e_THREAD\e_FUNNELED \e\e
+    MPI\e_THREAD\e_FUNNELED   & < & MPI\e_THREAD\e_SERIALIZED \e\e
+    MPI\e_THREAD\e_SERIALIZED & < & MPI\e_THREAD\e_MULTIPLE \e\e
+\eend{eqnarray}
+.ce 0
+.SS Indirect request of thread level
+.sp
+Both \fI\%MPI_Init_thread\fP and \fI\%MPI_Init\fP support an indirect
+method of indicating the required thread level: setting the
+\fBOMPI_MPI_THREAD_LEVEL\fP environment variable:
+.INDENT 0.0
+.IP \(bu 2
+If the \fBOMPI_MPI_THREAD_LEVEL\fP environment variable is set at the
+time \fI\%MPI_Init\fP is invoked, it behaves as if
+\fI\%MPI_Init_thread\fP was invoked with the corresponding
+\fBMPI_THREAD_*\fP constant value passed via the \fIrequired\fP parameter.
+.IP \(bu 2
+If the \fBOMPI_MPI_THREAD_LEVEL\fP environment variable is set at the
+time \fI\%MPI_Init_thread\fP is invoked, the \fBMPI_THREAD_*\fP
+constant value corresponding to the environment variable value
+overrides the value passed via the \fIrequired\fP parameter.
+.UNINDENT
+.sp
+The \fBOMPI_MPI_THREAD_LEVEL\fP environment variable can be set to any
+of the values listed below.
+.TS
+box center;
+l|l.
+T{
+Value that Open MPI uses
+T}	T{
+Allowable values (case\-insensitive)
+T}
+_
+T{
+\fBMPI_THREAD_SINGLE\fP
+T}	T{
+\fBMPI_THREAD_SINGLE\fP, \fBSINGLE\fP, 0
+T}
+_
+T{
+\fBMPI_THREAD_FUNNELED\fP
+T}	T{
+\fBMPI_THREAD_FUNNELED\fP, \fBFUNNELED\fP, 1
+T}
+_
+T{
+\fBMPI_THREAD_SERIALIZED\fP
+T}	T{
+\fBMPI_THREAD_SERIALIZED\fP, \fBSERIALIZED\fP, 2
+T}
+_
+T{
+\fBMPI_THREAD_MULTIPLE\fP
+T}	T{
+\fBMPI_THREAD_MULTIPLE\fP, \fBMULTIPLE\fP, 3
+T}
+.TE
+.sp
+\fBNOTE:\fP
+.INDENT 0.0
+.INDENT 3.5
+In Open MPI v5.0.8 and prior, only the integer values 0 through
+3 were acceptable values for the \fBOMPI_MPI_THREAD_LEVEL\fP
+environment variable.
+.sp
+Starting with Open MPI v5.0.9, the Open MPI community
+recommends using one of the string name variants.
+.UNINDENT
+.UNINDENT
+.SH NOTES
+.sp
+The Fortran version does not have provisions for \fBargc\fP and \fBargv\fP and
+takes only \fBREQUIRED\fP, \fBPROVIDED\fP, and \fBIERROR\fP\&.
+.sp
+It is the caller’s responsibility to check the value of \fBprovided\fP, as
+it may be less than what was requested in \fBrequired\fP\&.
+.sp
+The MPI Standard does not specify what a program using the MPI world
+model can do before invoking \fI\%MPI_Init\fP or \fI\%MPI_Init_thread\fP
+or after invoking \fI\%MPI_Finalize\fP\&. In the Open MPI implementation,
+it should do as little as possible. In particular, avoid anything that
+changes the external state of the program, such as opening files,
+reading standard input, or writing to standard output.
+.SS MPI_THREAD_MULTIPLE Support
+.sp
+\fBMPI_THREAD_MULTIPLE\fP support is included if the environment in which
+Open MPI was built supports threading. You can check the output of
+\fI\%ompi_info(1)\fP to see if Open MPI has
+\fBMPI_THREAD_MULTIPLE\fP support:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ ompi_info | grep \(dqThread support\(dq
+          Thread support: posix (MPI_THREAD_MULTIPLE: yes, OPAL support: yes, OMPI progress: no, Event lib: yes)
+shell$
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+The \fBMPI_THREAD_MULTIPLE: yes\fP portion of the above output indicates
+that Open MPI was compiled with \fBMPI_THREAD_MULTIPLE\fP support.
+.sp
+Note that there is a small performance penalty for using
+\fBMPI_THREAD_MULTIPLE\fP support; latencies for short messages will be higher
+as compared to when using \fBMPI_THREAD_SINGLE\fP, for example.
+.SH ERRORS
+.sp
+Almost all MPI routines return an error value; C routines as the return result
+of the function and Fortran routines in the last argument.
+.sp
+Before the error value is returned, the current MPI error handler associated
+with the communication object (e.g., communicator, window, file) is called.
+If no communication object is associated with the MPI call, then the call is
+considered attached to MPI_COMM_SELF and will call the associated MPI error
+handler. When MPI_COMM_SELF is not initialized (i.e., before
+\fI\%MPI_Init\fP/\fI\%MPI_Init_thread\fP, after \fI\%MPI_Finalize\fP, or when using the Sessions
+Model exclusively) the error raises the initial error handler. The initial
+error handler can be changed by calling \fI\%MPI_Comm_set_errhandler\fP on
+MPI_COMM_SELF when using the World model, or the mpi_initial_errhandler CLI
+argument to mpiexec or info key to \fI\%MPI_Comm_spawn\fP/\fI\%MPI_Comm_spawn_multiple\fP\&.
+If no other appropriate error handler has been set, then the MPI_ERRORS_RETURN
+error handler is called for MPI I/O functions and the MPI_ERRORS_ABORT error
+handler is called for all other MPI functions.
+.sp
+Open MPI includes three predefined error handlers that can be used:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_ERRORS_ARE_FATAL\fP
+Causes the program to abort all connected MPI processes.
+.IP \(bu 2
+\fBMPI_ERRORS_ABORT\fP
+An error handler that can be invoked on a communicator,
+window, file, or session. When called on a communicator, it
+acts as if \fI\%MPI_Abort\fP was called on that communicator. If
+called on a window or file, acts as if \fI\%MPI_Abort\fP was called
+on a communicator containing the group of processes in the
+corresponding window or file. If called on a session,
+aborts only the local process.
+.IP \(bu 2
+\fBMPI_ERRORS_RETURN\fP
+Returns an error code to the application.
+.UNINDENT
+.sp
+MPI applications can also implement their own error handlers by calling:
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Comm_create_errhandler\fP then \fI\%MPI_Comm_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_File_create_errhandler\fP then \fI\%MPI_File_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_Session_create_errhandler\fP then \fI\%MPI_Session_set_errhandler\fP or at \fI\%MPI_Session_init\fP
+.IP \(bu 2
+\fI\%MPI_Win_create_errhandler\fP then \fI\%MPI_Win_set_errhandler\fP
+.UNINDENT
+.sp
+Note that MPI does not guarantee that an MPI program can continue past
+an error.
+.sp
+See the \fI\%MPI man page\fP for a full list of \fI\%MPI error codes\fP\&.
+.sp
+See the Error Handling section of the MPI\-3.1 standard for
+more information.
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Init\fP
+.IP \(bu 2
+\fI\%MPI_Initialized\fP
+.IP \(bu 2
+\fI\%MPI_Finalize\fP
+.IP \(bu 2
+\fI\%MPI_Finalized\fP
+.IP \(bu 2
+\fI\%MPI_Session_finalize\fP
+.IP \(bu 2
+\fI\%MPI_Session_init\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

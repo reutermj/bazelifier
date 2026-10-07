@@ -1,0 +1,191 @@
+{
+  "config_headers": 2,
+  "escalations": [
+    {
+      "digest": "967b129a2f8dd900",
+      "kind": "ctest_command_not_a_target",
+      "subject": "test_runner_epoll, test_runner_select, test_runner_kqueue, test_runner_evport, test_runner_devpoll, test_runner_poll, test_runner_win32, test_runner_timerfd, test_runner_changelist, test_runner_timerfd_changelist"
+    },
+    {
+      "digest": "eb8ba16018220f60",
+      "kind": "generated_headers",
+      "subject": "include/event2/event-config.h"
+    },
+    {
+      "digest": "91f57e12934cd973",
+      "kind": "unconverted_dependency",
+      "subject": "-lcrypto"
+    },
+    {
+      "digest": "bc53fffaa99414fc",
+      "kind": "unconverted_dependency",
+      "subject": "-lssl"
+    },
+    {
+      "digest": "5f91c885325ee8e7",
+      "kind": "unconverted_dependency",
+      "subject": "-lz"
+    },
+    {
+      "digest": "9ea1be253a62268f",
+      "kind": "unmapped_config_macros",
+      "subject": "config.h"
+    },
+    {
+      "digest": "b4c052d6bf7b5747",
+      "kind": "unmapped_config_macros",
+      "subject": "evconfig-private.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "generated_headers": 1,
+    "unconverted_dependency": 3,
+    "unmapped_config_macros": 2
+  },
+  "module": "libevent",
+  "targets": [
+    {
+      "kind": "shared_library",
+      "name": "libevent.la",
+      "sources": 60
+    },
+    {
+      "kind": "shared_library",
+      "name": "libevent_core.la",
+      "sources": 56
+    },
+    {
+      "kind": "shared_library",
+      "name": "libevent_extra.la",
+      "sources": 41
+    },
+    {
+      "kind": "shared_library",
+      "name": "libevent_openssl.la",
+      "sources": 38
+    },
+    {
+      "kind": "shared_library",
+      "name": "libevent_pthreads.la",
+      "sources": 38
+    },
+    {
+      "kind": "executable",
+      "name": "sample_dns-example",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "sample_event-read-fifo",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "sample_hello-world",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "sample_http-connect",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "sample_http-server",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "sample_https-client",
+      "sources": 70
+    },
+    {
+      "kind": "executable",
+      "name": "sample_le-proxy",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "sample_signal-test",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "sample_time-test",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_bench",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_bench_cascade",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_bench_http",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_bench_httpclient",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_regress",
+      "sources": 85
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-changelist",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-closed",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-dumpevents",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-eof",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-fdleak",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-init",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-ratelim",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-time",
+      "sources": 68
+    },
+    {
+      "kind": "executable",
+      "name": "test_test-weof",
+      "sources": 68
+    }
+  ],
+  "tests": 0,
+  "version": "2.1.12-stable"
+}

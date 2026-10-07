@@ -1,0 +1,239 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "SHMEM_DOUBLE_GET" "3" "Sep 16, 2026" "" "Open MPI"
+.INDENT 0.0
+.INDENT 3.5
+.UNINDENT
+.UNINDENT
+.sp
+shmem_character_get(3), shmem_complex_get(3),
+\fI\%shmem_double_get\fP(3), \fI\%shmem_float_get\fP(3), shmem_get4(3), shmem_get8(3), \fI\%shmem_get32\fP(3), \fI\%shmem_get64\fP(3), \fI\%shmem_get128\fP(3), \fI\%shmem_getmem\fP(3),
+\fI\%shmem_int_get\fP(3), shmem_integer_get(3), shmem_logical_get(3), \fI\%shmem_long_get\fP(3), \fI\%shmem_longdouble_get\fP(3),
+\fI\%shmem_longlong_get\fP(3), shmem_real_get(3),
+\fI\%shmem_short_get\fP(3) \- Transfers data from a specified
+processing element (PE).
+.SH SYNOPSIS
+.sp
+C or C++:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpp/shmem.h>
+
+void shmem_get32(void *target, const void *source,
+  size_t len, int pe)
+
+void shmem_get64(void *target, const void *source,
+  size_t len, int pe)
+
+void shmem_get128(void *target, const void *source,
+  size_t len, int pe)
+
+void shmem_getmem(void *target, const void *source,
+  size_t len, int pe)
+
+void shmem_int_get(int *target, const int *source,
+  size_t len, int pe)
+
+void shmem_double_get(double *target, const double *source,
+  size_t len, int pe)
+
+void shmem_float_get(float *target, const float *source,
+  size_t len, int pe)
+
+void shmem_long_get(long *target, const long *source,
+  size_t len, int pe)
+
+void shmem_longdouble_get(long double *target,
+  const long double *source, size_t len, int pe)
+
+void shmem_longlong_get(long long *target,
+  const long long *source, size_t len, int pe)
+
+void shmem_short_get(short *target,
+  const short *source, size_t len, int pe)
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Fortran:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+INCLUDE \(dqmpp/shmem.fh\(dq
+
+INTEGER len, pe
+
+CALL SHMEM_CHARACTER_GET(target, source, len, pe)
+
+CALL SHMEM_COMPLEX_GET(target, source, len, pe)
+
+CALL SHMEM_DOUBLE_GET(target, source, len, pe)
+
+CALL SHMEM_GET4(target, source, len, pe)
+
+CALL SHMEM_GET8(target, source, len, pe)
+
+CALL SHMEM_GET32(target, source, len, pe)
+
+CALL SHMEM_GET64(target, source, len, pe)
+
+CALL SHMEM_GET128(target, source, len, pe)
+
+CALL SHMEM_GETMEM(target, source, len, pe)
+
+CALL SHMEM_INTEGER_GET(target, source, len, pe)
+
+CALL SHMEM_LOGICAL_GET(target, source, len, pe)
+
+CALL SHMEM_REAL_GET(target, source, len, pe)
+.EE
+.UNINDENT
+.UNINDENT
+.SH DESCRIPTION
+.sp
+The shmem_get routines transfer \fBnelems\fP elements of the data object
+at address \fBsource\fP on the remote PE \fBpe\fP, to the data object at
+address \fBtarget\fP on the local PE. These routines return after the data
+has been copied to address \fBtarget\fP on the local PE.
+.sp
+The arguments are as follows:
+.INDENT 0.0
+.TP
+.B target
+Local data object to be updated.
+.TP
+.B source
+Data object on the PE identified by pe that contains the data to be
+copied. This data object must be remotely accessible.
+.TP
+.B len
+Number of elements in the target and source arrays. len must be of
+type integer. If you are using Fortran, it must be a constant,
+variable, or array element of default integer type.
+.TP
+.B pe
+PE number of the remote PE. pe must be of type integer. If you are
+using Fortran, it must be a constant, variable, or array element of
+default integer type.
+.UNINDENT
+.sp
+The target and source data objects must conform to typing constraints,
+which are as follows:
+.INDENT 0.0
+.TP
+.B \fI\%shmem_getmem\fP: Fortran: Any noncharacter type. C: Any data type. len is
+scaled in bytes.
+.TP
+.B shmem_get4, \fI\%shmem_get32\fP: Any noncharacter type that has a storage size
+equal to 32 bits.
+.TP
+.B {shmem_get8, \fI\%shmem_get64\fP}: Any noncharacter type that has a storage size equal to
+64 bits.
+.TP
+.B \fI\%shmem_get128\fP: Any noncharacter type that has a storage size equal to 128
+bits.
+.UNINDENT
+.sp
+\fI\%shmem_short_get\fP: Elements of type short.
+.sp
+\fI\%shmem_int_get\fP: Elements of type int.
+.sp
+\fI\%shmem_long_get\fP: Elements of type long.
+.sp
+\fI\%shmem_longlong_get\fP: Elements of type long long.
+.sp
+\fI\%shmem_float_get\fP: Elements of type float.
+.sp
+\fI\%shmem_double_get\fP: Elements of type double.
+.sp
+\fI\%shmem_longdouble_get\fP: Elements of type long double.
+.INDENT 0.0
+.TP
+\fBSHMEM_CHARACTER_GET\fP: Elements of type character. len is the number of
+characters to transfer. The actual character lengths of the source
+and target variables are ignored.
+.UNINDENT
+.sp
+\fBSHMEM_COMPLEX_GET\fP: Elements of type complex of default size.
+.sp
+\fBSHMEM_DOUBLE_GET\fP: (Fortran) Elements of type double precision.
+.sp
+\fBSHMEM_INTEGER_GET\fP: Elements of type integer.
+.sp
+\fBSHMEM_LOGICAL_GET\fP: Elements of type logical.
+.sp
+\fBSHMEM_REAL_GET\fP: Elements of type real.
+.sp
+If you are using Fortran, data types must be of default size. For
+example, a real variable must be declared as REAL, REAL*4, or
+REAL(KIND=4).
+.SH NOTES
+.sp
+See \fIintro_shmem\fP(3) for a definition of the term remotely accessible.
+.SH EXAMPLES
+.sp
+Consider this simple example for Fortran.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+PROGRAM REDUCTION
+  REAL VALUES, SUM
+  COMMON /C/ VALUES
+  REAL WORK
+
+  CALL START_PES(0) ! ALLOW ANY NUMBER OF PES
+  VALUES = MY_PE() ! INITIALIZE IT TO SOMETHING
+  CALL SHMEM_BARRIER_ALL
+  SUM = 0.0
+  DO I = 0,NUM_PES()\-1
+    CALL SHMEM_REAL_GET(WORK, VALUES, 1, I)
+    SUM = SUM + WORK
+  ENDDO
+  PRINT *, \(aqPE \(aq, MY_PE(), \(aq COMPUTED SUM=\(aq, SUM
+  CALL SHMEM_BARRIER_ALL
+END
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fIintro_shmem\fP(3) \fIshmem_put\fP(3) \fIshmem_iget\fP(3) \fIshmem_quiet\fP(3)
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

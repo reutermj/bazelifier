@@ -1,0 +1,396 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10.12. Troubleshooting &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11. Run-time operation and tuning MPI applications" href="../tuning-apps/index.html" />
+    <link rel="prev" title="10.11. Unusual jobs" href="unusual.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">10. Launching MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">10.1. Quick start: Launching MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">10.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pmix-and-prrte.html">10.3. The role of PMIx and PRRTE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html">10.4. Scheduling processes across hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="localhost.html">10.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ssh.html">10.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm.html">10.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsf.html">10.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tm.html">10.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gridengine.html">10.10. Launching with Grid Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unusual.html">10.11. Unusual jobs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">10.12. Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#messages-about-missing-symbols">10.12.1. Messages about missing symbols</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#errors-about-missing-libraries">10.12.2. Errors about missing libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#problems-when-running-across-multiple-hosts">10.12.3. Problems when running across multiple hosts</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">10. </span>Launching MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">10.12. </span>Troubleshooting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/launching-apps/troubleshooting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="troubleshooting">
+<h1><span class="section-number">10.12. </span>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h1>
+<p>Launching MPI jobs can be a complex process that involves many moving parts.
+This section attempts to provide solutions to some of the most common
+problems users encounter.</p>
+<section id="messages-about-missing-symbols">
+<h2><span class="section-number">10.12.1. </span>Messages about missing symbols<a class="headerlink" href="#messages-about-missing-symbols" title="Link to this heading"></a></h2>
+<p>Open MPI loads a lot of plugins (sometimes called “components” or
+“modules”) at run time.  Sometimes a plugin can fail to load because it
+can’t resolve all the symbols that it needs.  There are a few reasons
+why this can happen.</p>
+<ul>
+<li><p>The plugin is for a different version of Open MPI.  <a class="reference internal" href="../installing-open-mpi/installation-location.html#building-open-mpi-install-overwrite-label"><span class="std std-ref">See this
+section</span></a> for an
+explanation of how Open MPI might try to open the “wrong” plugins.</p></li>
+<li><p>An application is trying to manually dynamically open <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> in
+a private symbol space.  For example, if an application is not
+linked against <code class="docutils literal notranslate"><span class="pre">libmpi</span></code>, but rather calls something like this:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cm">/* This is a Linux example |mdash| the issue is similar/the same on other</span>
+<span class="cm">   operating systems */</span>
+<span class="n">handle</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">dlopen</span><span class="p">(</span><span class="s">"libmpi.so"</span><span class="p">,</span><span class="w"> </span><span class="n">RTLD_NOW</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">RTLD_LOCAL</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>This is due to some deep run-time linker voodoo — it is
+discussed towards the end of <a class="reference external" href="https://www.mail-archive.com/devel&#64;lists.open-mpi.org/msg07981.html">this post to the Open MPI developer’s
+list</a>.
+Briefly, the issue is this:</p>
+<ol class="arabic simple">
+<li><p>The dynamic library <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> is opened in a “local” symbol
+space.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code> is invoked, which tries to open Open MPI’s plugins.</p></li>
+<li><p>Open MPI’s plugins rely on symbols in <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> (and other Open
+MPI support libraries); these symbols must be resolved when the
+plugin is loaded.</p></li>
+<li><p>However, since <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> was opened in a “local” symbol space,
+its symbols are not available to the plugins that it opens.</p></li>
+<li><p>Hence, the plugin fails to load because it can’t resolve all of
+its symbols, and displays a warning message to that effect.</p></li>
+</ol>
+<p>The ultimate fix for this issue is a bit bigger than Open MPI,
+unfortunately — it’s a POSIX issue (as briefly described in the
+devel mailing list posting, above).</p>
+<p>However, there are several common workarounds:</p>
+<ul class="simple">
+<li><p>Dynamically open <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> in a public / global symbol scope
+— not a private / local scope.  This will enable
+<code class="docutils literal notranslate"><span class="pre">libmpi</span></code>’s symbols to be available for resolution when Open MPI
+dynamically opens its plugins.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> is opened as part of some underlying framework where
+it is not possible to change the private / local scope to a public
+/ global scope, then dynamically open <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> in a public /
+global scope before invoking the underlying framework.  This
+sounds a little gross (and it is), but at least the run-time
+linker is smart enough to not load <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> twice — but it
+does keeps <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> in a public scope.</p></li>
+<li><p>Use the <code class="docutils literal notranslate"><span class="pre">--disable-dlopen</span></code> or <code class="docutils literal notranslate"><span class="pre">--disable-mca-dso</span></code> options to
+Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script (see this TODO NONEXISTENT FAQ entry
+for more details on these
+options).  These options slurp all of Open MPI’s plugins up in to
+<code class="docutils literal notranslate"><span class="pre">libmpi</span></code> — meaning that the plugins physically reside in
+<code class="docutils literal notranslate"><span class="pre">libmpi</span></code> and will not be dynamically opened at run time.</p></li>
+<li><p>Build Open MPI as a static library by configuring Open MPI with
+<code class="docutils literal notranslate"><span class="pre">--disable-shared</span></code> and <code class="docutils literal notranslate"><span class="pre">--enable-static</span></code>.  This has the same
+effect as <code class="docutils literal notranslate"><span class="pre">--disable-dlopen</span></code>, but it also makes <code class="docutils literal notranslate"><span class="pre">libmpi.a</span></code> (as
+opposed to a shared library).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="errors-about-missing-libraries">
+<h2><span class="section-number">10.12.2. </span>Errors about missing libraries<a class="headerlink" href="#errors-about-missing-libraries" title="Link to this heading"></a></h2>
+<p>When building Open MPI with the compilers that have libraries in
+non-default search path locations, you may see errors about those
+compiler’s support libraries when trying to launch MPI applications if
+their corresponding environments were not set up properly.</p>
+<p>For example, you may see warnings similar to the following:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># With the Intel compiler suite</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host<span class="w"> </span>node1.example.com<span class="w"> </span>mpi_hello
+prted:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libimf.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+--------------------------------------------------------------------------
+A<span class="w"> </span>daemon<span class="w"> </span><span class="o">(</span>pid<span class="w"> </span><span class="m">11893</span><span class="o">)</span><span class="w"> </span>died<span class="w"> </span>unexpectedly<span class="w"> </span>with<span class="w"> </span>status<span class="w"> </span><span class="m">127</span><span class="w"> </span><span class="k">while</span>
+attempting<span class="w"> </span>to<span class="w"> </span>launch<span class="w"> </span>so<span class="w"> </span>we<span class="w"> </span>are<span class="w"> </span>aborting.
+...more<span class="w"> </span>error<span class="w"> </span>messages...
+
+<span class="c1"># With the PGI compiler suite</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host<span class="w"> </span>node1.example.com<span class="w"> </span>mpi_hello
+prted:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libpgcc.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+...more<span class="w"> </span>error<span class="w"> </span>messages...
+
+<span class="c1"># With the PathScale compiler suite</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host<span class="w"> </span>node1.example.com<span class="w"> </span>mpi_hello
+prted:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libmv.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+...more<span class="w"> </span>error<span class="w"> </span>messages...
+</pre></div>
+</div>
+<p>Specifically, Open MPI first attempts to launch a “helper” daemon
+<code class="docutils literal notranslate"><span class="pre">prted</span></code> on <code class="docutils literal notranslate"><span class="pre">node1.example.com</span></code>, but it failed because one of
+<code class="docutils literal notranslate"><span class="pre">prted</span></code>’s dependent libraries was not able to be found.  The
+libraries shown above (<code class="docutils literal notranslate"><span class="pre">libimf.so</span></code>, <code class="docutils literal notranslate"><span class="pre">libpgcc.so</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">libmv.so</span></code>) are specific to their compiler suites (Intel, PGI, and
+PathScale, respectively).  As such, it is likely that the user did not
+set up the compiler library in their environment properly on this node.</p>
+<p>Double check that you have set up the appropriate compiler environment
+on the target node, for both interactive and non-interactive logins.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is a common error to ensure that the compiler environment
+is set up properly for <em>interactive</em> logins, but not for
+<em>non-interactive</em> logins.</p>
+</div>
+<p>Here’s an example of a user-compiled MPI application working fine
+locally, but failing when invoked non-interactively on a remote node:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compile a trivial MPI application</span>
+head_node$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>
+head_node$<span class="w"> </span>mpicc<span class="w"> </span>mpi_hello.c<span class="w"> </span>-o<span class="w"> </span>mpi_hello
+
+<span class="c1"># Run it locally; it works fine</span>
+head_node$<span class="w"> </span>./mpi_hello
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">1</span>.
+
+<span class="c1"># Run it remotely interactively; it works fine</span>
+head_node$<span class="w"> </span>ssh<span class="w"> </span>node2.example.com
+
+Welcome<span class="w"> </span>to<span class="w"> </span>node2.
+node2$<span class="w"> </span>./mpi_hello
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">1</span>.
+node2$<span class="w"> </span><span class="nb">exit</span>
+
+<span class="c1"># Run it remotely *NON*-interactively; it fails</span>
+head_node$<span class="w"> </span>ssh<span class="w"> </span>node2.example.com<span class="w"> </span><span class="nv">$HOME</span>/mpi_hello
+mpi_hello:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libimf.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+</pre></div>
+</div>
+<p>In cases like this, check your shell script startup files and verify
+that the appropriate compiler environment is set up properly for
+non-interactive logins.</p>
+</section>
+<section id="problems-when-running-across-multiple-hosts">
+<h2><span class="section-number">10.12.3. </span>Problems when running across multiple hosts<a class="headerlink" href="#problems-when-running-across-multiple-hosts" title="Link to this heading"></a></h2>
+<p>When you are able to run MPI jobs on a single host, but fail to run
+them across multiple hosts, try the following:</p>
+<ol class="arabic">
+<li><p>Ensure that your launcher is able to launch across multiple hosts.
+For example, if you are using <code class="docutils literal notranslate"><span class="pre">ssh</span></code>, try to <code class="docutils literal notranslate"><span class="pre">ssh</span></code> to each
+remote host and ensure that you are not prompted for a password.
+For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ssh remotehost hostname
+remotehost
+</pre></div>
+</div>
+<p>If you are unable to launch across multiple hosts, check that your
+SSH keys are set up properly.  Or, if you are running in a managed
+environment, such as in a Slurm, Torque, or other job launcher,
+check that you have reserved enough hosts, are running in an
+allocated job, etc.</p>
+</li>
+<li><p>Ensure that your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> are set correctly
+on each remote host on which you are trying to run.  For example,
+with <code class="docutils literal notranslate"><span class="pre">ssh</span></code>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ssh remotehost env | grep -i path
+PATH=...path on the remote host...
+LD_LIBRARY_PATH=...LD library path on the remote host...
+</pre></div>
+</div>
+<p>If your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> or <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> are not set properly, see
+<a class="reference internal" href="prerequisites.html#running-prerequisites-label"><span class="std std-ref">this section</span></a> for
+the correct values.  Keep in mind that it is fine to have multiple
+Open MPI installations installed on a machine; the <em>first</em> Open MPI
+installation found by <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">LD_LIBARY_PATH</span></code> is the one
+that matters.</p>
+</li>
+<li><p>Run a simple, non-MPI job across multiple hosts.  This verifies
+that the Open MPI run-time system is functioning properly across
+multiple hosts.  For example, try running the <code class="docutils literal notranslate"><span class="pre">hostname</span></code> command:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --host remotehost hostname
+remotehost
+shell$ mpirun --host remotehost,otherhost hostname
+remotehost
+otherhost
+</pre></div>
+</div>
+<p>If you are unable to run non-MPI jobs across multiple hosts, check
+for common problems such as:</p>
+<ol class="arabic">
+<li><p>Check your non-interactive shell setup on each remote host to
+ensure that it is setting up the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> properly.</p></li>
+<li><p>Check that Open MPI is finding and launching the correct
+version of Open MPI on the remote hosts.</p></li>
+<li><p>Ensure that you have firewalling disabled between hosts (Open
+MPI opens random TCP and sometimes random UDP ports between
+hosts in a single MPI job).</p></li>
+<li><p>Try running with the <code class="docutils literal notranslate"><span class="pre">plm_base_verbose</span></code> MCA parameter at level
+10, which will enable extra debugging output to see how Open MPI
+launches on remote hosts.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>mpirun --mca plm_base_verbose 10 --host remotehost hostname``
+</pre></div>
+</div>
+</li>
+</ol>
+</li>
+<li><p>Now run a simple MPI job across multiple hosts that does not
+involve MPI communications.  The <code class="docutils literal notranslate"><span class="pre">hello_c</span></code> program in the
+<code class="docutils literal notranslate"><span class="pre">examples</span></code> directory in the Open MPI distribution is a good
+choice.  This verifies that the MPI subsystem is able to initialize
+and terminate properly.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --host remotehost,otherhost hello_c
+Hello, world, I am 0 of 1, (Open MPI VERSION, package: Open MPI jsquyres@example.com Distribution, ident: VERSION, DATE)
+Hello, world, I am 1 of 1, (Open MPI VERSION, package: Open MPI jsquyres@example.com Distribution, ident: VERSION, DATE)
+</pre></div>
+</div>
+<p>If you are unable to run simple, non-communication MPI jobs, this
+can indicate that your Open MPI installation is unable to
+initialize properly on remote hosts.  Double check your
+non-interactive login setup on remote hosts.</p>
+</li>
+<li><p>Now run a simple MPI job across multiple hosts that does does some
+simple MPI communications.  The <code class="docutils literal notranslate"><span class="pre">ring_c</span></code> program in the
+<code class="docutils literal notranslate"><span class="pre">examples</span></code> directory in the Open MPI distribution is a good
+choice.  This verifies that the MPI subsystem is able to pass MPI
+traffic across your network.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --host remotehost,otherhost ring_c
+Process 0 sending 10 to 0, tag 201 (1 processes in ring)
+Process 0 sent to 0
+Process 0 decremented value: 9
+Process 0 decremented value: 8
+Process 0 decremented value: 7
+Process 0 decremented value: 6
+Process 0 decremented value: 5
+Process 0 decremented value: 4
+Process 0 decremented value: 3
+Process 0 decremented value: 2
+Process 0 decremented value: 1
+Process 0 decremented value: 0
+Process 0 exiting
+</pre></div>
+</div>
+<p>If you are unable to run simple MPI jobs across multiple hosts,
+this may indicate a problem with the network(s) that Open MPI is
+trying to use for MPI communications.  Try limiting the networks
+that it uses, and/or exploring levels 1 through 3 MCA parameters
+for the communications module that you are using.  For example, if
+you’re using the TCP BTL, see the output of:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --level 3 --param btl tcp
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="unusual.html" class="btn btn-neutral float-left" title="10.11. Unusual jobs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../tuning-apps/index.html" class="btn btn-neutral float-right" title="11. Run-time operation and tuning MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9.4. ABI compatibility to previous versions of Open MPI &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="9.5. Removed MPI constructs" href="removed-mpi-constructs.html" />
+    <link rel="prev" title="9.3. Extracting flags from the wrapper compilers" href="extracting-wrapper-flags.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">9. Building MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">9.1. Quick start: Building MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="customizing-wrappers.html">9.2. Customizing wrapper compiler behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extracting-wrapper-flags.html">9.3. Extracting flags from the wrapper compilers</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9.4. ABI compatibility to previous versions of Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="removed-mpi-constructs.html">9.5. Removed MPI constructs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecation-warnings.html">9.6. Deprecation warnings while compiling MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-static-apps.html">9.7. Building fully-static MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">9. </span>Building MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9.4. </span>ABI compatibility to previous versions of Open MPI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/building-apps/abi-compatibility.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="abi-compatibility-to-previous-versions-of-open-mpi">
+<span id="label-binary-compatibility"></span><h1><span class="section-number">9.4. </span>ABI compatibility to previous versions of Open MPI<a class="headerlink" href="#abi-compatibility-to-previous-versions-of-open-mpi" title="Link to this heading"></a></h1>
+<p>The Open MPI v5.0.x series maintains Application Binary Interface (ABI)
+compatibility for the C MPI bindings to the last major Open MPI release. Specifically, an
+application compiled with Open MPI v4.x can be executed with Open MPI
+v5.0.x without having to recompile the application.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>ABI is maintained for <em>most</em> of the Fortran MPI bindings, too — see below for additional information.</p>
+</div>
+<p>There are however a few scenarios where an application compiled with
+Open MPI v4.x might not execute correctly with Open MPI 5.0.</p>
+<ul>
+<li><p>Fortran compilers provide varying degrees of ABI guarantees between
+their releases.  As such, Open MPI can only provide ABI guarantees
+with MPI applications that use the Fortran MPI bindings when all
+three entities — Open MPI v4.x, Open MPI v5.0.x, and
+the MPI application — were built with exactly the same Fortran
+compiler and environment.</p>
+<p>If these conditions are met, Open MPI’s ABI guarantees between the
+Open MPI v4.x and v5.0.x series are in effect, with the
+exception of the following cases:</p>
+<ul>
+<li><p>When using the Fortran <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module bindings with GCC compiler
+versions prior to v4.8, non-compliant Fortran interfaces for
+<code class="docutils literal notranslate"><span class="pre">MPI_Comm_spawn_multiple</span></code>, <code class="docutils literal notranslate"><span class="pre">MPI_Testall</span></code>, <code class="docutils literal notranslate"><span class="pre">MPI_Testsome</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MPI_Waitall</span></code>, and <code class="docutils literal notranslate"><span class="pre">MPI_Waitsome</span></code> were removed starting with
+Open MPI v5.0.0.</p></li>
+<li><p>When using the Fortran <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module with modern Fortran
+compilers (e.g., GNU Fortran &gt;= v4.9), Open MPI v5.0.0 removed the
+names from the MPI interfaces when there is only a single
+subroutine in the interface, and that subroutine name exactly
+matches the interface name.  This change is likely to make Open MPI
+v5.0.x’s <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module bindings <em>less</em> restrictive than
+Open MPI v4.x, but it <em>may</em> also have ABI implications, depending
+on your Fortran compiler.</p>
+<p><a class="reference external" href="https://github.com/open-mpi/ompi/commit/f34782fe0c493963ec44bcf7dde9d94b88a7ea91">See this git commit message</a>
+for more details.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This is likely a compiler-specific issue, and may
+need to be tested in your environment.</p>
+</div>
+</li>
+<li><p>When using the Fortran <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module bindings in an
+environment where a Fortran <code class="docutils literal notranslate"><span class="pre">INTEGER</span></code> is 8 bytes but a C <code class="docutils literal notranslate"><span class="pre">int</span></code>
+is 4 bytes, the size of a <code class="docutils literal notranslate"><span class="pre">Type(MPI_Status)</span></code> was increased
+starting with Open MPI v5.0.0.</p></li>
+</ul>
+</li>
+<li><p>Open MPI v5.0.0 removed support for the MPI C++ bindings. If an application
+was using the deprecated and now removed C++ bindings, it will not
+be able to compile or execute with Open MPI v5.0.0.  For details on deprecated and
+removed functions see <a class="reference internal" href="removed-mpi-constructs.html#label-removed-mpi-constructs"><span class="std std-ref">Removed MPI constructs</span></a> and <a class="reference internal" href="deprecation-warnings.html#label-deprecated-functions"><span class="std std-ref">Deprecation warnings</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="extracting-wrapper-flags.html" class="btn btn-neutral float-left" title="9.3. Extracting flags from the wrapper compilers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="removed-mpi-constructs.html" class="btn btn-neutral float-right" title="9.5. Removed MPI constructs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

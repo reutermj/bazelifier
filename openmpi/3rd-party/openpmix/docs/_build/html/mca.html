@@ -1,0 +1,454 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10. The Modular Component Architecture (MCA) &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=786a2b67"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="11. Building PMIx applications" href="building-apps/index.html" />
+    <link rel="prev" title="9. Version Numbers and Binary Compatibility" href="versions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">10. The Modular Component Architecture (MCA)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#terminology">10.1. Terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#frameworks">10.1.1. Frameworks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components">10.1.2. Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modules">10.1.3. Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parameters-variables">10.1.4. Parameters (variables)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#setting-mca-parameter-values">10.2. Setting MCA parameter values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#environment-variables">10.2.1. Environment variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-files">10.2.2. Configuration files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#selecting-which-pmix-components-are-used-at-run-time">10.3. Selecting which PMIx components are used at run time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#common-mca-parameters">10.4. Common MCA parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">10. </span>The Modular Component Architecture (MCA)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/mca.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="the-modular-component-architecture-mca">
+<span id="label-mca"></span><h1><span class="section-number">10. </span>The Modular Component Architecture (MCA)<a class="headerlink" href="#the-modular-component-architecture-mca" title="Link to this heading"></a></h1>
+<p>PMIx is a highly-customizable system; it can be configured via
+configuration files, command line parameters, and environment
+variables.  The main functionality of PMIx’s configuration system
+is through the Modular Component Architecture (MCA).</p>
+<ul class="simple">
+<li><p>This section describes the MCA itself and how to set MCA parameters at
+run time.</p></li>
+<li><p>Later sections in this documentation describe different parts of
+PMIx’s functionality, and the specific names and values of MCA
+parameters that can be used to affect PMIx’s behavior.</p></li>
+</ul>
+<hr class="docutils" />
+<section id="terminology">
+<h2><span class="section-number">10.1. </span>Terminology<a class="headerlink" href="#terminology" title="Link to this heading"></a></h2>
+<p>The Modular Component Architecture (MCA) is the backbone for much of
+PMIx’s functionality.  It is a series of <em>frameworks</em>,
+<em>components</em>, and <em>modules</em> that are assembled at run-time to create
+the PMIx implementation.</p>
+<p>MCA <em>parameters</em> (also known as MCA <em>variables</em>) are used to customize
+PMIx’s behavior at run-time.</p>
+<p>Each of these entities are described below.</p>
+<section id="frameworks">
+<h3><span class="section-number">10.1.1. </span>Frameworks<a class="headerlink" href="#frameworks" title="Link to this heading"></a></h3>
+<p>An MCA framework manages zero or more components at run-time and is
+targeted at a specific task (e.g., providing support for network
+functionality).  Although each MCA framework supports only a single
+type of component, it may support multiple components of that type.</p>
+<p>Some of the more common frameworks that users may want or need to
+customize include the following:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ptl</span></code>: PMIx Transport Layer; users may need to assist the
+messaging layer with selection of network interfaces and
+controls parameters</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pmdl</span></code>: Programming Model and Library; identify environmental
+variables to be forwarded to application processes</p></li>
+</ul>
+<p>There are many frameworks within PMIx; the exact set varies
+between different versions of PMIx.  You can use the
+<a class="reference internal" href="man/man1/pmix_info.1.html#man1-pmix-info"><span class="std std-ref">pmix_info(1)</span></a> command to see the full list of
+frameworks that are included in PMIx v5.0.11rc1.</p>
+</section>
+<section id="components">
+<h3><span class="section-number">10.1.2. </span>Components<a class="headerlink" href="#components" title="Link to this heading"></a></h3>
+<p>An MCA component is an implementation of a framework’s formal
+interface.  It is a standalone collection of code that can be bundled
+into a plugin that can be inserted into the PMIx code base, either
+at run-time and/or compile-time.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Good synonyms for PMIx’s “component” concept are
+“plugin”, or “add-on”.</p>
+</div>
+<p>The exact set of components varies between different versions of Open
+MPI.  PMIx’s code base includes support for many components, but
+not all of them may be present or available on your system.  You can
+use the <a class="reference internal" href="man/man1/pmix_info.1.html#man1-pmix-info"><span class="std std-ref">pmix_info(1)</span></a> command to see what
+components are included in PMIx v5.0.11rc1 on your system.</p>
+</section>
+<section id="modules">
+<h3><span class="section-number">10.1.3. </span>Modules<a class="headerlink" href="#modules" title="Link to this heading"></a></h3>
+<p>An MCA module (frequently called a <code class="docutils literal notranslate"><span class="pre">plugin</span></code>) is an instance of a
+component.  While it is possible for a component to have multiple
+active plugins, it would be a very rare component that did so.</p>
+</section>
+<section id="parameters-variables">
+<h3><span class="section-number">10.1.4. </span>Parameters (variables)<a class="headerlink" href="#parameters-variables" title="Link to this heading"></a></h3>
+<p>MCA <em>parameters</em> (sometimes called MCA <em>variables</em>) are the basic unit
+of run-time tuning for PMIx.  They are simple “key = value” pairs
+that are used extensively throughout PMIx.  The general rules of
+thumb that the developers use are:</p>
+<ol class="arabic simple">
+<li><p>Instead of using a constant for an important value, make it an MCA
+parameter so users can adjust it if necessary.</p></li>
+<li><p>If a task can be implemented in multiple, user-discernible ways,
+implement as many as possible, and use an MCA parameter to
+choose between them at run-time.</p></li>
+</ol>
+<p>For example, the PMIx server sets a maximum value on the number of
+events it will cache. Events received after that point cause the
+oldest events in the cache to be released. This allows the server
+to provide a process with events it registers to receive, even if
+the registration occurs after the event has been received by the
+server - thereby reducing the likelihood of a process missing an
+event due to a race condition. Applications that generate a large
+volume of events (e.g., an application relying on the PMIx Group
+invite/join method for creating collections of processes) might
+require a significantly larger cache than the default size.</p>
+<hr class="docutils" />
+</section>
+</section>
+<section id="setting-mca-parameter-values">
+<span id="label-running-setting-mca-param-values"></span><h2><span class="section-number">10.2. </span>Setting MCA parameter values<a class="headerlink" href="#setting-mca-parameter-values" title="Link to this heading"></a></h2>
+<p>MCA parameters may be set in several different ways.</p>
+<div class="tip admonition">
+<p class="admonition-title">Rationale</p>
+<p>Having multiple methods to set MCA parameters allows, for example,
+system administrators to fine-tune the PMIx installation for
+their hardware / environment such that normal users can simply use
+the default values (that were set by the system administrators).</p>
+<p>HPC environments — and the applications that run on them
+— tend to be unique.  Providing extensive run-time tuning
+capabilities through MCA parameters allows the customization of
+PMIx to each system’s / user’s / application’s particular
+needs.</p>
+</div>
+<p>The following are the different methods to set MCA parameters, listed
+in priority order:</p>
+<ol class="arabic simple">
+<li><p>Environment variables</p></li>
+<li><p>Configuration files</p></li>
+</ol>
+<section id="environment-variables">
+<h3><span class="section-number">10.2.1. </span>Environment variables<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h3>
+<p>Environment variables are given the highest priority.  Any environment variable
+named <code class="docutils literal notranslate"><span class="pre">PMIX_MCA_&lt;param_name&gt;</span></code> will be examined for use. Note that
+misspelling of names will cause the value to be ignored - i.e.,
+PMIx does not report unrecognized MCA parameters, it simply ignores
+them.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Just like with command line values, setting environment
+variables to values with multiple words requires shell
+quoting, such as:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="nv">OMPI_MCA_param</span><span class="o">=</span><span class="s2">"value with multiple words"</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="configuration-files">
+<h3><span class="section-number">10.2.2. </span>Configuration files<a class="headerlink" href="#configuration-files" title="Link to this heading"></a></h3>
+<p>Simple configuration text files can also be used to set MCA
+parameter values.  Parameters are set one per line (comments are
+permitted).  For example:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is a comment</span>
+<span class="c1"># Set an MCA parameter</span>
+<span class="na">mca_component_show_load_errors</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">1</span>
+</pre></div>
+</div>
+<p>Note that quotes are <em>not</em> necessary for setting multi-word values
+in MCA parameter files.  Indeed, if you use quotes in the MCA
+parameter file, they will be used as part of the value itself.  For
+example:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># The following two values are different:</span>
+<span class="na">param1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">value with multiple words</span>
+<span class="na">param2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"value with multiple words"</span>
+</pre></div>
+</div>
+<p>By default, two files are searched (in order):</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/.pmix/mca-params.conf</span></code>: The user-supplied set of
+values has the higher precedence.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$prefix/etc/pmix-mca-params.conf</span></code>: The system-supplied set
+of values has a lower precedence.</p></li>
+</ol>
+<p>More specifically, the MCA parameter <code class="docutils literal notranslate"><span class="pre">mca_param_files</span></code> specifies a
+colon-delimited path of files to search for MCA parameters.  Files to
+the left have lower precedence; files to the right are higher
+precedence.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Keep in mind that, just like components, these parameter
+files are <em>only</em> relevant where they are “visible”. Typically,
+these files are read by the host daemon responsible for
+launching an application and then forwarded to all
+daemons (and their child application processes) in their
+environment.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Setting PMIx MCA parameters via configuration files
+entails editing (by default) the following files:</p>
+<p><code class="docutils literal notranslate"><span class="pre">$HOME/.pmix/mca-params.conf</span></code> or
+<code class="docutils literal notranslate"><span class="pre">$prefix/etc/pmix-mca-params.conf</span></code></p>
+</div>
+<hr class="docutils" />
+</section>
+</section>
+<section id="selecting-which-pmix-components-are-used-at-run-time">
+<span id="label-running-selecting-framework-components"></span><h2><span class="section-number">10.3. </span>Selecting which PMIx components are used at run time<a class="headerlink" href="#selecting-which-pmix-components-are-used-at-run-time" title="Link to this heading"></a></h2>
+<p>Each MCA framework has a top-level MCA parameter that helps guide
+which components are selected to be used at run-time.  Specifically,
+every framework has an MCA parameter of the same name that can be used
+to <em>include</em> or <em>exclude</em> components from a given run.</p>
+<p>For example, the <code class="docutils literal notranslate"><span class="pre">pmdl</span></code> MCA parameter can used to control which PMDL
+components are used.  It takes a comma-delimited list of component
+names, and may be optionally prefixed with <code class="docutils literal notranslate"><span class="pre">^</span></code>.  For example:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Programming Model <code class="docutils literal notranslate"><span class="pre">PMDL</span></code> framework provides support
+for a range of programming models and libraries, including collection
+of default parameters and environmental variables for forwarding and
+setting of library-specific environmental variables</p>
+</div>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tell PMIx to include *only* the PMDL components listed here and</span>
+<span class="c1"># implicitly ignore all the rest:</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PMIX_MCA_pmdl</span><span class="o">=</span>ompi,oshmem<span class="w"> </span>...
+
+<span class="c1"># Tell PMIx to exclude the ompi and oshmem PMDL components</span>
+<span class="c1"># and implicitly include all the rest</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PMIX_MCA_pmdl</span><span class="o">=</span>^ompi,oshmem<span class="w"> </span>...
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">^</span></code> can <em>only</em> be the prefix of the <em>entire</em>
+comma-delimited list because the inclusive and exclusive behavior are
+mutually exclusive.  Specifically, since the exclusive behavior means
+“use all components <em>except</em> these”, it does not make sense to mix it
+with the inclusive behavior of not specifying it (i.e., “use all of
+these components”).  Hence, something like this:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PMIX_MCA_pmdl</span><span class="o">=</span>ompi,^oshmem<span class="w"> </span>...
+</pre></div>
+</div>
+<p>does not make sense — and will cause an error — because it
+says “use only the <code class="docutils literal notranslate"><span class="pre">ompi</span></code> component” but
+also “use all components except <code class="docutils literal notranslate"><span class="pre">oshmem</span></code>”.  These two statements
+clearly contradict each other.</p>
+</section>
+<hr class="docutils" />
+<section id="common-mca-parameters">
+<h2><span class="section-number">10.4. </span>Common MCA parameters<a class="headerlink" href="#common-mca-parameters" title="Link to this heading"></a></h2>
+<p>PMIx has a <em>large</em> number of MCA parameters available.  Users can
+use the <a class="reference internal" href="man/man1/pmix_info.1.html#man1-pmix-info"><span class="std std-ref">pmix_info(1)</span></a> command to see <em>all</em>
+available MCA parameters.</p>
+<p>The vast majority of these MCA parameters, however, are not useful to
+most users.  Although the full list of MCA parameters can be found in the output of
+<code class="docutils literal notranslate"><span class="pre">pmix_info(1)</span></code>, the following list of commonly-used parameters is
+presented here so that they can easily be found via internet searches:</p>
+<ul>
+<li><p>Individual framework names with the <code class="docutils literal notranslate"><span class="pre">_base_verbose</span></code> suffix
+appended (e.g., <code class="docutils literal notranslate"><span class="pre">ptl_base_verbose</span></code>, <code class="docutils literal notranslate"><span class="pre">pmdl_base_verbose</span></code>, etc.)
+can be used to set the general verbosity level of all the components
+in that framework.</p>
+<ul class="simple">
+<li><p>This can be helpful when troubleshooting why certain components
+are or are not being selected at run time.</p></li>
+</ul>
+</li>
+<li><p>The PMIx Transport Layer supports “include” and “exclude”
+types of components (e.g., <code class="docutils literal notranslate"><span class="pre">ptl_tcp_if_include</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ptl_tcp_if_exclude</span></code>).  The “include” parameters specify an
+explicit set of network interfaces to use; the “exclude” parameters
+specify an explicit set of network interfaces to ignore.  Check the
+output from <a class="reference internal" href="man/man1/pmix_info.1.html#man1-pmix-info"><span class="std std-ref">pmix_info(1)’s</span></a> to see the full list
+of PTL-related parameters.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You can only use the “include” <em>or</em> the “exclude”
+parameter — they are mutually exclusive from each
+other.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mca_base_component_show_load_errors</span></code>: By default, PMIx
+emits a warning message if it fails to open a DSO component at run
+time.  This typically happens when a shared library that the DSO
+requires is not available.</p>
+<div class="tip admonition">
+<p class="admonition-title">Rationale</p>
+<p>In prior versions of PMIx, components defaulted to building
+as DSOs (vs. being included in the parent library,
+<code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code>).  On misconfigured systems, sometimes libraries
+required by various components would not be present, thereby causing
+those components to fail to open at run time.</p>
+<p>Having PMIx warn about such failures to load was useful
+because it alerted users to the misconfiguration.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, PMIx v5.0.11rc1 includes all components in
+its base libraries (e.g., on Linux, <code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code> includes
+all the components that were built with PMIx, and
+therefore no component need to be opened dynamically), and
+does not build its components as DSOs.</p>
+<p>This MCA parameter <em>only</em> affects the behavior when a
+component DSO fails to open.</p>
+</div>
+<p>This MCA parameter can take four general values:</p>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">yes</span></code> or a boolean “true” value (e.g., <code class="docutils literal notranslate"><span class="pre">1</span></code>): PMIx will
+emit a warning about every component DSO that fails to load.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">no</span></code> or a boolean “false” value (e.g., <code class="docutils literal notranslate"><span class="pre">0</span></code>): PMIx will
+never emit warnings about component DSOs that fail to load.</p></li>
+<li><p>A comma-delimited list of frameworks and/or components: PMIx
+will emit a warning about any dynamic component that fails to
+open and matches a token in the list. “Match” is defined as:</p>
+<ul class="simple">
+<li><p>If a token in the list is only a framework name, then any
+component in that framework will match.</p></li>
+<li><p>If a token in the list specifies both a framework name and a
+component name (in the form <code class="docutils literal notranslate"><span class="pre">framework/component</span></code>), then
+only the specified component in the specified framework will
+match.</p></li>
+</ul>
+<p>For example, if the value of this MCA parameter is
+<code class="docutils literal notranslate"><span class="pre">pmdl,pnet/opa</span></code>, then PMIx will warn if any component in
+the PMDL framework or if the OPA PNET component fails to load at run
+time.</p>
+</li>
+<li><p>The value can also be a <code class="docutils literal notranslate"><span class="pre">^</span></code> character followed by a
+comma-delimited list of <code class="docutils literal notranslate"><span class="pre">framework[/component]</span></code> values: This
+is similar to the comma-delimited list of tokens, except it will
+only emit warnings about dynamic components that fail to load
+and do <em>not</em> match a token in the list.</p>
+<p>For example, if the value of this MCA parameter is
+<code class="docutils literal notranslate"><span class="pre">^pmdl,pnet/opa</span></code>, then PMIx will only warn about the
+failure to load DSOs that are neither in the PMDL
+framework nor are the OPA PNET component.</p>
+</li>
+</ol>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="versions.html" class="btn btn-neutral float-left" title="9. Version Numbers and Binary Compatibility" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="building-apps/index.html" class="btn btn-neutral float-right" title="11. Building PMIx applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

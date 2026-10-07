@@ -1,0 +1,409 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9.10. Launching with Grid Engine &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="9.11. Unusual jobs" href="unusual.html" />
+    <link rel="prev" title="9.9. Launching with PBS / Torque" href="tm.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">9. Launching applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">9.1. Quick start: Launching applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">9.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html">9.3. Placing processes across hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html#fundamentals">9.4. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="localhost.html">9.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ssh.html">9.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm.html">9.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsf.html">9.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tm.html">9.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9.10. Launching with Grid Engine</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#verify-grid-engine-support">9.10.1. Verify Grid Engine support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#launching">9.10.2. Launching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#grid-engine-tight-integration-support-of-the-qsub-notify-flag">9.10.3. Grid Engine tight integration support of the <code class="docutils literal notranslate"><span class="pre">qsub</span> <span class="pre">-notify</span></code> flag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#grid-engine-job-suspend-resume-support">9.10.4. Grid Engine job suspend / resume support</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="unusual.html">9.11. Unusual jobs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html">9.12. Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">9. </span>Launching applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9.10. </span>Launching with Grid Engine</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/launching-apps/gridengine.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="launching-with-grid-engine">
+<h1><span class="section-number">9.10. </span>Launching with Grid Engine<a class="headerlink" href="#launching-with-grid-engine" title="Link to this heading"></a></h1>
+<p>PRRTE supports the family of run-time schedulers including the Sun
+Grid Engine (SGE), Oracle Grid Engine (OGE), Grid Engine (GE), Son of
+Grid Engine, Open Cluster Scheduler (OCS), Gridware Cluster Scheduler (GCS)
+and others.</p>
+<p>This documentation will collectively refer to all of them as “Grid
+Engine”, unless a referring to a specific flavor of the Grid Engine
+family.</p>
+<section id="verify-grid-engine-support">
+<h2><span class="section-number">9.10.1. </span>Verify Grid Engine support<a class="headerlink" href="#verify-grid-engine-support" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>To build Grid Engine support in PRRTE, you will need
+to explicitly request the SGE support with the <code class="docutils literal notranslate"><span class="pre">--with-sge</span></code>
+command line switch to PRRTE’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script.</p>
+</div>
+<p>To verify if support for Grid Engine is configured into your PRRTE
+installation, run <code class="docutils literal notranslate"><span class="pre">prte_info</span></code> as shown below and look for
+<code class="docutils literal notranslate"><span class="pre">gridengine</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ prte_info | grep gridengine
+              MCA ras: gridengine (MCA v2.0, API v2.0, Component v1.3)
+</pre></div>
+</div>
+</section>
+<section id="launching">
+<h2><span class="section-number">9.10.2. </span>Launching<a class="headerlink" href="#launching" title="Link to this heading"></a></h2>
+<p>When Grid Engine support is included, PRRTE will automatically
+detect when it is running inside SGE and will just “do the Right
+Thing.”</p>
+<p>Specifically, if you execute an <code class="docutils literal notranslate"><span class="pre">prterun</span></code> command in a Grid Engine
+job, it will automatically use the Grid Engine mechanisms to launch
+and kill processes.  There is no need to specify what nodes to run on
+— PRRTE will obtain this information directly from Grid
+Engine and default to a number of processes equal to the slot count
+specified.  For example, this will run 4 application processes on the nodes
+that were allocated by Grid Engine:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get the environment variables for Grid Engine</span>
+
+<span class="c1"># (Assuming Grid Engine is installed at /opt/sge and $Grid</span>
+<span class="c1"># Engine_CELL is 'default' in your environment)</span>
+shell$<span class="w"> </span>.<span class="w"> </span>/opt/sge/default/common/settings.sh
+
+<span class="c1"># Allocate an Grid Engine interactive job with 4 slots from a</span>
+<span class="c1"># parallel environment (PE) named 'foo' and run a 4-process job</span>
+shell$<span class="w"> </span>qrsh<span class="w"> </span>-pe<span class="w"> </span>foo<span class="w"> </span><span class="m">4</span><span class="w"> </span>-b<span class="w"> </span>y<span class="w"> </span>prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>mpi-hello-world
+</pre></div>
+</div>
+<p>There are also other ways to submit jobs under Grid Engine:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Submit a batch job with the 'prterun' command embedded in a script</span>
+shell$<span class="w"> </span>qsub<span class="w"> </span>-pe<span class="w"> </span>foo<span class="w"> </span><span class="m">4</span><span class="w"> </span>my_prterun_job.csh
+
+<span class="c1"># Submit a Grid Engine and application job and prterun in one line</span>
+shell$<span class="w"> </span>qrsh<span class="w"> </span>-V<span class="w"> </span>-pe<span class="w"> </span>foo<span class="w"> </span><span class="m">4</span><span class="w"> </span>prterun<span class="w"> </span>hostname
+
+<span class="c1"># Use qstat(1) to show the status of Grid Engine jobs and queues</span>
+shell$<span class="w"> </span>qstat<span class="w"> </span>-f
+</pre></div>
+</div>
+<p>In reference to the setup, be sure you have a Parallel Environment
+(PE) defined for submitting parallel jobs. You don’t have to name your
+PE “foo”.  The following example shows a PE named “foo” that would
+look like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ qconf -sp foo
+   pe_name            foo
+   slots              99999
+   user_lists         NONE
+   xuser_lists        NONE
+   start_proc_args    NONE
+   stop_proc_args     NONE
+   allocation_rule    $fill_up
+   control_slaves     TRUE
+   job_is_first_task  FALSE
+   urgency_slots      min
+   accounting_summary FALSE
+   qsort_args         NONE
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">qsort_args</span></code> is necessary with the Son of Grid Engine
+distribution, version 8.1.1 and later, and probably only applicable
+to it.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For very old versions of Sun Grid Engine, omit
+<code class="docutils literal notranslate"><span class="pre">accounting_summary</span></code> too.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For Open Cluster Scheduler / Gridware Cluster Scheduler it is
+necessary to set <code class="docutils literal notranslate"><span class="pre">ign_sreq_on_mhost</span></code> (ignoring slave resource requests
+on the master node) to <code class="docutils literal notranslate"><span class="pre">FALSE</span></code>.</p>
+</div>
+<p>You may want to alter other parameters, but the important one is
+<code class="docutils literal notranslate"><span class="pre">control_slaves</span></code>, specifying that the environment has “tight
+integration”.  Note also the lack of a start or stop procedure.  The
+tight integration means that mpirun automatically picks up the slot
+count to use as a default in place of the <code class="docutils literal notranslate"><span class="pre">-n</span></code> argument, picks up a
+host file, spawns remote processes via <code class="docutils literal notranslate"><span class="pre">qrsh</span></code> so that Grid Engine
+can control and monitor them, and creates and destroys a per-job
+temporary directory (<code class="docutils literal notranslate"><span class="pre">$TMPDIR</span></code>), in which PRTE’s directory will
+be created (by default).</p>
+<p>Be sure the queue will make use of the PE that you specified:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ qconf -sq all.q
+[...snipped...]
+pe_list               make cre foo
+[...snipped...]
+</pre></div>
+</div>
+<p>To determine whether the Grid Engine parallel job is successfully
+launched to the remote nodes, you can pass in the MCA parameter
+<code class="docutils literal notranslate"><span class="pre">--prtemca</span> <span class="pre">plm_base_verbose</span> <span class="pre">1</span></code> to <code class="docutils literal notranslate"><span class="pre">prterun</span></code>.</p>
+<p>This will add in a <code class="docutils literal notranslate"><span class="pre">-verbose</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">qrsh</span> <span class="pre">-inherit</span></code> command
+that is used to send parallel tasks to the remote Grid Engine
+execution hosts. It will show whether the connections to the remote
+hosts are established successfully or not.</p>
+<p>Various Grid Engine documentation with pointers to more used to be available
+at <a class="reference external" href="http://arc.liv.ac.uk/sge/">the Son of GridEngine site</a>, and
+configuration instructions were found at <a class="reference external" href="http://arc.liv.ac.uk/SGE/howto/sge-configs.html">the Son of GridEngine
+configuration how-to site</a>. This may no longer
+be true.</p>
+<p>An actively developed (2024, 2025) open source successor of Sun Grid Engine is
+<a class="reference external" href="https://github.com/hpc-gridware/clusterscheduler">Open Cluster Scheduler</a>.
+It maintains backward compatibility with SGE and provides many new features.
+An MPI parallel environment setup for OpenMPI is available in
+<a class="reference external" href="https://github.com/hpc-gridware/clusterscheduler/tree/master/source/dist/mpi/openmpi">the Open Cluster Scheduler GitHub repository</a>.</p>
+</section>
+<section id="grid-engine-tight-integration-support-of-the-qsub-notify-flag">
+<h2><span class="section-number">9.10.3. </span>Grid Engine tight integration support of the <code class="docutils literal notranslate"><span class="pre">qsub</span> <span class="pre">-notify</span></code> flag<a class="headerlink" href="#grid-engine-tight-integration-support-of-the-qsub-notify-flag" title="Link to this heading"></a></h2>
+<p>If you are running SGE 6.2 Update 3 or later, then the <code class="docutils literal notranslate"><span class="pre">-notify</span></code>
+flag is supported.  If you are running earlier versions, then the
+<code class="docutils literal notranslate"><span class="pre">-notify</span></code> flag will not work and using it will cause the job to be
+killed.</p>
+<p>To use <code class="docutils literal notranslate"><span class="pre">-notify</span></code>, one has to be careful.  First, let us review what
+<code class="docutils literal notranslate"><span class="pre">-notify</span></code> does.  Here is an excerpt from the qsub man page for the
+<code class="docutils literal notranslate"><span class="pre">-notify</span></code> flag.</p>
+<blockquote>
+<div><p>The <code class="docutils literal notranslate"><span class="pre">-notify</span></code> flag, when set causes Sun Grid Engine to send
+warning signals to a running job prior to sending the signals
+themselves. If a SIGSTOP is pending, the job will receive a SIGUSR1
+several seconds before the SIGSTOP.  If a SIGKILL is pending, the
+job will receive a SIGUSR2 several seconds before the SIGKILL.  The
+amount of time delay is controlled by the notify parameter in each
+queue configuration.</p>
+</div></blockquote>
+<p>Let us assume the reason you want to use the <code class="docutils literal notranslate"><span class="pre">-notify</span></code> flag is to
+get the SIGUSR1 signal prior to getting the SIGTSTP signal. PRRTE forwards
+some signals by default, but others need to be specifically requested.
+The following MCA param controls this behavior:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prte_ess_base_forward_signals</span><span class="p">:</span> <span class="n">Comma</span><span class="o">-</span><span class="n">delimited</span> <span class="nb">list</span> <span class="n">of</span> <span class="n">additional</span> <span class="n">signals</span> <span class="p">(</span><span class="n">names</span> <span class="ow">or</span> <span class="n">integers</span><span class="p">)</span> <span class="n">to</span> <span class="n">forward</span> <span class="n">to</span>
+<span class="n">application</span> <span class="n">processes</span> <span class="p">[</span>\<span class="s2">"none</span><span class="se">\"</span><span class="s2"> =&gt; forward nothing]. Signals provided by</span>
+<span class="n">default</span> <span class="n">include</span> <span class="n">SIGTSTP</span><span class="p">,</span> <span class="n">SIGUSR1</span><span class="p">,</span> <span class="n">SIGUSR2</span><span class="p">,</span> <span class="n">SIGABRT</span><span class="p">,</span> <span class="n">SIGALRM</span><span class="p">,</span> <span class="ow">and</span> <span class="n">SIGCONT</span>
+</pre></div>
+</div>
+<p>Within that constraint, something like this batch script can be used:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="ch">#! /bin/bash</span>
+<span class="c1">#$ -S /bin/bash</span>
+<span class="c1">#$ -V</span>
+<span class="c1">#$ -cwd</span>
+<span class="c1">#$ -N Job1</span>
+<span class="c1">#$ -pe foo 16</span>
+<span class="c1">#$ -j y</span>
+<span class="c1">#$ -l h_rt=00:20:00</span>
+prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">16</span><span class="w"> </span>mpi-hello-world
+</pre></div>
+</div>
+<p>However, one has to make one of two changes to this script for things
+to work properly.  By default, a SIGUSR1 signal will kill a shell
+script.  So we have to make sure that does not happen. Here is one way
+to handle it:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="ch">#! /bin/bash</span>
+<span class="c1">#$ -S /bin/bash</span>
+<span class="c1">#$ -V</span>
+<span class="c1">#$ -cwd</span>
+<span class="c1">#$ -N Job1</span>
+<span class="c1">#$ -pe ompi 16</span>
+<span class="c1">#$ -j y</span>
+<span class="c1">#$ -l h_rt=00:20:00</span>
+<span class="nb">exec</span><span class="w"> </span>prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">16</span><span class="w"> </span>mpi-hello-world
+</pre></div>
+</div>
+<p>Alternatively, one can catch the signals in the script instead of doing
+an exec on the mpirun:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="ch">#! /bin/bash</span>
+<span class="c1">#$ -S /bin/bash</span>
+<span class="c1">#$ -V</span>
+<span class="c1">#$ -cwd</span>
+<span class="c1">#$ -N Job1</span>
+<span class="c1">#$ -pe ompi 16</span>
+<span class="c1">#$ -j y</span>
+<span class="c1">#$ -l h_rt=00:20:00</span>
+
+<span class="k">function</span><span class="w"> </span>sigusr1handler<span class="o">()</span>
+<span class="o">{</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"SIGUSR1 caught by shell script"</span><span class="w"> </span><span class="m">1</span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="o">}</span>
+
+<span class="k">function</span><span class="w"> </span>sigusr2handler<span class="o">()</span>
+<span class="o">{</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"SIGUSR2 caught by shell script"</span><span class="w"> </span><span class="m">1</span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<span class="o">}</span>
+
+<span class="nb">trap</span><span class="w"> </span>sigusr1handler<span class="w"> </span>SIGUSR1
+<span class="nb">trap</span><span class="w"> </span>sigusr2handler<span class="w"> </span>SIGUSR2
+
+prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">16</span><span class="w"> </span>mpi-hello-world
+</pre></div>
+</div>
+</section>
+<section id="grid-engine-job-suspend-resume-support">
+<h2><span class="section-number">9.10.4. </span>Grid Engine job suspend / resume support<a class="headerlink" href="#grid-engine-job-suspend-resume-support" title="Link to this heading"></a></h2>
+<p>To suspend the job, you send a SIGTSTP (not SIGSTOP) signal to
+<code class="docutils literal notranslate"><span class="pre">prterun</span></code>.  <code class="docutils literal notranslate"><span class="pre">prterun</span></code> will catch this signal and forward it to the
+<code class="docutils literal notranslate"><span class="pre">mpi-hello-world</span></code> as a SIGSTOP signal.  To resume the job, you send
+a SIGCONT signal to <code class="docutils literal notranslate"><span class="pre">prterun</span></code> which will be caught and forwarded to
+the <code class="docutils literal notranslate"><span class="pre">mpi-hello-world</span></code>.</p>
+<p>Here is an example on Solaris:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>mpi-hello-world
+</pre></div>
+</div>
+<p>In another window, we suspend and continue the job:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>prstat<span class="w"> </span>-p<span class="w"> </span><span class="m">15301</span>,15303,15305
+<span class="w">   </span>PID<span class="w"> </span>USERNAME<span class="w">  </span>SIZE<span class="w">   </span>RSS<span class="w"> </span>STATE<span class="w">  </span>PRI<span class="w"> </span>NICE<span class="w">      </span>TIME<span class="w">  </span>CPU<span class="w"> </span>PROCESS/NLWP
+<span class="w"> </span><span class="m">15305</span><span class="w"> </span>rolfv<span class="w">     </span>158M<span class="w">   </span>22M<span class="w"> </span>cpu1<span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:00:21<span class="w"> </span><span class="m">5</span>.9%<span class="w"> </span>mpi-hello-world/1
+<span class="w"> </span><span class="m">15303</span><span class="w"> </span>rolfv<span class="w">     </span>158M<span class="w">   </span>22M<span class="w"> </span>cpu2<span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:00:21<span class="w"> </span><span class="m">5</span>.9%<span class="w"> </span>mpi-hello-world/1
+<span class="w"> </span><span class="m">15301</span><span class="w"> </span>rolfv<span class="w">    </span>8128K<span class="w"> </span>5144K<span class="w"> </span>sleep<span class="w">   </span><span class="m">59</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:00:00<span class="w"> </span><span class="m">0</span>.0%<span class="w"> </span>mpirun/1
+
+shell$<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-TSTP<span class="w"> </span><span class="m">15301</span>
+shell$<span class="w"> </span>prstat<span class="w"> </span>-p<span class="w"> </span><span class="m">15301</span>,15303,15305
+<span class="w">   </span>PID<span class="w"> </span>USERNAME<span class="w">  </span>SIZE<span class="w">   </span>RSS<span class="w"> </span>STATE<span class="w">  </span>PRI<span class="w"> </span>NICE<span class="w">      </span>TIME<span class="w">  </span>CPU<span class="w"> </span>PROCESS/NLWP
+<span class="w"> </span><span class="m">15303</span><span class="w"> </span>rolfv<span class="w">     </span>158M<span class="w">   </span>22M<span class="w"> </span>stop<span class="w">    </span><span class="m">30</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:01:44<span class="w">  </span><span class="m">21</span>%<span class="w"> </span>mpi-hello-world/1
+<span class="w"> </span><span class="m">15305</span><span class="w"> </span>rolfv<span class="w">     </span>158M<span class="w">   </span>22M<span class="w"> </span>stop<span class="w">    </span><span class="m">20</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:01:44<span class="w">  </span><span class="m">21</span>%<span class="w"> </span>mpi-hello-world/1
+<span class="w"> </span><span class="m">15301</span><span class="w"> </span>rolfv<span class="w">    </span>8128K<span class="w"> </span>5144K<span class="w"> </span>sleep<span class="w">   </span><span class="m">59</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:00:00<span class="w"> </span><span class="m">0</span>.0%<span class="w"> </span>mpirun/1
+
+shell$<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-CONT<span class="w"> </span><span class="m">15301</span>
+shell$<span class="w"> </span>prstat<span class="w"> </span>-p<span class="w"> </span><span class="m">15301</span>,15303,15305
+<span class="w">   </span>PID<span class="w"> </span>USERNAME<span class="w">  </span>SIZE<span class="w">   </span>RSS<span class="w"> </span>STATE<span class="w">  </span>PRI<span class="w"> </span>NICE<span class="w">      </span>TIME<span class="w">  </span>CPU<span class="w"> </span>PROCESS/NLWP
+<span class="w"> </span><span class="m">15305</span><span class="w"> </span>rolfv<span class="w">     </span>158M<span class="w">   </span>22M<span class="w"> </span>cpu1<span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:02:06<span class="w">  </span><span class="m">17</span>%<span class="w"> </span>mpi-hello-world/1
+<span class="w"> </span><span class="m">15303</span><span class="w"> </span>rolfv<span class="w">     </span>158M<span class="w">   </span>22M<span class="w"> </span>cpu3<span class="w">     </span><span class="m">0</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:02:06<span class="w">  </span><span class="m">17</span>%<span class="w"> </span>mpi-hello-world/1
+<span class="w"> </span><span class="m">15301</span><span class="w"> </span>rolfv<span class="w">    </span>8128K<span class="w"> </span>5144K<span class="w"> </span>sleep<span class="w">   </span><span class="m">59</span><span class="w">    </span><span class="m">0</span><span class="w">   </span><span class="m">0</span>:00:00<span class="w"> </span><span class="m">0</span>.0%<span class="w"> </span>mpirun/1
+</pre></div>
+</div>
+<p>Note that all this does is stop the <code class="docutils literal notranslate"><span class="pre">mpi-hello-world</span></code> processes.  It
+does not, for example, free any pinned memory when the job is in the
+suspended state.</p>
+<p>To get this to work under the Grid Engine environment, you have to
+change the <code class="docutils literal notranslate"><span class="pre">suspend_method</span></code> entry in the queue.  It has to be set to
+SIGTSTP.  Here is an example of what a queue should look like.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>qconf<span class="w"> </span>-sq<span class="w"> </span>all.q
+qname<span class="w">                 </span>all.q
+<span class="o">[</span>...snipped...<span class="o">]</span>
+starter_method<span class="w">        </span>NONE
+suspend_method<span class="w">        </span>SIGTSTP
+resume_method<span class="w">         </span>NONE
+</pre></div>
+</div>
+<p>Note that if you need to suspend other types of jobs with SIGSTOP
+(instead of SIGTSTP) in this queue then you need to provide a script
+that can implement the correct signals for each job type.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tm.html" class="btn btn-neutral float-left" title="9.9. Launching with PBS / Torque" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="unusual.html" class="btn btn-neutral float-right" title="9.11. Unusual jobs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

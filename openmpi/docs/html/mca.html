@@ -1,0 +1,1245 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8. The Modular Component Architecture (MCA) &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="9. Building MPI applications" href="building-apps/index.html" />
+    <link rel="prev" title="7. Version numbers and compatibility" href="version-numbering.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">8. The Modular Component Architecture (MCA)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#terminology">8.1. Terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#projects">8.1.1. Projects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#frameworks">8.1.2. Frameworks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#components">8.1.3. Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modules">8.1.4. Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parameters-variables">8.1.5. Parameters (variables)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#setting-mca-parameter-values">8.2. Setting MCA parameter values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#command-line-parameters">8.2.1. Command line parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#environment-variables">8.2.2. Environment variables</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tuning-mca-parameter-files">8.2.3. Tuning MCA parameter files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-files">8.2.4. Configuration files</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#displaying-mca-parameter-values">8.3. Displaying MCA parameter values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#selecting-which-open-mpi-components-are-used-at-run-time">8.4. Selecting which Open MPI components are used at run time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#common-mca-parameters">8.5. Common MCA parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mca-parameter-changes-between-open-mpi-4-x-and-5-x">8.6. MCA Parameter Changes Between Open MPI 4.x and 5.x</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#examples">8.6.1. Examples</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#simple-values-where-only-the-name-of-the-mca-parameter-changed">8.6.1.1. Simple values, where only the name of the MCA parameter changed</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#convert-from-boolean-value-to-parameter-for-variable">8.6.1.2. Convert from boolean value to parameter for variable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#convert-from-string-value-to-parameter-for-variable">8.6.1.3. Convert from string value to parameter for variable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#converting-mapping-parameters">8.6.1.4. Converting mapping parameters</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8. </span>The Modular Component Architecture (MCA)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/mca.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="the-modular-component-architecture-mca">
+<span id="label-mca"></span><h1><span class="section-number">8. </span>The Modular Component Architecture (MCA)<a class="headerlink" href="#the-modular-component-architecture-mca" title="Link to this heading"></a></h1>
+<p>Open MPI is a highly-customizable system; it can be configured via
+configuration files, command line parameters, and environment
+variables.  The main functionality of Open MPI’s configuration system
+is through the Modular Component Architecture (MCA).</p>
+<ul class="simple">
+<li><p>This section describes the MCA itself and how to set MCA parameters at
+run time.</p></li>
+<li><p>Later sections in this documentation describe different parts of
+Open MPI’s functionality, and the specific names and values of MCA
+parameters that can be used to affect Open MPI’s behavior.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="launching-apps/pmix-and-prrte.html#label-running-role-of-pmix-and-prte"><span class="std std-ref">The PMIx and PRRTE software packages</span></a> also use the MCA for
+their configuration, composition, and run-time tuning.</p>
+</div>
+<hr class="docutils" />
+<section id="terminology">
+<h2><span class="section-number">8.1. </span>Terminology<a class="headerlink" href="#terminology" title="Link to this heading"></a></h2>
+<p>The Modular Component Architecture (MCA) is the backbone for much of
+Open MPI’s functionality.  It is a series of <em>projects</em>, <em>frameworks</em>,
+<em>components</em>, and <em>modules</em> that are assembled at run-time to create
+an MPI implementation.</p>
+<p>MCA <em>parameters</em> (also known as MCA <em>variables</em>) are used to customize
+Open MPI’s behavior at run-time.</p>
+<p>Each of these entities are described below.</p>
+<section id="projects">
+<h3><span class="section-number">8.1.1. </span>Projects<a class="headerlink" href="#projects" title="Link to this heading"></a></h3>
+<p>A <em>project</em> is essentially the highest abstraction layer division in
+the Open MPI code base.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The word “project” is unfortunately overloaded.  It can be
+used to mean the code/resources/people in the greater Open
+MPI community associated with the development of a
+particular software package, but it can also be used to mean
+a major, top-level section of code within the Open MPI code
+base.</p>
+<p>For the purposes of this documentation, “project” means the
+latter: a major, top-level section of code within the Open
+MPI code base.</p>
+</div>
+<p>The following <em>projects</em> exist in Open MPI v5.0.11:</p>
+<ul class="simple">
+<li><p><strong>Open Portability Access Layer (OPAL):</strong> Low-level, operating
+system and architecture portability code.</p></li>
+<li><p><strong>Open MPI (OMPI):</strong> The MPI API and supporting infrastructure.</p></li>
+<li><p><strong>OpenSHMEM (OSHMEM):</strong> The OpenSHMEM API and supporting
+infrastructure.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Prior versions of Open MPI also included an Open MPI
+Runtime Environment (ORTE) project.  ORTE essentially
+evolved into the standalone <a class="reference external" href="https://github.com/openpmix/prrte">PMIx Runtime Reference
+Environment (PRRTE)</a>
+and is now considered a 3rd-party dependency of Open MPI
+— not one of its included projects.</p>
+<p>See <a class="reference internal" href="launching-apps/pmix-and-prrte.html#label-running-role-of-pmix-and-prte"><span class="std std-ref">the role of PMIx and PRRTE</span></a> for more information.</p>
+</div>
+</section>
+<section id="frameworks">
+<span id="label-mca-frameworks"></span><h3><span class="section-number">8.1.2. </span>Frameworks<a class="headerlink" href="#frameworks" title="Link to this heading"></a></h3>
+<p>An MCA framework manages zero or more components at run-time and is
+targeted at a specific task (e.g., providing MPI collective operation
+functionality).  Although each MCA framework supports only a single
+type of component, it may support multiple components of that type.</p>
+<p>Some of the more common frameworks that users may want or need to
+customize include the following:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">btl</span></code>: Byte Transport Layer; these components are exclusively used
+as the underlying transports for the <code class="docutils literal notranslate"><span class="pre">ob1</span></code> PML component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coll</span></code>: MPI collective algorithms</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">io</span></code>: MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mtl</span></code>: MPI Matching Transport Layer (MTL); these components are
+exclusively used as the underlying transports for the <code class="docutils literal notranslate"><span class="pre">cm</span></code> PML
+component.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pml</span></code>: Point-to-point Messaging Layer (PML).  These components are
+used to implement MPI point-to-point messaging functionality.</p></li>
+</ul>
+<p>There are many frameworks within Open MPI; the exact set varies
+between different versions of Open MPI.  You can use the
+<a class="reference internal" href="man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a> command to see the full list of
+frameworks that are included in Open MPI v5.0.11.</p>
+</section>
+<section id="components">
+<span id="label-mca-components"></span><h3><span class="section-number">8.1.3. </span>Components<a class="headerlink" href="#components" title="Link to this heading"></a></h3>
+<p>An MCA component is an implementation of a framework’s formal
+interface.  It is a standalone collection of code that can be bundled
+into a plugin that can be inserted into the Open MPI code base, either
+at run-time and/or compile-time.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Good synonyms for Open MPI’s “component” concept are
+“plugin”, or “add-on”.</p>
+</div>
+<p>The exact set of components varies between different versions of Open
+MPI.  Open MPI’s code base includes support for many components, but
+not all of them may be present or available on your system.  You can
+use the <a class="reference internal" href="man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a> command to see what
+components are included in Open MPI v5.0.11 on your system.</p>
+</section>
+<section id="modules">
+<span id="label-mca-modules"></span><h3><span class="section-number">8.1.4. </span>Modules<a class="headerlink" href="#modules" title="Link to this heading"></a></h3>
+<p>An MCA module is an instance of a component (in the C++ sense of the
+word “instance”; an MCA component is analogous to a C++ class).  For
+example, if a node running an Open MPI application has two Ethernet
+NICs, the Open MPI application will contain one TCP MPI point-to-point
+<em>component</em>, but two TCP point-to-point <em>modules</em>.</p>
+</section>
+<section id="parameters-variables">
+<h3><span class="section-number">8.1.5. </span>Parameters (variables)<a class="headerlink" href="#parameters-variables" title="Link to this heading"></a></h3>
+<p>MCA <em>parameters</em> (sometimes called MCA <em>variables</em>) are the basic unit
+of run-time tuning for Open MPI.  They are simple “key = value” pairs
+that are used extensively throughout Open MPI.  The general rules of
+thumb that the developers use are:</p>
+<ol class="arabic simple">
+<li><p>Instead of using a constant for an important value, make it an MCA
+parameter.</p></li>
+<li><p>If a task can be implemented in multiple, user-discernible ways,
+implement as many as possible, and use an MCA parameter to
+choose between them at run-time.</p></li>
+</ol>
+<p>For example, an easy MCA parameter to describe is the boundary between
+short and long messages in TCP wire-line transmissions.  “Short”
+messages are sent eagerly whereas “long” messages use a rendezvous
+protocol.  The decision point between these two protocols is the
+overall size of the message (in bytes).  By making this value an MCA
+parameter, it can be changed at run-time by the user or system
+administrator to use a sensible value for a particular environment or
+set of hardware (e.g., a value suitable for 1Gpbs Ethernet is probably
+not suitable for 100 Gigabit Ethernet, and may require even a third
+different value for 25 Gigabit Ethernet).</p>
+<hr class="docutils" />
+</section>
+</section>
+<section id="setting-mca-parameter-values">
+<span id="label-running-setting-mca-param-values"></span><h2><span class="section-number">8.2. </span>Setting MCA parameter values<a class="headerlink" href="#setting-mca-parameter-values" title="Link to this heading"></a></h2>
+<p>MCA parameters may be set in several different ways.</p>
+<div class="tip admonition">
+<p class="admonition-title">Rationale</p>
+<p>Having multiple methods to set MCA parameters allows, for example,
+system administrators to fine-tune the Open MPI installation for
+their hardware / environment such that normal users can simply use
+the default values (that were set by the system administrators).</p>
+<p>HPC environments — and the applications that run on them
+— tend to be unique.  Providing extensive run-time tuning
+capabilities through MCA parameters allows the customization of
+Open MPI to each system’s / user’s / application’s particular
+needs.</p>
+</div>
+<p>The following are the different methods to set MCA parameters, listed
+in priority order:</p>
+<ol class="arabic simple">
+<li><p>Command line parameters</p></li>
+<li><p>Environment variables</p></li>
+<li><p>Tuning MCA parameter files</p></li>
+<li><p>Configuration files</p></li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Due to how the PMIx and PRRTE projects both evolved to
+become independent projects from Open MPI (<a class="reference internal" href="launching-apps/pmix-and-prrte.html#label-running-role-of-pmix-and-prte"><span class="std std-ref">see this
+section for more detail</span></a>), they both have
+their own MCA system for setting MCA parameters.</p>
+<p>Hence, all the information about MCA parameters below
+<em>also</em> applies to PMIx and PRRTE.</p>
+</div>
+<section id="command-line-parameters">
+<h3><span class="section-number">8.2.1. </span>Command line parameters<a class="headerlink" href="#command-line-parameters" title="Link to this heading"></a></h3>
+<p>The highest-precedence method is setting MCA parameters on the command
+line.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>mpi_show_handle_leaks<span class="w"> </span><span class="m">1</span><span class="w"> </span>-np<span class="w"> </span><span class="m">4</span><span class="w"> </span>a.out
+</pre></div>
+</div>
+<p>This sets the MCA parameter <code class="docutils literal notranslate"><span class="pre">mpi_show_handle_leaks</span></code> to the value of
+1 before running <code class="docutils literal notranslate"><span class="pre">a.out</span></code> with four processes.  In general, the
+format used on the command line is <code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">&lt;param_name&gt;</span> <span class="pre">&lt;value&gt;</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When setting a value that includes spaces, you need to use
+quotes to ensure that the shell understands that the
+multiple tokens are a single value.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>param<span class="w"> </span><span class="s2">"value with multiple words"</span><span class="w"> </span>...
+</pre></div>
+</div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Setting Open MPI MCA parameters via the command line
+entails using the <code class="docutils literal notranslate"><span class="pre">--mca</span></code> CLI option.  When setting
+PMIx- and PRRTE-specific MCA parameters via configuration
+files, use a different CLI option:</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>Open MPI</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--mca</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>PMIx</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--pmixmca</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>PRRTE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--prtemca</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="environment-variables">
+<h3><span class="section-number">8.2.2. </span>Environment variables<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h3>
+<p>Next, environment variables are searched.  Any environment variable
+named <code class="docutils literal notranslate"><span class="pre">OMPI_MCA_&lt;param_name&gt;</span></code> will be used.  For example, the
+following has the same effect as the previous example (for sh-flavored
+shells):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="nv">OMPI_MCA_mpi_show_handle_leaks</span><span class="o">=</span><span class="m">1</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">4</span><span class="w"> </span>a.out
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Just like with command line values, setting environment
+variables to values with multiple words requires shell
+quoting, such as:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="nv">OMPI_MCA_param</span><span class="o">=</span><span class="s2">"value with multiple words"</span>
+</pre></div>
+</div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Setting Open MPI MCA parameters via environment variables
+entails prefixing the parameter name with <code class="docutils literal notranslate"><span class="pre">OMPI_MCA_</span></code>.
+When setting PMIx- and PRRTE-specific MCA parameters via
+environment variables, use a different prefix:</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>Open MPI</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OMPI_MCA_</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>PMIx</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PMIX_MCA_</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>PRRTE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PRTE_MCA_</span></code> (with a single “R”)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="tuning-mca-parameter-files">
+<h3><span class="section-number">8.2.3. </span>Tuning MCA parameter files<a class="headerlink" href="#tuning-mca-parameter-files" title="Link to this heading"></a></h3>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO This entire section needs to be checked for correctness.</p>
+</div>
+<p>Simple text files can be used to set MCA parameter values for a
+specific application.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--tune</span></code> CLI option allows users to specify both MCA
+parameters and environment variables from within a single file.</p>
+<p>MCA parameters set in tuned parameter files will override any MCA
+parameters supplied in global parameter files (e.g.,
+<code class="docutils literal notranslate"><span class="pre">$HOME/.openmpi/mca-params.conf</span></code>), but not command line or
+environment parameters.</p>
+<p>Consider a tuned parameter file name <code class="docutils literal notranslate"><span class="pre">foo.conf</span></code> that is placed in
+the same directory as the application <code class="docutils literal notranslate"><span class="pre">a.out</span></code>. A user will typically
+run the application as:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>a.out
+</pre></div>
+</div>
+<p>To use the <code class="docutils literal notranslate"><span class="pre">foo.conf</span></code> tuned parameter file, this command line
+changes to:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>--tune<span class="w"> </span>foo.conf<span class="w"> </span>a.out
+</pre></div>
+</div>
+<p>Tuned parameter files can be coupled if more than one file is to be
+used. If there is another tuned parameter file called <code class="docutils literal notranslate"><span class="pre">bar.conf</span></code>, it
+can be added to the command line as follows:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-np<span class="w"> </span><span class="m">2</span><span class="w"> </span>--tune<span class="w"> </span>foo.conf,bar.conf<span class="w"> </span>a.out
+</pre></div>
+</div>
+<p>The contents of tuned files consist of one or more lines, each of
+which contain zero or more <cite>-x</cite> and <cite>–mca</cite> options.  Comments are not
+allowed.  For example, the following tuned file:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>-x envvar1=value1 -mca param1 value1 -x envvar2
+-mca param2 value2
+-x envvar3
+</pre></div>
+</div>
+<p>is equivalent to:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-x<span class="w"> </span><span class="nv">envvar1</span><span class="o">=</span>value1<span class="w"> </span>-mca<span class="w"> </span>param1<span class="w"> </span>value1<span class="w"> </span>-x<span class="w"> </span>envvar2<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-mca<span class="w"> </span>param2<span class="w"> </span>value2
+<span class="w">    </span>-x<span class="w"> </span>envvar3<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>...rest<span class="w"> </span>of<span class="w"> </span>mpirun<span class="w"> </span><span class="nb">command</span><span class="w"> </span>line...
+</pre></div>
+</div>
+<p>Although the typical use case for tuned parameter files is to be
+specified on the command line, they can also be set as MCA parameters
+in the environment.  The MCA parameter <code class="docutils literal notranslate"><span class="pre">mca_base_envvar_file_prefix</span></code>
+contains a comma-delimited list of tuned parameter files exactly as
+they would be passed to the <code class="docutils literal notranslate"><span class="pre">--tune</span></code> command line option.  The MCA
+parameter <code class="docutils literal notranslate"><span class="pre">mca_base_envvar_file_path</span></code> specifies the path to search
+for tuned files with relative paths.</p>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO Check that these MCA var names ^^ are correct.</p>
+</div>
+</section>
+<section id="configuration-files">
+<h3><span class="section-number">8.2.4. </span>Configuration files<a class="headerlink" href="#configuration-files" title="Link to this heading"></a></h3>
+<p>Finally, simple configuration text files can be used to set MCA
+parameter values.  Parameters are set one per line (comments are
+permitted).  For example:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is a comment</span>
+<span class="c1"># Set the same MCA parameter as in previous examples</span>
+<span class="na">mpi_show_handle_leaks</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">1</span>
+</pre></div>
+</div>
+<p>Note that quotes are <em>not</em> necessary for setting multi-word values
+in MCA parameter files.  Indeed, if you use quotes in the MCA
+parameter file, they will be used as part of the value itself.  For
+example:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># The following two values are different:</span>
+<span class="na">param1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">value with multiple words</span>
+<span class="na">param2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"value with multiple words"</span>
+</pre></div>
+</div>
+<p>By default, two files are searched (in order):</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/.openmpi/mca-params.conf</span></code>: The user-supplied set of
+values takes the highest precedence.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$prefix/etc/openmpi-mca-params.conf</span></code>: The system-supplied set
+of values has a lower precedence.</p></li>
+</ol>
+<p>More specifically, the MCA parameter <code class="docutils literal notranslate"><span class="pre">mca_param_files</span></code> specifies a
+colon-delimited path of files to search for MCA parameters.  Files to
+the left have lower precedence; files to the right are higher
+precedence.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Keep in mind that, just like components, these parameter
+files are <em>only</em> relevant where they are “visible”
+(<a class="reference internal" href="installing-open-mpi/custom-components.html#installing-custom-components-label"><span class="std std-ref">see this FAQ entry</span></a>).  Specifically,
+Open MPI does not read all the values from these files
+during startup and then send them to all nodes in the job.
+Instead, the files are read on each node during each
+process’ startup.</p>
+<p><em>This is intended behavior:</em> it allows for per-node
+customization, which is especially relevant in heterogeneous
+environments.</p>
+</div>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO This table needs to be checked for correctness.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Setting Open MPI MCA parameters via configuration files
+entails editing (by default) the <code class="docutils literal notranslate"><span class="pre">mca-params.conf</span></code> or
+<code class="docutils literal notranslate"><span class="pre">openmpi-mca-params.conf</span></code> files.  When setting PMIx-
+and PRRTE-specific MCA parameters via configuration
+files, set them (by default) in different files:</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p>Open MPI</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$HOME/.openmpi/mca-params.conf</span></code> or
+<code class="docutils literal notranslate"><span class="pre">$prefix/etc/openmpi-mca-params.conf</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>PMIx</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$HOME/.pmix/mca-params.conf</span></code> or
+<code class="docutils literal notranslate"><span class="pre">$prefix/etc/openpmix-mca-params.conf</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>PRRTE</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">$HOME/.prrte/mca-params.conf</span></code> or
+<code class="docutils literal notranslate"><span class="pre">$prefix/etc/prte-mca-params.conf</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+</section>
+</section>
+<section id="displaying-mca-parameter-values">
+<span id="label-running-displaying-mca-param-values"></span><h2><span class="section-number">8.3. </span>Displaying MCA parameter values<a class="headerlink" href="#displaying-mca-parameter-values" title="Link to this heading"></a></h2>
+<p>MCA parameters are the “life’s blood” of Open MPI. MCA parameters are
+used to control both detailed and large-scale behavior of Open MPI and
+are present throughout the code base.</p>
+<p>This raises an important question: since MCA parameters can be set from a
+file, the environment, the command line, and even internally within Open MPI,
+how do I actually know what MCA params my job is seeing, and their value?</p>
+<p>One way, of course, is to use the <a class="reference internal" href="man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a>
+command, which is documented elsewhere (you can use <code class="docutils literal notranslate"><span class="pre">man</span> <span class="pre">ompi_info</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">ompi_info</span> <span class="pre">--help</span></code> to get more info on this command). However,
+this still doesn’t fully answer the question since <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> isn’t
+an MPI process.</p>
+<p>To help relieve this problem, Open MPI provides the MCA parameter
+<code class="docutils literal notranslate"><span class="pre">mpi_show_mca_params</span></code> that directs the <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank 0
+process to report the name of MCA parameters, their current value as
+seen by that process, and the source that set that value.  The
+parameter can take several values that define which MCA parameters to
+report:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">all</span></code>: report all MCA params. Note that this typically generates a
+rather long list of parameters since it includes all of the default
+parameters defined inside Open MPI</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">default</span></code>: MCA params that are at their default settings - i.e.,
+all MCA params that are at the values set as default within Open MPI</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file</span></code>: MCA params that had their value set by a file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">api</span></code>: MCA params set using Open MPI’s internal APIs, perhaps to
+override an incompatible set of conditions specified by the user</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enviro</span></code>: MCA params that obtained their value either from the
+local environment or the command line. Open MPI treats environmental
+and command line parameters as equivalent, so there currently is no
+way to separate these two sources</p></li>
+</ul>
+<p>These options can be combined in any order by separating them with
+commas.</p>
+<p>Here is an example of the output generated by this parameter:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>mpi_show_mca_params<span class="w"> </span>enviro<span class="w"> </span>hello_c
+<span class="o">[</span>local-hostname:12345<span class="o">]</span><span class="w"> </span><span class="nv">mpi_show_mca_params</span><span class="o">=</span>enviro<span class="w"> </span><span class="o">(</span>environment<span class="o">)</span>
+Hello,<span class="w"> </span>World,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">1</span>
+</pre></div>
+</div>
+<p>Note that several MCA parameters set by Open MPI itself for internal
+uses are displayed in addition to the ones actually set by the user.</p>
+<p>Since the output from this option can be long, and since it can be
+helpful to have a more permanent record of the MCA parameters used for
+a job, a companion MCA parameter <code class="docutils literal notranslate"><span class="pre">mpi_show_mca_params_file</span></code> is
+provided. If <code class="docutils literal notranslate"><span class="pre">mpi_show_mca_params_file</span></code> is <em>also</em> set, the output
+listing of MCA parameters will be directed into the specified file
+instead of being printed to stdout.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>mpi_show_mca_params<span class="w"> </span>enviro<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mca<span class="w"> </span>mpi_show_mca_param_file<span class="w"> </span>/tmp/foo.txt<span class="w"> </span>hello_c
+Hello,<span class="w"> </span>World,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">1</span>
+shell$<span class="w"> </span>cat<span class="w"> </span>/tmp/foo.txt
+<span class="c1">#</span>
+<span class="c1"># This file was automatically generated on Sun Feb  7 14:34:31 2021</span>
+<span class="c1"># by MPI_COMM_WORLD rank 0 (out of a total of 16) on savbu-usnic-a</span>
+<span class="c1">#</span>
+<span class="nv">mpi_show_mca_params</span><span class="o">=</span>enviro<span class="w"> </span><span class="o">(</span>environment<span class="o">)</span>
+<span class="nv">mpi_show_mca_params_file</span><span class="o">=</span>/tmp/foo.txt<span class="w"> </span><span class="o">(</span>environment<span class="o">)</span>
+</pre></div>
+</div>
+<hr class="docutils" />
+</section>
+<section id="selecting-which-open-mpi-components-are-used-at-run-time">
+<span id="label-running-selecting-framework-components"></span><h2><span class="section-number">8.4. </span>Selecting which Open MPI components are used at run time<a class="headerlink" href="#selecting-which-open-mpi-components-are-used-at-run-time" title="Link to this heading"></a></h2>
+<p>Each MCA framework has a top-level MCA parameter that helps guide
+which components are selected to be used at run-time.  Specifically,
+every framework has an MCA parameter of the same name that can be used
+to <em>include</em> or <em>exclude</em> components from a given run.</p>
+<p>For example, the <code class="docutils literal notranslate"><span class="pre">btl</span></code> MCA parameter is used to control which BTL
+components are used.  It takes a comma-delimited list of component
+names, and may be optionally prefixed with <code class="docutils literal notranslate"><span class="pre">^</span></code>.  For example:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Byte Transfer Layer (BTL) framework is used as the
+underlying network transports with the <cite>ob1</cite> Point-to-point
+Messaging Layer (PML) component.</p>
+</div>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tell Open MPI to include *only* the BTL components listed here and</span>
+<span class="c1"># implicitly ignore all the rest:</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>self,sm,usnic<span class="w"> </span>...
+
+<span class="c1"># Tell Open MPI to exclude the tcp and uct BTL components</span>
+<span class="c1"># and implicitly include all the rest</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>^tcp,uct<span class="w"> </span>...
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">^</span></code> can <em>only</em> be the prefix of the <em>entire</em>
+comma-delimited list because the inclusive and exclusive behavior are
+mutually exclusive.  Specifically, since the exclusive behavior means
+“use all components <em>except</em> these”, it does not make sense to mix it
+with the inclusive behavior of not specifying it (i.e., “use all of
+these components”).  Hence, something like this:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>self,sm,usnic,^tcp<span class="w"> </span>...
+</pre></div>
+</div>
+<p>does not make sense — and will cause an error — because it
+says “use only the <code class="docutils literal notranslate"><span class="pre">self</span></code>, <code class="docutils literal notranslate"><span class="pre">sm</span></code>, and <code class="docutils literal notranslate"><span class="pre">usnic</span></code> components” but
+also “use all components except <code class="docutils literal notranslate"><span class="pre">tcp</span></code>”.  These two statements
+clearly contradict each other.</p>
+<hr class="docutils" />
+</section>
+<section id="common-mca-parameters">
+<span id="label-mca-common-parameters"></span><h2><span class="section-number">8.5. </span>Common MCA parameters<a class="headerlink" href="#common-mca-parameters" title="Link to this heading"></a></h2>
+<p>Open MPI has a <em>large</em> number of MCA parameters available.  Users can
+use the <a class="reference internal" href="man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a> command to see <em>all</em>
+available MCA parameters.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Similarly, you can use the <code class="docutils literal notranslate"><span class="pre">pmix_info(1)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">prte_info(1)</span></code> commands to see all the MCA parameters
+available for the PMIx and PRRTE projects, respectively.</p>
+<p>The documentation for these commands are not included in the
+Open MPI docs, but they are both quite similar to
+<a class="reference internal" href="man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a>.</p>
+</div>
+<p>The vast majority of these MCA parameters, however, are not useful to
+most users.  Indeed, there only are a handful of MCA parameters that
+are commonly used by end users.  <a class="reference internal" href="man-openmpi/man1/ompi_info.1.html#man1-ompi-info-levels"><span class="std std-ref">As described in the
+ompi_info(1) man page</span></a>, MCA parameters are
+grouped into nine levels, corresponding to the MPI standard’s tool
+support verbosity levels.  In general:</p>
+<ul>
+<li><p>Levels 1-3 are intended for the end user.</p>
+<ul class="simple">
+<li><p>These parameters are generally used to effect whether an Open MPI
+job will be able to run correctly.</p></li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Parameters in levels 1-3 are probably applicable to
+most end users.</p>
+</div>
+</li>
+<li><p>Levels 4-6 are intended for the application tuner.</p>
+<ul class="simple">
+<li><p>These parameters are generally used to tune the performance of an
+Open MPI job.</p></li>
+</ul>
+</li>
+<li><p>Levels 7-9 are intended for the MPI implementer.</p>
+<ul class="simple">
+<li><p>These parameters are esoteric and really only intended for those
+who work deep within the implementation of Open MPI code base
+itself.</p></li>
+</ul>
+</li>
+</ul>
+<p>Although the full list of MCA parameters can be found in the output of
+<code class="docutils literal notranslate"><span class="pre">ompi_info(1)</span></code>, the following list of commonly-used parameters is
+presented here so that they can easily be found via internet searches:</p>
+<ul>
+<li><p>Individual framework names are used as MCA parameters to
+<a class="reference internal" href="#label-running-selecting-framework-components"><span class="std std-ref">select which components will be used</span></a>.  For example, the
+<code class="docutils literal notranslate"><span class="pre">btl</span></code> MCA parameter is used to select which components will be
+used from the <code class="docutils literal notranslate"><span class="pre">btl</span></code> framework.  The <code class="docutils literal notranslate"><span class="pre">coll</span></code> MCA parameter is used
+to select which <code class="docutils literal notranslate"><span class="pre">coll</span></code> components are used.  And so on.</p></li>
+<li><p>Individual framework names with the <code class="docutils literal notranslate"><span class="pre">_base_verbose</span></code> suffix
+appended (e.g., <code class="docutils literal notranslate"><span class="pre">btl_base_verbose</span></code>, <code class="docutils literal notranslate"><span class="pre">coll_base_verbose</span></code>, etc.)
+can be used to set the general verbosity level of all the components
+in that framework.</p>
+<ul class="simple">
+<li><p>This can be helpful when troubleshooting why certain components
+are or are not being selected at run time.</p></li>
+</ul>
+</li>
+<li><p>Many network-related components support “include” and “exclude”
+types of components (e.g., <code class="docutils literal notranslate"><span class="pre">btl_tcp_if_include</span></code> and
+<code class="docutils literal notranslate"><span class="pre">btl_tcp_if_exclude</span></code>).  The “include” parameters specify an
+explicit set of network interfaces to use; the “exclude” parameters
+specify an explicit set of network interfaces to ignore.  Check the
+output from <a class="reference internal" href="man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)’s</span></a> full list to see
+if the network-related component you are using has “include” and
+“exclude” network interface parameters.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You can only use the “include” <em>or</em> the “exclude”
+parameter — they are mutually exclusive from each
+other.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mca_base_component_show_load_errors</span></code>: By default, Open MPI
+emits a warning message if it fails to open a DSO component at run
+time.  This typically happens when a shared library that the DSO
+requires is not available.</p>
+<div class="tip admonition">
+<p class="admonition-title">Rationale</p>
+<p>In prior versions of Open MPI, components defaulted to building
+as DSOs (vs. being included in their parent libraries, such as
+<code class="docutils literal notranslate"><span class="pre">libmpi.so</span></code>).  On misconfigured systems, sometimes network
+acceleration libraries would not be present, meaning that
+HPC-class networking components failed to open at run time.  As
+such, Open MPI would typically fall back to TCP as a network
+transport, which usually led to poor performance of end-user
+applications.</p>
+<p>Having Open MPI warn about such failures to load was useful
+because it alerted users to the misconfiguration.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, Open MPI v5.0.11 includes all components in
+its base libraries (e.g., on Linux, <code class="docutils literal notranslate"><span class="pre">libmpi.so</span></code> includes
+all the components that were built with Open MPI, and
+therefore no component need to be opened dynamically), and
+does not build its components as DSOs.</p>
+<p>This MCA parameter <em>only</em> affects the behavior of when a
+component DSO fails to open.</p>
+</div>
+<p>This MCA parameter can take four general values:</p>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">yes</span></code> or a boolean “true” value (e.g., <code class="docutils literal notranslate"><span class="pre">1</span></code>): Open MPI will
+emit a warning about every component DSO that fails to load.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">no</span></code> or a boolean “false” value (e.g., <code class="docutils literal notranslate"><span class="pre">0</span></code>): Open MPI will
+never emit warnings about component DSOs that fail to load.</p></li>
+<li><p>A comma-delimited list of frameworks and/or components: Open MPI
+will emit a warning about any dynamic component that fails to
+open and matches a token in the list. “Match” is defined as:</p>
+<ul class="simple">
+<li><p>If a token in the list is only a framework name, then any
+component in that framework will match.</p></li>
+<li><p>If a token in the list specifies both a framework name and a
+component name (in the form <code class="docutils literal notranslate"><span class="pre">framework/component</span></code>), then
+only the specified component in the specified framework will
+match.</p></li>
+</ul>
+<p>For example, if the value of this MCA parameter is
+<code class="docutils literal notranslate"><span class="pre">accelerator,btl/uct</span></code>, then Open MPI warn if any component in
+the accelerator framework or if the UCT BTL fails to load at run
+time.</p>
+</li>
+<li><p>The value can also be a <code class="docutils literal notranslate"><span class="pre">^</span></code> character followed by a
+comma-delimited list of <code class="docutils literal notranslate"><span class="pre">framework[/component]</span></code> values: This
+is similar to the comma-delimited list of tokens, except it will
+only emit warnings about dynamic components that fail to load
+and do <em>not</em> match a token in the list.</p>
+<p>For example, if the value of this MCA parameter is
+<code class="docutils literal notranslate"><span class="pre">^accelerator,btl/uct</span></code>, then Open MPI will only warn about the
+failure to load DSOs that are neither in the accelerator
+framework nor are the UCT BTL.</p>
+</li>
+</ol>
+</li>
+</ul>
+</section>
+<section id="mca-parameter-changes-between-open-mpi-4-x-and-5-x">
+<span id="label-mca-backward-compat"></span><h2><span class="section-number">8.6. </span>MCA Parameter Changes Between Open MPI 4.x and 5.x<a class="headerlink" href="#mca-parameter-changes-between-open-mpi-4-x-and-5-x" title="Link to this heading"></a></h2>
+<p>When Open MPI <a class="reference internal" href="launching-apps/pmix-and-prrte.html#label-running-role-of-pmix-and-prte"><span class="std std-ref">switched from using ORTE to PRRTE as its run-time
+environment,</span></a> some MCA
+parameters were renamed to be more consistent and/or allow more
+flexible behavior.  The deprecated Open MPI MCA parameters listed
+below are currently replaced by a corresponding new PRRTE parameter,
+but may be removed in future releases.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In all cases listed below, the deprecated MCA parameter is
+an Open MPI MCA parameter, meaning that its corresponding
+environment variable was prefixed with <code class="docutils literal notranslate"><span class="pre">OMPI_MCA_</span></code> (e.g.,
+<code class="docutils literal notranslate"><span class="pre">OMPI_MCA_orte_xml_output</span></code>).  However, the corresponding
+new MCA parameter is a PRRTE MCA parameter, meaning that its
+corresponding environment variable is prefixed with
+<code class="docutils literal notranslate"><span class="pre">PRTE_MCA_</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">PRTE_MCA_output</span></code>).</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Yes, that’s a single <code class="docutils literal notranslate"><span class="pre">R</span></code> in the
+<code class="docutils literal notranslate"><span class="pre">PRTE_MCA_</span></code> environment variable prefix.
+<a class="reference external" href="https://docs.prrte.org/">See this explanation</a> for the when one
+R or two R’s are used in the PRRTE name.</p>
+</div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Behavior</p></th>
+<th class="head"><p>Deprecated MCA parameter</p></th>
+<th class="head"><p>Replaced with</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Control buffering of stream output</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_ess_base_stream_buffering</span></code></p>
+<p>Values:  0 | 1 | 2</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ompi_stream_buffering</span></code></p>
+<p>Values: same</p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Output a brief periodic report on launch progress</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_report_launch_progress</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">state_base_show_launch_progress</span></code></p>
+<p>Values: same</p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Provide all output in XML format</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_xml_output</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">output</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">xml</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Tag all output with [job,rank]</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_tag_output</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">output</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">tag</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Timestamp all application process output</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_timestamp_output</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">output</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">timestamp</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Redirect output from application processes into filename / job
+/ rank / stdout / stderr / stdddiag.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_output_filename</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">&lt;filename&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">output</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">file=&lt;filename&gt;</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Display a detailed process map just before launch</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_display_devel_map</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">map-devel</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Display the topology as part of the process map just before
+launch</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_display_topo_with_map</span></code></p>
+<p>Values: <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">topo=&lt;value&gt;</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Whether to report process bindings to stderr</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_base_report_bindings</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">bind</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Display the process map just before launch</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_display_map</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">map</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Display the allocation being used by this job</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_display_alloc</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">display</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">allocation</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Do not run any MPI applications on the local node</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_no_schedule_local</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">[&lt;mapping&gt;]:nolocal</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Nodes are allowed to be oversubscribed, even on a managed
+system, and overloading of processing elements</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_oversubscribe</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">[&lt;mapping&gt;]:oversubscribe</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Nodes are not to be oversubscribed, even if the system
+supports such operation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_no_oversubscribe</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">[&lt;mapping&gt;]:nooversubscribe</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Use hardware threads as independent CPUs</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_base_use_hwthreads_as_cpus</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">[&lt;mapping&gt;]:hwtcpus</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Comma-separated list of ranges specifying logical cpus
+allocated to this job</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_base_cpu_set</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">pe-list=&lt;value&gt;</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>List of processor IDs to bind processes to</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_base_cpu_list</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">pe-list=&lt;value&gt;</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Bind processes to cores</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_base_bind_to_core</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_default_binding_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">core</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Bind processes to sockets</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_base_bind_to_socket</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_default_binding_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">package</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Whether to map and rank processes round-robin by node</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_bynode</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">node</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Whether to map and rank processes round-robin by core</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_bycore</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">core</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Whether to map and rank processes round-robin by slot</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_byslot</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">slot</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Number of cpus to use for each process</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_base_cpus_per_rank</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">&lt;X&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">[&lt;mapping&gt;]:pe=&lt;X&gt;</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Launch n processes per node on all allocated nodes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_ppr_n_pernode</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">&lt;X&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">ppr:&lt;X&gt;:node</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Launch one process per available node</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_ppr_pernode</span></code></p>
+<p>Values: boolean</p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">ppr:1:node</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Launch n processes per socket on all allocated nodes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_ppr_n_persocket</span></code></p>
+<p>Value: integer <code class="docutils literal notranslate"><span class="pre">&lt;X&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">ppr:&lt;X&gt;:package</span></code></p>
+</td>
+</tr>
+<tr class="row-even"><td><p>Comma-separated list of number of processes on a given
+resource type</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_ppr_pattern</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">ppr:&lt;value&gt;</span></code></p>
+</td>
+</tr>
+<tr class="row-odd"><td><p>Provide a rankfile file</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">orte_rankfile</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">&lt;filename&gt;</span></code></p>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p>
+<p>Value: <code class="docutils literal notranslate"><span class="pre">rankfile:file=&lt;filename&gt;</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+<section id="examples">
+<h3><span class="section-number">8.6.1. </span>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h3>
+<p>Converting many parameters in the table above are straightforward, where an
+integer or boolean value is involved, but some of the conversions require
+substituting a boolean with a value to the new parameter, or even constructing
+a more complicated composite value for the new parameter.  Examples of all
+of these types of conversions are given below.</p>
+<section id="simple-values-where-only-the-name-of-the-mca-parameter-changed">
+<h4><span class="section-number">8.6.1.1. </span>Simple values, where only the name of the MCA parameter changed<a class="headerlink" href="#simple-values-where-only-the-name-of-the-mca-parameter-changed" title="Link to this heading"></a></h4>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (integer value)</span>
+<span class="na">export OMPI_MCA_orte_ess_base_stream_buffering</span><span class="o">=</span><span class="s">2</span>
+
+<span class="c1"># New environment variable: (integer value)</span>
+<span class="na">export PRTE_MCA_ompi_stream_buffering</span><span class="o">=</span><span class="s">2</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_orte_report_launch_progress</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (boolean value)</span>
+<span class="na">export PRTE_MCA_state_base_show_launch_progress</span><span class="o">=</span><span class="s">1</span>
+</pre></div>
+</div>
+</section>
+<section id="convert-from-boolean-value-to-parameter-for-variable">
+<h4><span class="section-number">8.6.1.2. </span>Convert from boolean value to parameter for variable<a class="headerlink" href="#convert-from-boolean-value-to-parameter-for-variable" title="Link to this heading"></a></h4>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_orte_xml_output</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_output</span><span class="o">=</span><span class="s">xml</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variables: (boolean value)</span>
+<span class="na">export OMPI_MCA_orte_xml_output</span><span class="o">=</span><span class="s">1</span>
+<span class="na">export OMPI_MCA_orte_timestamp_output</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_output</span><span class="o">=</span><span class="s">xml,timestamp</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_display_devel_map</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_display</span><span class="o">=</span><span class="s">map-devel</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variables: (boolean value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_display_devel_map</span><span class="o">=</span><span class="s">1</span>
+<span class="na">export OMPI_MCA_rmaps_base_report_bindings</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_display</span><span class="o">=</span><span class="s">map-devel,bind</span>
+</pre></div>
+</div>
+</section>
+<section id="convert-from-string-value-to-parameter-for-variable">
+<h4><span class="section-number">8.6.1.3. </span>Convert from string value to parameter for variable<a class="headerlink" href="#convert-from-string-value-to-parameter-for-variable" title="Link to this heading"></a></h4>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (string value)</span>
+<span class="na">export OMPI_MCA_orte_output_filename</span><span class="o">=</span><span class="s">output.txt</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_output</span><span class="o">=</span><span class="s">file=output.txt</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variables: (boolean value)</span>
+<span class="na">export OMPI_MCA_orte_xml_output</span><span class="o">=</span><span class="s">1</span>
+<span class="na">export OMPI_MCA_orte_timestamp_output</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># Old environment variable: (string value)</span>
+<span class="na">export OMPI_MCA_orte_output_filename</span><span class="o">=</span><span class="s">output.txt</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_output</span><span class="o">=</span><span class="s">xml,timestamp,file=output.txt</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (string value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_display_topo_with_map</span><span class="o">=</span><span class="s">node</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_display</span><span class="o">=</span><span class="s">topo=node</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variables: (boolean value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_display_devel_map</span><span class="o">=</span><span class="s">1</span>
+<span class="na">export OMPI_MCA_rmaps_base_report_bindings</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># Old environment variable: (string value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_display_topo_with_map</span><span class="o">=</span><span class="s">node</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_display</span><span class="o">=</span><span class="s">map-devel,bind,topo=node</span>
+</pre></div>
+</div>
+</section>
+<section id="converting-mapping-parameters">
+<h4><span class="section-number">8.6.1.4. </span>Converting mapping parameters<a class="headerlink" href="#converting-mapping-parameters" title="Link to this heading"></a></h4>
+<p>Mapping parameters were previously prefixed with <code class="docutils literal notranslate"><span class="pre">rmaps_base_</span></code> or <code class="docutils literal notranslate"><span class="pre">hwloc_base_</span></code>
+(and also the <code class="docutils literal notranslate"><span class="pre">orte_rankfile</span></code> parameter).  These have been updated
+to the <code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code> and <code class="docutils literal notranslate"><span class="pre">hwloc_default_binding_policy</span></code>
+parameters to be more consistent and indicate that they are the <em>default</em>
+mapping for processes.  Some of the old parameters are now values for a
+new parameter and some are now suffixes, as shown in the examples below.</p>
+<p>The examples below show conversions from old boolean parameters to new
+parameter values:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_bycore</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">core</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_hwloc_base_bind_to_socket</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_hwloc_default_binding_policy</span><span class="o">=</span><span class="s">package</span>
+</pre></div>
+</div>
+<p>The examples below show conversions from old parameters that have integer or
+string values to new parameter values with those same values:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (string value)</span>
+<span class="na">export OMPI_MCA_hwloc_base_cpu_set</span><span class="o">=</span><span class="s">1,3,8</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">pe-list=1,3,8</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (integer value)</span>
+<span class="na">export OMPI_MCA_rmaps_ppr_n_persocket</span><span class="o">=</span><span class="s">4</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">ppr:4:package</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (string value)</span>
+<span class="na">export OMPI_MCA_orte_rankfile</span><span class="o">=</span><span class="s">rankfile.txt</span>
+
+<span class="c1"># New environment variable: (parameter value)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">rankfile:file=rankfile.txt</span>
+</pre></div>
+</div>
+<p>The examples below show conversions from old parameters that map to suffixes
+for new parameter values:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_hwloc_base_use_hwthreads_as_cpus</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (standalone suffix)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">:hwtcpus</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_oversubscribe</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (standalone suffix)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">:oversubscribe</span>
+</pre></div>
+</div>
+<p>The examples below show conversions from old parameters that map to suffixes
+combined with parameters that have values:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (string value)</span>
+<span class="na">export OMPI_MCA_hwloc_base_cpu_set</span><span class="o">=</span><span class="s">1,3,8</span>
+
+<span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_rmaps_base_oversubscribe</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (suffix on value)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">pe-list=1,3,8:oversubscribe</span>
+</pre></div>
+</div>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (integer value)</span>
+<span class="na">export OMPI_MCA_rmaps_ppr_n_persocket</span><span class="o">=</span><span class="s">4</span>
+
+<span class="c1"># Old environment variable: (boolean value)</span>
+<span class="na">export OMPI_MCA_hwloc_base_use_hwthreads_as_cpus</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (suffix on value)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">ppr:4:package:hwtcpus</span>
+</pre></div>
+</div>
+<p>Multiple suffixes may be appended to a mapping value:</p>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="c1"># Old environment variable: (integer value)</span>
+<span class="na">export OMPI_MCA_rmaps_ppr_n_persocket</span><span class="o">=</span><span class="s">4</span>
+
+<span class="c1"># Old environment variables: (boolean value)</span>
+<span class="na">export OMPI_MCA_hwloc_base_use_hwthreads_as_cpus</span><span class="o">=</span><span class="s">1</span>
+<span class="na">export OMPI_MCA_rmaps_base_oversubscribe</span><span class="o">=</span><span class="s">1</span>
+
+<span class="c1"># New environment variable: (suffix on value)</span>
+<span class="na">export PRTE_MCA_rmaps_default_mapping_policy</span><span class="o">=</span><span class="s">ppr:4:package:hwtcpus:oversubscribe</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="version-numbering.html" class="btn btn-neutral float-left" title="7. Version numbers and compatibility" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="building-apps/index.html" class="btn btn-neutral float-right" title="9. Building MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

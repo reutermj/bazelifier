@@ -1,0 +1,192 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.6. OpenPMIx terminology &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.7. Source code" href="source-code.html" />
+    <link rel="prev" title="12.5. Building PMIx" href="building-pmix.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.6. OpenPMIx terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#modular-component-architecture-mca">12.6.1. Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#required-3rd-party-libraries">12.6.2. Required 3rd party libraries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html">12.7. Source code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.6. </span>OpenPMIx terminology</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/terminology.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="openpmix-terminology">
+<h1><span class="section-number">12.6. </span>OpenPMIx terminology<a class="headerlink" href="#openpmix-terminology" title="Link to this heading"></a></h1>
+<p>OpenPMIx is a medium-sized project containing a number of different sub-systems and
+a relatively big code base.  Let’s first cover some fundamental
+terminology in order to make the rest of the discussion easier.</p>
+<p>First, note that you will see <code class="docutils literal notranslate"><span class="pre">OpenPMIx</span></code> frequently referred to
+as just <code class="docutils literal notranslate"><span class="pre">PMIx</span></code>. While there is a separate PMIx Standard, there
+are (as of this writing) no alternative implementations of that
+Standard. In fact, the Standard post-dates the library by several
+years, and often lags behind the library in terms of new definitions.
+Thus, it is customary to refer to the library as just <code class="docutils literal notranslate"><span class="pre">PMIx</span></code> and
+drop the longer name - at least, until some other implementation
+arises (which many consider unlikely).</p>
+<section id="modular-component-architecture-mca">
+<h2><span class="section-number">12.6.1. </span>Modular Component Architecture (MCA)<a class="headerlink" href="#modular-component-architecture-mca" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../mca.html#label-mca"><span class="std std-ref">See this section</span></a> for a discussion of the Modular
+Component Architecture (MCA).  Seriously.  Go read it now.  From
+reading that section, you should understand the following terms before
+continuing reading these docs:</p>
+<ul class="simple">
+<li><p>Framework</p></li>
+<li><p>Component</p></li>
+<li><p>Module</p></li>
+<li><p>Parameters (variables)</p></li>
+</ul>
+<p>Frameworks, components, and modules can be dynamic or static. That is,
+they can be available as plugins or they may be compiled statically
+into libraries (e.g., <code class="docutils literal notranslate"><span class="pre">libpmix</span></code>).</p>
+<p>In PMIx, <code class="docutils literal notranslate"><span class="pre">configure</span></code> defaults to:</p>
+<ul class="simple">
+<li><p>Building <code class="docutils literal notranslate"><span class="pre">libpmix</span></code> as a dynamic library</p></li>
+<li><p>Linking all components directly into the <code class="docutils literal notranslate"><span class="pre">libpmix</span></code> libraries
+(vs. compiling them as independent DSOs)</p></li>
+</ul>
+<p>These defaults can be modified by <a class="reference internal" href="../installing-pmix/configure-cli-options/index.html"><span class="doc">command line
+arguments to configure</span></a>.</p>
+</section>
+<section id="required-3rd-party-libraries">
+<h2><span class="section-number">12.6.2. </span>Required 3rd party libraries<a class="headerlink" href="#required-3rd-party-libraries" title="Link to this heading"></a></h2>
+<p>Note that PMIx uses two third-party libraries for core
+functionality:</p>
+<ul class="simple">
+<li><p>Libevent or Libev</p></li>
+<li><p>Hardware Locality (“hwloc”)</p></li>
+</ul>
+<p>These are discussed in detail in the <a class="reference internal" href="../installing-pmix/required-support-libraries.html#label-install-required-support-libraries"><span class="std std-ref">required support libraries
+section</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="building-pmix.html" class="btn btn-neutral float-left" title="12.5. Building PMIx" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="source-code.html" class="btn btn-neutral float-right" title="12.7. Source code" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

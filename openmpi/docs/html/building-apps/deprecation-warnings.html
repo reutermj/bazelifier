@@ -1,0 +1,374 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9.6. Deprecation warnings while compiling MPI applications &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="9.7. Building fully-static MPI applications" href="building-static-apps.html" />
+    <link rel="prev" title="9.5. Removed MPI constructs" href="removed-mpi-constructs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">9. Building MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">9.1. Quick start: Building MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="customizing-wrappers.html">9.2. Customizing wrapper compiler behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extracting-wrapper-flags.html">9.3. Extracting flags from the wrapper compilers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="abi-compatibility.html">9.4. ABI compatibility to previous versions of Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="removed-mpi-constructs.html">9.5. Removed MPI constructs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9.6. Deprecation warnings while compiling MPI applications</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-keyval-create">9.6.1. MPI_Keyval_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-keyval-free">9.6.2. MPI_Keyval_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-copy-function-and-mpi-delete-function">9.6.3. MPI_Copy_function and MPI_Delete_function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-attr-put">9.6.4. MPI_Attr_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-attr-get">9.6.5. MPI_Attr_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-attr-delete">9.6.6. MPI_Attr_delete</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-info-get">9.6.7. MPI_Info_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-info-get-valuelen">9.6.8. MPI_Info_get_valuelen</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-sizeof">9.6.9. MPI_Sizeof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-comm-errhandler-fn-mpi-file-errhandler-fn-mpi-win-errhandler-fn">9.6.10. MPI_Comm_errhandler_fn, MPI_File_errhandler_fn, MPI_Win_errhandler_fn</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="building-static-apps.html">9.7. Building fully-static MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">9. </span>Building MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9.6. </span>Deprecation warnings while compiling MPI applications</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/building-apps/deprecation-warnings.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="deprecation-warnings-while-compiling-mpi-applications">
+<span id="label-deprecated-functions"></span><h1><span class="section-number">9.6. </span>Deprecation warnings while compiling MPI applications<a class="headerlink" href="#deprecation-warnings-while-compiling-mpi-applications" title="Link to this heading"></a></h1>
+<p>If you see deprecation warnings when compiling MPI applications, it is
+because your application is symbols / functions that are deprecated in
+MPI. For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpicc<span class="w"> </span>deprecated-example.c<span class="w"> </span>-c
+deprecated-example.c:<span class="w"> </span>In<span class="w"> </span><span class="k">function</span><span class="w"> </span><span class="s1">'foo'</span>:
+deprecated-example.c:6:5:<span class="w"> </span>warning:<span class="w"> </span><span class="s1">'MPI_Attr_delete'</span><span class="w"> </span>is<span class="w"> </span>deprecated:<span class="w"> </span>MPI_Attr_delete<span class="w"> </span>was<span class="w"> </span>deprecated<span class="w"> </span><span class="k">in</span><span class="w"> </span>MPI-2.0<span class="p">;</span><span class="w"> </span>use<span class="w"> </span>MPI_Comm_delete_attr<span class="w"> </span>instead<span class="w"> </span><span class="o">[</span>-Wdeprecated-declarations<span class="o">]</span>
+<span class="w">     </span>MPI_Attr_delete<span class="o">(</span>MPI_COMM_WORLD,<span class="w"> </span><span class="m">2</span><span class="o">)</span><span class="p">;</span>
+<span class="w">     </span>^~~~~~~~~~~~~~~
+In<span class="w"> </span>file<span class="w"> </span>included<span class="w"> </span>from<span class="w"> </span>deprecated-example.c:2:
+/usr/local/openmpi/include/mpi.h:2601:20:<span class="w"> </span>note:<span class="w"> </span>declared<span class="w"> </span>here
+<span class="w"> </span>OMPI_DECLSPEC<span class="w">  </span>int<span class="w"> </span>MPI_Attr_delete<span class="o">(</span>MPI_Comm<span class="w"> </span>comm,<span class="w"> </span>int<span class="w"> </span>keyval<span class="o">)</span>
+<span class="w">                    </span>^~~~~~~~~~~~~~~
+</pre></div>
+</div>
+<p>Note that the deprecation compiler warnings tells you how to upgrade
+your code to avoid the deprecation warnings.  In this example, it
+advises you to use <code class="docutils literal notranslate"><span class="pre">MPI_Comm_delete_attr()</span></code> instead of
+<code class="docutils literal notranslate"><span class="pre">MPI_Attr_delete()</span></code>.</p>
+<p>Also, note that even if Open MPI was configured with
+<code class="docutils literal notranslate"><span class="pre">--enable-mpi1-compatibility</span></code> to re-enable removed MPI-1 symbols,
+you will still get compiler warnings when you use the removed symbols.</p>
+<p>The following is a list of functions that have been deprecated in MPI,
+and the function that is replacing them. Some functions have been
+deprecated and removed from the MPI specification, these functions are
+listed <a class="reference internal" href="removed-mpi-constructs.html#label-removed-mpi-constructs"><span class="std std-ref">here</span></a>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Deprecated symbol</p>
+<p>(click for more details, below)</p>
+</th>
+<th class="head"><p>Replaced with</p>
+<p>(click to go to the corresponding man page)</p>
+</th>
+<th class="head"><p>MPI version deprecating the symbol</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-keyval-create"><span class="std std-ref">MPI_KEYVAL_CREATE</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_create_keyval.3.html#mpi-comm-create-keyval"><span class="std std-ref">MPI_COMM_CREATE_KEYVAL</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-keyval-free"><span class="std std-ref">MPI_KEYVAL_FREE</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_free_keyval.3.html#mpi-comm-free-keyval"><span class="std std-ref">MPI_COMM_FREE_KEYVAL</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-copy-delete-function"><span class="std std-ref">MPI_COPY_FUNCTION</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_create_keyval.3.html#mpi-comm-create-keyval"><span class="std std-ref">MPI_COMM_COPY_ATTR_FUNCTION</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-copy-delete-function"><span class="std std-ref">MPI_DELETE_FUNCTION</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_create_keyval.3.html#mpi-comm-create-keyval"><span class="std std-ref">MPI_COMM_DELETE_ATTR_FUNCTION</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-attr-put"><span class="std std-ref">MPI_ATTR_PUT</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_set_attr.3.html#mpi-comm-set-attr"><span class="std std-ref">MPI_COMM_SET_ATTR</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-attr-get"><span class="std std-ref">MPI_ATTR_GET</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_get_attr.3.html#mpi-comm-get-attr"><span class="std std-ref">MPI_COMM_GET_ATTR</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-attr-delete"><span class="std std-ref">MPI_ATTR_DELETE</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_delete_attr.3.html#mpi-comm-delete-attr"><span class="std std-ref">MPI_COMM_DELETE_ATTR</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-errhandler-fn"><span class="std std-ref">MPI_Comm_errhandler_fn</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_create_errhandler.3.html#mpi-comm-create-errhandler"><span class="std std-ref">MPI_Comm_errhandler_function</span></a></p></td>
+<td><p>MPI-2.2 (2009)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-errhandler-fn"><span class="std std-ref">MPI_File_errhandler_fn</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_File_create_errhandler.3.html#mpi-file-create-errhandler"><span class="std std-ref">MPI_File_errhandler_function</span></a></p></td>
+<td><p>MPI-2.2 (2009)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-errhandler-fn"><span class="std std-ref">MPI_Win_errhandler_fn</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Win_create_errhandler.3.html#mpi-win-create-errhandler"><span class="std std-ref">MPI_Win_errhandler_function</span></a></p></td>
+<td><p>MPI-2.2 (2009)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-info-get"><span class="std std-ref">MPI_INFO_GET</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Info_get_string.3.html#mpi-info-get-string"><span class="std std-ref">MPI_INFO_GET_STRING</span></a></p></td>
+<td><p>MPI-4.0 (2021)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-info-get-valuelen"><span class="std std-ref">MPI_INFO_GET_VALUELEN</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Info_get_string.3.html#mpi-info-get-string"><span class="std std-ref">MPI_INFO_GET_STRING</span></a></p></td>
+<td><p>MPI-4.0 (2021)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-sizeof"><span class="std std-ref">MPI_SIZEOF</span></a></p></td>
+<td><p>Fortran intrinsics``c_sizeof`` or <code class="docutils literal notranslate"><span class="pre">storage_size</span></code></p></td>
+<td><p>MPI-4.0 (2021)</p></td>
+</tr>
+</tbody>
+</table>
+<section id="mpi-keyval-create">
+<span id="label-mpi-keyval-create"></span><h2><span class="section-number">9.6.1. </span>MPI_Keyval_create<a class="headerlink" href="#mpi-keyval-create" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MPI_Keyval_create</span></code> has been deprecated and replaced by
+<code class="docutils literal notranslate"><span class="pre">MPI_Comm_create_keyval</span></code>. The C binding of the new function is
+identical to the deprecated version. Hence, applications can simply
+replace the function that is being invoked.</p>
+<p>The Fortran binding differs in that the <code class="docutils literal notranslate"><span class="pre">extra_state</span></code> argument is an
+address-sized integer in the new interfaces (vs. a regular integer in
+the old interfaces). Also, the copy and delete callback functions have
+Fortran bindings that are consistent with address-sized attributes.</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">USE </span><span class="n">mpi</span>
+<span class="k">EXTERNAL </span><span class="n">my_copy_attr_function</span>
+<span class="k">EXTERNAL </span><span class="n">my_copy_delete_function</span>
+<span class="kt">INTEGER </span><span class="n">ierror</span>
+<span class="kt">INTEGER </span><span class="n">comm_keyval</span>
+<span class="kt">INTEGER </span><span class="n">old_extra_state</span>
+<span class="kt">INTEGER</span><span class="p">(</span><span class="nb">KIND</span><span class="o">=</span><span class="n">MPI_ADDRESS_KIND</span><span class="p">)</span><span class="w"> </span><span class="n">new_extra_state</span>
+
+<span class="c">! Old way</span>
+<span class="k">CALL </span><span class="n">MPI_KEYVAL_CREATE</span><span class="p">(</span><span class="n">my_copy_attr_function</span><span class="p">,</span><span class="w"> </span><span class="n">my_copy_delete_function</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">comm_keyval</span><span class="p">,</span><span class="w"> </span><span class="n">old_extra_state</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+
+<span class="c">! New way</span>
+<span class="k">CALL </span><span class="n">MPI_COMM_CREATE_KEYVAL</span><span class="p">(</span><span class="n">my_copy_attr_function</span><span class="p">,</span><span class="w"> </span><span class="n">my_delete_attr_function</span><span class="p">,</span>
+<span class="w">                            </span><span class="n">comm_keyval</span><span class="p">,</span><span class="w"> </span><span class="n">new_extra_state</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="mpi-keyval-free">
+<span id="label-mpi-keyval-free"></span><h2><span class="section-number">9.6.2. </span>MPI_Keyval_free<a class="headerlink" href="#mpi-keyval-free" title="Link to this heading"></a></h2>
+<p>The binding of <code class="docutils literal notranslate"><span class="pre">MPI_Keyval_free</span></code> and <code class="docutils literal notranslate"><span class="pre">MPI_Comm_free_keyval</span></code> are identical
+for both C and Fortran. Users can directly replace the deprecated function with its
+new version.</p>
+</section>
+<section id="mpi-copy-function-and-mpi-delete-function">
+<span id="label-mpi-copy-delete-function"></span><h2><span class="section-number">9.6.3. </span>MPI_Copy_function and MPI_Delete_function<a class="headerlink" href="#mpi-copy-function-and-mpi-delete-function" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">MPI_Copy_function</span></code> and <code class="docutils literal notranslate"><span class="pre">MPI_Delete_function</span></code> are only used in the
+deprecated function <code class="docutils literal notranslate"><span class="pre">MPI_Keyval_create()</span></code>, as described in the
+<a class="reference internal" href="#label-mpi-keyval-create"><span class="std std-ref">MPI_COMM_CREATE_KEYVAL</span></a>.</p>
+<p>For C codes, developers can simply use the new, exactly-equivalent
+type name (i.e., the return type, number, and type of parameters
+didn’t change) <code class="docutils literal notranslate"><span class="pre">MPI_Comm_copy_attr_function</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">MPI_Comm_delete_attr_function</span></code> respectively.</p>
+<p>For Fortran applications, the only difference lies in required integer type for the
+<code class="docutils literal notranslate"><span class="pre">extra_state</span></code> argument, which now has to be an address-sized integer.</p>
+</section>
+<section id="mpi-attr-put">
+<span id="label-mpi-attr-put"></span><h2><span class="section-number">9.6.4. </span>MPI_Attr_put<a class="headerlink" href="#mpi-attr-put" title="Link to this heading"></a></h2>
+<p>The C binding for the deprecated <code class="docutils literal notranslate"><span class="pre">MPI_Attr_put</span></code> is identical to its
+replacement, <code class="docutils literal notranslate"><span class="pre">MPI_Comm_set_attr</span></code>.  The Fortran binding differ in the
+usage of an addressed size integer for the attribute value in the new
+<code class="docutils literal notranslate"><span class="pre">MPI_Comm_set_attr</span></code> vs. a regular integer in <code class="docutils literal notranslate"><span class="pre">MPI_Attr_put</span></code>.</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">USE </span><span class="n">mpi</span>
+<span class="kt">INTEGER </span><span class="n">ierror</span>
+<span class="kt">INTEGER </span><span class="n">comm_keyval</span>
+<span class="kt">INTEGER </span><span class="n">old_attr_val</span>
+<span class="kt">INTEGER</span><span class="p">(</span><span class="nb">KIND</span><span class="o">=</span><span class="n">MPI_ADDRESS_KIND</span><span class="p">)</span><span class="w"> </span><span class="n">new_attr_val</span>
+
+<span class="c">! Old way</span>
+<span class="k">CALL </span><span class="n">MPI_ATTR_PUT</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="n">comm_keyval</span><span class="p">,</span>
+<span class="w">                   </span><span class="n">old_attr_val</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+
+<span class="c">! New way</span>
+<span class="k">CALL </span><span class="n">MPI_COMM_SET_ATTR</span><span class="p">(</span><span class="n">MPI_COMM_WORLD</span><span class="p">,</span><span class="w"> </span><span class="n">comm_keyval</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">new_attr_val</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="mpi-attr-get">
+<span id="label-mpi-attr-get"></span><h2><span class="section-number">9.6.5. </span>MPI_Attr_get<a class="headerlink" href="#mpi-attr-get" title="Link to this heading"></a></h2>
+<p>The C bindings of the old and the new interfaces are identical.
+Fortran binding differ in the usage of an addressed size integer for
+the attribute value in the new <code class="docutils literal notranslate"><span class="pre">MPI_Comm_get_attr</span></code> vs. a regular
+integer in <code class="docutils literal notranslate"><span class="pre">MPI_Attr_get</span></code>.</p>
+</section>
+<section id="mpi-attr-delete">
+<span id="label-mpi-attr-delete"></span><h2><span class="section-number">9.6.6. </span>MPI_Attr_delete<a class="headerlink" href="#mpi-attr-delete" title="Link to this heading"></a></h2>
+<p>C and Fortran bindings are identical for <code class="docutils literal notranslate"><span class="pre">MPI_Attr_delete</span></code> and
+<code class="docutils literal notranslate"><span class="pre">MPI_Comm_delete_attr</span></code>, hence developers should be able to just
+directly substitute one function call by the other.</p>
+</section>
+<section id="mpi-info-get">
+<span id="label-mpi-info-get"></span><h2><span class="section-number">9.6.7. </span>MPI_Info_get<a class="headerlink" href="#mpi-info-get" title="Link to this heading"></a></h2>
+<p>Applications should replace the use of <code class="docutils literal notranslate"><span class="pre">MPI_Info_get</span></code> with <code class="docutils literal notranslate"><span class="pre">MPI_Info_get_string</span></code>,
+but the usage differs slightly. See the example below.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="n">MPI_Info</span><span class="w"> </span><span class="n">info</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Create an info object using MPI_Info_create()</span>
+<span class="w">    </span><span class="p">...</span>
+
+<span class="w">    </span><span class="c1">// Retrieve the value of a provided key later in the code</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">key</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"my_key"</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">value</span><span class="p">[</span><span class="mi">64</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">valuelen</span><span class="o">=</span><span class="mi">64</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">flag</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Old way</span>
+<span class="w">    </span><span class="n">MPI_Info_get</span><span class="p">(</span><span class="n">info</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="n">valuelen</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">flag</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// New way</span>
+<span class="w">    </span><span class="c1">// Note that we pass the address of valuelen with</span>
+<span class="w">    </span><span class="c1">// the new interfaces, since the variable will</span>
+<span class="w">    </span><span class="c1">// contain the length of the value string after</span>
+<span class="w">    </span><span class="c1">// the function call.</span>
+<span class="w">    </span><span class="n">MPI_Info_get_string</span><span class="p">(</span><span class="n">info</span><span class="p">,</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">valuelen</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">value</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">flag</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="mpi-info-get-valuelen">
+<span id="label-mpi-info-get-valuelen"></span><h2><span class="section-number">9.6.8. </span>MPI_Info_get_valuelen<a class="headerlink" href="#mpi-info-get-valuelen" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MPI_Info_get_valuelen</span></code> has been deprecated since the new function
+<code class="docutils literal notranslate"><span class="pre">MPI_Info_get_string</span></code> also returns the length of the value string.
+Please refer to the example shown in <a class="reference internal" href="#label-mpi-info-get"><span class="std std-ref">MPI_INFO_GET</span></a>.</p>
+</section>
+<section id="mpi-sizeof">
+<span id="label-mpi-sizeof"></span><h2><span class="section-number">9.6.9. </span>MPI_Sizeof<a class="headerlink" href="#mpi-sizeof" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">MPI_SIZEOF</span></code> construct in Fortran has been deprecated since there
+are standard Fortran language constructs such as <code class="docutils literal notranslate"><span class="pre">c_sizeof</span></code> and
+<code class="docutils literal notranslate"><span class="pre">storage_size</span></code> that can be used instead.</p>
+</section>
+<section id="mpi-comm-errhandler-fn-mpi-file-errhandler-fn-mpi-win-errhandler-fn">
+<span id="label-errhandler-fn"></span><h2><span class="section-number">9.6.10. </span>MPI_Comm_errhandler_fn, MPI_File_errhandler_fn, MPI_Win_errhandler_fn<a class="headerlink" href="#mpi-comm-errhandler-fn-mpi-file-errhandler-fn-mpi-win-errhandler-fn" title="Link to this heading"></a></h2>
+<p>The following function typedefs have been deprecated and are superseded by new
+names. Other than the typedef names, the function signatures are exactly the same; the
+names were updated to match conventions of other function typedef names.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Comm_errhandler_fn</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_Comm_errhandler_function</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_File_errhandler_fn</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_File_errhandler_function</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Win_errhandler_fn</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_Win_errhandler_function</span></code></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="removed-mpi-constructs.html" class="btn btn-neutral float-left" title="9.5. Removed MPI constructs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="building-static-apps.html" class="btn btn-neutral float-right" title="9.7. Building fully-static MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

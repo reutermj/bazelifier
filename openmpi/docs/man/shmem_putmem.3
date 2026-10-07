@@ -1,0 +1,248 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "SHMEM_PUTMEM" "3" "Sep 16, 2026" "" "Open MPI"
+.INDENT 0.0
+.INDENT 3.5
+.UNINDENT
+.UNINDENT
+.sp
+shmem_character_put(3), shmem_complex_put(3),
+\fI\%shmem_double_put\fP(3), \fI\%shmem_float_put\fP(3), \fI\%shmem_int_put\fP(3),
+shmem_integer_put(3), shmem_logical_put(3),
+\fI\%shmem_long_put\fP(3), \fI\%shmem_longdouble_put\fP(3),
+\fI\%shmem_longlong_put\fP(3), shmem_put4(3), shmem_put8(3),
+\fI\%shmem_put32\fP(3), \fI\%shmem_put64\fP(3), \fI\%shmem_put128\fP(3),
+\fI\%shmem_putmem\fP(3), shmem_real_put(3), \fI\%shmem_short_put\fP(3) \-
+Transfers data to a specified processing element (PE)
+.SH SYNOPSIS
+.sp
+C or C++:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpp/shmem.h>
+
+void shmem_double_put(double *target, const double *source,
+  size_t len, int pe)
+
+void shmem_float_put(float *target, const float *source,
+  size_t len, int pe)
+
+void shmem_int_put(int *target, const int *source, size_t len,
+  int pe)
+
+void shmem_long_put(long *target, const long *source,
+  size_t len, int pe)
+
+void shmem_longdouble_put(long double *target,
+  const long double *source, size_t len, int pe)
+
+void shmem_longlong_put(long long *target,
+  const long long *source, size_t len, int pe)
+
+void shmem_put32(void *target, const void *source, size_t len,
+  int pe)
+
+void shmem_put64(void *target, const void *source, size_t len,
+  int pe)
+
+void shmem_put128(void *target, const void *source, size_t len,
+  int pe)
+
+void shmem_putmem(void *target, const void *source, size_t len,
+  int pe)
+
+void shmem_short_put(short *target, const short *source,
+  size_t len, int pe)
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Fortran:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+INCLUDE \(dqmpp/shmem.fh\(dq
+
+INTEGER len, pe
+
+CALL SHMEM_CHARACTER_PUT(target, source, len, pe)
+
+CALL SHMEM_COMPLEX_PUT(target, source, len, pe)
+
+CALL SHMEM_DOUBLE_PUT(target, source, len, pe)
+
+CALL SHMEM_INTEGER_PUT(target, source, len, pe)
+
+CALL SHMEM_LOGICAL_PUT(target, source, len, pe)
+
+CALL SHMEM_PUT(target, source, len, pe)
+
+CALL SHMEM_PUT4(target, source, len, pe)
+
+CALL SHMEM_PUT8(target, source, len, pe)
+
+CALL SHMEM_PUT32(target, source, len, pe)
+
+CALL SHMEM_PUT64(target, source, len, pe)
+
+CALL SHMEM_PUT128(target, source, len, pe)
+
+CALL SHMEM_PUTMEM(target, source, len, pe)
+
+CALL SHMEM_REAL_PUT(target, source, len, pe)
+.EE
+.UNINDENT
+.UNINDENT
+.SH DESCRIPTION
+.sp
+These routines transfer \fBnelems\fP elements of the data object at
+address \fBsource\fP on the calling PE, to the data object at address
+\fBtarget\fP on the remote PE \fBpe\fP\&. These routines start the remote
+transfer and may return before the data is delivered to the remote PE.
+.sp
+The delivery of data into the data object on the destination PE from
+different put calls may occur in any order. Because of this, two
+successive put operations may deliver data out of order unless a call to
+\fI\%shmem_fence\fP(3) is introduced between the two calls.
+.sp
+The arguments are as follows:
+.INDENT 0.0
+.TP
+.B target
+Data object to be updated on the remote PE. This data object must be
+remotely accessible.
+.TP
+.B source
+Data object containing the data to be copied.
+.TP
+.B len
+Number of elements in the target and source arrays. len must be of
+type integer. If you are using Fortran, it must be a constant,
+variable, or array element of default integer type.
+.TP
+.B pe
+PE number of the remote PE. pe must be of type integer. If you are
+using Fortran, it must be a constant, variable, or array element of
+default integer type.
+.UNINDENT
+.sp
+The target and source data objects must conform to certain typing
+constraints, which are as follows:
+.INDENT 0.0
+.TP
+.B \fI\%shmem_putmem\fP: Fortran: Any noncharacter type. C: Any data type. len is scaled in
+bytes.
+.TP
+.B shmem_put4, \fI\%shmem_put32\fP:** Any noncharacter type that has a storage size
+equal to 32 bits.
+.TP
+.B shmem_put8, \fI\%shmem_put64\fP:** Any noncharacter type that has a storage size
+equal to 64 bits.
+.TP
+.B \fI\%shmem_put128\fP:** Any noncharacter type that has a storage size equal to 128
+bits.
+.UNINDENT
+.sp
+\fI\%shmem_short_put\fP:** Elements of type short.
+.sp
+\fI\%shmem_int_put\fP:** Elements of type int.
+.sp
+\fI\%shmem_long_put\fP:** Elements of type long.
+.sp
+\fI\%shmem_longlong_put\fP:** Elements of type long long.
+.sp
+\fI\%shmem_float_put\fP:** Elements of type float.
+.sp
+\fI\%shmem_double_put\fP:** Elements of type double.
+.sp
+\fI\%shmem_longdouble_put\fP:** Elements of type long double.
+.INDENT 0.0
+.TP
+\fBSHMEM_CHARACTER_PUT:\fP Elements of type character. len is the number of
+characters to transfer. The actual character lengths of the source
+and target variables are ignored.
+.UNINDENT
+.sp
+\fBSHMEM_COMPLEX_PUT:\fP Elements of type complex of default size.
+.sp
+\fBSHMEM_DOUBLE_PUT:\fP (Fortran) Elements of type double precision.
+.sp
+\fBSHMEM_INTEGER_PUT:\fP Elements of type integer.
+.sp
+\fBSHMEM_LOGICAL_PUT:\fP Elements of type logical.
+.INDENT 0.0
+.TP
+\fBSHMEM_REAL_PUT:\fP Elements of type real.
+If you are using Fortran, data types must be of default size. For
+example, a real variable must be declared as REAL, REAL*4, or
+REAL(KIND=4).
+.UNINDENT
+.SH EXAMPLES
+.sp
+The following shmem_put example is for C/C++ programs:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <stdio.h>
+#include <mpp/shmem.h>
+
+main()
+{
+  long source[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+  static long target[10];
+  shmem_init();
+
+  if (shmem_my_pe() == 0) {
+    /* put 10 words into target on PE 1 */
+    shmem_long_put(target, source, 10, 1);
+  }
+  shmem_barrier_all();  /* sync sender and receiver */
+  if (shmem_my_pe() == 1)
+    shmem_udcflush();  /* not required on Altix systems */
+  printf(\(dqtarget[0] on PE %d is %d\en\(dq, shmem_my_pe(), target[0]);
+}
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fIintro_shmem\fP(3) \fIshmem_iput\fP(3) \fIshmem_quiet\fP(3)
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

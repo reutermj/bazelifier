@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9.7. Building fully-static MPI applications &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="10. Launching MPI applications" href="../launching-apps/index.html" />
+    <link rel="prev" title="9.6. Deprecation warnings while compiling MPI applications" href="deprecation-warnings.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">9. Building MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">9.1. Quick start: Building MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="customizing-wrappers.html">9.2. Customizing wrapper compiler behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extracting-wrapper-flags.html">9.3. Extracting flags from the wrapper compilers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="abi-compatibility.html">9.4. ABI compatibility to previous versions of Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="removed-mpi-constructs.html">9.5. Removed MPI constructs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecation-warnings.html">9.6. Deprecation warnings while compiling MPI applications</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9.7. Building fully-static MPI applications</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#is-fully-static-really-what-you-need">9.7.1. Is fully-static really what you need?</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#finding-dependent-shared-libraries-at-run-time">9.7.1.1. Finding dependent shared libraries at run-time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#improving-filesystem-performance-at-scale">9.7.1.2. Improving filesystem performance at scale</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#other-reasons-fully-static-applications-are-bad">9.7.1.3. Other reasons fully-static applications are bad</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">9.7.2. Building fully-static MPI applications</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#including-whole-archives">9.7.2.1. Including whole archives</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">9. </span>Building MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9.7. </span>Building fully-static MPI applications</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/building-apps/building-static-apps.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="building-fully-static-mpi-applications">
+<span id="label-building-fully-static-apps"></span><h1><span class="section-number">9.7. </span>Building fully-static MPI applications<a class="headerlink" href="#building-fully-static-mpi-applications" title="Link to this heading"></a></h1>
+<section id="is-fully-static-really-what-you-need">
+<h2><span class="section-number">9.7.1. </span>Is fully-static really what you need?<a class="headerlink" href="#is-fully-static-really-what-you-need" title="Link to this heading"></a></h2>
+<p>No one ends up in this documentation section by accident.</p>
+<p>If you are reading this text, it is likely because you are looking to
+solve a problem, and fully-static MPI applications sound like the
+right answer.  There are two common problems that people think that
+fully-static MPI applications will solve:</p>
+<ol class="arabic simple">
+<li><p>MPI applications fail to launch because dependent shared libraries
+are not found at run-time.</p></li>
+<li><p>Filesystem performance when launching at scale is terrible.</p></li>
+</ol>
+<p>If either of these are your problems, the Open MPI community <em>strongly
+encourages you to use other mechanisms to fix the problem</em>:
+fully-static MPI applications are <em>possible</em>, but are sub-optimal for
+other reasons.</p>
+<p>The following sections discuss the above problems.</p>
+<section id="finding-dependent-shared-libraries-at-run-time">
+<h3><span class="section-number">9.7.1.1. </span>Finding dependent shared libraries at run-time<a class="headerlink" href="#finding-dependent-shared-libraries-at-run-time" title="Link to this heading"></a></h3>
+<p>If you are running in to problems finding shared libraries at run time
+— particularly on nodes that are remote from where you have invoked
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> — your best bet is to set <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> (or
+equivalent mechanism) properly on <em>all</em> nodes (including remote
+nodes).</p>
+<p>This is an involved topic, but even so, it is generally simpler to
+solve this problem than creating and maintaining static builds.  See
+<a class="reference internal" href="../launching-apps/index.html#label-running-mpi-applications"><span class="std std-ref">the section on Running MPI applications</span></a> for more details.</p>
+</section>
+<section id="improving-filesystem-performance-at-scale">
+<h3><span class="section-number">9.7.1.2. </span>Improving filesystem performance at scale<a class="headerlink" href="#improving-filesystem-performance-at-scale" title="Link to this heading"></a></h3>
+<p>Prior to v5.0.0, Open MPI compiled a large number of plugins as
+individual dynamic shared objects (DSOs) — i.e., individual
+files in the filesystem.  Many of these DSOs would be opened by each
+MPI process at run time.</p>
+<p>This could cause filesystem congestion, particularly when Open MPI is
+installed on a network filesystem and a large job is launched: many
+nodes will simultaneously communicate with the file server(s), and
+potentially need to transfer a large number of small(ish) files.</p>
+<p>Starting with v5.0.0, by default, Open MPI’s plugins are no longer
+built as DSOs.  As such, Open MPI typically only opens a small number
+of shared libraries at launch time.  Even if Open MPI is installed on
+a network filesystem, these libraries are likely to be cached on nodes
+over time, and therefore generate a fairly small amount network
+filesystem traffic when MPI jobs are launched.</p>
+<p>In short: Open MPI v5.0.11’s impact on network filesystems is
+greatly diminished compared to prior versions.  Compiling fully-static
+applications to eliminate the open-every-DSO-file-at-launch-time
+behavior is no longer necessary.</p>
+</section>
+<section id="other-reasons-fully-static-applications-are-bad">
+<h3><span class="section-number">9.7.1.3. </span>Other reasons fully-static applications are bad<a class="headerlink" href="#other-reasons-fully-static-applications-are-bad" title="Link to this heading"></a></h3>
+<p>Here are a few other reasons that fully-static MPI applications are
+sub-optimal:</p>
+<ol class="arabic">
+<li><p>When applications link all of their dependencies statically, the
+operating system cannot share code between multiple copies of the
+process.</p>
+<p>For example, if you launch N copies of your fully-statically-linked
+MPI application on a node, it will consume (N *
+size_of_the_application) bytes of RAM.  Alternately, launching N
+copies of a dynamically-linked MPI application — where each
+of the copies have the same dependent libraries — will only
+load each shared dependent library into RAM once.</p>
+<p>In other words: <em>using dynamic linking saves memory.</em></p>
+</li>
+<li><p><em>Fully</em>-static applications are not linked to the dynamic linking library,
+e.g. <code class="docutils literal notranslate"><span class="pre">libdl</span></code> on Linux, which provides <code class="docutils literal notranslate"><span class="pre">dlopen(3)</span></code>, <code class="docutils literal notranslate"><span class="pre">dlsym(3)</span></code>, etc.
+This will break Open MPI functionalities that depend on such interfaces.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Open MPI’s memory management functionality, which provides
+important performance optimizations on OS-bypass networks
+such as InfiniBand, requires the <code class="docutils literal notranslate"><span class="pre">dlsym(3)</span></code> interface,
+and therefore does not work with fully-static applications.</p>
+</div>
+</li>
+</ol>
+<p>Are you convinced yet?  <em>Please try to avoid building fully-static MPI
+applications if at all possible.</em></p>
+</section>
+</section>
+<section id="id1">
+<h2><span class="section-number">9.7.2. </span>Building fully-static MPI applications<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>If, after reading all of the above, you are still of the
+mind that you want to build fully-static MPI
+applications, be aware that fully static linking is not
+for the meek, and it is not recommended.  But it is
+possible, with some caveats.</p>
+</div>
+<ol class="arabic">
+<li><p>You must have static libraries available for <em>everything</em> to which
+your program links.  This includes Open MPI; you must have used the
+<code class="docutils literal notranslate"><span class="pre">--enable-static</span></code> option to Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> or otherwise
+have available the static versions of the Open MPI libraries.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some Linux distributions may not have static versions of
+popular Linux libraries by default (e.g., libnuma), or
+require additional RPMs to be installed to get the
+equivalent static libraries.</p>
+</div>
+</li>
+<li><p>Open MPI must have been built without a memory manager.  This means
+that Open MPI must have been configured with the
+<code class="docutils literal notranslate"><span class="pre">--without-memory-manager</span></code> flag.  This is irrelevant on some
+platforms for which Open MPI does not have a memory manager, but on
+some platforms it is necessary (Linux when using many OS-bypass
+networks).  It is harmless to use this flag on platforms where Open
+MPI does not have a memory manager.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Not including memory manager support can lead to
+lower performance when Open MPI is used with
+OS-bypass networks.</p>
+</div>
+</li>
+</ol>
+<p>This is how to configure Open MPI to build fully-static libraries on
+Linux:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span>--without-memory-manager<span class="w"> </span>--disable-dlopen<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-static<span class="w"> </span>--disable-shared<span class="w"> </span>...
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--disable-shared</span></code> flag is optional; it will prevent Open MPI
+from <em>also</em> building shared libraries.</p>
+<p>Alternatively, you could build Open MPI with as many static libraries
+as possible, but still preserve <code class="docutils literal notranslate"><span class="pre">dlopen</span></code> functionality by omitting
+the <code class="docutils literal notranslate"><span class="pre">--disable-dlopen</span></code> flag:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span>--without-memory-manager<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--enable-static<span class="w"> </span>--disable-shared<span class="w"> </span>...
+</pre></div>
+</div>
+<p>This gives you a <em>mostly</em> static build of Open MPI, but has the
+advantage of preserving at least some dynamic libraries.</p>
+<section id="including-whole-archives">
+<h3><span class="section-number">9.7.2.1. </span>Including whole archives<a class="headerlink" href="#including-whole-archives" title="Link to this heading"></a></h3>
+<p>Some systems may have additional constraints about their support
+libraries that require additional steps to produce working
+fully-static MPI applications.  For example, any library that has its
+own run-time plugin system (i.e., that opens dynamically shared
+objects (“DSOs”) at run time) will have additional complications in
+producing fully-static builds.</p>
+<p>In such cases, you generally want to run <code class="docutils literal notranslate"><span class="pre">mpicc</span> <span class="pre">...</span> <span class="pre">--showme</span></code> to see
+the compiler / linker commands that Open MPI’s wrapper commands will
+use, and then augment those commands with linker arguments for the
+static versions of the DSO plugins that you will need at run time.</p>
+<p>For example, if you have <code class="docutils literal notranslate"><span class="pre">libfoo.a</span></code> that dynamically loads
+<code class="docutils literal notranslate"><span class="pre">plugin.so</span></code> at run time, you’ll need to have a <code class="docutils literal notranslate"><span class="pre">plugin.a</span></code> and
+— assuming the GNU linker — add arguments similar to the
+following:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-static</span></code>: Tell the linker to generate a static executable.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-Wl,--whole-archive</span> <span class="pre">-lfoo</span> <span class="pre">/path/to/plugin.a</span> <span class="pre">-Wl,--no-whole-archive</span></code>:
+Tell the linker to include the entire <code class="docutils literal notranslate"><span class="pre">foo</span></code> library and the entire
+<code class="docutils literal notranslate"><span class="pre">plugin.a</span></code> archive in the executable.</p></li>
+</ul>
+<p>You can either add these arguments on the command line manually, or
+you can <a class="reference internal" href="customizing-wrappers.html#label-customizing-wrapper-compiler"><span class="std std-ref">modify the default behavior of the wrapper compilers</span></a> to hide this complexity from end
+users (but be aware that if you modify the wrapper compilers’ default
+behavior, <em>all</em> users will be creating static applications!).</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="deprecation-warnings.html" class="btn btn-neutral float-left" title="9.6. Deprecation warnings while compiling MPI applications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../launching-apps/index.html" class="btn btn-neutral float-right" title="10. Launching MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

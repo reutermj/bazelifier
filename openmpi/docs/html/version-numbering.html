@@ -1,0 +1,335 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7. Version numbers and compatibility &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="8. The Modular Component Architecture (MCA)" href="mca.html" />
+    <link rel="prev" title="6. Validating your installation" href="validate.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">7. Version numbers and compatibility</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#backward-compatibility">7.1. Backward Compatibility</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#open-mpi-ompi-series-mca-parameter-compatibility">7.1.1. Open MPI v5.0.x MCA parameter compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#software-version-number">7.2. Software Version Number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#shared-library-version-number">7.3. Shared Library Version Number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#api-and-abi-compatibility">7.4. API and ABI Compatibility</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#open-mpi-ompi-series-abi-compatibility">7.4.1. Open MPI v5.0.x ABI compatibility</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7. </span>Version numbers and compatibility</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/version-numbering.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="version-numbers-and-compatibility">
+<span id="version-numbers-section-label"></span><h1><span class="section-number">7. </span>Version numbers and compatibility<a class="headerlink" href="#version-numbers-and-compatibility" title="Link to this heading"></a></h1>
+<p>Open MPI has two sets of version numbers that are likely of interest
+to end users / system administrators:</p>
+<ol class="arabic simple">
+<li><p>Software version number</p></li>
+<li><p>Shared library version numbers</p></li>
+</ol>
+<p>Both are predicated on Open MPI’s definition of “backward compatibility.”</p>
+<section id="backward-compatibility">
+<h2><span class="section-number">7.1. </span>Backward Compatibility<a class="headerlink" href="#backward-compatibility" title="Link to this heading"></a></h2>
+<p>Open MPI version Y is backward compatible with Open MPI version X
+(where Y&gt;X) if users can:</p>
+<ul class="simple">
+<li><p>Compile an MPI/OpenSHMEM application with version X,
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code>/<code class="docutils literal notranslate"><span class="pre">oshrun</span></code> it with version Y, and get the same
+user-observable behavior.</p></li>
+<li><p>Invoke <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> with the same CLI options in versions X and Y and
+get the same user-observable behavior.</p></li>
+</ul>
+<p>Note that this definition encompasses several things:</p>
+<ul class="simple">
+<li><p>Application Binary Interface (ABI)</p></li>
+<li><p>MPI / OpenSHMEM run time system</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code> / <code class="docutils literal notranslate"><span class="pre">oshrun</span></code> command line options</p></li>
+<li><p>MCA parameter names / values / meanings</p></li>
+</ul>
+<p>However, this definition only applies when the same version of Open
+MPI is used with all instances of the runtime and MPI / OpenSHMEM
+processes in a single MPI job.  If the versions are not exactly the
+same everywhere, Open MPI is not guaranteed to work properly in any
+scenario.</p>
+<p>Backward compatibility tends to work best when user applications are
+dynamically linked to one version of the Open MPI / OSHMEM libraries,
+and can be updated at run time to link to a new version of the Open
+MPI / OSHMEM libraries.</p>
+<p>For example, if an MPI / OSHMEM application links statically against
+the libraries from Open MPI vX, then attempting to launch that
+application with <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> / <code class="docutils literal notranslate"><span class="pre">oshrun</span></code> from Open MPI vY is not guaranteed to
+work (because it is mixing vX and vY of Open MPI in a single job).</p>
+<p>Similarly, if using a container technology that internally bundles all
+the libraries from Open MPI vX, attempting to launch that container
+with <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> / <code class="docutils literal notranslate"><span class="pre">oshrun</span></code> from Open MPI vY is not guaranteed to work.</p>
+<section id="open-mpi-ompi-series-mca-parameter-compatibility">
+<h3><span class="section-number">7.1.1. </span>Open MPI v5.0.x MCA parameter compatibility<a class="headerlink" href="#open-mpi-ompi-series-mca-parameter-compatibility" title="Link to this heading"></a></h3>
+<p>Several MCA parameters have been deprecated in Open MPI v5.0.x, please
+see this <a class="reference internal" href="mca.html#label-mca-backward-compat"><span class="std std-ref">table</span></a> for the full list.</p>
+</section>
+</section>
+<section id="software-version-number">
+<h2><span class="section-number">7.2. </span>Software Version Number<a class="headerlink" href="#software-version-number" title="Link to this heading"></a></h2>
+<p>Official Open MPI releases use the common “A.B.C” version identifier
+format.  Each of the three numbers has a specific meaning:</p>
+<ul>
+<li><p>Major: The major number is the first integer in the version string
+Changes in the major number typically indicate a significant
+change in the code base and/or end-user functionality, and also
+indicate a break from backward compatibility.  Specifically: Open
+MPI releases with different major version numbers are not
+backward compatible with each other.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This rule does not extend to versions prior to
+v1.10.0.  Specifically: v1.10.x is not guaranteed to be backward
+compatible with other v1.x releases.</p>
+</div>
+</li>
+<li><p>Minor: The minor number is the second integer in the version string.
+Changes in the minor number indicate a user-observable change in the
+code base and/or end-user functionality.  Backward compatibility
+will still be preserved with prior releases that have the same major
+version number (e.g., v2.5.3 is backward compatible with v2.3.1).</p></li>
+<li><p>Release: The release number is the third integer in the version
+string.  Changes in the release number typically indicate a bug fix
+in the code base and/or end-user functionality.  For example, if
+there is a release that only contains bug fixes and no other
+user-observable changes or new features, only the third integer will
+be increased (e.g., from v4.3.0 to v4.3.1).</p></li>
+</ul>
+<p>The “A.B.C” version number may optionally be followed by a quantifier
+string:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">aX</span></code>: Indicates an alpha release. X is an integer indicating the
+number of the alpha release (e.g., v1.10.3a5 indicates the 5th alpha
+release of version 1.10.3).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bX</span></code>: Indicates a beta release. X is an integer indicating the
+number of the beta release (e.g., v1.10.3b3 indicates the 3rd beta
+release of version 1.10.3).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rcX</span></code>: Indicates a release candidate. X is an integer indicating
+the number of the release candidate (e.g., v1.10.3rc4 indicates the
+4th release candidate of version 1.10.3).</p></li>
+</ul>
+<p>Nightly development snapshot tarballs use a different version number
+scheme; they contain three distinct values:</p>
+<ul class="simple">
+<li><p>The git branch name from which the tarball was created.</p></li>
+<li><p>The date/timestamp, in <code class="docutils literal notranslate"><span class="pre">YYYYMMDDHHMM</span></code> format.</p></li>
+<li><p>The hash of the git commit from which the tarball was created.</p></li>
+</ul>
+<p>For example, a snapshot tarball filename of
+<code class="docutils literal notranslate"><span class="pre">openmpi-v2.x-201703070235-e4798fb.tar.bz2</span></code> indicates that this tarball
+was created from the v2.x branch, on March 7, 2017, at 2:35am GMT,
+from git hash e4798fb.</p>
+</section>
+<section id="shared-library-version-number">
+<h2><span class="section-number">7.3. </span>Shared Library Version Number<a class="headerlink" href="#shared-library-version-number" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://www.gnu.org/software/libtool/manual/">GNU Libtool official documentation</a> details how the
+versioning scheme works.  The quick version is that the shared library
+versions are a triple of integers: (current,revision,age), or
+<code class="docutils literal notranslate"><span class="pre">c:r:a</span></code>.  This triple is not related to the Open MPI software
+version number.  There are six simple rules for updating the values
+(taken almost verbatim from the Libtool docs):</p>
+<ol class="arabic simple">
+<li><p>Start with version information of <code class="docutils literal notranslate"><span class="pre">0:0:0</span></code> for each shared library.</p></li>
+<li><p>Update the version information only immediately before a public
+release of your software. More frequent updates are unnecessary,
+and only guarantee that the current interface number gets larger
+faster.</p></li>
+<li><p>If the library source code has changed at all since the last
+update, then increment revision (<code class="docutils literal notranslate"><span class="pre">c:r:a</span></code> becomes <code class="docutils literal notranslate"><span class="pre">c:r+1:a</span></code>).</p></li>
+<li><p>If any interfaces have been added, removed, or changed since the
+last update, increment current, and set revision to 0.</p></li>
+<li><p>If any interfaces have been added since the last public release,
+then increment age.</p></li>
+<li><p>If any interfaces have been removed since the last public release,
+then set age to 0.</p></li>
+</ol>
+<p>Here’s how we apply those rules specifically to Open MPI:</p>
+<ol class="arabic">
+<li><p>The above rules do not apply to MCA components (a.k.a. “plugins”);
+MCA component <code class="docutils literal notranslate"><span class="pre">.so</span></code> versions stay unspecified.</p></li>
+<li><p>The above rules apply exactly as written to the following libraries
+starting with Open MPI version v1.5:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">libopen-pal</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libmca_common_*</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>The following libraries use a slightly modified version of the
+above rules: rules 4, 5, and 6 only apply to the official MPI and
+OpenSHMEM interfaces (functions, global variables).  The rationale
+for this decision is that the vast majority of our users only care
+about the official/public MPI/OpenSHMEM interfaces; we therefore
+want the <code class="docutils literal notranslate"><span class="pre">.so</span></code> version number to reflect only changes to the
+official MPI/OpenSHMEM APIs.  Put simply: non-MPI/OpenSHMEM API /
+internal changes to the MPI-application-facing libraries are
+irrelevant to pure MPI/OpenSHMEM applications.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">libmpi</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libmpi_mpifh</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libmpi_usempi_tkr</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libmpi_usempi_ignore_tkr</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libmpi_usempif08</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libmpi_cxx</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libmpi_java</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">liboshmem</span></code></p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="api-and-abi-compatibility">
+<h2><span class="section-number">7.4. </span>API and ABI Compatibility<a class="headerlink" href="#api-and-abi-compatibility" title="Link to this heading"></a></h2>
+<p>Open MPI provides the following Application Programming Interface
+(API) and Application Binary Interface (ABI) compatibility guarantees
+for applications:</p>
+<ol class="arabic simple">
+<li><p>Open MPI is source code compatible (i.e., API compatible) across all
+versions.  This means that you can compile and link your compliant MPI
+application against <a class="reference internal" href="release-notes/mpi.html#release-notes-mpi-standard-conformance-label"><span class="std std-ref">any version of Open MPI that supports the version
+of the MPI standard</span></a> to
+which your application was written.</p></li>
+<li><p>Open MPI provided forward application binary interface (ABI)
+compatibility within a major series for MPI applications starting
+with v1.3.2.  Prior to that version, no ABI guarantees were
+provided.</p></li>
+<li><p>Open MPI reserves the right to break ABI compatibility at new major
+release series.</p></li>
+</ol>
+<section id="open-mpi-ompi-series-abi-compatibility">
+<h3><span class="section-number">7.4.1. </span>Open MPI v5.0.x ABI compatibility<a class="headerlink" href="#open-mpi-ompi-series-abi-compatibility" title="Link to this heading"></a></h3>
+<p>The Open MPI v5.0.x series shared libraries are ABI compatible
+with Open MPI v4.0.x and v4.1.x, with a few exceptions for Fortran.</p>
+<ul class="simple">
+<li><p>If your Fortran application was compiled in such a way that the size
+of an integer in C is different than the size of an integer in
+Fortran, you will need to rebuild and relink your application
+against Open MPI v5.0.x.</p></li>
+<li><p>There are also Fortran API changes involving intents and
+<code class="docutils literal notranslate"><span class="pre">ASYNCHRONOUS</span></code>, and some interfaces changed from named to unnamed.
+These may require changes to an application’s source code, followed
+by recompilation and relinking.</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="validate.html" class="btn btn-neutral float-left" title="6. Validating your installation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mca.html" class="btn btn-neutral float-right" title="8. The Modular Component Architecture (MCA)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

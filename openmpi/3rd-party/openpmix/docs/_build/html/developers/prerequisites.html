@@ -1,0 +1,272 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.1. Prerequisites &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.2. GitHub, Git, and related topics" href="git-github.html" />
+    <link rel="prev" title="12. Developer’s guide" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.1. Prerequisites</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#compilers">12.1.1. Compilers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gnu-autotools">12.1.2. GNU Autotools</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#perl">12.1.3. Perl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#flex">12.1.4. Flex</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sphinx-and-therefore-python">12.1.5. Sphinx (and therefore Python)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">12.6. OpenPMIx terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html">12.7. Source code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.1. </span>Prerequisites</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/prerequisites.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="prerequisites">
+<h1><span class="section-number">12.1. </span>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h1>
+<section id="compilers">
+<h2><span class="section-number">12.1.1. </span>Compilers<a class="headerlink" href="#compilers" title="Link to this heading"></a></h2>
+<p>Although it should probably be assumed, you’ll need a C compiler that
+supports C99.</p>
+</section>
+<section id="gnu-autotools">
+<h2><span class="section-number">12.1.2. </span>GNU Autotools<a class="headerlink" href="#gnu-autotools" title="Link to this heading"></a></h2>
+<p>When building OpenPMIx from its repository sources, the GNU Autotools
+must be installed (i.e., <a class="reference external" href="https://www.gnu.org/software/autoconf/">GNU Autoconf</a>, <a class="reference external" href="https://www.gnu.org/software/automake/">GNU Automake</a>, and <a class="reference external" href="https://www.gnu.org/software/libtool/">GNU Libtool</a>).</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 50.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Tool</p></th>
+<th class="head"><p>Minimum version</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Autoconf</p></td>
+<td><p>2.69.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>Automake</p></td>
+<td><p>1.13.4</p></td>
+</tr>
+<tr class="row-even"><td><p>Libtool</p></td>
+<td><p>2.4.2</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The GNU Autotools are <em>not</em> required when building OpenPMIx
+from distribution tarballs.  OpenPMIx distribution tarballs
+are bootstrapped such that end-users do not need to have the
+GNU Autotools installed.</p>
+</div>
+<p>You can generally install GNU Autoconf, Automake, and Libtool via your
+Linux distribution native package system, or via Homebrew or MacPorts
+on MacOS.  This usually “just works.”</p>
+<p>If you run into problems with the GNU Autotools, or need to download /
+build them manually, see the <a class="reference internal" href="gnu-autotools.html#developers-installing-autotools-label"><span class="std std-ref">how to build and install GNU
+Autotools section</span></a> for much
+more detail.</p>
+</section>
+<section id="perl">
+<h2><span class="section-number">12.1.3. </span>Perl<a class="headerlink" href="#perl" title="Link to this heading"></a></h2>
+<p>OpenPMIx still uses Perl for a few of its build scripts (most notably,
+<code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code>).</p>
+<p>Generally speaking, any recent-ish release of Perl 5 should be
+sufficient to correctly execute OpenPMIx’s Perl scripts.</p>
+</section>
+<section id="flex">
+<h2><span class="section-number">12.1.4. </span>Flex<a class="headerlink" href="#flex" title="Link to this heading"></a></h2>
+<p>Minimum supported version: 2.5.4.</p>
+<p><a class="reference external" href="https://github.com/westes/flex">Flex</a> is used during the
+compilation of a developer’s checkout (it is not used to build
+official distribution tarballs).  Other flavors of lex are <em>not</em>
+supported: given the choice of making parsing code portable between
+all flavors of lex and doing more interesting work on OpenPMIx, we
+greatly prefer the latter.</p>
+<p>Note that no testing has been performed to see what the minimum
+version of Flex is required by OpenPMIx.  We suggest that you use
+v2.5.35 at the earliest.</p>
+<p>For now, OpenPMIx will allow developer builds with Flex 2.5.4.  This
+is primarily motivated by the fact that RedHat/CentOS 5 ships with
+Flex 2.5.4.  It is likely that someday OpenPMIx developer builds will
+require Flex version &gt;=2.5.35.</p>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">flex</span></code>-generated code generates some compiler warnings
+on some platforms, but the warnings do not seem to be consistent or
+uniform on all platforms, compilers, and flex versions.  As such, we
+have done little to try to remove those warnings.</p>
+<p>If you do not have Flex installed and cannot easily install it via
+your operating system’s packaging system (to include Homebrew or
+MacPorts on MacOS), see <a class="reference external" href="https://github.com/westes/flex">the Flex Github repository</a>.</p>
+</section>
+<section id="sphinx-and-therefore-python">
+<h2><span class="section-number">12.1.5. </span>Sphinx (and therefore Python)<a class="headerlink" href="#sphinx-and-therefore-python" title="Link to this heading"></a></h2>
+<p><a class="reference external" href="https://www.sphinx-doc.org/">Sphinx</a> is a Python-based tool used to
+generate both the HTML version of the documentation (that you are
+reading right now) and the nroff man pages.</p>
+<p>Official OpenPMIx distribution tarballs contain pre-built HTML
+documentation and man pages.  This means that – similar to the GNU
+Autotools – end users do not need to have Sphinx installed, but will
+still have both the HTML documentation and man pages installed as part
+of the normal configure / build / install process.</p>
+<p>However, the HTML documentation and man pages are <em>not</em> stored in OpenPMIx’s
+Git repository; only the ReStructred Text source code of the
+documentation is in the Git repository.  Hence, if you are building
+OpenPMIx from a Git clone, you will need Sphinx (and some Python
+modules) in order to build the HTML documentation and man pages.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Most systems do not have Sphinx and/or the required
+Python modules installed by default.  <a class="reference internal" href="sphinx.html#developers-installing-sphinx-label"><span class="std std-ref">See the
+Installing Sphinx section</span></a> for details on
+how to install Sphinx and the required Python modules.</p>
+</div>
+<p>If <code class="docutils literal notranslate"><span class="pre">configure</span></code> is able to find Sphinx and the required Python
+modules, it will automatically generate the HTML documentation and man
+pages during the normal build procedure (i.e., during <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">all</span></code>).
+If <code class="docutils literal notranslate"><span class="pre">configure</span></code> is <em>not</em> able to find Sphinx and/or the required
+Python modules, it will simply skip building the documentation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you have built/installed OpenPMIx from a Git clone and
+unexpectedly did not have the man pages installed, it is
+likely that you do not have Sphinx and/or the required
+Python modules available.</p>
+<p><a class="reference internal" href="sphinx.html#developers-installing-sphinx-label"><span class="std std-ref">See the Installing Sphinx section</span></a> for details on how
+to install Sphinx and the required Python modules.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">dist</span></code> will fail if <code class="docutils literal notranslate"><span class="pre">configure</span></code> did not find
+Sphinx and/or the required Python modules.
+Specifically: if <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">dist</span></code> is not able to generate
+the most up-to-date HTML documentation and man pages,
+you cannot build a distribution tarball.  <strong>This is an
+intentional design decision.</strong></p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="12. Developer’s guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="git-github.html" class="btn btn-neutral float-right" title="12.2. GitHub, Git, and related topics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

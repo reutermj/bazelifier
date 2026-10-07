@@ -1,0 +1,446 @@
+{
+  "config_headers": 2,
+  "escalations": [
+    {
+      "digest": "ad48b1cdb37ac06e",
+      "kind": "ctest_command_not_a_target",
+      "subject": "utils/hwloc/test-hwloc-annotate.sh, utils/hwloc/test-hwloc-calc.sh, utils/hwloc/test-hwloc-compress-dir.sh, utils/hwloc/test-hwloc-diffpatch.sh, utils/hwloc/test-hwloc-distrib.sh, utils/hwloc/test-hwloc-info.sh, utils/hwloc/test-build-custom-topology.sh, utils/hwloc/test-parsing-flags.sh, utils/hwloc/test-hwloc-dump-hwdata/knl-snc4h50.tar.bz2, utils/lstopo/test-lstopo.sh, utils/lstopo/test-lstopo-shmem.sh, tests/hwloc/xml/8intel64-4n2t-memattrs.xml, tests/hwloc/xml/16amd64-8n2c-cpusets.xml, tests/hwloc/xml/16amd64-4distances.xml, tests/hwloc/xml/16amd64-4distances.console.output, tests/hwloc/xml/16em64t-4s2c2t.xml, tests/hwloc/xml/16em64t-4s2c2t-offlines.xml, tests/hwloc/xml/16em64t-4s2c2t.console.output, tests/hwloc/xml/16-2gr2gr2n2c+misc.xml, tests/hwloc/xml/16-2gr2gr2n2c+misc.console.output, tests/hwloc/xml/16intel64-manyVFs.xml, tests/hwloc/xml/16intel64-manyVFs.console.output, tests/hwloc/xml/16intel64-manyVFs.console.nocollapse.output, tests/hwloc/xml/24em64t-2n6c2t-pci.xml, tests/hwloc/xml/32em64t-2n8c2t-pci-noio.xml, tests/hwloc/xml/32em64t-2n8c2t-pci-normalio.xml, tests/hwloc/xml/32em64t-2n8c2t-pci-wholeio.xml, tests/hwloc/xml/64intel64-3g2n+2n-irregulargroups+pci.xml, tests/hwloc/xml/64intel64-3g2n+2n-irregulargroups+pci.console.output, tests/hwloc/xml/8intel64-fakeKNL-A2A-hybrid.rootattachednumas.xml, tests/hwloc/xml/64intel64-fakeKNL-SNC4-hybrid.xml, tests/hwloc/xml/96em64t-4n4d3ca2co-pci.xml, tests/hwloc/xml/192em64t-12gr2n8c2t.xml, tests/hwloc/xml/192em64t-24n8c2t.xml, tests/hwloc/xml/power8gpudistances.xml, tests/hwloc/xml/fakeheterodistances.xml, tests/hwloc/xml/fakecpukinds.xml, tests/hwloc/xml/8em64t-2p2ca2co-nonodesets.v1tov2.xml, tests/hwloc/xml/8ia64-2n2s2c+1n.v1tov2.xml, tests/hwloc/xml/16amd64-4distances.v1tov2.xml, tests/hwloc/xml/16amd64-4distances.v2tov1.xml, tests/hwloc/xml/2intel64-1n2c-numaroot.v1tov2.xml, tests/hwloc/xml/28intel64-2p2g7c-CoDgroups.v1tov2.xml, tests/hwloc/xml/28intel64-2p2g7c-CoD.nogroups.v1tov2.xml, tests/hwloc/xml/8intel64-fakeKNL-A2A-hybrid.rootattachednumas.v1tov2.xml, tests/hwloc/xml/8intel64-fakeKNL-A2A-hybrid.rootattachednumas.v2tov1.xml, tests/hwloc/xml/64intel64-fakeKNL-SNC4-hybrid.v1tov2.xml, tests/hwloc/xml/64intel64-fakeKNL-SNC4-hybrid.v2tov1.xml, tests/hwloc/linux/2amd64-2n.output, tests/hwloc/linux/2i386-2t-hugepagesizecount.xml.output, tests/hwloc/linux/2i386-2c-nohugepage.xml.output, tests/hwloc/linux/2ps3-2t.output, tests/hwloc/linux/4em64t-2c2t-ignore-reorder.output, tests/hwloc/linux/4ia64-4s.output, tests/hwloc/linux/4fake-4gr1nu1pu.output, tests/hwloc/linux/256ppc-8n8s4t.output, tests/hwloc/linux/32amd64-4s2n4c-cgroup2.output, tests/hwloc/linux/32amd64-4s2n4c-cgroup2.xml.output, tests/hwloc/linux/8amd64-4n2c.output, tests/hwloc/linux/8em64t-4c2t.output, tests/hwloc/linux/8em64t-2s2ca2c.output, tests/hwloc/linux/8em64t-2s2ca2c-buggynuma.output, tests/hwloc/linux/8em64t-2s4c-heterogeneous.output, tests/hwloc/linux/8ia64-2n2s2c.output, tests/hwloc/linux/8ia64-2s2c2t.output, tests/hwloc/linux/8ia64-4s2c.output, tests/hwloc/linux/16amd64-4n4c-cgroup-distance-merge.output, tests/hwloc/linux/16amd64-8n2c.output, tests/hwloc/linux/16amd64-8n2c-cpusets.output, tests/hwloc/linux/16amd64-8n2c-cpusets.xml.output, tests/hwloc/linux/16amd64-8n2c-cpusets_noadmin.output, tests/hwloc/linux/16em64t-4s2ca2c-cpusetreorder.output, tests/hwloc/linux/16em64t-4s2ca2c-cpusetreorder-merge.output, tests/hwloc/linux/16em64t-4s2c2t.output, tests/hwloc/linux/16em64t-4s2c2t-offlines.output, tests/hwloc/linux/16em64t-4s2c2t-offlines.xml.output, tests/hwloc/linux/16em64t-4s2c2t_ncaches.output, tests/hwloc/linux/16em64t-4s2c2t_merge.output, tests/hwloc/linux/16em64t-4s2c2t.xml.output, tests/hwloc/linux/16ia64-8n2s.output, tests/hwloc/linux/32em64t-2n8c+1mic.output, tests/hwloc/linux/32intel64-2p8co2t+8ve.output, tests/hwloc/linux/40intel64-2g2n4c+pci.output, tests/hwloc/linux/40intel64-4n10c+pci-conflicts.output, tests/hwloc/linux/48amd64-4d2n6c-sparse.output, tests/hwloc/linux/64amd64-4s2n4ca2co.output, tests/hwloc/linux/64fake-4n2s2ca2c2t.output, tests/hwloc/linux/64intel64-fakeKNL-A2A-cache.output, tests/hwloc/linux/64intel64-fakeKNL-SNC4-hybrid.output, tests/hwloc/linux/64intel64-fakeKNL-SNC4-hybrid-msc.output, tests/hwloc/linux/96em64t-4n4d3ca2co.output, tests/hwloc/linux/128ia64-17n4s2c.output, tests/hwloc/linux/128arm-2pa2n8cluster4co.output, tests/hwloc/linux/256ia64-64n2s2c.output, tests/hwloc/linux/2s390-2c.output, tests/hwloc/linux/20s390-2g6s4c.output, tests/hwloc/linux/1alpha.output, tests/hwloc/linux/2arm-2c.output, tests/hwloc/linux/nvidiagpunumanodes.output, tests/hwloc/linux/nvidiagpunumanodes.kept.output, tests/hwloc/linux/fakememinitiators-1np2c+1npp+gi.output, tests/hwloc/linux/fakecpuid1f-64intel64-2p4d2n2c2t.output, tests/hwloc/linux/fakeheterocpunuma.output, tests/hwloc/linux/offline-cpu0-node0.output, tests/hwloc/linux/2pa-pcidomain32bits-disabled.output, tests/hwloc/linux/allowed/test1.output, tests/hwloc/linux/gather/test-gather-topology.sh, tests/hwloc/x86/Intel-CPUID.1A-1p2co2t.output, tests/hwloc/x86/Intel-CPUID.1F-Qemu-2p3d3c2t.output, tests/hwloc/x86/Intel-CascadeLake-2xXeon6230.output, tests/hwloc/x86/Intel-Skylake-2xXeon6140.output, tests/hwloc/x86/Intel-Broadwell-2xXeon-E5-2650Lv4.output, tests/hwloc/x86/Intel-Haswell-2xXeon-E5-2680v3.output, tests/hwloc/x86/Intel-IvyBridge-12xXeon-E5-4620v2.output, tests/hwloc/x86/Intel-SandyBridge-2xXeon-E5-2650.output, tests/hwloc/x86/Intel-Westmere-2xXeon-X5650.output, tests/hwloc/x86/Intel-Nehalem-2xXeon-X5550.output, tests/hwloc/x86/Intel-Penryn-4xXeon-X7460.output, tests/hwloc/x86/Intel-Core-2xXeon-E5345.output, tests/hwloc/x86/Intel-KnightsLanding-XeonPhi-7210.output, tests/hwloc/x86/Intel-KnightsCorner-XeonPhi-SE10P.output, tests/hwloc/x86/AMD-17h-Zen-2xEpyc-7451.output, tests/hwloc/x86/AMD-15h-Piledriver-4xOpteron-6348.output, tests/hwloc/x86/AMD-15h-Bulldozer-4xOpteron-6272.output, tests/hwloc/x86/AMD-K10-MagnyCours-2xOpteron-6164HE.output, tests/hwloc/x86/AMD-K10-Istanbul-8xOpteron-8439SE.output, tests/hwloc/x86/AMD-K8-SantaRosa-2xOpteron-2218.output, tests/hwloc/x86/AMD-K8-SledgeHammer-2xOpteron-250.output, tests/hwloc/x86/Hygon-Dhyana-32cores.output, tests/hwloc/x86/Zhaoxin-CentaurHauls-ZXD-4600.output, tests/hwloc/x86/Zhaoxin-Shanghai-KaiSheng-ZXC+-FC1081.output, tests/hwloc/x86+linux/64amd64-4p2n4ca2co.output, tests/hwloc/x86+linux/64amd64-4p2n4ca2co.topoextnuma.output, tests/hwloc/x86+linux/5intel64-hybrid-lakefield.output"
+    },
+    {
+      "digest": "01a02c4657414358",
+      "kind": "generated_headers",
+      "subject": "hwloc/static-components.h"
+    },
+    {
+      "digest": "44a36ebe55ed6c21",
+      "kind": "unconverted_dependency",
+      "subject": "-lncursesw"
+    },
+    {
+      "digest": "085965ce9a7e113f",
+      "kind": "unconverted_dependency",
+      "subject": "-lxml2"
+    },
+    {
+      "digest": "c15d991f2dbcab65",
+      "kind": "unmapped_config_macros",
+      "subject": "include/hwloc/autogen/config.h"
+    },
+    {
+      "digest": "30b877d60dcd4575",
+      "kind": "unmapped_config_macros",
+      "subject": "include/private/autogen/config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "generated_headers": 1,
+    "unconverted_dependency": 2,
+    "unmapped_config_macros": 2
+  },
+  "module": "hwloc",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "cpukinds",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "cpuset_bitmap_cpubind",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "cpuset_nodeset",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "get-knl-modes",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "gl",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "glibc-sched",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "gpu",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-annotate",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-bind",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-calc",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-diff",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-distrib",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-dump-hwdata",
+      "sources": 44
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-gather-cpuid",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-hello",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-hello-cpp",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-info",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-patch",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-ps",
+      "sources": 43
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc-tweak-osindex",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_api_version",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_backends",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_bind",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_bitmap",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_bitmap_compare_inclusion",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_bitmap_first_last_weight",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_bitmap_singlify",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_bitmap_string",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_distances",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_area_memlocation",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_cache_covering_cpuset",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_closest_objs",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_largest_objs_inside_cpuset",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_last_cpu_location",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_next_obj_covering_cpuset",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_obj_below_array_by_type",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_obj_covering_cpuset",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_obj_inside_cpuset",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_obj_with_same_locality",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_get_shared_cache_covering_obj",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_groups",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_insert_misc",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_iodevs",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_is_thissystem",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_list_components",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_obj_infos",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_object_userdata",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_pci_backend",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_synthetic",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_topology_abi",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_topology_allow",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_topology_diff",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_topology_dup",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_topology_restrict",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_type_depth",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "hwloc_type_sscanf",
+      "sources": 80
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-aix.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-bgq.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-cuda.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-darwin.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-freebsd.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-gl.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-hpux.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-levelzero.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-netbsd.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-nvml.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-opencl.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-rsmi.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-solaris.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc-port-windows.la",
+      "sources": 0
+    },
+    {
+      "kind": "shared_library",
+      "name": "libhwloc.la",
+      "sources": 36
+    },
+    {
+      "kind": "static_library",
+      "name": "liblstopo-port-android.a",
+      "sources": 0
+    },
+    {
+      "kind": "static_library",
+      "name": "liblstopo-port-windows.a",
+      "sources": 0
+    },
+    {
+      "kind": "static_library",
+      "name": "libutils_common.la",
+      "sources": 19
+    },
+    {
+      "kind": "executable",
+      "name": "lstopo-no-graphics",
+      "sources": 52
+    },
+    {
+      "kind": "executable",
+      "name": "memattrs",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "nodeset_membind_policy",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "sharedcaches",
+      "sources": 40
+    },
+    {
+      "kind": "executable",
+      "name": "shmem",
+      "sources": 80
+    },
+    {
+      "kind": "executable",
+      "name": "xmlbuffer",
+      "sources": 80
+    }
+  ],
+  "tests": 45,
+  "version": "2.7.1"
+}

@@ -1,0 +1,229 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_T_PVAR_GET_INFO" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fI\%MPI_T_pvar_get_info\fP — Query information from a performance variable
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_T_pvar_get_info(int pvar_index, char *name, int *name_len,
+                        int *verbosity, int *var_class, MPI_Datatype *datatype, MPI_T_enum *enumtype,
+                        char *desc, int *desc_len, int *bind, int *readonly, int *continuous,
+                        int *atomic)
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBpvar_index\fP: Index of the performance variable to be queried.
+.UNINDENT
+.SH INPUT/OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBname_len\fP: Length of the string and/or buffer for name.
+.IP \(bu 2
+\fBdesc_len\fP: Length of the string and/or buffer for desc.
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBname\fP: Buffer to return the string containing the name of the performance variable.
+.IP \(bu 2
+\fBverbosity\fP: Verbosity level of this variable.
+.IP \(bu 2
+\fBvar_class\fP: Class of performance variable.
+.IP \(bu 2
+\fBdatatype\fP: MPI datatype of the information stored in the performance variable.
+.IP \(bu 2
+\fBenumtype\fP: Optional descriptor for enumeration information.
+.IP \(bu 2
+\fBdesc\fP: Buffer to return the string containing the description of the performance variable.
+.IP \(bu 2
+\fBbind\fP: Type of MPI object to which this variable must be bound.
+.IP \(bu 2
+\fBreadonly\fP: Flag indicating whether the variable can be written/reset.
+.IP \(bu 2
+\fBcontinuous\fP: Flag indicating whether the variable can be started and stopped or is continuously active.
+.IP \(bu 2
+\fBatomic\fP: Flag indicating whether the variable can be atomically read and reset.
+.UNINDENT
+.SH DESCRIPTION
+.sp
+\fI\%MPI_T_pvar_get_info\fP can be used to query information from a performance
+variable. The function returns the verbosity, class, datatype,
+enumeration type, and binding of the queried control variable in the
+arguments \fIverbosity\fP, \fIvar_class\fP, \fIdatatype\fP, \fIenumtype\fP, and \fIbind\fP
+respectively. Flags indicating whether the variable is read\-only,
+continuous, or atomic are returns in \fIreadonly\fP, \fIcontinuous\fP, and
+\fIatomic\fP accordingly. See MPI\-3 section 14.3.7 for more information. See the
+man page for \fI\%MPI_T_cvar_get_info\fP for information on variable verbosity.
+.SH VARIABLE CLASS
+.sp
+Performance variables are categorized into classes which describe their
+initial value, valid types, and behavior. The class returned in the
+\fIvar_class\fP parameter may be one of the following:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_STATE\fP: Variable represents a set of discrete
+states that may be described by an enumerator. Variables of this
+class must be represented by an MPI_INT. The starting value is the
+current state of the variable.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_LEVEL\fP: Variable represents the current
+utilization level of a resource.  Variables of this class must be
+represented by an MPI_UNSIGNED, MPI_UNSIGNED_LONG,
+MPI_UNSIGNED_LONG_LONG, or MPI_DOUBLE. The starting value is the
+current utilization level of the resource.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_SIZE\fP: Variable represents the fixed size of a
+resource. Variables of this class are represented by an
+MPI_UNSIGNED, MPI_UNSIGNED_LONG, MPI_UNSIGNED_LONG_LONG, or
+MPI_DOUBLE. The starting value is the current size of the resource.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_PERCENTAGE\fP: Variable represents the current
+percentage utilization level of a resource. Variables of this class
+are represented by an MPI_DOUBLE.  The starting value is the current
+percentage utilization of the resource.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_HIGHWATERMARK\fP: Variable represents the high
+watermark of the utilization of a resource. Variables of this class
+are represented by an MPI_UNSIGNED, MPI_UNSIGNED_LONG,
+MPI_UNSIGNED_LONG_LONG, or MPI_DOUBLE. The starting value is the
+current utilization of the resource.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_HIGHWATERMARK\fP: Variable represents the low
+watermark of the utilization of a resource. Variables of this class
+are represented by an MPI_UNSIGNED, MPI_UNSIGNED_LONG,
+MPI_UNSIGNED_LONG_LONG, or MPI_DOUBLE. The starting value is the
+current utilization of the resource.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_COUNTER\fP: Variable represents a count of the
+number of occurrences of a specific event. Variables of this class
+are represented by an MPI_UNSIGNED, MPI_UNSIGNED_LONG, or
+MPI_UNSIGNED_LONG_LONG. The starting value is 0.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_COUNTER\fP: Variable represents an aggregated
+value that represents a sum of arguments processed during a specific
+event. Variables of this class are represented by an MPI_UNSIGNED,
+MPI_UNSIGNED_LONG, MPI_UNSIGNED_LONG_LONG, or MPI_DOUBLE. The
+starting value is 0.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_TIMER\fP: Variable represents the aggregated time
+spent by the MPI implementation while processing an event, type of
+event, or section of code. Variables of this class are represented
+by an MPI_UNSIGNED, MPI_UNSIGNED_LONG, MPI_UNSIGNED_LONG_LONG, or
+MPI_DOUBLE. If the variable is represented by an MPI_DOUBLE the
+units will be the same as those used by MPI_Wtime(). The starting
+value is 0.
+.IP \(bu 2
+\fBMPI_T_PVAR_CLASS_GENERIC\fP: Variable does not fit into any other
+class. Can by represented by an type supported by the MPI tool
+information interface (see DATATYPE).  Starting value is variable
+specific.
+.UNINDENT
+.sp
+For more information see MPI\-3 section 14.3.7.
+.SH DATATYPE
+.sp
+The datatype returned by \fI\%MPI_T_pvar_get_info\fP is restricted to one of the
+following datatypes: MPI_INT, MPI_UNSIGNED, MPI_UNSIGNED_LONG,
+MPI_UNSIGNED_LONG_LONG, MPI_COUNT, MPI_CHAR, and MPI_DOUBLE. For more
+information on datatypes in the MPI Tool information interface see MPI\-3
+section 14.3.5.
+.SH BINDING
+.sp
+Performance variables may be bound to an MPI object. The binding
+returned in the \fIbind\fP parameter may be one of the following:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_T_BIND_NO_OBJECT\fP: No object
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_COMM\fP: MPI communicator
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_DATATYPE\fP: MPI datatype
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_ERRHANDLER\fP: MPI error handler
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_FILE\fP: MPI file handle
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_GROUP\fP: MPI group
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_OP\fP: MPI reduction operator
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_REQUEST\fP: MPI request
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_WIN\fP: MPI window for one\-sided communication
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_MESSAGE\fP: MPI message object
+.IP \(bu 2
+\fBMPI_T_BIND_MPI_INFO\fP: MPI info object
+.UNINDENT
+.sp
+For more information see MPI\-3 section 14.3.2.
+.SH NOTES
+.sp
+This MPI tool interface function returns two strings. This function
+takes two argument for each string: a buffer to store the string, and
+a length which must initially specify the size of the buffer. If the
+length passed is n then this function will copy at most n \- 1
+characters of the string into the corresponding buffer and set the
+length to the number of characters copied \- 1. If the length argument
+is NULL or the value specified in the length is 0 the corresponding
+string buffer is ignored and the string is not returned. For more
+information see MPI\-3 section 14.3.3.
+.SH ERRORS
+.sp
+\fI\%MPI_T_pvar_get_info\fP will fail if:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_T_ERR_NOT_INITIALIZED\fP: The MPI Tools interface not initialized
+.IP \(bu 2
+\fBMPI_T_ERR_INVALID_INDEX\fP: The performance variable index is invalid
+.UNINDENT
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_T_cvar_get_info\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

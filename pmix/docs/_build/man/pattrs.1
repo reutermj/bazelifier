@@ -1,0 +1,107 @@
+.\" Man page generated from reStructuredText
+.\" by the Docutils 0.22.4 manpage writer.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "PATTRS" "1" "Jun 23, 2026" "" "OpenPMIx"
+.sp
+pattrs — Display information about supported attributes
+.SH SYNOPSIS
+.sp
+\fBpattrs [options]\fP
+.SH DESCRIPTION
+.sp
+\fBpattrs\fP provides information on the attributes supported by the
+client, server, and tool interfaces of the PMIx library being used.
+.SH OPTIONS
+.sp
+\fBpattrs\fP accepts the following options:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-h\fP | \fB\-\-help <arg0>\fP: Show help message. If the optional
+argument is not provided, then a generalized help message similar
+to the information provided here is returned. If an argument is
+provided, then a more detailed help message for that specific
+command line option is returned.
+.IP \(bu 2
+\fB\-v\fP | \fB\-\-verbose\fP: Enable debug output.
+.IP \(bu 2
+\fB\-V\fP | \fB\-\-version\fP: Print version and exit.
+.IP \(bu 2
+\fB\-\-pmixmca <arg0> <arg1>\fP: Set MCA parameter value
+.IP \(bu 2
+\fB\-\-do\-not\-connect\fP: Do not connect to a server
+.IP \(bu 2
+\fB\-\-uri <arg0>\fP: Specify the URI of the server to which we are to connect, or the name of the file (specified as \%<file:filename>) that contains that info
+.IP \(bu 2
+\fB\-\-namespace <arg0>\fP: Namespace of the daemon to which we should connect
+.IP \(bu 2
+\fB\-\-pid <arg0>\fP: PID of the daemon to which we should connect (int => PID or file:<file> for file containing the PID
+.IP \(bu 2
+\fB\-\-system\-server\-first\fP: First look for a system server and connect to it if found
+.IP \(bu 2
+\fB\-\-system\-server\fP: Connect to a system\-level server
+.IP \(bu 2
+\fB\-\-tmpdir <arg0>\fP: Set the root for the session directory tree
+.IP \(bu 2
+\fB\-\-wait\-to\-connect <arg0>\fP: Delay specified number of seconds before trying to connect
+.IP \(bu 2
+\fB\-\-num\-connect\-retries <arg0>\fP: Max number of times to try to connect
+.IP \(bu 2
+\fB\-\-client <arg0>\fP: Comma\-delimited list of client functions whose attributes are to be printed (function or “all”)
+.IP \(bu 2
+\fB\-\-server <arg0>\fP: Comma\-delimited list of server functions whose attributes are to be printed (function or “all”)
+.IP \(bu 2
+\fB\-\-tool <arg0>\fP: Comma\-delimited list of tool functions whose attributes are to be printed (function or “all”)
+.IP \(bu 2
+\fB\-\-host <arg0>\fP: Comma\-delimited list of host functions whose attributes are to be printed (function or “all”)
+.IP \(bu 2
+\fB\-\-client\-fns\fP: List the functions supported in this client library
+.IP \(bu 2
+\fB\-\-server\-fns\fP: List the functions supported in this server library
+.IP \(bu 2
+\fB\-\-tool\-fns\fP: List the functions supported in this tool library
+.IP \(bu 2
+\fB\-\-host\-fns\fP: List the functions supported by this host environment
+.UNINDENT
+.SH EXIT STATUS
+.sp
+Returns 0 for successful completion or a non\-zero error code. The command outputs the requested information to stdout.
+.SH EXAMPLES
+.sp
+Examples of using this command.
+.sp
+\fBSee also:\fP
+.INDENT 0.0
+.INDENT 3.5
+openpmix(5) \%<#\:man5-openpmix>
+.UNINDENT
+.UNINDENT
+.SH Copyright
+2014-2026, OpenPMIx Community
+.\" End of generated man page.

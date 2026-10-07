@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.2.7. ROCm &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.3. Running multi-threaded MPI applications" href="../multithreaded.html" />
+    <link rel="prev" title="11.2.6. CUDA" href="cuda.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">11.2. Networking support</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ofi.html">11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tcp.html">11.2.2. TCP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared-memory.html">11.2.3. Shared Memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ib-and-roce.html">11.2.4. InifiniBand / RoCE support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="iwarp.html">11.2.5. iWARP Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cuda.html">11.2.6. CUDA</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">11.2.7. ROCm</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#building-open-mpi-with-rocm-support">11.2.7.1. Building Open MPI with ROCm support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#checking-that-open-mpi-has-been-built-with-rocm-support">11.2.7.2. Checking that Open MPI has been built with ROCm support</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-rocm-aware-ucx-with-open-mpi">11.2.7.3. Using ROCm-aware UCX with Open MPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#runtime-querying-of-rocm-support-in-open-mpi">11.2.7.4. Runtime querying of ROCm support in Open MPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#collective-component-supporting-rocm-device-memory">11.2.7.5. Collective component supporting ROCm device memory</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11.2. </span>Networking support</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.2.7. </span>ROCm</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tuning-apps/networking/rocm.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="rocm">
+<h1><span class="section-number">11.2.7. </span>ROCm<a class="headerlink" href="#rocm" title="Link to this heading"></a></h1>
+<p>ROCm is the name of the software stack used by AMD GPUs. It includes
+the ROCm Runtime (ROCr), the HIP programming model, and numerous
+numerical and machine learning libraries tuned for the AMD Instinct
+accelerators. More information can be found at the following
+<a class="reference external" href="https://www.amd.com/en/graphics/servers-solutions-rocm">AMD webpages</a></p>
+<section id="building-open-mpi-with-rocm-support">
+<h2><span class="section-number">11.2.7.1. </span>Building Open MPI with ROCm support<a class="headerlink" href="#building-open-mpi-with-rocm-support" title="Link to this heading"></a></h2>
+<p>ROCm-aware support means that the MPI library can send and receive
+data from AMD GPU device buffers directly. As of today, ROCm support
+is available through UCX. While other communication transports might
+work as well, UCX is the only transport formally supported in Open MPI
+v5.0.11 for ROCm devices.</p>
+<p>Since UCX will be providing the ROCm support, it is important to
+ensure that UCX itself is built with ROCm support.</p>
+<p>To see if your UCX library was built with ROCm support, run the
+following command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check if ucx was built with ROCm support</span>
+shell$<span class="w"> </span>ucx_info<span class="w"> </span>-v
+
+<span class="c1"># configured with: --with-rocm=/opt/rocm --without-knem --without-cuda</span>
+</pre></div>
+</div>
+<p>If you need to build the UCX library yourself to include ROCm support,
+please see the UCX documentation for <a class="reference external" href="https://openucx.readthedocs.io/en/master/running.html#openmpi-with-ucx">building UCX with Open MPI:</a></p>
+<p>It should look something like:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Configure UCX with ROCm support</span>
+shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>ucx
+shell$<span class="w"> </span>./configure<span class="w"> </span>--prefix<span class="o">=</span>/path/to/ucx-rocm-install<span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>--with-rocm<span class="o">=</span>/opt/rocm<span class="w"> </span>--without-knem
+
+<span class="c1"># Configure Open MPI with UCX and ROCm support</span>
+shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>ompi
+shell$<span class="w"> </span>./configure<span class="w"> </span>--with-rocm<span class="o">=</span>/opt/rocm<span class="w">    </span><span class="se">\</span>
+<span class="w">       </span>--with-ucx<span class="o">=</span>/path/to/ucx-rocm-install<span class="w"> </span><span class="se">\</span>
+<span class="w">       </span>&lt;other<span class="w"> </span>configure<span class="w"> </span>params&gt;
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="checking-that-open-mpi-has-been-built-with-rocm-support">
+<h2><span class="section-number">11.2.7.2. </span>Checking that Open MPI has been built with ROCm support<a class="headerlink" href="#checking-that-open-mpi-has-been-built-with-rocm-support" title="Link to this heading"></a></h2>
+<p>Verify that Open MPI has been built with ROCm using the
+<a class="reference internal" href="../../man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a> command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use ompi_info to verify ROCm support in Open MPI</span>
+shell$<span class="w"> </span>./ompi_info<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">"MPI extensions"</span>
+<span class="w">       </span>MPI<span class="w"> </span>extensions:<span class="w"> </span>affinity,<span class="w"> </span>cuda,<span class="w"> </span>ftmpi,<span class="w"> </span>rocm
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="using-rocm-aware-ucx-with-open-mpi">
+<h2><span class="section-number">11.2.7.3. </span>Using ROCm-aware UCX with Open MPI<a class="headerlink" href="#using-rocm-aware-ucx-with-open-mpi" title="Link to this heading"></a></h2>
+<p>If UCX and Open MPI have been configured with ROCm support, specifying
+the UCX pml component is sufficient to take advantage of the ROCm
+support in the libraries. For example, the command to execute the
+<code class="docutils literal notranslate"><span class="pre">osu_latency</span></code> benchmark from the <a class="reference external" href="https://mvapich.cse.ohio-state.edu/benchmarks">OSU benchmarks</a> with ROCm buffers
+using Open MPI and UCX ROCm support is something like this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -n 2 --mca pml ucx \
+        ./osu_latency D D
+</pre></div>
+</div>
+<p>Note: some additional configure flags are required to compile the OSU
+benchmark to support ROCm buffers. Please refer to the <a class="reference external" href="https://github.com/openucx/ucx/wiki/Build-and-run-ROCM-UCX-OpenMPI">UCX ROCm
+instructions</a>
+for details.</p>
+</section>
+<hr class="docutils" />
+<section id="runtime-querying-of-rocm-support-in-open-mpi">
+<h2><span class="section-number">11.2.7.4. </span>Runtime querying of ROCm support in Open MPI<a class="headerlink" href="#runtime-querying-of-rocm-support-in-open-mpi" title="Link to this heading"></a></h2>
+<p>Starting with Open MPI v5.0.0 <a class="reference internal" href="../../man-openmpi/man3/MPIX_Query_rocm_support.3.html#mpix-query-rocm-support"><span class="std std-ref">MPIX_Query_rocm_support(3)</span></a> is available as an extension to check
+the availability of ROCm support in the library. To use the
+function, the code needs to include <code class="docutils literal notranslate"><span class="pre">mpi-ext.h</span></code>. Note that
+<code class="docutils literal notranslate"><span class="pre">mpi-ext.h</span></code> is an Open MPI specific header file.</p>
+</section>
+<hr class="docutils" />
+<section id="collective-component-supporting-rocm-device-memory">
+<h2><span class="section-number">11.2.7.5. </span>Collective component supporting ROCm device memory<a class="headerlink" href="#collective-component-supporting-rocm-device-memory" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://github.com/openucx/ucc">UCC</a> based collective component
+in Open MPI can be configured and compiled to include ROCm support.</p>
+<p>An example for configure UCC and Open MPI with ROCm is shown below:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span># Configure and compile UCC with ROCm support
+shell$ cd ucc
+shell$ ./configure --with-rocm=/opt/rocm                \
+                   --with-ucx=/path/to/ucx-rocm-install \
+                   --prefix=/path/to/ucc-rocm-install
+shell$ make -j &amp;&amp; make install
+
+# Configure and compile Open MPI with UCX, UCC, and ROCm support
+shell$ cd ompi
+shell$ ./configure --with-rocm=/opt/rocm                \
+                   --with-ucx=/path/to/ucx-rocm-install \
+                   --with-ucc=/path/to/ucc-rocm-install
+</pre></div>
+</div>
+<p>Using the UCC component in an application requires setting some
+additional parameters:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --mca pml ucx --mca osc ucx \
+              --mca coll_ucc_enable 1     \
+              --mca coll_ucc_priority 100 -np 64 ./my_mpi_app
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="cuda.html" class="btn btn-neutral float-left" title="11.2.6. CUDA" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../multithreaded.html" class="btn btn-neutral float-right" title="11.3. Running multi-threaded MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

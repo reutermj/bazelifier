@@ -1,0 +1,237 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PMIx Reference Runtime Environment (PRRTE) v3.0.14 &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2efb4362"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="1. Quick start" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">PMIx Reference Runtime Environment (PRRTE) v3.0.14</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="pmix-reference-runtime-environment-prrte-prte-ver">
+<h1>PMIx Reference Runtime Environment (PRRTE) v3.0.14<a class="headerlink" href="#pmix-reference-runtime-environment-prrte-prte-ver" title="Link to this heading"></a></h1>
+<p>The project is formally referred to in documentation by “PRRTE”, and
+the GitHub repository is <code class="docutils literal notranslate"><span class="pre">prrte</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We have found that most users do not like typing the two
+consecutive <code class="docutils literal notranslate"><span class="pre">r</span></code> letters in the name. Hence, all of the
+internal API symbols, environment variables, MCA frameworks,
+and CLI executables all use the abbreviated <code class="docutils literal notranslate"><span class="pre">prte</span></code> (one
+<code class="docutils literal notranslate"><span class="pre">r</span></code>, not two) for convenience.</p>
+</div>
+</section>
+<section id="documentation-locations">
+<h1>Documentation locations<a class="headerlink" href="#documentation-locations" title="Link to this heading"></a></h1>
+<p>This documentation can be found in the following locations:</p>
+<ul class="simple">
+<li><p>On the web: <a class="reference external" href="https://docs.prrte.org/">https://docs.prrte.org/</a></p></li>
+<li><p>In the tarball: <code class="docutils literal notranslate"><span class="pre">docs/_build/html/index.html</span></code></p></li>
+<li><p>Installed: <code class="docutils literal notranslate"><span class="pre">$prefix/share/doc/prrte/html/index.html</span></code></p></li>
+</ul>
+</section>
+<section id="table-of-contents">
+<h1>Table of contents<a class="headerlink" href="#table-of-contents" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">4. Installing PRRTE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#for-more-information">4.1. For More Information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#minimum-pmix-version">4.2. Minimum PMIx version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#developer-builds">4.3. Developer Builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#user-builds">4.4. User Builds</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">5. PRRTE DVM Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#configuration-options">5.1. Configuration Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html#configurator-tool">5.2. Configurator Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="how-things-work/session_dirs.html">6.1. Session Directories</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="hosts/index.html">7. Host specification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="hosts/rm.html">7.1. Resource Manager-Provided Hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hosts/hostfiles.html">7.2. Hostfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hosts/cli.html">7.3. Listing Hosts on the Command Line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hosts/relative-indexing.html">7.4. Relative host indexing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="placement/index.html">8. Process placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="placement/overview.html">8.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/overview.html#definition-of-slot">8.2. Definition of ‘slot’</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/overview.html#definition-of-processor-element">8.3. Definition of “processor element”</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/examples.html">8.4. Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/fundamentals.html">8.5. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/limits.html">8.6. Overloading and Oversubscribing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/diagnostics.html">8.7. Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/rankfiles.html">8.8. Rankfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="placement/deprecated.html">8.9. Deprecated options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">9. Launching applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/quickstart.html">9.1. Quick start: Launching applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/prerequisites.html">9.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/scheduling.html">9.3. Placing processes across hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/scheduling.html#fundamentals">9.4. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/localhost.html">9.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/ssh.html">9.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/slurm.html">9.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/lsf.html">9.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/tm.html">9.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/gridengine.html">9.10. Launching with Grid Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/unusual.html">9.11. Unusual jobs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/troubleshooting.html">9.12. Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session-directory.html">11. Session directory</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="session-directory.html#directory-location">11.1. Directory location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="session-directory.html#directory-name">11.2. Directory name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="session-directory.html#tools">11.3. Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developers/prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/gnu-autotools.html">12.3. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/sphinx.html">12.4. Installing and running Sphinx (building the PRRTE docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/rst-for-markdown-expats.html">12.5. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to PRRTE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#open-source-contributions">13.1. Open source contributions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">15. PRRTE manual pages</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="man/man1/index.html">15.1. Commands (section 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="man/man5/index.html">15.2. Config file manual pages (section 5)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">17. News</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="news/news-v3.x.html">17.1. PRRTE v3.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news/news-v2.x.html">17.2. PRRTE v2.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news/news-v1.x.html">17.3. PRRTE v1.x series</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="1. Quick start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

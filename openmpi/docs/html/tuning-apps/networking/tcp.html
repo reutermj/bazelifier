@@ -1,0 +1,621 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.2.2. TCP &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.2.3. Shared Memory" href="shared-memory.html" />
+    <link rel="prev" title="11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support" href="ofi.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">11.2. Networking support</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ofi.html">11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">11.2.2. TCP</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-do-i-specify-to-use-the-ip-network-for-mpi-messages">11.2.2.1. How do I specify to use the IP network for MPI messages?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#but-wait-mdash-i-m-using-a-high-speed-network-do-i-have-to-disable-the-tcp-btl">11.2.2.2. But wait — I’m using a high-speed network.  Do I have to disable the TCP BTL?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-do-i-know-what-mca-parameters-are-available-for-tuning-mpi-performance">11.2.2.3. How do I know what MCA parameters are available for tuning MPI performance?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#does-open-mpi-use-the-ip-loopback-interface">11.2.2.4. Does Open MPI use the IP loopback interface?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#i-have-multiple-ip-networks-on-some-all-of-my-cluster-nodes-which-ones-will-open-mpi-use">11.2.2.5. I have multiple IP networks on some/all of my cluster nodes.  Which ones will Open MPI use?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-do-i-tell-open-mpi-which-ip-interfaces-networks-to-use">11.2.2.6. How do I tell Open MPI which IP interfaces / networks to use?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#does-open-mpi-open-a-bunch-of-sockets-during-mpi-init">11.2.2.7. Does Open MPI open a bunch of sockets during <code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code>?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#are-there-any-linux-kernel-tcp-parameters-that-i-should-set">11.2.2.8. Are there any Linux kernel TCP parameters that I should set?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-does-open-mpi-know-which-ip-addresses-are-routable-to-each-other">11.2.2.9. How does Open MPI know which IP addresses are routable to each other?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#does-open-mpi-ever-close-tcp-sockets">11.2.2.10. Does Open MPI ever close TCP sockets?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#does-open-mpi-support-ip-interfaces-that-have-more-than-one-ip-address">11.2.2.11. Does Open MPI support IP interfaces that have more than one IP address?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#does-open-mpi-support-virtual-ip-interfaces">11.2.2.12. Does Open MPI support virtual IP interfaces?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#can-i-use-multiple-tcp-connections-to-improve-network-performance">11.2.2.13. Can I use multiple TCP connections to improve network performance?</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="shared-memory.html">11.2.3. Shared Memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ib-and-roce.html">11.2.4. InifiniBand / RoCE support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="iwarp.html">11.2.5. iWARP Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cuda.html">11.2.6. CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rocm.html">11.2.7. ROCm</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11.2. </span>Networking support</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.2.2. </span>TCP</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tuning-apps/networking/tcp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="tcp">
+<h1><span class="section-number">11.2.2. </span>TCP<a class="headerlink" href="#tcp" title="Link to this heading"></a></h1>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO This section needs to be converted from FAQ Q&amp;A style
+to regular documentation style.</p>
+</div>
+<section id="how-do-i-specify-to-use-the-ip-network-for-mpi-messages">
+<h2><span class="section-number">11.2.2.1. </span>How do I specify to use the IP network for MPI messages?<a class="headerlink" href="#how-do-i-specify-to-use-the-ip-network-for-mpi-messages" title="Link to this heading"></a></h2>
+<p>Open MPI will generally automatically use the <code class="docutils literal notranslate"><span class="pre">tcp</span></code> BTL when:</p>
+<ol class="arabic simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">tcp</span></code> BTL is  available at run time (which it should be on
+most POSIX-like systems), and</p></li>
+<li><p>A higher-performance network is not available</p></li>
+</ol>
+<p>When the <code class="docutils literal notranslate"><span class="pre">tcp</span></code> BTL is used, it is typically also (automatically)
+used with the <code class="docutils literal notranslate"><span class="pre">self</span></code> and <code class="docutils literal notranslate"><span class="pre">sm</span></code> BTLs for process-loopback and
+node-loopback communication, respectively.</p>
+<p>If you want to guarantee that the <code class="docutils literal notranslate"><span class="pre">tcp</span></code>, <code class="docutils literal notranslate"><span class="pre">sm</span></code>, and <code class="docutils literal notranslate"><span class="pre">self</span></code> BTLs
+are used, you can explicitly specify them on the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command
+line:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>pml<span class="w"> </span>ob1<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>tcp,sm,self<span class="w"> </span>...
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Failure to specify the <code class="docutils literal notranslate"><span class="pre">sm</span></code> BTL will likely result in
+lower performance when Open MPI uses the TCP network
+stack to send to peers on the same host.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Failure to specify the <code class="docutils literal notranslate"><span class="pre">self</span></code> BTL may result in Open
+MPI being unable to complete send-to-self scenarios
+(meaning that your program will run fine until a process
+tries to send to itself).</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="but-wait-mdash-i-m-using-a-high-speed-network-do-i-have-to-disable-the-tcp-btl">
+<h2><span class="section-number">11.2.2.2. </span>But wait — I’m using a high-speed network.  Do I have to disable the TCP BTL?<a class="headerlink" href="#but-wait-mdash-i-m-using-a-high-speed-network-do-i-have-to-disable-the-tcp-btl" title="Link to this heading"></a></h2>
+<p>No.  Following the so-called “Law of Least Astonishment”, Open MPI
+assumes that if you have both an IP network and at least one
+high-speed network (such InfiniBand), you will likely only want to use
+the high-speed network(s) for MPI message passing.  Hence, the <code class="docutils literal notranslate"><span class="pre">tcp</span></code>
+BTL component will sense this and automatically deactivate itself.</p>
+<p>That being said, Open MPI may still use TCP for setup and teardown
+information — so you’ll see traffic across your IP network during
+startup and shutdown of your MPI job.  This is normal and does not
+affect the MPI message passing channels.</p>
+</section>
+<hr class="docutils" />
+<section id="how-do-i-know-what-mca-parameters-are-available-for-tuning-mpi-performance">
+<h2><span class="section-number">11.2.2.3. </span>How do I know what MCA parameters are available for tuning MPI performance?<a class="headerlink" href="#how-do-i-know-what-mca-parameters-are-available-for-tuning-mpi-performance" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> command can display all the parameters
+available for the <code class="docutils literal notranslate"><span class="pre">tcp</span></code> BTL component (i.e., the component that uses
+TCP for MPI communications):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>btl<span class="w"> </span>tcp<span class="w"> </span>--level<span class="w"> </span><span class="m">9</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="does-open-mpi-use-the-ip-loopback-interface">
+<h2><span class="section-number">11.2.2.4. </span>Does Open MPI use the IP loopback interface?<a class="headerlink" href="#does-open-mpi-use-the-ip-loopback-interface" title="Link to this heading"></a></h2>
+<p>Usually not.</p>
+<p>In general message passing usage, there are two scenarios where using
+the operating system IP loopback interface could be used:</p>
+<ol class="arabic simple">
+<li><p>Sending a message from one process to itself</p></li>
+<li><p>Sending a message from one process to another process on the same
+machine</p></li>
+</ol>
+<p>The TCP BTL does not handle “send-to-self” scenarios in Open MPI;
+indeed, it is not even capable of doing so.  Instead, the <code class="docutils literal notranslate"><span class="pre">self</span></code> BTL
+component is used for all send-to-self MPI communications.  Not only
+does this allow all Open MPI BTL components to avoid special case code
+for send-to-self scenarios, it also allows avoiding using inefficient
+loopback network stacks (such as the IP loopback device).</p>
+<p>Specifically: the <code class="docutils literal notranslate"><span class="pre">self</span></code> component uses its own mechanisms for
+send-to-self scenarios; it does not use operating system network
+interfaces such as the IP loopback interface.</p>
+<p>When sending to other processes on the same machine, Open MPI will
+default to using a shared memory BTL (<code class="docutils literal notranslate"><span class="pre">sm</span></code>).  If the user has
+deactivated these BTLs, depending on what other BTL components are
+available, it is possible that the TCP BTL will be chosen for message
+passing to processes on the same node, in which case the IP loopback
+device will likely be used.  But this is not the default; either
+shared memory has to fail to startup properly or the user must
+specifically request not to use the shared memory BTL.</p>
+</section>
+<hr class="docutils" />
+<section id="i-have-multiple-ip-networks-on-some-all-of-my-cluster-nodes-which-ones-will-open-mpi-use">
+<h2><span class="section-number">11.2.2.5. </span>I have multiple IP networks on some/all of my cluster nodes.  Which ones will Open MPI use?<a class="headerlink" href="#i-have-multiple-ip-networks-on-some-all-of-my-cluster-nodes-which-ones-will-open-mpi-use" title="Link to this heading"></a></h2>
+<p>In general, Open MPI will greedily use all IP networks that
+it finds per its <a class="reference internal" href="#faq-tcp-routability"><span class="std std-ref">reachability computations</span></a>.</p>
+<p>To change this behavior, you can either specifically include certain
+networks or specifically exclude certain networks.  <a class="reference internal" href="#faq-tcp-selection"><span class="std std-ref">See this FAQ
+entry</span></a> for more details.</p>
+<hr class="docutils" />
+<p>I’m getting TCP-related errors.  What do they mean?</p>
+<p>TCP-related errors are usually reported by Open MPI in a message
+similar to these:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>btl_tcp_endpoint.c:572:mca_btl_tcp_endpoint_complete_connect: connect() failed with errno=113
+mca_btl_tcp_frag_send: writev failed with errno=104
+</pre></div>
+</div>
+<p>If an <cite>errno</cite> number is displayed with no explanation string, you can
+see what that specific error number means on your operating system.
+On Linux, you can use the <code class="docutils literal notranslate"><span class="pre">perror</span></code> command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># See what errno 113 is</span>
+shell$<span class="w"> </span>perror<span class="w"> </span><span class="m">113</span>
+OS<span class="w"> </span>error<span class="w"> </span>code<span class="w"> </span><span class="m">113</span>:<span class="w">  </span>No<span class="w"> </span>route<span class="w"> </span>to<span class="w"> </span>host
+
+<span class="c1"># See what errno 104 is</span>
+shell$<span class="w"> </span>perror<span class="w"> </span><span class="m">104</span>
+OS<span class="w"> </span>error<span class="w"> </span>code<span class="w"> </span><span class="m">104</span>:<span class="w">  </span>Connection<span class="w"> </span>reset<span class="w"> </span>by<span class="w"> </span>peer
+</pre></div>
+</div>
+<p>Two types of errors are commonly reported to the Open MPI user’s
+mailing list:</p>
+<ol class="arabic simple">
+<li><p><strong>No route to host:</strong> These types of errors <em>usually</em> mean that
+there are multiple IP interfaces available and they do not obey
+Open MPI’s assumptions about routability.  See <a class="reference internal" href="#faq-tcp-routability"><span class="std std-ref">the TCP
+routability assumptions FAQ entry</span></a> and
+<a class="reference internal" href="#faq-tcp-selection"><span class="std std-ref">the TCP selection FAQ entry</span></a> for more
+information.</p></li>
+<li><p><strong>Connection reset by peer:</strong> These types of errors <em>usually</em> occur
+after <code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code> has completed, and typically indicate that an
+MPI process has died unexpectedly (e.g., due to a catastrophic error
+such as a segmentation fault).  The specific error message
+indicates that a peer MPI process tried to write to the now-dead
+MPI process and failed.</p></li>
+</ol>
+<hr class="docutils" />
+</section>
+<section id="how-do-i-tell-open-mpi-which-ip-interfaces-networks-to-use">
+<span id="faq-tcp-selection"></span><h2><span class="section-number">11.2.2.6. </span>How do I tell Open MPI which IP interfaces / networks to use?<a class="headerlink" href="#how-do-i-tell-open-mpi-which-ip-interfaces-networks-to-use" title="Link to this heading"></a></h2>
+<p>In some HPC environments, it is not uncommon to have multiple IP
+interfaces on each node — for example, one IP network may be
+“slow” and used for control information such as a batch scheduler, a
+networked filesystem, and/or interactive logins.  Another IP network
+(or networks) may be “fast” and be intended for parallel applications
+to use during their runs.  As another example, some operating systems
+may also have virtual interfaces for communicating with virtual
+machines.</p>
+<p>Unless otherwise specified, Open MPI will greedily use all “up” IP
+networks that it can find and try to connect to all peers <em>upon
+demand</em> (i.e., Open MPI does not open sockets to all of its MPI peers
+during <code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code> — see <a class="reference internal" href="#faq-tcp-sockets"><span class="std std-ref">this FAQ entry</span></a> for more details).  Hence, if you want MPI jobs to
+not use specific IP networks — or not use any IP networks at all
+— then you need to tell Open MPI.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Aggressively using all “up” interfaces can cause problems
+in some cases.  For example, if you have a machine with a
+local-only interface (e.g., the loopback device, or a
+virtual-machine bridge device that can only be used <em>on
+that machine</em>, and cannot be used to communicate with MPI
+processes on other machines), you will likely need to
+tell Open MPI to ignore these networks.</p>
+<p>Open MPI usually ignores loopback devices by default, but
+<em>other local-only devices must be manually ignored.</em>
+Users have reported cases where RHEL6 automatically
+installed a <code class="docutils literal notranslate"><span class="pre">virbr0</span></code> device for Xen virtualization.
+This interface was automatically given an IP address in
+the 192.168.1.0/24 subnet and marked as “up”.  Since Open
+MPI saw this 192.168.1.0/24 “up” interface in all MPI
+processes on all nodes, it assumed that network was
+usable for MPI communications.  This is obviously
+incorrect, and it led to MPI applications hanging when
+they tried to send or receive MPI messages.</p>
+</div>
+<ol class="arabic">
+<li><p>To disable Open MPI from using TCP for MPI communications, the
+<code class="docutils literal notranslate"><span class="pre">tcp</span></code> MCA parameter should be set accordingly.  You can either
+<em>exclude</em> the TCP component or <em>include</em> all other components.
+Specifically:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># This says to exclude the TCP BTL component</span>
+<span class="c1"># (implicitly including all others)</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>^tcp...
+
+<span class="c1"># This says to include only the listed BTL components</span>
+<span class="c1"># (tcp is not listed, and therefore will not be used)</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>self,vader,openib<span class="w"> </span>...
+</pre></div>
+</div>
+</li>
+<li><p>If you want to use TCP for MPI communications, but want to restrict
+it from certain networks, use the <code class="docutils literal notranslate"><span class="pre">btl_tcp_if_include</span></code> or
+<code class="docutils literal notranslate"><span class="pre">btl_tcp_if_exclude</span></code> MCA parameters (only one of the two should
+be set).  The values of these parameters can be a comma-delimited
+list of network interfaces.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># This says to not use the eth0 and lo interfaces.</span>
+<span class="c1"># (and implicitly use all the rest).  Per the description</span>
+<span class="c1"># above, IP loopback and all local-only devices *must*</span>
+<span class="c1"># be included if the exclude list is specified.</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl_tcp_if_exclude<span class="w"> </span>lo,eth0<span class="w"> </span>...
+
+<span class="c1"># This says to only use the eth1 and eth2 interfaces</span>
+<span class="c1"># (and implicitly ignore the rest)</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl_tcp_if_include<span class="w"> </span>eth1,eth2<span class="w"> </span>...
+</pre></div>
+</div>
+</li>
+<li><p>You can  also specify subnets  in the  include or exclude  lists in
+CIDR notation.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Only use the 192.168.1.0/24 and 10.10.0.0/16 subnets for MPI</span>
+<span class="c1"># communications:</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl_tcp_if_include<span class="w"> </span><span class="m">192</span>.168.1.0/24,10.10.0.0/16<span class="w"> </span>...
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You must specify the CIDR notation for a given network
+precisely.  For example, if you have two IP networks
+10.10.0.0/24 and 10.10.1.0/24, Open MPI will not
+recognize either of them if you specify “10.10.0.0/16”.</p>
+</div>
+</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If you use the <code class="docutils literal notranslate"><span class="pre">btl_tcp_if_include</span></code> and
+<code class="docutils literal notranslate"><span class="pre">btl_tcp_if_exclude</span></code> MCA parameters to shape the
+behavior of the TCP BTL for MPI communications, you may
+also need/want to investigate the corresponding PRRTE
+parameters that control use of network interfaces by the
+runtime (e.g., communications setup and coordination
+during <a class="reference internal" href="../../man-openmpi/man3/MPI_Init.3.html#mpi-init"><span class="std std-ref">MPI_Init</span></a> and <a class="reference internal" href="../../man-openmpi/man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_Finalize</span></a>) using the
+<code class="docutils literal notranslate"><span class="pre">prte_info(1)</span></code> and <code class="docutils literal notranslate"><span class="pre">pmix_info(1)</span></code> commands.</p>
+</div>
+<p>Note that the Open MPI runtime uses TCP for control messages, such as
+for data exchange between <code class="docutils literal notranslate"><span class="pre">mpirun(1)</span></code> and the MPI processes,
+rendezvous information during <a class="reference internal" href="../../man-openmpi/man3/MPI_Init.3.html#mpi-init"><span class="std std-ref">MPI_Init</span></a>, etc. even if the
+<code class="docutils literal notranslate"><span class="pre">tcp</span></code> BTL component is disabled.</p>
+<hr class="docutils" />
+</section>
+<section id="does-open-mpi-open-a-bunch-of-sockets-during-mpi-init">
+<span id="faq-tcp-sockets"></span><h2><span class="section-number">11.2.2.7. </span>Does Open MPI open a bunch of sockets during <code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code>?<a class="headerlink" href="#does-open-mpi-open-a-bunch-of-sockets-during-mpi-init" title="Link to this heading"></a></h2>
+<p>Although Open MPI is likely to open multiple TCP sockets during
+<code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code>, the <code class="docutils literal notranslate"><span class="pre">tcp</span></code> BTL component <em>does not open one socket per
+MPI peer process during MPI_INIT.</em>  Open MPI opens sockets as they
+are required — so the first time a process sends a message to a
+peer and there is no TCP connection between the two, Open MPI will
+automatically open a new socket.</p>
+<p>Hence, you should not have scalability issues with running large
+numbers of processes (e.g., running out of per-process file
+descriptors) if your parallel application is sparse in its
+communication with peers.</p>
+</section>
+<hr class="docutils" />
+<section id="are-there-any-linux-kernel-tcp-parameters-that-i-should-set">
+<h2><span class="section-number">11.2.2.8. </span>Are there any Linux kernel TCP parameters that I should set?<a class="headerlink" href="#are-there-any-linux-kernel-tcp-parameters-that-i-should-set" title="Link to this heading"></a></h2>
+<p>Everyone has different opinions on this, and it also depends
+on your exact hardware and environment.  Below are general guidelines
+that some users have found helpful.</p>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">net.ipv4.tcp_syn_retries</span></code>: Some Linux systems have very large
+initial connection timeouts — they retry sending SYN packets
+many times before determining that a connection cannot be made.  If
+MPI is going to fail to make socket connections, it would be better
+for them to fail somewhat quickly (minutes vs. hours).  You might
+want to reduce this value to a smaller value; YMMV.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.ipv4.tcp_keepalive_time</span></code>: Some MPI applications send an
+initial burst of MPI messages (over TCP) and then send nothing for
+long periods of time (e.g., embarrassingly parallel applications).
+Linux may decide that these dormant TCP sockets are dead because it
+has seen no traffic on them for long periods of time.  You might
+therefore need to lengthen the TCP inactivity timeout.  Many Linux
+systems default to 7,200 seconds; increase it if necessary.</p></li>
+<li><p>Increase TCP buffering for 10G or 40G Ethernet.  Many Linux
+distributions come with good buffering presets for 1G Ethernet.  In
+a datacenter/HPC cluster with 10G or 40G Ethernet NICs, this amount
+of kernel buffering is typically insufficient.  Here’s a set of
+parameters that some have used for good 10G/40G TCP bandwidth:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">net.core.rmem_max</span></code>: 16777216</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.core.wmem_max</span></code>: 16777216</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.ipv4.tcp_rmem</span></code>: 4096 87380 16777216</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.ipv4.tcp_wmem</span></code>: 4096 65536 16777216</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.core.netdev_max_backlog</span></code>: 30000</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.core.rmem_default</span></code>: 16777216</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.core.wmem_default</span></code>: 16777216</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.ipv4.tcp_mem</span></code>: ‘16777216 16777216 16777216’</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">net.ipv4.route.flush</span></code>: 1</p></li>
+</ul>
+<p>Each of the above items is a Linux kernel parameter that can be set
+in multiple different ways.</p>
+<ol class="arabic">
+<li><p>You can change the running kernel via the <code class="docutils literal notranslate"><span class="pre">/proc</span></code> filesystem:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell#<span class="w"> </span>cat<span class="w"> </span>/proc/sys/net/ipv4/tcp_syn_retries
+<span class="m">5</span>
+shell#<span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="m">6</span><span class="w"> </span>&gt;<span class="w"> </span>/proc/sys/net/ipv4/tcp_syn_retries
+</pre></div>
+</div>
+</li>
+<li><p>You can also use the <code class="docutils literal notranslate"><span class="pre">sysctl</span></code> command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell#<span class="w"> </span>sysctl<span class="w"> </span>net.ipv4.tcp_syn_retries
+net.ipv4.tcp_syn_retries<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">5</span>
+shell#<span class="w"> </span>sysctl<span class="w"> </span>-w<span class="w"> </span>net.ipv4.tcp_syn_retries<span class="o">=</span><span class="m">6</span>
+net.ipv4.tcp_syn_retries<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">6</span>
+</pre></div>
+</div>
+</li>
+<li><p>Or you can set them by adding entries in <code class="docutils literal notranslate"><span class="pre">/etc/sysctl.conf</span></code>,
+which are persistent across reboots:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>grep<span class="w"> </span>tcp_syn_retries<span class="w"> </span>/etc/sysctl.conf
+net.ipv4.tcp_syn_retries<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">6</span>
+</pre></div>
+</div>
+</li>
+<li><p>Your Linux distro may also support putting individual files in
+<code class="docutils literal notranslate"><span class="pre">/etc/sysctl.d</span></code> (even if that directory does not yet exist),
+which is actually better practice than putting them in
+<code class="docutils literal notranslate"><span class="pre">/etc/sysctl.conf</span></code>.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>/etc/sysctl.d/my-tcp-settings
+net.ipv4.tcp_syn_retries<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">6</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</li>
+</ol>
+<hr class="docutils" />
+</section>
+<section id="how-does-open-mpi-know-which-ip-addresses-are-routable-to-each-other">
+<span id="faq-tcp-routability"></span><h2><span class="section-number">11.2.2.9. </span>How does Open MPI know which IP addresses are routable to each other?<a class="headerlink" href="#how-does-open-mpi-know-which-ip-addresses-are-routable-to-each-other" title="Link to this heading"></a></h2>
+<p>Open MPI assumes that all interfaces are routable as long as they have
+the same address family, IPv4 or IPv6.  We use graph theory and give
+each possible connection a weight depending on the quality of the
+connection.  This allows the library to select the best connections
+between nodes.  This method also supports striping but prevents more
+than one connection to any interface.</p>
+<p>The quality of the connection is defined as follows, with a higher
+number meaning better connection.  Note that when giving a weight to a
+connection consisting of a private address and a public address, it
+will give it the weight of <code class="docutils literal notranslate"><span class="pre">PRIVATE_DIFFERENT_NETWORK</span></code>.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>            NO_CONNECTION = 0
+PRIVATE_DIFFERENT_NETWORK = 1
+PRIVATE_SAME_NETWORK      = 2
+PUBLIC_DIFFERENT_NETWORK  = 3
+PUBLIC_SAME_NETWORK       = 4
+</pre></div>
+</div>
+<p>An example will best illustrate how two processes on two different
+nodes would connect up.  Here we have two nodes with a variety of
+interfaces:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>       Node A                Node B
+ ----------------       ----------------
+|      lo0       |     |      lo0       |
+| 127.0.0.1/8    |     | 127.0.0.1/8    |
+|                |     |                |
+|      eth0      |     |      eth0      |
+| 10.8.47.1/24   |     | 10.8.47.2/24   |
+|                |     |                |
+|      eth1      |     |      eth1      |
+| 192.168.1.1/24 |     | 192.168.1.2/24 |
+|                |     |                |
+|      eth2      |     |                |
+| 192.168.2.2/24 |     |                |
+ ----------------      ------------------
+</pre></div>
+</div>
+<p>From these two nodes, the software builds up a bipartite graph that
+shows all the possible connections with all the possible weights.  The
+<em>lo0</em> interfaces are excluded as the <code class="docutils literal notranslate"><span class="pre">btl_tcp_if_exclude</span></code> MCA parameter
+is set to <em>lo</em> by default.  Here is what all the possible connections
+with their weights look like.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>      Node A       Node B
+eth0 --------- 2 -------- eth0
+       ------- 1 -------- eth1
+
+eth1 --------- 1 -------- eth0
+       ------- 2 -------- eth1
+
+eth2 --------- 1 -------- eth0
+       ------- 1 -------- eth1
+</pre></div>
+</div>
+<p>The library then examines all the connections and picks the optimal
+ones.  This leaves us with two connections being established between
+the two nodes.</p>
+<p>If you are curious about the actual <code class="docutils literal notranslate"><span class="pre">connect()</span></code> calls being made by
+the processes, then you can run with <code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">btl_base_verbose</span> <span class="pre">30</span></code>.
+This can be useful if you notice your job hanging and believe it may
+be the library trying to make connections to unreachable hosts.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Here is an example with some of the output deleted for clarity.</span>
+<span class="c1"># One can see the connections that are attempted.</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>self,sm,tcp<span class="w"> </span>--mca<span class="w"> </span>btl_base_verbose<span class="w"> </span><span class="m">30</span><span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>-host<span class="w"> </span>NodeA,NodeB<span class="w"> </span>a.out
+<span class="o">[</span>...snip...<span class="o">]</span>
+<span class="o">[</span>NodeA:18003<span class="o">]</span><span class="w"> </span>btl:<span class="w"> </span>tcp:<span class="w"> </span>attempting<span class="w"> </span>to<span class="w"> </span>connect<span class="o">()</span><span class="w"> </span>to<span class="w"> </span>address<span class="w"> </span><span class="m">10</span>.8.47.2<span class="w"> </span>on<span class="w"> </span>port<span class="w"> </span><span class="m">59822</span>
+<span class="o">[</span>NodeA:18003<span class="o">]</span><span class="w"> </span>btl:<span class="w"> </span>tcp:<span class="w"> </span>attempting<span class="w"> </span>to<span class="w"> </span>connect<span class="o">()</span><span class="w"> </span>to<span class="w"> </span>address<span class="w"> </span><span class="m">192</span>.168.1.2<span class="w"> </span>on<span class="w"> </span>port<span class="w"> </span><span class="m">59822</span>
+<span class="o">[</span>NodeB:16842<span class="o">]</span><span class="w"> </span>btl:<span class="w"> </span>tcp:<span class="w"> </span>attempting<span class="w"> </span>to<span class="w"> </span>connect<span class="o">()</span><span class="w"> </span>to<span class="w"> </span>address<span class="w"> </span><span class="m">192</span>.168.1.1<span class="w"> </span>on<span class="w"> </span>port<span class="w"> </span><span class="m">44500</span>
+<span class="o">[</span>...snip...<span class="o">]</span>
+</pre></div>
+</div>
+<p>In case you want more details about the theory behind the connection
+code, you can find the background story in <a class="reference external" href="https://ieeexplore.ieee.org/document/4476565">this IEEE paper</a>.</p>
+</section>
+<hr class="docutils" />
+<section id="does-open-mpi-ever-close-tcp-sockets">
+<h2><span class="section-number">11.2.2.10. </span>Does Open MPI ever close TCP sockets?<a class="headerlink" href="#does-open-mpi-ever-close-tcp-sockets" title="Link to this heading"></a></h2>
+<p>In general, no.</p>
+<p>Although TCP sockets are opened “lazily” (meaning that MPI
+connections / TCP sockets are only opened upon demand — as opposed to
+opening all possible sockets between MPI peer processes during
+<code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code>), they are never closed.</p>
+</section>
+<hr class="docutils" />
+<section id="does-open-mpi-support-ip-interfaces-that-have-more-than-one-ip-address">
+<h2><span class="section-number">11.2.2.11. </span>Does Open MPI support IP interfaces that have more than one IP address?<a class="headerlink" href="#does-open-mpi-support-ip-interfaces-that-have-more-than-one-ip-address" title="Link to this heading"></a></h2>
+<p>In general, no.</p>
+<p>For example, if the output from your <code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> has a single IP device
+with multiple IP addresses like this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>0: eth0: &lt;BROADCAST,MULTICAST,UP,LOWER_UP&gt; mtu 1500 qdisc mq state UP qlen 1000
+   link/ether 00:18:ae:f4:d2:29 brd ff:ff:ff:ff:ff:ff
+   inet 192.168.0.3/24 brd 192.168.0.255 scope global eth0:1
+   inet 10.10.0.3/24 brf 10.10.0.255 scope global eth0
+   inet6 fe80::218:aef2:29b4:2c4/64 scope link
+      valid_lft forever preferred_lft forever
+</pre></div>
+</div>
+<p>(note the two <code class="docutils literal notranslate"><span class="pre">inet</span></code> lines in there)</p>
+<p>Then Open MPI will be unable to use this device.</p>
+</section>
+<hr class="docutils" />
+<section id="does-open-mpi-support-virtual-ip-interfaces">
+<h2><span class="section-number">11.2.2.12. </span>Does Open MPI support virtual IP interfaces?<a class="headerlink" href="#does-open-mpi-support-virtual-ip-interfaces" title="Link to this heading"></a></h2>
+<p>No.</p>
+<p>For example, if the output of your <code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> has both <code class="docutils literal notranslate"><span class="pre">eth0</span></code> and
+<code class="docutils literal notranslate"><span class="pre">eth0:0</span></code>, Open MPI will get confused if you use the TCP BTL, and
+may hang or otherwise act unpredictably.</p>
+<p>Note that using <code class="docutils literal notranslate"><span class="pre">btl_tcp_if_include</span></code> or <code class="docutils literal notranslate"><span class="pre">btl_tcp_if_exclude</span></code> to avoid
+using the virtual interface will <em>not</em> solve the issue.</p>
+</section>
+<hr class="docutils" />
+<section id="can-i-use-multiple-tcp-connections-to-improve-network-performance">
+<h2><span class="section-number">11.2.2.13. </span>Can I use multiple TCP connections to improve network performance?<a class="headerlink" href="#can-i-use-multiple-tcp-connections-to-improve-network-performance" title="Link to this heading"></a></h2>
+<p>Open MPI can use multiple TCP connections between any pair of MPI
+processes, striping large messages across the connections.  The
+<code class="docutils literal notranslate"><span class="pre">btl_tcp_links</span></code> parameter can be used to set how many TCP
+connections should be established between MPI processes.</p>
+<p>Note that
+this may not improve application performance for common use cases of
+nearest-neighbor exchanges when there many MPI processes on each host.  In
+these cases, there are already many TCP connections between any two
+hosts (because of the many processes all communicating), so the extra TCP
+connections are likely just consuming extra resources and adding work
+to the MPI implementation.</p>
+<p>However, for highly multi-threaded applications, where there are only
+one or two MPI processes per host, the <code class="docutils literal notranslate"><span class="pre">btl_tcp_links</span></code> option may
+improve TCP throughput considerably.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ofi.html" class="btn btn-neutral float-left" title="11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shared-memory.html" class="btn btn-neutral float-right" title="11.2.3. Shared Memory" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

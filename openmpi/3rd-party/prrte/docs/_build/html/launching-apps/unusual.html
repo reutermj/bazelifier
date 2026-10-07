@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9.11. Unusual jobs &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="9.12. Troubleshooting" href="troubleshooting.html" />
+    <link rel="prev" title="9.10. Launching with Grid Engine" href="gridengine.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">9. Launching applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">9.1. Quick start: Launching applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">9.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html">9.3. Placing processes across hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html#fundamentals">9.4. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="localhost.html">9.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ssh.html">9.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm.html">9.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsf.html">9.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tm.html">9.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gridengine.html">9.10. Launching with Grid Engine</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9.11. Unusual jobs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#running-non-mpi-programs">9.11.1. Running non-MPI programs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-gui-applications">9.11.2. Running GUI applications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-curses-based-applications">9.11.3. Running curses-based applications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#launching-an-mpmd-job">9.11.4. Launching an MPMD job</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#connecting-independent-mpi-applications">9.11.5. Connecting independent MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html">9.12. Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">9. </span>Launching applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9.11. </span>Unusual jobs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/launching-apps/unusual.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="unusual-jobs">
+<h1><span class="section-number">9.11. </span>Unusual jobs<a class="headerlink" href="#unusual-jobs" title="Link to this heading"></a></h1>
+<p>PRRTE can run many types of applications, including non-MPI programs.
+This section describes some of the less common kinds of programs that can
+be executed. In the following, the prterun and prun commands will be
+used interchangeably for convenience - the documentation applies
+equally when running a one-shot PRRTE instance or a persistent DVM.</p>
+<section id="running-non-mpi-programs">
+<h2><span class="section-number">9.11.1. </span>Running non-MPI programs<a class="headerlink" href="#running-non-mpi-programs" title="Link to this heading"></a></h2>
+<p>Non-MPI programs can be launched with prterun or prun,
+for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ prterun -n 2 --host a,b uptime
+</pre></div>
+</div>
+<p>This will launch a copy of the Unix command <code class="docutils literal notranslate"><span class="pre">uptime</span></code> on the hosts <code class="docutils literal notranslate"><span class="pre">a</span></code>
+and <code class="docutils literal notranslate"><span class="pre">b</span></code>.</p>
+<p>prterun and prun work equally well for MPI and non-MPI
+applications.</p>
+</section>
+<section id="running-gui-applications">
+<h2><span class="section-number">9.11.2. </span>Running GUI applications<a class="headerlink" href="#running-gui-applications" title="Link to this heading"></a></h2>
+<p>Running GUI applications depends on your local setup and may require additional
+setup.</p>
+<p>You will need to have graphics forwarding (e.g., X11
+forwarding) enabled from the remote processes to the display where you
+want output to appear.  In a secure environment, you can simply allow
+all X requests to be shown on the target display and set the
+<code class="docutils literal notranslate"><span class="pre">DISPLAY</span></code> environment variable in all application processes’ environments to
+the target display, perhaps something like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ hostname
+my_desktop.secure-cluster.example.com
+shell$ xhost +
+shell$ prun -n 4 -x DISPLAY=my_desktop.secure-cluster.example.com a.out
+</pre></div>
+</div>
+<p>However, this technique is not generally suitable for unsecure
+environments (because it allows anyone to read and write to your
+display).  A slightly more secure way is to only allow X connections
+from the nodes where your application will be running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ hostname
+my_desktop.secure-cluster.example.com
+shell$ xhost +compute1 +compute2 +compute3 +compute4
+compute1 being added to access control list
+compute2 being added to access control list
+compute3 being added to access control list
+compute4 being added to access control list
+shell$ prun -n 4 -x DISPLAY=my_desktop.secure-cluster.example.com a.out
+</pre></div>
+</div>
+<p>(assuming that the four nodes you are running on are <code class="docutils literal notranslate"><span class="pre">compute1</span></code>
+through <code class="docutils literal notranslate"><span class="pre">compute4</span></code>).</p>
+<p>Other methods are available, but they involve sophisticated X
+forwarding through prterun and are generally
+more complicated than desirable.</p>
+</section>
+<section id="running-curses-based-applications">
+<h2><span class="section-number">9.11.3. </span>Running curses-based applications<a class="headerlink" href="#running-curses-based-applications" title="Link to this heading"></a></h2>
+<p>PRRTE provides fairly sophisticated stdin / stdout / stderr
+forwarding.  However, it does not work well with curses, ncurses,
+readline, or other sophisticated I/O packages that generally require
+direct control of the terminal.</p>
+<p>Every application and I/O library is different — you should try to
+see if yours is supported.  But chances are that it won’t work.</p>
+</section>
+<section id="launching-an-mpmd-job">
+<h2><span class="section-number">9.11.4. </span>Launching an MPMD job<a class="headerlink" href="#launching-an-mpmd-job" title="Link to this heading"></a></h2>
+<p>PRRTE supports multiple program, multiple data (MPMD) style launches,
+either from the command line or from a file.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ prterun -n 2 a.out : -n 2 b.out
+</pre></div>
+</div>
+<p>This will launch a single parallel application, but the first two
+processes will be instances of the <code class="docutils literal notranslate"><span class="pre">a.out</span></code> executable, and the
+second two processes will be instances of the <code class="docutils literal notranslate"><span class="pre">b.out</span></code> executable.
+In MPI terms, this will be a single <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>, but the
+<code class="docutils literal notranslate"><span class="pre">a.out</span></code> processes will be ranks 0 and 1 in <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>, while
+the <code class="docutils literal notranslate"><span class="pre">b.out</span></code> processes will be ranks 2 and 3 in <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>.</p>
+<p>prterun can also accept a parallel application
+specified in a file instead of on the command line.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ prterun --app my_appfile
+</pre></div>
+</div>
+<p>where the file <code class="docutils literal notranslate"><span class="pre">my_appfile</span></code> contains the following:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Comments are supported; comments begin with #</span>
+<span class="c1"># Application context files specify each sub-application in the</span>
+<span class="c1"># parallel job, one per line.  The first sub-application is the 2</span>
+<span class="c1"># a.out processes:</span>
+-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>a.out
+<span class="c1"># The second sub-application is the 2 b.out processes:</span>
+-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>b.out
+</pre></div>
+</div>
+<p>This will result in the same behavior as running <code class="docutils literal notranslate"><span class="pre">a.out</span></code> and <code class="docutils literal notranslate"><span class="pre">b.out</span></code>
+from the command line.</p>
+</section>
+<section id="connecting-independent-mpi-applications">
+<h2><span class="section-number">9.11.5. </span>Connecting independent MPI applications<a class="headerlink" href="#connecting-independent-mpi-applications" title="Link to this heading"></a></h2>
+<p>In certain environments, Open MPI supports connecting multiple,
+independent MPI applications using mechanism defined in the MPI
+specification such as <code class="docutils literal notranslate"><span class="pre">MPI_Comm_connect()</span> <span class="pre">/</span> <span class="pre">MPI_Comm_accept()</span></code> and
+publishing connection information using <code class="docutils literal notranslate"><span class="pre">MPI_Publish_name()</span> <span class="pre">/</span>
+<span class="pre">MPI_Lookup_name()</span></code>. These mechanisms require a centralized service
+to exchange contact information across multiple jobs.</p>
+<p>Beginning with Open MPI v5.0.0 this can be achieved by starting an
+instance of the prte server with the <code class="docutils literal notranslate"><span class="pre">report-uri</span></code> option to
+display the contact information of the prte server. This information
+can then be used for launching subsequent MPI applications.</p>
+<p>The following commands show an example for launching two MPI jobs
+that will connect to each other at runtime using the MPI-2 based
+functionality.</p>
+<p>Step 1: start the standalone prte server</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>user@myhost:~/ompi-install/bin$ ./prte --report-uri &lt;filename&gt;
+DVM ready
+</pre></div>
+</div>
+<p>Step 2: Launch the first MPI application providing the uri of the
+prte server</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>user@myhost:~/app1-dir$ mpiexec --dvm file:&lt;filename&gt; -np 4 ./mpi_app_1
+</pre></div>
+</div>
+<p>Step 3: Launch the second MPI application providing the uri of the
+prte server again</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>user@myhost:~/app2-dir$ mpiexec --dvm file:&lt;filename&gt; -np 4 ./mpi_app_2
+</pre></div>
+</div>
+<p>In case the prte server has been started as a system server using the
+<code class="docutils literal notranslate"><span class="pre">--system-server</span></code> argument (e.g. the nodes used by the MPI
+applications are not shared by multiple jobs), the sequence can be
+simplified by using <code class="docutils literal notranslate"><span class="pre">mpiexec</span> <span class="pre">--dvm</span> <span class="pre">system</span></code> or <code class="docutils literal notranslate"><span class="pre">mpiexec</span> <span class="pre">--dvm</span>
+<span class="pre">system-first</span></code> instead of the uri of the prte server.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gridengine.html" class="btn btn-neutral float-left" title="9.10. Launching with Grid Engine" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="troubleshooting.html" class="btn btn-neutral float-right" title="9.12. Troubleshooting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

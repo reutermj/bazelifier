@@ -1,0 +1,1049 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18.2.4. intro_shmem &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="18.2.5. shfree" href="shfree.3.html" />
+    <link rel="prev" title="18.2.3. _num_pes" href="_num_pes.3.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">18. OpenSHMEM manual pages</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../man1/index.html">18.1. Commands (section 1)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">18.2. OpenSHMEM API manual pages (section 3)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="OpenSHMEM.3.html">18.2.1. OpenSHMEM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_my_pe.3.html">18.2.2. _my_pe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_num_pes.3.html">18.2.3. _num_pes</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">18.2.4. intro_shmem</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#description">18.2.4.1. DESCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#openshmem-routines">18.2.4.2. OPENSHMEM ROUTINES</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-the-symmetric-work-array-psync">18.2.4.3. USING THE SYMMETRIC WORK ARRAY, PSYNC</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shmem-environment-variables">18.2.4.4. SHMEM ENVIRONMENT VARIABLES</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compiling-and-running-openshmem-programs">18.2.4.5. COMPILING AND RUNNING OPENSHMEM PROGRAMS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples">18.2.4.6. EXAMPLES</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="shfree.3.html">18.2.5. shfree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmalloc.3.html">18.2.6. shmalloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_addr_accessible.3.html">18.2.7. shmem_addr_accessible</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_align.3.html">18.2.8. shmem_align</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoall32.3.html">18.2.9. shmem_alltoall32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoall64.3.html">18.2.10. shmem_alltoall64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoalls32.3.html">18.2.11. shmem_alltoalls32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoalls64.3.html">18.2.12. shmem_alltoalls64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_barrier.3.html">18.2.13. shmem_barrier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_barrier_all.3.html">18.2.14. shmem_barrier_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_broadcast32.3.html">18.2.15. shmem_broadcast32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_broadcast64.3.html">18.2.16. shmem_broadcast64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_g.3.html">18.2.17. shmem_char_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_get.3.html">18.2.18. shmem_char_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_get_nbi.3.html">18.2.19. shmem_char_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_p.3.html">18.2.20. shmem_char_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_put.3.html">18.2.21. shmem_char_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_put_nbi.3.html">18.2.22. shmem_char_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_clear_cache_inv.3.html">18.2.23. shmem_clear_cache_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_clear_cache_line_inv.3.html">18.2.24. shmem_clear_cache_line_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_clear_lock.3.html">18.2.25. shmem_clear_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_collect32.3.html">18.2.26. shmem_collect32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_collect64.3.html">18.2.27. shmem_collect64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexd_prod_to_all.3.html">18.2.28. shmem_complexd_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexd_sum_to_all.3.html">18.2.29. shmem_complexd_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexf_prod_to_all.3.html">18.2.30. shmem_complexf_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexf_sum_to_all.3.html">18.2.31. shmem_complexf_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_fetch.3.html">18.2.32. shmem_double_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_g.3.html">18.2.33. shmem_double_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_get.3.html">18.2.34. shmem_double_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_get_nbi.3.html">18.2.35. shmem_double_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_iget.3.html">18.2.36. shmem_double_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_iput.3.html">18.2.37. shmem_double_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_max_to_all.3.html">18.2.38. shmem_double_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_min_to_all.3.html">18.2.39. shmem_double_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_p.3.html">18.2.40. shmem_double_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_prod_to_all.3.html">18.2.41. shmem_double_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_put.3.html">18.2.42. shmem_double_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_put_nbi.3.html">18.2.43. shmem_double_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_set.3.html">18.2.44. shmem_double_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_sum_to_all.3.html">18.2.45. shmem_double_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_swap.3.html">18.2.46. shmem_double_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_fcollect32.3.html">18.2.47. shmem_fcollect32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_fcollect64.3.html">18.2.48. shmem_fcollect64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_fence.3.html">18.2.49. shmem_fence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_finalize.3.html">18.2.50. shmem_finalize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_fetch.3.html">18.2.51. shmem_float_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_g.3.html">18.2.52. shmem_float_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_get.3.html">18.2.53. shmem_float_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_get_nbi.3.html">18.2.54. shmem_float_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_iget.3.html">18.2.55. shmem_float_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_iput.3.html">18.2.56. shmem_float_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_max_to_all.3.html">18.2.57. shmem_float_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_min_to_all.3.html">18.2.58. shmem_float_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_p.3.html">18.2.59. shmem_float_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_prod_to_all.3.html">18.2.60. shmem_float_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_put.3.html">18.2.61. shmem_float_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_put_nbi.3.html">18.2.62. shmem_float_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_set.3.html">18.2.63. shmem_float_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_sum_to_all.3.html">18.2.64. shmem_float_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_swap.3.html">18.2.65. shmem_float_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_free.3.html">18.2.66. shmem_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get128.3.html">18.2.67. shmem_get128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get128_nbi.3.html">18.2.68. shmem_get128_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get16_nbi.3.html">18.2.69. shmem_get16_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get32.3.html">18.2.70. shmem_get32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get32_nbi.3.html">18.2.71. shmem_get32_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get64.3.html">18.2.72. shmem_get64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get64_nbi.3.html">18.2.73. shmem_get64_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get8_nbi.3.html">18.2.74. shmem_get8_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_getmem.3.html">18.2.75. shmem_getmem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_getmem_nbi.3.html">18.2.76. shmem_getmem_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_global_exit.3.html">18.2.77. shmem_global_exit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iget128.3.html">18.2.78. shmem_iget128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iget32.3.html">18.2.79. shmem_iget32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iget64.3.html">18.2.80. shmem_iget64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_info_get_name.3.html">18.2.81. shmem_info_get_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_info_get_version.3.html">18.2.82. shmem_info_get_version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_init.3.html">18.2.83. shmem_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_add.3.html">18.2.84. shmem_int_add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_and_to_all.3.html">18.2.85. shmem_int_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_cswap.3.html">18.2.86. shmem_int_cswap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_fadd.3.html">18.2.87. shmem_int_fadd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_fetch.3.html">18.2.88. shmem_int_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_finc.3.html">18.2.89. shmem_int_finc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_g.3.html">18.2.90. shmem_int_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_get.3.html">18.2.91. shmem_int_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_get_nbi.3.html">18.2.92. shmem_int_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_iget.3.html">18.2.93. shmem_int_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_inc.3.html">18.2.94. shmem_int_inc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_iput.3.html">18.2.95. shmem_int_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_max_to_all.3.html">18.2.96. shmem_int_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_min_to_all.3.html">18.2.97. shmem_int_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_or_to_all.3.html">18.2.98. shmem_int_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_p.3.html">18.2.99. shmem_int_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_prod_to_all.3.html">18.2.100. shmem_int_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_put.3.html">18.2.101. shmem_int_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_put_nbi.3.html">18.2.102. shmem_int_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_set.3.html">18.2.103. shmem_int_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_sum_to_all.3.html">18.2.104. shmem_int_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_swap.3.html">18.2.105. shmem_int_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_wait.3.html">18.2.106. shmem_int_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_wait_until.3.html">18.2.107. shmem_int_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_xor_to_all.3.html">18.2.108. shmem_int_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iput128.3.html">18.2.109. shmem_iput128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iput32.3.html">18.2.110. shmem_iput32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iput64.3.html">18.2.111. shmem_iput64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_add.3.html">18.2.112. shmem_long_add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_and_to_all.3.html">18.2.113. shmem_long_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_cswap.3.html">18.2.114. shmem_long_cswap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_fadd.3.html">18.2.115. shmem_long_fadd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_fetch.3.html">18.2.116. shmem_long_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_finc.3.html">18.2.117. shmem_long_finc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_g.3.html">18.2.118. shmem_long_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_get.3.html">18.2.119. shmem_long_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_get_nbi.3.html">18.2.120. shmem_long_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_iget.3.html">18.2.121. shmem_long_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_inc.3.html">18.2.122. shmem_long_inc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_iput.3.html">18.2.123. shmem_long_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_max_to_all.3.html">18.2.124. shmem_long_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_min_to_all.3.html">18.2.125. shmem_long_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_or_to_all.3.html">18.2.126. shmem_long_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_p.3.html">18.2.127. shmem_long_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_prod_to_all.3.html">18.2.128. shmem_long_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_put.3.html">18.2.129. shmem_long_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_put_nbi.3.html">18.2.130. shmem_long_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_set.3.html">18.2.131. shmem_long_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_sum_to_all.3.html">18.2.132. shmem_long_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_swap.3.html">18.2.133. shmem_long_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_wait.3.html">18.2.134. shmem_long_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_wait_until.3.html">18.2.135. shmem_long_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_xor_to_all.3.html">18.2.136. shmem_long_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_g.3.html">18.2.137. shmem_longdouble_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_get.3.html">18.2.138. shmem_longdouble_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_get_nbi.3.html">18.2.139. shmem_longdouble_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_iget.3.html">18.2.140. shmem_longdouble_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_iput.3.html">18.2.141. shmem_longdouble_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_max_to_all.3.html">18.2.142. shmem_longdouble_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_min_to_all.3.html">18.2.143. shmem_longdouble_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_p.3.html">18.2.144. shmem_longdouble_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_prod_to_all.3.html">18.2.145. shmem_longdouble_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_put.3.html">18.2.146. shmem_longdouble_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_put_nbi.3.html">18.2.147. shmem_longdouble_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_sum_to_all.3.html">18.2.148. shmem_longdouble_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_add.3.html">18.2.149. shmem_longlong_add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_and_to_all.3.html">18.2.150. shmem_longlong_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_cswap.3.html">18.2.151. shmem_longlong_cswap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_fadd.3.html">18.2.152. shmem_longlong_fadd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_fetch.3.html">18.2.153. shmem_longlong_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_finc.3.html">18.2.154. shmem_longlong_finc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_g.3.html">18.2.155. shmem_longlong_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_get.3.html">18.2.156. shmem_longlong_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_get_nbi.3.html">18.2.157. shmem_longlong_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_iget.3.html">18.2.158. shmem_longlong_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_inc.3.html">18.2.159. shmem_longlong_inc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_iput.3.html">18.2.160. shmem_longlong_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_max_to_all.3.html">18.2.161. shmem_longlong_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_min_to_all.3.html">18.2.162. shmem_longlong_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_or_to_all.3.html">18.2.163. shmem_longlong_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_p.3.html">18.2.164. shmem_longlong_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_prod_to_all.3.html">18.2.165. shmem_longlong_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_put.3.html">18.2.166. shmem_longlong_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_put_nbi.3.html">18.2.167. shmem_longlong_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_set.3.html">18.2.168. shmem_longlong_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_sum_to_all.3.html">18.2.169. shmem_longlong_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_swap.3.html">18.2.170. shmem_longlong_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_wait.3.html">18.2.171. shmem_longlong_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_wait_until.3.html">18.2.172. shmem_longlong_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_xor_to_all.3.html">18.2.173. shmem_longlong_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_malloc.3.html">18.2.174. shmem_malloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_my_pe.3.html">18.2.175. shmem_my_pe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_n_pes.3.html">18.2.176. shmem_n_pes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_pe_accessible.3.html">18.2.177. shmem_pe_accessible</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_ptr.3.html">18.2.178. shmem_ptr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put128.3.html">18.2.179. shmem_put128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put128_nbi.3.html">18.2.180. shmem_put128_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put16_nbi.3.html">18.2.181. shmem_put16_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put32.3.html">18.2.182. shmem_put32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put32_nbi.3.html">18.2.183. shmem_put32_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put64.3.html">18.2.184. shmem_put64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put64_nbi.3.html">18.2.185. shmem_put64_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put8_nbi.3.html">18.2.186. shmem_put8_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_putmem.3.html">18.2.187. shmem_putmem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_putmem_nbi.3.html">18.2.188. shmem_putmem_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_quiet.3.html">18.2.189. shmem_quiet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_realloc.3.html">18.2.190. shmem_realloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_set_cache_inv.3.html">18.2.191. shmem_set_cache_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_set_cache_line_inv.3.html">18.2.192. shmem_set_cache_line_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_set_lock.3.html">18.2.193. shmem_set_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_and_to_all.3.html">18.2.194. shmem_short_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_g.3.html">18.2.195. shmem_short_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_get.3.html">18.2.196. shmem_short_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_get_nbi.3.html">18.2.197. shmem_short_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_iget.3.html">18.2.198. shmem_short_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_iput.3.html">18.2.199. shmem_short_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_max_to_all.3.html">18.2.200. shmem_short_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_min_to_all.3.html">18.2.201. shmem_short_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_or_to_all.3.html">18.2.202. shmem_short_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_p.3.html">18.2.203. shmem_short_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_prod_to_all.3.html">18.2.204. shmem_short_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_put.3.html">18.2.205. shmem_short_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_put_nbi.3.html">18.2.206. shmem_short_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_sum_to_all.3.html">18.2.207. shmem_short_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_wait.3.html">18.2.208. shmem_short_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_wait_until.3.html">18.2.209. shmem_short_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_xor_to_all.3.html">18.2.210. shmem_short_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_swap.3.html">18.2.211. shmem_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_test_lock.3.html">18.2.212. shmem_test_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_udcflush.3.html">18.2.213. shmem_udcflush</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_udcflush_line.3.html">18.2.214. shmem_udcflush_line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_wait.3.html">18.2.215. shmem_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_wait_until.3.html">18.2.216. shmem_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmemalign.3.html">18.2.217. shmemalign</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shrealloc.3.html">18.2.218. shrealloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="start_pes.3.html">18.2.219. start_pes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">18. </span>OpenSHMEM manual pages</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">18.2. </span>OpenSHMEM API manual pages (section 3)</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">18.2.4. </span>intro_shmem</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/man-openshmem/man3/intro_shmem.3.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="intro-shmem">
+<span id="id1"></span><h1><span class="section-number">18.2.4. </span>intro_shmem<a class="headerlink" href="#intro-shmem" title="Link to this heading"></a></h1>
+<p>intro_shmem - Introduction to the OpenSHMEM programming model</p>
+<section id="description">
+<h2><span class="section-number">18.2.4.1. </span>DESCRIPTION<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<p>The SHMEM programming model consists of library routines that provide
+low-latency, high-bandwidth communication for use in highly parallelized
+scalable programs. The routines in the OpenSHMEM application programming
+interface (API) provide a programming model for exchanging data between
+cooperating parallel processes. The resulting programs are similar in
+style to Message Passing Interface (MPI) programs. The SHMEM API can be
+used either alone or in combination with MPI routines in the same
+parallel program.</p>
+<p>An OpenSHMEM program is SPMD (single program, multiple data) in style.
+The SHMEM processes, called processing elements or PEs, all start at the
+same time and they all run the same program. Usually the PEs perform
+computation on their own subdomains of the larger problem and
+periodically communicate with other PEs to exchange information on which
+the next computation phase depends.</p>
+<p>The OpenSHMEM routines minimize the overhead associated with data
+transfer requests, maximize bandwidth and minimize data latency. Data
+latency is the period of time that starts when a PE initiates a transfer
+of data and ends when a PE can use the data. OpenSHMEM routines support
+remote data transfer through put operations, which transfer data to a
+different PE, get operations, which transfer data from a different PE,
+and remote pointers, which allow direct references to data objects owned
+by another PE. Other operations supported are collective broadcast and
+reduction, barrier synchronization, and atomic memory operations. An
+atomic memory operation is an atomic read-and-update operation, such as
+a fetch-and-increment, on a remote or local data object.</p>
+</section>
+<section id="openshmem-routines">
+<h2><span class="section-number">18.2.4.2. </span>OPENSHMEM ROUTINES<a class="headerlink" href="#openshmem-routines" title="Link to this heading"></a></h2>
+<p>This section lists the significant OpenSHMEM message-passing routines.</p>
+<p>PE queries</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><em>_num_pes</em>(3)</p></li>
+<li><p><em>_my_pe</em>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><em>NUM_PES</em>(3)</p></li>
+<li><p><em>MY_PE</em>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Elemental data put routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_double_p.3.html#shmem-double-p"><span class="std std-ref">shmem_double_p</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_p.3.html#shmem-float-p"><span class="std std-ref">shmem_float_p</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_p.3.html#shmem-int-p"><span class="std std-ref">shmem_int_p</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_p.3.html#shmem-long-p"><span class="std std-ref">shmem_long_p</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_p.3.html#shmem-short-p"><span class="std std-ref">shmem_short_p</span></a>.*(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Block data put routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_put32.3.html#shmem-put32"><span class="std std-ref">shmem_put32</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_put64.3.html#shmem-put64"><span class="std std-ref">shmem_put64</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_put128.3.html#shmem-put128"><span class="std std-ref">shmem_put128</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_double_put.3.html#shmem-double-put"><span class="std std-ref">shmem_double_put</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_put.3.html#shmem-float-put"><span class="std std-ref">shmem_float_put</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_put.3.html#shmem-int-put"><span class="std std-ref">shmem_int_put</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_put.3.html#shmem-long-put"><span class="std std-ref">shmem_long_put</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_put.3.html#shmem-short-put"><span class="std std-ref">shmem_short_put</span></a>.*(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_complex_put(3)</p></li>
+<li><p>shmem_integer_put(3)</p></li>
+<li><p>shmem_logical_put(3)</p></li>
+<li><p>shmem_real_put(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Elemental data get routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_double_g.3.html#shmem-double-g"><span class="std std-ref">shmem_double_g</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_g.3.html#shmem-float-g"><span class="std std-ref">shmem_float_g</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_g.3.html#shmem-int-g"><span class="std std-ref">shmem_int_g</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_g.3.html#shmem-long-g"><span class="std std-ref">shmem_long_g</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_g.3.html#shmem-short-g"><span class="std std-ref">shmem_short_g</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Block data get routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_get32.3.html#shmem-get32"><span class="std std-ref">shmem_get32</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_get64.3.html#shmem-get64"><span class="std std-ref">shmem_get64</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_get128.3.html#shmem-get128"><span class="std std-ref">shmem_get128</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_double_get.3.html#shmem-double-get"><span class="std std-ref">shmem_double_get</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_get.3.html#shmem-float-get"><span class="std std-ref">shmem_float_get</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_get.3.html#shmem-int-get"><span class="std std-ref">shmem_int_get</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_get.3.html#shmem-long-get"><span class="std std-ref">shmem_long_get</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_get.3.html#shmem-short-get"><span class="std std-ref">shmem_short_get</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_complex_get(3)</p></li>
+<li><p>shmem_integer_get(3)</p></li>
+<li><p>shmem_logical_get(3)</p></li>
+<li><p>shmem_real_get(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Strided put routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_iput32.3.html#shmem-iput32"><span class="std std-ref">shmem_iput32</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_iput64.3.html#shmem-iput64"><span class="std std-ref">shmem_iput64</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_iput128.3.html#shmem-iput128"><span class="std std-ref">shmem_iput128</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_double_iput.3.html#shmem-double-iput"><span class="std std-ref">shmem_double_iput</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_iput.3.html#shmem-float-iput"><span class="std std-ref">shmem_float_iput</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_iput.3.html#shmem-int-iput"><span class="std std-ref">shmem_int_iput</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_iput.3.html#shmem-long-iput"><span class="std std-ref">shmem_long_iput</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_iput.3.html#shmem-short-iput"><span class="std std-ref">shmem_short_iput</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_complex_iput(3)</p></li>
+<li><p>shmem_integer_iput(3)</p></li>
+<li><p>shmem_logical_iput(3)</p></li>
+<li><p>shmem_real_iput(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Strided get routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_iget32.3.html#shmem-iget32"><span class="std std-ref">shmem_iget32</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_iget64.3.html#shmem-iget64"><span class="std std-ref">shmem_iget64</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_iget128.3.html#shmem-iget128"><span class="std std-ref">shmem_iget128</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_double_iget.3.html#shmem-double-iget"><span class="std std-ref">shmem_double_iget</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_iget.3.html#shmem-float-iget"><span class="std std-ref">shmem_float_iget</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_iget.3.html#shmem-int-iget"><span class="std std-ref">shmem_int_iget</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_iget.3.html#shmem-long-iget"><span class="std std-ref">shmem_long_iget</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_iget.3.html#shmem-short-iget"><span class="std std-ref">shmem_short_iget</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_complex_iget(3)</p></li>
+<li><p>shmem_integer_iget(3)</p></li>
+<li><p>shmem_logical_iget(3)</p></li>
+<li><p>shmem_real_iget(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Point-to-point synchronization routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_int_wait.3.html#shmem-int-wait"><span class="std std-ref">shmem_int_wait</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_wait_until.3.html#shmem-int-wait-until"><span class="std std-ref">shmem_int_wait_until</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_wait.3.html#shmem-long-wait"><span class="std std-ref">shmem_long_wait</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_wait_until.3.html#shmem-long-wait-until"><span class="std std-ref">shmem_long_wait_until</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_wait.3.html#shmem-longlong-wait"><span class="std std-ref">shmem_longlong_wait</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_wait_until.3.html#shmem-longlong-wait-until"><span class="std std-ref">shmem_longlong_wait_until</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_wait.3.html#shmem-short-wait"><span class="std std-ref">shmem_short_wait</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_wait_until.3.html#shmem-short-wait-until"><span class="std std-ref">shmem_short_wait_until</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_int4_wait(3)</p></li>
+<li><p>shmem_int4_wait_until(3)</p></li>
+<li><p>shmem_int8_wait(3)</p></li>
+<li><p>shmem_int8_wait_until(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Barrier synchronization routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_barrier_all.3.html#shmem-barrier-all"><span class="std std-ref">shmem_barrier_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_barrier.3.html#shmem-barrier"><span class="std std-ref">shmem_barrier</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Atomic memory fetch-and-operate (fetch-op) routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_swap.3.html#shmem-swap"><span class="std std-ref">shmem_swap</span></a></p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Reduction routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_int_and_to_all.3.html#shmem-int-and-to-all"><span class="std std-ref">shmem_int_and_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_and_to_all.3.html#shmem-long-and-to-all"><span class="std std-ref">shmem_long_and_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_and_to_all.3.html#shmem-longlong-and-to-all"><span class="std std-ref">shmem_longlong_and_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_and_to_all.3.html#shmem-short-and-to-all"><span class="std std-ref">shmem_short_and_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_double_max_to_all.3.html#shmem-double-max-to-all"><span class="std std-ref">shmem_double_max_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_max_to_all.3.html#shmem-float-max-to-all"><span class="std std-ref">shmem_float_max_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_max_to_all.3.html#shmem-int-max-to-all"><span class="std std-ref">shmem_int_max_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_max_to_all.3.html#shmem-long-max-to-all"><span class="std std-ref">shmem_long_max_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_max_to_all.3.html#shmem-longlong-max-to-all"><span class="std std-ref">shmem_longlong_max_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_max_to_all.3.html#shmem-short-max-to-all"><span class="std std-ref">shmem_short_max_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_double_min_to_all.3.html#shmem-double-min-to-all"><span class="std std-ref">shmem_double_min_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_min_to_all.3.html#shmem-float-min-to-all"><span class="std std-ref">shmem_float_min_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_min_to_all.3.html#shmem-int-min-to-all"><span class="std std-ref">shmem_int_min_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_min_to_all.3.html#shmem-long-min-to-all"><span class="std std-ref">shmem_long_min_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_min_to_all.3.html#shmem-longlong-min-to-all"><span class="std std-ref">shmem_longlong_min_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_min_to_all.3.html#shmem-short-min-to-all"><span class="std std-ref">shmem_short_min_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_double_sum_to_all.3.html#shmem-double-sum-to-all"><span class="std std-ref">shmem_double_sum_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_sum_to_all.3.html#shmem-float-sum-to-all"><span class="std std-ref">shmem_float_sum_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_sum_to_all.3.html#shmem-int-sum-to-all"><span class="std std-ref">shmem_int_sum_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_sum_to_all.3.html#shmem-long-sum-to-all"><span class="std std-ref">shmem_long_sum_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_sum_to_all.3.html#shmem-longlong-sum-to-all"><span class="std std-ref">shmem_longlong_sum_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_sum_to_all.3.html#shmem-short-sum-to-all"><span class="std std-ref">shmem_short_sum_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_double_prod_to_all.3.html#shmem-double-prod-to-all"><span class="std std-ref">shmem_double_prod_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_prod_to_all.3.html#shmem-float-prod-to-all"><span class="std std-ref">shmem_float_prod_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_prod_to_all.3.html#shmem-int-prod-to-all"><span class="std std-ref">shmem_int_prod_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_prod_to_all.3.html#shmem-long-prod-to-all"><span class="std std-ref">shmem_long_prod_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_prod_to_all.3.html#shmem-longlong-prod-to-all"><span class="std std-ref">shmem_longlong_prod_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_prod_to_all.3.html#shmem-short-prod-to-all"><span class="std std-ref">shmem_short_prod_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_or_to_all.3.html#shmem-int-or-to-all"><span class="std std-ref">shmem_int_or_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_or_to_all.3.html#shmem-long-or-to-all"><span class="std std-ref">shmem_long_or_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_or_to_all.3.html#shmem-longlong-or-to-all"><span class="std std-ref">shmem_longlong_or_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_or_to_all.3.html#shmem-short-or-to-all"><span class="std std-ref">shmem_short_or_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_xor_to_all.3.html#shmem-int-xor-to-all"><span class="std std-ref">shmem_int_xor_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_xor_to_all.3.html#shmem-long-xor-to-all"><span class="std std-ref">shmem_long_xor_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_xor_to_all.3.html#shmem-longlong-xor-to-all"><span class="std std-ref">shmem_longlong_xor_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_short_xor_to_all.3.html#shmem-short-xor-to-all"><span class="std std-ref">shmem_short_xor_to_all</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_int4_and_to_all(3)</p></li>
+<li><p>shmem_int8_and_to_all(3)</p></li>
+<li><p>shmem_real4_max_to_all(3)</p></li>
+<li><p>shmem_real8_max_to_all(3)</p></li>
+<li><p>shmem_int4_max_to_all(3)</p></li>
+<li><p>shmem_int8_max_to_all(3)</p></li>
+<li><p>shmem_real4_min_to_all(3)</p></li>
+<li><p>shmem_real8_min_to_all(3)</p></li>
+<li><p>shmem_int4_min_to_all(3)</p></li>
+<li><p>shmem_int8_min_to_all(3)</p></li>
+<li><p>shmem_real4_sum_to_all(3)</p></li>
+<li><p>shmem_real8_sum_to_all(3)</p></li>
+<li><p>shmem_int4_sum_to_all(3)</p></li>
+<li><p>shmem_int8_sum_to_all(3)</p></li>
+<li><p>shmem_real4_prod_to_all(3)</p></li>
+<li><p>shmem_real8_prod_to_all(3)</p></li>
+<li><p>shmem_int4_prod_to_all(3)</p></li>
+<li><p>shmem_int8_prod_to_all(3)</p></li>
+<li><p>shmem_int4_or_to_all(3)</p></li>
+<li><p>shmem_int8_or_to_all(3)</p></li>
+<li><p>shmem_int4_xor_to_all(3)</p></li>
+<li><p>shmem_int8_xor_to_all(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Broadcast routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_broadcast32.3.html#shmem-broadcast32"><span class="std std-ref">shmem_broadcast32</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_broadcast64.3.html#shmem-broadcast64"><span class="std std-ref">shmem_broadcast64</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Cache management routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_udcflush.3.html#shmem-udcflush"><span class="std std-ref">shmem_udcflush</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_udcflush_line.3.html#shmem-udcflush-line"><span class="std std-ref">shmem_udcflush_line</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Byte-granularity block put routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_putmem.3.html#shmem-putmem"><span class="std std-ref">shmem_putmem</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_getmem.3.html#shmem-getmem"><span class="std std-ref">shmem_getmem</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_character_put(3)</p></li>
+<li><p>shmem_character_get(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Collect routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_collect32.3.html#shmem-collect32"><span class="std std-ref">shmem_collect32</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_collect64.3.html#shmem-collect64"><span class="std std-ref">shmem_collect64</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_fcollect32.3.html#shmem-fcollect32"><span class="std std-ref">shmem_fcollect32</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_fcollect64.3.html#shmem-fcollect64"><span class="std std-ref">shmem_fcollect64</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Atomic memory fetch-and-operate (fetch-op) routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_double_swap.3.html#shmem-double-swap"><span class="std std-ref">shmem_double_swap</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_float_swap.3.html#shmem-float-swap"><span class="std std-ref">shmem_float_swap</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_cswap.3.html#shmem-int-cswap"><span class="std std-ref">shmem_int_cswap</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_fadd.3.html#shmem-int-fadd"><span class="std std-ref">shmem_int_fadd</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_finc.3.html#shmem-int-finc"><span class="std std-ref">shmem_int_finc</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_int_swap.3.html#shmem-int-swap"><span class="std std-ref">shmem_int_swap</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_cswap.3.html#shmem-long-cswap"><span class="std std-ref">shmem_long_cswap</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_fadd.3.html#shmem-long-fadd"><span class="std std-ref">shmem_long_fadd</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_finc.3.html#shmem-long-finc"><span class="std std-ref">shmem_long_finc</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_long_swap.3.html#shmem-long-swap"><span class="std std-ref">shmem_long_swap</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_cswap.3.html#shmem-longlong-cswap"><span class="std std-ref">shmem_longlong_cswap</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_fadd.3.html#shmem-longlong-fadd"><span class="std std-ref">shmem_longlong_fadd</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_finc.3.html#shmem-longlong-finc"><span class="std std-ref">shmem_longlong_finc</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longlong_swap.3.html#shmem-longlong-swap"><span class="std std-ref">shmem_longlong_swap</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_int4_cswap(3)</p></li>
+<li><p>shmem_int4_fadd(3)</p></li>
+<li><p>shmem_int4_finc(3)</p></li>
+<li><p>shmem_int4_swap(3)</p></li>
+<li><p>shmem_int8_swap(3)</p></li>
+<li><p>shmem_real4_swap(3)</p></li>
+<li><p>shmem_real8_swap(3)</p></li>
+<li><p>shmem_int8_cswap(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Atomic memory operation routines</p>
+<blockquote>
+<div><ul>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_int4_add(3)</p></li>
+<li><p>shmem_int4_inc(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Remote memory pointer function</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_ptr.3.html#shmem-ptr"><span class="std std-ref">shmem_ptr</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Reduction routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_longdouble_max_to_all.3.html#shmem-longdouble-max-to-all"><span class="std std-ref">shmem_longdouble_max_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longdouble_min_to_all.3.html#shmem-longdouble-min-to-all"><span class="std std-ref">shmem_longdouble_min_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longdouble_prod_to_all.3.html#shmem-longdouble-prod-to-all"><span class="std std-ref">shmem_longdouble_prod_to_all</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_longdouble_sum_to_all.3.html#shmem-longdouble-sum-to-all"><span class="std std-ref">shmem_longdouble_sum_to_all</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Fortran only:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>shmem_real16_max_to_all(3)</p></li>
+<li><p>shmem_real16_min_to_all(3)</p></li>
+<li><p>shmem_real16_prod_to_all(3)</p></li>
+<li><p>shmem_real16_sum_to_all(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Accessibility query routines</p>
+<blockquote>
+<div><ul>
+<li><p>C/C++ and Fortran:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><a class="reference internal" href="shmem_pe_accessible.3.html#shmem-pe-accessible"><span class="std std-ref">shmem_pe_accessible</span></a>(3)</p></li>
+<li><p><a class="reference internal" href="shmem_addr_accessible.3.html#shmem-addr-accessible"><span class="std std-ref">shmem_addr_accessible</span></a>(3)</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+<p>Symmetric Data Objects</p>
+<p>Consistent with the SPMD nature of the OpenSHMEM programming model is
+the concept of symmetric data objects. These are arrays or variables
+that exist with the same size, type, and relative address on all PEs.
+Another term for symmetric data objects is “remotely accessible data
+objects”. In the interface definitions for OpenSHMEM data transfer
+routines, one or more of the parameters are typically required to be
+symmetric or remotely accessible.</p>
+<p>The following kinds of data objects are symmetric:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Fortran data objects in common blocks or with the SAVE
+attribute. These data objects must not be defined in a dynamic
+shared object (DSO).</p></li>
+<li><p>Non-stack C and C++ variables. These data objects must not be
+defined in a DSO.</p></li>
+<li><p>Fortran arrays allocated with <em>shpalloc</em>(3)</p></li>
+<li><p>C and C++ data allocated by <em>shmalloc</em>(3)</p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt>Collective Routines</dt><dd><p>Some SHMEM routines, for example, shmem_broadcast(3) and
+<a class="reference internal" href="shmem_float_sum_to_all.3.html#shmem-float-sum-to-all"><span class="std std-ref">shmem_float_sum_to_all</span></a>(3), are classified as collective routines
+because they distribute work across a set of PEs. They must be called
+concurrently by all PEs in the active set defined by the PE_start,
+logPE_stride, PE_size argument triplet. The following man pages
+describe the OpenSHMEM collective routines:</p>
+<ul class="simple">
+<li><p>shmem_and(3)</p></li>
+<li><p><a class="reference internal" href="shmem_barrier.3.html#shmem-barrier"><span class="std std-ref">shmem_barrier</span></a>(3)</p></li>
+<li><p>shmem_broadcast(3)</p></li>
+<li><p>shmem_collect(3)</p></li>
+<li><p>shmem_max(3)</p></li>
+<li><p>shmem_min(3)</p></li>
+<li><p>shmem_or(3)</p></li>
+<li><p>shmem_prod(3)</p></li>
+<li><p>shmem_sum(3)</p></li>
+<li><p>shmem_xor(3)</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="using-the-symmetric-work-array-psync">
+<h2><span class="section-number">18.2.4.3. </span>USING THE SYMMETRIC WORK ARRAY, PSYNC<a class="headerlink" href="#using-the-symmetric-work-array-psync" title="Link to this heading"></a></h2>
+<p>Multiple pSync arrays are often needed if a particular PE calls as
+OpenSHMEM collective routine twice without intervening barrier
+synchronization. Problems would occur if some PEs in the active set for
+call 2 arrive at call 2 before processing of call 1 is complete by all
+PEs in the call 1 active set. You can use <a class="reference internal" href="shmem_barrier.3.html#shmem-barrier"><span class="std std-ref">shmem_barrier</span></a>(3) or
+<a class="reference internal" href="shmem_barrier_all.3.html#shmem-barrier-all"><span class="std std-ref">shmem_barrier_all</span></a>(3) to perform a barrier synchronization between
+consecutive calls to OpenSHMEM collective routines.</p>
+<p>There are two special cases:</p>
+<ul class="simple">
+<li><p>The <a class="reference internal" href="shmem_barrier.3.html#shmem-barrier"><span class="std std-ref">shmem_barrier</span></a>(3) routine allows the same pSync array to be
+used on consecutive calls as long as the active PE set does not
+change.</p></li>
+<li><p>If the same collective routine is called multiple times with the same
+active set, the calls may alternate between two pSync arrays. The
+SHMEM routines guarantee that a first call is completely finished by
+all PEs by the time processing of a third call begins on any PE.</p></li>
+</ul>
+<p>Because the SHMEM routines restore pSync to its original contents,
+multiple calls that use the same pSync array do not require that pSync
+be reinitialized after the first call.</p>
+</section>
+<section id="shmem-environment-variables">
+<h2><span class="section-number">18.2.4.4. </span>SHMEM ENVIRONMENT VARIABLES<a class="headerlink" href="#shmem-environment-variables" title="Link to this heading"></a></h2>
+<p>This section lists the significant SHMEM environment variables.</p>
+<ul class="simple">
+<li><p><strong>SMA_VERSION</strong> print the library version at start-up.</p></li>
+<li><p><strong>SMA_INFO</strong> print helpful text about all these environment
+variables.</p></li>
+<li><p><strong>SMA_SYMMETRIC_SIZE</strong> number of bytes to allocate for the symmetric
+heap.</p></li>
+<li><p><strong>SMA_DEBUG</strong> enable debugging messages.</p></li>
+</ul>
+<p>The first call to SHMEM must be <em>start_pes</em>(3). This routines
+initialize the SHMEM runtime.</p>
+<p>Calling any other SHMEM routines beforehand has undefined behavior.
+Multiple calls to this routine is not allowed.</p>
+</section>
+<section id="compiling-and-running-openshmem-programs">
+<h2><span class="section-number">18.2.4.5. </span>COMPILING AND RUNNING OPENSHMEM PROGRAMS<a class="headerlink" href="#compiling-and-running-openshmem-programs" title="Link to this heading"></a></h2>
+<p>The OpenSHMEM specification is silent regarding how OpenSHMEM programs
+are compiled, linked and run. This section shows some examples of how
+wrapper programs could be utilized to compile and launch applications.
+The commands are styled after wrapper programs found in many MPI
+implementations.</p>
+<p>The following sample command line demonstrates running an OpenSHMEM
+Program using a wrapper script (<strong>oshrun</strong> in this case):</p>
+<ul class="simple">
+<li><p>C/C++:</p></li>
+</ul>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">oshcc</span><span class="w"> </span><span class="n">c_program</span><span class="p">.</span><span class="n">c</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>FORTRAN:</p></li>
+</ul>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="n">oshfort</span><span class="w"> </span><span class="n">fortran_program</span><span class="p">.</span><span class="n">f</span>
+</pre></div>
+</div>
+<p>The following sample command line demonstrates running an OpenSHMEM
+Program assuming that the library provides a wrapper script for such
+purpose (named <strong>oshrun</strong> for this example):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>oshrun -n 32 ./a.out
+</pre></div>
+</div>
+</section>
+<section id="examples">
+<h2><span class="section-number">18.2.4.6. </span>EXAMPLES<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<p><strong>Example 1</strong>: The following Fortran OpenSHMEM program directs all PEs
+to sum simultaneously the numbers in the VALUES variable across all PEs:</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">PROGRAM </span><span class="n">REDUCTION</span>
+<span class="w">  </span><span class="kt">REAL </span><span class="n">VALUES</span><span class="p">,</span><span class="w"> </span><span class="nb">SUM</span>
+<span class="nb">  </span><span class="k">COMMON</span><span class="w"> </span><span class="o">/</span><span class="n">C</span><span class="o">/</span><span class="w"> </span><span class="n">VALUES</span>
+<span class="w">  </span><span class="kt">REAL </span><span class="n">WORK</span>
+
+<span class="w">  </span><span class="k">CALL </span><span class="n">START_PES</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="w">  </span><span class="n">VALUES</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MY_PE</span><span class="p">()</span>
+<span class="w">  </span><span class="k">CALL </span><span class="n">SHMEM_BARRIER_ALL</span><span class="w"> </span><span class="c">! Synchronize all PEs</span>
+<span class="w">  </span><span class="nb">SUM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+<span class="w">  </span><span class="k">DO </span><span class="n">I</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">NUM_PES</span><span class="p">()</span><span class="o">-</span><span class="mi">1</span>
+<span class="w">    </span><span class="k">CALL </span><span class="n">SHMEM_REAL_GET</span><span class="p">(</span><span class="n">WORK</span><span class="p">,</span><span class="w"> </span><span class="n">VALUES</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">I</span><span class="p">)</span><span class="w"> </span><span class="c">! Get next value</span>
+<span class="w">    </span><span class="nb">SUM</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">SUM</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">WORK</span><span class="w">                </span><span class="c">! Sum it</span>
+<span class="w">  </span><span class="k">ENDDO</span>
+<span class="k">  PRINT</span><span class="w"> </span><span class="o">*</span><span class="p">,</span><span class="w"> </span><span class="s1">'PE '</span><span class="p">,</span><span class="w"> </span><span class="n">MY_PE</span><span class="p">(),</span><span class="w"> </span><span class="s1">' COMPUTED SUM='</span><span class="p">,</span><span class="w"> </span><span class="nb">SUM</span>
+<span class="nb">  </span><span class="k">CALL </span><span class="n">SHMEM_BARRIER_ALL</span>
+<span class="k">END</span>
+</pre></div>
+</div>
+<p><strong>Example 2</strong>: The following C OpenSHMEM program transfers an array of
+10 longs from PE 0 to PE 1:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;mpp/shmem.h&gt;</span>
+
+<span class="n">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kt">long</span><span class="w"> </span><span class="n">source</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="p">,</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">target</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+
+<span class="w">  </span><span class="n">shmem_init</span><span class="p">();</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">shmem_my_pe</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="cm">/* put 10 elements into target on PE 1 */</span>
+<span class="w">    </span><span class="n">shmem_long_put</span><span class="p">(</span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="n">shmem_barrier_all</span><span class="p">();</span><span class="w"> </span><span class="cm">/* sync sender and receiver */</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">shmem_my_pe</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"target[0] on PE %d is %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">shmem_my_pe</span><span class="p">(),</span><span class="w"> </span><span class="n">target</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p>The following man pages also contain information on OpenSHMEM routines.
+See the specific man pages for implementation information.</p>
+<p>shmem_add(3) shmem_and(3) <a class="reference internal" href="shmem_barrier.3.html#shmem-barrier"><span class="std std-ref">shmem_barrier</span></a>(3)
+<a class="reference internal" href="shmem_barrier_all.3.html#shmem-barrier-all"><span class="std std-ref">shmem_barrier_all</span></a>(3) shmem_broadcast(3) shmem_cache(3)
+shmem_collect(3) shmem_cswap(3) shmem_fadd(3)
+<a class="reference internal" href="shmem_fence.3.html#shmem-fence"><span class="std std-ref">shmem_fence</span></a>(3) shmem_finc(3) shmem_get(3) shmem_iget(3)
+shmem_inc(3) shmem_iput(3) shmem_lock(3) shmem_max(3)
+shmem_min(3) <a class="reference internal" href="shmem_my_pe.3.html#shmem-my-pe"><span class="std std-ref">shmem_my_pe</span></a>(3) shmem_or(3) shmem_prod(3)
+shmem_put(3) <a class="reference internal" href="shmem_quiet.3.html#shmem-quiet"><span class="std std-ref">shmem_quiet</span></a>(3) <a class="reference internal" href="shmem_short_g.3.html#shmem-short-g"><span class="std std-ref">shmem_short_g</span></a>(3)
+<a class="reference internal" href="shmem_short_p.3.html#shmem-short-p"><span class="std std-ref">shmem_short_p</span></a>(3) shmem_sum(3) <a class="reference internal" href="shmem_swap.3.html#shmem-swap"><span class="std std-ref">shmem_swap</span></a>(3)
+<a class="reference internal" href="shmem_wait.3.html#shmem-wait"><span class="std std-ref">shmem_wait</span></a>(3) shmem_xor(3) <a class="reference internal" href="shmem_pe_accessible.3.html#shmem-pe-accessible"><span class="std std-ref">shmem_pe_accessible</span></a>(3)
+<a class="reference internal" href="shmem_addr_accessible.3.html#shmem-addr-accessible"><span class="std std-ref">shmem_addr_accessible</span></a>(3) <a class="reference internal" href="shmem_init.3.html#shmem-init"><span class="std std-ref">shmem_init</span></a>(3) <a class="reference internal" href="shmem_malloc.3.html#shmem-malloc"><span class="std std-ref">shmem_malloc</span></a>(3)
+<em>shmem_my_pe</em>(3) <em>shmem_n_pes</em>(3)</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="_num_pes.3.html" class="btn btn-neutral float-left" title="18.2.3. _num_pes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shfree.3.html" class="btn btn-neutral float-right" title="18.2.5. shfree" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,640 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4.8. Required support libraries &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="4.9. configure command line options" href="configure-cli-options/index.html" />
+    <link rel="prev" title="4.7. Specifying compilers and flags" href="compilers-and-flags.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">4. Building and installing Open MPI</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">4.1. Quick start: Installing Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="downloading.html">4.2. Downloading Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="supported-systems.html">4.3. Supported Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="definitions.html">4.4. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filesystem-requirements.html">4.5. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vpath-builds.html">4.6. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compilers-and-flags.html">4.7. Specifying compilers and flags</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">4.8. Required support libraries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#library-dependencies">4.8.1. Library dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#potential-problems">4.8.2. Potential problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#avoiding-the-problems">4.8.3. Avoiding the problems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-configure-finds-the-required-libraries">4.8.4. How <code class="docutils literal notranslate"><span class="pre">configure</span></code> finds the required libraries</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#build-example-1">4.8.4.1. Build example 1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-example-2">4.8.4.2. Build example 2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#build-example-3">4.8.4.3. Build example 3</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#difficulties-with-c-and-fortran">4.8.5. Difficulties with C and Fortran</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#overriding-configure-behavior">4.8.6. Overriding <code class="docutils literal notranslate"><span class="pre">configure</span></code> behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#strong-advice-for-packagers">4.8.7. (Strong) Advice for packagers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="configure-cli-options/index.html">4.9. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configure-output-summary.html">4.10. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="make-targets.html">4.11. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation-location.html">4.12. Installation location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="custom-components.html">4.13. Installing custom components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="updating.html">4.14. Updating or upgrading an Open MPI installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packagers.html">4.15. Advice for packagers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sysadmins.html">4.16. Advice for System Administrators</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">4. </span>Building and installing Open MPI</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4.8. </span>Required support libraries</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/installing-open-mpi/required-support-libraries.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="required-support-libraries">
+<span id="label-install-required-support-libraries"></span><h1><span class="section-number">4.8. </span>Required support libraries<a class="headerlink" href="#required-support-libraries" title="Link to this heading"></a></h1>
+<p>While Open MPI can be built with support for a wide variety of
+systems, a small set of support libraries are <em>required</em> in order to
+build Open MPI in <em>any</em> environment.  Several of these packages are
+both fundamental to Open MPI’s operation and not universally available
+in all environments.  As such, these “fundamental” packages are both
+embedded in Open MPI’s distribution tarballs and also directly
+incorporated into Open MPI’s configure, build, and installation
+process.</p>
+<p><a class="reference internal" href="#required-support-libraries-configure-discovery-label"><span class="std std-ref">See below</span></a> for a
+description of how Open MPI chooses whether to use the embedded
+versions of these packages or versions already installed on your
+system.</p>
+<ul>
+<li><p><a class="reference external" href="https://www.open-mpi.org/projects/hwloc/">Hardware Locality</a></p>
+<ul>
+<li><p>This library is required; Open MPI will not build without it.</p></li>
+<li><p><strong>Minimum version required:</strong> 1.11.0</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>While the minimum version of Hwloc will <em>work</em>, it may
+still have bugs and/or have less functionality as
+compared to later versions.</p>
+<p>Other than the Hwloc restriction about v3.0.0 and beyond
+(see below), the Open MPI community generally recommends
+using the latest available version of Hwloc unless there
+is a specific reason not to.</p>
+</div>
+</li>
+<li><p><strong>Version embedded in Open MPI distribution:</strong>
+2.7.1</p></li>
+</ul>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>As of v5.0.11, Open MPI does not yet support the
+Hwloc v3.x series (which may not even be available at
+the time of Open MPI v5.0.11’s release).  Hwloc v3.x
+is anticipated to break API and/or ABI compared to the
+Hwloc v2.x series.</p>
+<p>Open MPI will refuse to build if it finds an external
+Hwloc installation that is &gt;= v3.0.0 on the assumption
+that other HPC applications and/or libraries may be
+using it.  Such a configuration could lead to obscure
+and potentially confusing run-time failures of Open MPI
+applications.</p>
+<p>If Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script aborts because it
+finds an Hwloc installation that is &gt;= v3.0.0, you can
+either ensure that Open MPI finds a &lt; v3.0.0 Hwloc
+installation (e.g., by changing the order of paths in
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code>), or force the use of Open MPI’s
+bundled Hwloc via:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --with-hwloc=internal ...
+</pre></div>
+</div>
+<p>Regardless, <em>it is critically important</em> that if an MPI
+application — or any of its dependencies —
+uses Hwloc, it uses the <em>same</em> Hwloc with which Open MPI
+was compiled.</p>
+</div>
+</li>
+<li><p><a class="reference external" href="https://libevent.org/">Libevent</a></p>
+<ul>
+<li><p>This library is required; Open MPI will not build without it.</p></li>
+<li><p><strong>Minimum version required:</strong> 2.0.21</p></li>
+<li><p><strong>Version embedded in Open MPI distribution:</strong>
+2.1.12</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Open MPI community has heavily tested Libevent
+2.1.12.  Other versions should <em>work</em>,
+but — unlike Hwloc, OpenPMIx, and PRRTE —
+there is not much reason to upgrade to use a later
+version of Libevent.</p>
+</div>
+</li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://docs.openpmix.org/">OpenPMIx</a></p>
+<ul>
+<li><p>This library is required; Open MPI will not build without it.</p></li>
+<li><p><strong>Minimum version required when building without PRRTE:</strong>
+4.2.0</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>While the minimum version of OpenPMIx will <em>work</em>, it
+may still have bugs and/or have less functionality as
+compared to later versions.</p>
+<p>The Open MPI community generally recommends using the
+latest available version of OpenPMIx unless there is a
+specific reason not to.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>While <a class="reference external" href="https://docs.openpmix.org/">OpenPMIx</a> is the
+formal name of the software that implements the <a class="reference external" href="https://pmix.org/">PMIx</a> standard, the term “PMIx” is used
+extensively throughout this documentation to refer to
+the OpenPMIx software package.</p>
+</div>
+</li>
+<li><p><strong>Minimum version required when building with PRRTE:</strong> <a class="reference external" href="https://docs.prrte.org/">See the
+PRRTE project documentation</a>.</p></li>
+<li><p><strong>Version embedded in Open MPI distribution:</strong>
+v5.0.11rc1</p></li>
+</ul>
+</li>
+<li><p><a class="reference external" href="https://github.com/openpmix/prrte">PRRTE</a></p>
+<ul>
+<li><p>This library is optional in some environments. See below.</p></li>
+<li><p><strong>Minimum version required:</strong> 3.0.0</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>While the minimum version of PRRTE will <em>work</em>, it may
+still have bugs and/or have less functionality as
+compared to later versions.  For example, if you build
+and run with 3.0.0, you will not get a
+fully-populated <code class="docutils literal notranslate"><span class="pre">mpirun(1)</span></code> man page.</p>
+<p>The Open MPI community generally recommends using the
+latest available version of PRRTE unless there is a
+specific reason not to.</p>
+</div>
+</li>
+<li><p><strong>Version embedded in Open MPI distribution:</strong>
+v3.0.14</p></li>
+</ul>
+<p>PRRTE provides Open MPI’s full-featured <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> / <code class="docutils literal notranslate"><span class="pre">mpiexec</span></code> MPI
+application launchers (the two commands are identical; they are
+symbolic links to the same executable).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If you are building the PRRTE that is embedded in the
+Open MPI v5.0.11 distribution:</p>
+<ul class="simple">
+<li><p>If you are also building the PMIx that is embedded in
+the Open MPI v5.0.11 distribution, that
+combination of packages is supported.</p></li>
+<li><p>If you are building against an external PMIx
+installation (i.e., a version of PMIx that is not
+embedded in the Open MPI v5.0.11 distribution),
+you should check <a class="reference external" href="https://docs.prrte.org/">the PRRTE project documentation</a> to see what minimum
+version of PMIx is required.</p></li>
+</ul>
+</div>
+<ul class="simple">
+<li><p>If your environment uses another MPI application launcher (e.g.,
+Slurm users can use the <code class="docutils literal notranslate"><span class="pre">srun</span></code> launcher to “direct launch” Open
+MPI applications), then the use of PRRTE is optional.</p></li>
+<li><p>If your environment has no other MPI application launcher, then
+you need to install PRRTE and build Open MPI with PRRTE support.</p></li>
+<li><p>Open MPI can use the copy of PRRTE embedded in its source code
+tree, or compile/link against an external PRRTE installation.
+<a class="reference internal" href="configure-cli-options/required-support-libraries.html#label-building-ompi-cli-options-required-support-libraries"><span class="std std-ref">See this section for details about how to specify each
+method</span></a>.</p></li>
+</ul>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In general, the Open MPI community recommends using the most
+recent versions of both the <a class="reference internal" href="#label-install-required-support-libraries"><span class="std std-ref">required support libraries</span></a> and any other
+optional support libraries.  This is because more recent
+versions typically tend to include bug fixes, sometimes
+affecting Open MPI functionality.  As a specific example,
+there is a known issue with <a class="reference external" href="https://www.open-mpi.org/projects/hwloc/">Hardware Locality</a> releases older
+than v2.8.0 on systems with Intel Ponte Vecchio
+accelerators.  If you run Open MPI on such systems, you need
+to use Hwloc v2.8.0 or newer, or you will experience
+undefined behavior.  This effect is not unique to the
+Hardware Locality library; this is why the Open MPI
+community recommends using as recent as possible versions of
+<em>all</em> support libraries.</p>
+</div>
+<section id="library-dependencies">
+<h2><span class="section-number">4.8.1. </span>Library dependencies<a class="headerlink" href="#library-dependencies" title="Link to this heading"></a></h2>
+<p>These support libraries have dependencies upon each other:</p>
+<figure class="align-center" id="id6">
+<img alt="../_images/required-support-libraries-dependency-graph.png" src="../_images/required-support-libraries-dependency-graph.png" />
+<figcaption>
+<p><span class="caption-text">Open MPI required support library dependency graph.</span><a class="headerlink" href="#id6" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The higher-level boxes depend on the lower-level boxes.  Specifically:</p>
+<ul class="simple">
+<li><p>Open MPI depends on PRRTE, PMIx, Hwloc, and Libevent (i.e.,
+everything).</p></li>
+<li><p>PRRTE depends on PMIx, Hwloc, and Libevent (i.e., everything except
+Open MPI).</p></li>
+<li><p>PMIx depends on Hwloc and Libevent.</p></li>
+<li><p>Hwloc does not depend on anything.</p></li>
+<li><p>Libevent does not depend on anything.</p></li>
+</ul>
+<p>At run time, it is critical that the run-time linker loads <em>exactly
+one copy</em> of each of these libraries.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The required support libraries can have other dependencies,
+but for simplicity and relevance to building Open MPI,
+those other dependencies are not discussed here.</p>
+</div>
+</section>
+<section id="potential-problems">
+<h2><span class="section-number">4.8.2. </span>Potential problems<a class="headerlink" href="#potential-problems" title="Link to this heading"></a></h2>
+<p>Problems can (will) arise if multiple different copies of the above
+shared libraries are loaded into a single process.  For example,
+consider if:</p>
+<ul class="simple">
+<li><p>Loading the Open MPI shared library causes the loading of Libevent
+shared library vA.B.C.</p></li>
+<li><p>But then the subsequent loading of the PMIx shared library causes
+the loading of Libevent shared library vX.Y.Z.</p></li>
+</ul>
+<p>Since there are now two different versions of the Libevent shared
+library loaded into the same process (yes, this can happen!),
+unpredictable behavior can (will) occur.</p>
+<p>Many variations on this same basic erroneous scenario are possible.
+All of them are bad, and can be extremely difficult to diagnose.</p>
+</section>
+<section id="avoiding-the-problems">
+<h2><span class="section-number">4.8.3. </span>Avoiding the problems<a class="headerlink" href="#avoiding-the-problems" title="Link to this heading"></a></h2>
+<p>A simple way to avoid these problems is to configure your system such
+that it has exactly one copy of each of the required support libraries.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If possible, use your OS / environment’s package
+manager to install as many of these support libraries —
+including their development headers — as possible before
+invoking Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script.</p>
+</div>
+<p>Not all package managers provide all of the required support
+libraries. But even if your package manager installs — for
+example — only Libevent and Hwloc, that somewhat simplifies the
+final Open MPI configuration, and therefore avoids some potentially
+erroneous configurations.</p>
+</section>
+<section id="how-configure-finds-the-required-libraries">
+<span id="required-support-libraries-configure-discovery-label"></span><h2><span class="section-number">4.8.4. </span>How <code class="docutils literal notranslate"><span class="pre">configure</span></code> finds the required libraries<a class="headerlink" href="#how-configure-finds-the-required-libraries" title="Link to this heading"></a></h2>
+<p>In an attempt to strike a balance between end-user convenience and
+flexibility, Open MPI bundles these four required support libraries in
+its official distribution tarball.</p>
+<p>Generally, if Open MPI cannot find a required support library, it will
+automatically configure, build, install, and use its bundled version
+as part of the main Open MPI configure, build, and installation
+process.</p>
+<p>Put differently: Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script will examine the
+build machine and see if it can find each of the required support
+header files and libraries.  If it cannot find them, it will attempt
+to fall back and use the corresponding bundled support library
+instead.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Note, however, that <code class="docutils literal notranslate"><span class="pre">configure</span></code> is smart enough to
+understand the dependencies between the required support libraries.</p>
+<p>Specifically: If <code class="docutils literal notranslate"><span class="pre">configure</span></code> finds the development headers and
+libraries for a given support library already installed on the
+system, then it will ignore both the corresponding bundled support
+library, <em>and it will also ignore all bundled support libraries
+that are below it in the dependency graph shown above.</em></p>
+</div>
+<section id="build-example-1">
+<h3><span class="section-number">4.8.4.1. </span>Build example 1<a class="headerlink" href="#build-example-1" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">configure</span></code> finds the PRRTE development headers and libraries in
+<code class="docutils literal notranslate"><span class="pre">/usr/local</span></code>.  This will cause the following to occur:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">configure</span></code> will ignore the PRRTE library that is bundled in the
+Open MPI source tree and will use the PRRTE that is already
+installed in <code class="docutils literal notranslate"><span class="pre">/usr/local</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configure</span></code> will also ignore the bundled PMIx, Hwloc, and
+Libevent libraries in the Open MPI source tree.</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">configure</span></code> is unable to find header files and libraries for
+PMIx, Hwloc, and Libevent elsewhere on the build machine (i.e.,
+presumably the same PMIx, Hwloc, and Libevent as the PRRTE in
+<code class="docutils literal notranslate"><span class="pre">/usr/local</span></code> is using), this is an error: <code class="docutils literal notranslate"><span class="pre">configure</span></code> will
+abort, and therefore refuse to build Open MPI.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="build-example-2">
+<h3><span class="section-number">4.8.4.2. </span>Build example 2<a class="headerlink" href="#build-example-2" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">configure</span></code> does <em>not</em> find PRRTE on the build machine, but <em>does</em>
+find PMIx development headers and libraries in <code class="docutils literal notranslate"><span class="pre">/opt/local</span></code>.  This
+will cause the following to occur:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">configure</span></code> will set up to build the PRRTE library that is
+bundled in the Open MPI source tree.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configure</span></code> will ignore the PMIx library that is bundled in the
+Open MPI source tree and will use the PMIx that is already
+installed in <code class="docutils literal notranslate"><span class="pre">/opt/local</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configure</span></code> will also ignore the bundled Hwloc and Libevent
+libraries in the Open MPI source tree.</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">configure</span></code> is unable to find header files and libraries for
+Hwloc and Libevent elsewhere on the build machine (i.e.,
+presumably the same Hwloc and Libevent as the PMIx in
+<code class="docutils literal notranslate"><span class="pre">/opt/local</span></code> is using), this is an error: <code class="docutils literal notranslate"><span class="pre">configure</span></code> will
+abort, and therefore refuse to build Open MPI.</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="build-example-3">
+<h3><span class="section-number">4.8.4.3. </span>Build example 3<a class="headerlink" href="#build-example-3" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">configure</span></code> only finds the development headers and libraries for
+Libevent on the build machine.  This will cause the following to
+occur:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">configure</span></code> will set up to build the PRRTE, PMIx, and Hwloc
+libraries that are bundled in the Open MPI source tree.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">configure</span></code> will ignore the Libevent library that is bundled in
+the Open MPI source tree and will use the Libevent that is already
+installed.</p></li>
+</ol>
+</section>
+</section>
+<section id="difficulties-with-c-and-fortran">
+<h2><span class="section-number">4.8.5. </span>Difficulties with C and Fortran<a class="headerlink" href="#difficulties-with-c-and-fortran" title="Link to this heading"></a></h2>
+<p>Sometimes you may see errors similar to the following when attempting
+to build Open MPI:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>...
+PPFC     profile/pwin_unlock_f08.lo
+PPFC     profile/pwin_unlock_all_f08.lo
+PPFC     profile/pwin_wait_f08.lo
+FCLD     libmpi_usempif08.la
+ld: library not found for -lhwloc
+collect2: error: ld returned 1 exit status
+make``2``: *** ``libmpi_usempif08.la`` Error 1
+</pre></div>
+</div>
+<p>This error can happen when a number of factors occur together:</p>
+<ol class="arabic simple">
+<li><p>If Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script chooses to use an “external”
+installation of <a class="reference external" href="https://www.open-mpi.org/projects/hwloc/">hwloc</a>
+and/or <a class="reference external" href="https://libevent.org/">Libevent</a> (i.e., outside of Open
+MPI’s source tree).</p></li>
+<li><p>If Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script chooses C and Fortran compilers
+from different suites/installations.</p></li>
+</ol>
+<p>Put simply: if the default search library search paths differ between
+the C and Fortran compiler suites, the C linker may find a
+system-installed <code class="docutils literal notranslate"><span class="pre">libhwloc</span></code> and/or <code class="docutils literal notranslate"><span class="pre">libevent</span></code>, but the Fortran linker
+may not.</p>
+<p>This may tend to happen more frequently starting with Open MPI v4.0.0
+on Mac OS because:</p>
+<ol class="arabic simple">
+<li><p>In v4.0.0, Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script was changed to “prefer”
+system-installed versions of hwloc and Libevent (vs. preferring the
+hwloc and Libevent that are bundled in the Open MPI distribution
+tarballs).</p></li>
+<li><p>In MacOS, it is common for <a class="reference external" href="https://brew.sh/">Homebrew</a> or
+<a class="reference external" href="https://www.macports.org/">MacPorts</a> to install:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://www.open-mpi.org/projects/hwloc/">Hardware Locality</a></p></li>
+<li><p><a class="reference external" href="https://libevent.org/">Libevent</a></p></li>
+</ul>
+</li>
+</ol>
+<p>For example, as of July 2019, Homebrew:</p>
+<ul class="simple">
+<li><p>Installs hwloc v2.0.4 under <code class="docutils literal notranslate"><span class="pre">/usr/local</span></code></p></li>
+<li><p>Installs the Gnu C and Fortran compiler suites v9.1.0 under
+<code class="docutils literal notranslate"><span class="pre">/usr/local</span></code>.  <em>However</em>, the C compiler executable is named <code class="docutils literal notranslate"><span class="pre">gcc-9</span></code>
+(not <code class="docutils literal notranslate"><span class="pre">gcc</span></code>!), whereas the Fortran compiler executable is
+named <code class="docutils literal notranslate"><span class="pre">gfortran</span></code>.</p></li>
+</ul>
+<p>These factors, taken together, result in Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code>
+script deciding the following:</p>
+<ul class="simple">
+<li><p>The C compiler is <code class="docutils literal notranslate"><span class="pre">gcc</span></code> (which is the MacOS-installed C
+compiler).</p></li>
+<li><p>The Fortran compiler is <code class="docutils literal notranslate"><span class="pre">gfortran</span></code> (which is the
+Homebrew-installed Fortran compiler).</p></li>
+<li><p>There is a suitable system-installed hwloc in <code class="docutils literal notranslate"><span class="pre">/usr/local</span></code>, which
+can be found — by the C compiler/linker — without specifying any
+additional linker search paths.</p></li>
+</ul>
+<p>The careful reader will realize that the C and Fortran compilers are
+from two entirely different installations.  Indeed, their default
+library search paths are different:</p>
+<ul class="simple">
+<li><p>The MacOS-installed <code class="docutils literal notranslate"><span class="pre">gcc</span></code> will search <code class="docutils literal notranslate"><span class="pre">/usr/local/lib</span></code> by
+default.</p></li>
+<li><p>The Homebrew-installed <code class="docutils literal notranslate"><span class="pre">gfortran</span></code> will <em>not</em> search
+<code class="docutils literal notranslate"><span class="pre">/usr/local/lib</span></code> by default.</p></li>
+</ul>
+<p>Hence, since the majority of Open MPI’s source code base is in C, it
+compiles/links against hwloc successfully.  But when Open MPI’s
+Fortran code for the <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module is compiled and linked, the
+Homebrew-installed <code class="docutils literal notranslate"><span class="pre">gfortran</span></code> — which does not search
+<code class="docutils literal notranslate"><span class="pre">/usr/local/lib</span></code> by default — cannot find <code class="docutils literal notranslate"><span class="pre">libhwloc</span></code>, and the link
+fails.</p>
+<p>There are a few different possible solutions to this issue:</p>
+<ol class="arabic">
+<li><p>The best solution is to always ensure that Open MPI uses a C and
+Fortran compiler from the same suite/installation.  This will
+ensure that both compilers/linkers will use the same default
+library search paths, and all behavior should be consistent.  For
+example, the following instructs Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script to
+use <code class="docutils literal notranslate"><span class="pre">gcc-9</span></code> for the C compiler, which (as of July 2019) is the
+Homebrew executable name for its installed C compiler:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span><span class="nv">CC</span><span class="o">=</span>gcc-9<span class="w"> </span>...
+
+<span class="c1"># You can be precise and specify an absolute path for the C</span>
+<span class="c1"># compiler, and/or also specify the Fortran compiler:</span>
+shell$<span class="w"> </span>./configure<span class="w"> </span><span class="nv">CC</span><span class="o">=</span>/usr/local/bin/gcc-9<span class="w"> </span><span class="nv">FC</span><span class="o">=</span>/usr/local/bin/gfortran<span class="w"> </span>...
+</pre></div>
+</div>
+<p>Note that this will likely cause <code class="docutils literal notranslate"><span class="pre">configure</span></code> to <em>not</em> find the
+Homebrew-installed hwloc, and instead fall back to using the
+bundled hwloc in the Open MPI source tree.</p>
+</li>
+<li><p>Alternatively, you can simply force <code class="docutils literal notranslate"><span class="pre">configure</span></code> to select the
+bundled versions of hwloc and libevent, which avoids the issue
+altogether:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span>--with-hwloc<span class="o">=</span>internal<span class="w"> </span>--with-libevent<span class="o">=</span>internal<span class="w"> </span>...
+</pre></div>
+</div>
+</li>
+<li><p>Finally, you can tell <code class="docutils literal notranslate"><span class="pre">configure</span></code> exactly where to find the
+external hwloc library.  This can have some unintended
+consequences, however, because it will prefix both the C and
+Fortran linker’s default search paths with <code class="docutils literal notranslate"><span class="pre">/usr/local/lib</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span>--with-hwloc-libdir<span class="o">=</span>/usr/local/lib<span class="w"> </span>...
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="overriding-configure-behavior">
+<h2><span class="section-number">4.8.6. </span>Overriding <code class="docutils literal notranslate"><span class="pre">configure</span></code> behavior<a class="headerlink" href="#overriding-configure-behavior" title="Link to this heading"></a></h2>
+<p>If <code class="docutils literal notranslate"><span class="pre">configure</span></code>’s default searching behavior is not sufficient for
+your environment, you can use <a class="reference internal" href="configure-cli-options/required-support-libraries.html#label-building-ompi-cli-options-required-support-libraries"><span class="std std-ref">command line options to override
+its default behavior</span></a>.</p>
+<p>For example, if PMIx and/or PRRTE are installed such that the default
+header file and linker search paths will not find them, you can
+provide command line options telling Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> where to
+search.  Here’s an example <code class="docutils literal notranslate"><span class="pre">configure</span></code> invocation where PMIx and
+PRRTE have both been installed to <code class="docutils literal notranslate"><span class="pre">/opt/open-mpi-stuff</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./configure<span class="w"> </span>--prefix<span class="o">=</span><span class="nv">$HOME</span>/openmpi-install<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--with-pmix<span class="o">=</span>/opt/open-mpi-stuff<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--with-prrte<span class="o">=</span>/opt/open-mpi-stuff<span class="w"> </span>...
+</pre></div>
+</div>
+<p>As another example, if you do not have root-level privileges to use
+the OS / environment package manager, and if you have a simple MPI
+application (e.g., that has no external library dependencies), you may
+wish to configure Open MPI something like this:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./configure<span class="w"> </span>--prefix<span class="o">=</span><span class="nv">$HOME</span>/openmpi-install<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--with-libevent<span class="o">=</span>internal<span class="w"> </span>--with-hwloc<span class="o">=</span>internal<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--with-pmix<span class="o">=</span>internal<span class="w"> </span>--with-prrte<span class="o">=</span>internal<span class="w"> </span>...
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">internal</span></code> keywords force <code class="docutils literal notranslate"><span class="pre">configure</span></code> to use all four bundled
+versions of the required libraries.</p>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>Be very, very careful when overriding <code class="docutils literal notranslate"><span class="pre">configure</span></code>’s
+default search behavior for these libraries.  Remember the critical
+requirement: that Open MPI infrastructure and applications load
+<em>exactly one copy</em> of each support library.  For simplicity, it may
+be desirable to ensure to use exactly the support libraries that
+Open MPI was compiled and built against.</p>
+<p>For example, using the Open MPI installed from the sample
+<code class="docutils literal notranslate"><span class="pre">configure</span></code> line (above), you may want to prefix your run-time
+linker search path (e.g., <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> on Linux) with
+<code class="docutils literal notranslate"><span class="pre">$HOME/openmpi-install/lib</span></code>.  This will ensure that linker finds
+the four support libraries from your Open MPI installation tree,
+even if other copies of the same support libraries are present
+elsewhere on your system.</p>
+</div>
+</section>
+<section id="strong-advice-for-packagers">
+<h2><span class="section-number">4.8.7. </span>(Strong) Advice for packagers<a class="headerlink" href="#strong-advice-for-packagers" title="Link to this heading"></a></h2>
+<p>If you are an Open MPI packager, we <strong>strongly</strong> suggest that your
+Open MPI package should not include Hwloc, Libevent, PMIx, or PRRTE.
+Instead, it should depend on external, independently-built versions of
+these packages.</p>
+<p>See the <a class="reference internal" href="packagers.html#label-install-packagers"><span class="std std-ref">Advice for packagers</span></a> section
+for more details.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="compilers-and-flags.html" class="btn btn-neutral float-left" title="4.7. Specifying compilers and flags" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="configure-cli-options/index.html" class="btn btn-neutral float-right" title="4.9. configure command line options" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,528 @@
+{
+  "config_headers": 4,
+  "escalations": [
+    {
+      "digest": "ba5782468dc13e3f",
+      "kind": "ctest_command_not_a_target",
+      "subject": "test/run_tests00.pl, test/run_tests01.pl, test/run_tests02.pl, test/run_tests03.pl, test/run_tests04.pl, test/run_tests05.pl, test/run_tests06.pl, test/run_tests07.pl, test/run_tests08.pl, test/run_tests09.pl, test/run_tests10.pl, test/run_tests11.pl, test/run_tests12.pl, test/run_tests13.pl"
+    },
+    {
+      "digest": "e53c75098cdf7a53",
+      "kind": "generated_headers",
+      "subject": "src/mca/bfrops/base/static-components.h, src/mca/gds/base/static-components.h, src/mca/pcompress/base/static-components.h, src/mca/pdl/base/static-components.h, src/mca/pif/base/static-components.h, src/mca/pinstalldirs/base/static-components.h, src/mca/plog/base/static-components.h, src/mca/pmdl/base/static-components.h, src/mca/pnet/base/static-components.h, src/mca/preg/base/static-components.h, src/mca/psec/base/static-components.h, src/mca/psensor/base/static-components.h, src/mca/psquash/base/static-components.h, src/mca/pstat/base/static-components.h, src/mca/ptl/base/static-components.h"
+    },
+    {
+      "digest": "b9b6cd5668e9557f",
+      "kind": "shared_library_absorbs_static",
+      "subject": "libpmix.la"
+    },
+    {
+      "digest": "cdcb3e964c3217d7",
+      "kind": "shell_expanded_defines",
+      "subject": "PMIX_BUILD_DATE, PMIX_BUILD_HOST, PMIX_BUILD_USER, PMIX_BUILD_DATE, PMIX_BUILD_HOST, PMIX_BUILD_USER, PMIX_BUILD_DATE, PMIX_BUILD_HOST, PMIX_BUILD_USER, PMIX_BUILD_DATE, PMIX_BUILD_HOST, PMIX_BUILD_USER, PMIX_BUILD_DATE, PMIX_BUILD_HOST, PMIX_BUILD_USER, PMIX_BUILD_DATE, PMIX_BUILD_HOST, PMIX_BUILD_USER"
+    },
+    {
+      "digest": "2aa89a0c4db44285",
+      "kind": "unconverted_dependency",
+      "subject": "-lz"
+    },
+    {
+      "digest": "1aa41f7344b7eb9a",
+      "kind": "unmapped_config_macros",
+      "subject": "include/pmix_common.h"
+    },
+    {
+      "digest": "664118aa6703ed46",
+      "kind": "unmapped_config_macros",
+      "subject": "src/include/pmix_config.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "generated_headers": 1,
+    "shared_library_absorbs_static": 1,
+    "shell_expanded_defines": 1,
+    "unconverted_dependency": 1,
+    "unmapped_config_macros": 2
+  },
+  "module": "pmix",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "abi_no_init",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "abi_with_init",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "alloc",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "asyncgroup",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "client",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "client2",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "client3",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "client4",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "debugger",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "debuggerd",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "dmodex",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "dynamic",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "fault",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "group",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "group_dmodex",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "group_lcl_cid",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "hello",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "jctrl",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "launcher",
+      "sources": 173
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_bfrops.la",
+      "sources": 133
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_gds.la",
+      "sources": 126
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pcompress.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pdl.la",
+      "sources": 127
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pif.la",
+      "sources": 124
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pinstalldirs.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_plog.la",
+      "sources": 126
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pmdl.la",
+      "sources": 126
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pnet.la",
+      "sources": 126
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_preg.la",
+      "sources": 126
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_psec.la",
+      "sources": 126
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_psensor.la",
+      "sources": 126
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_psquash.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pstat.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_ptl.la",
+      "sources": 131
+    },
+    {
+      "kind": "shared_library",
+      "name": "libpmix.la",
+      "sources": 160
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_class.la",
+      "sources": 131
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_base.la",
+      "sources": 139
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_bfrops_v12.la",
+      "sources": 129
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_bfrops_v20.la",
+      "sources": 129
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_bfrops_v21.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_bfrops_v3.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_bfrops_v4.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_bfrops_v41.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_gds_hash.la",
+      "sources": 128
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_gds_shmem2.la",
+      "sources": 128
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pdl_pdlopen.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pif_linux_ipv6.la",
+      "sources": 124
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pif_posix_ipv4.la",
+      "sources": 124
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pinstalldirs_config.la",
+      "sources": 124
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pinstalldirs_env.la",
+      "sources": 124
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_plog_default.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_plog_stdfd.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_plog_syslog.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pmdl_ompi.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pnet_opa.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_preg_compress.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_preg_native.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_preg_raw.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_psec_native.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_psec_none.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_psensor_file.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_psensor_heartbeat.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_psquash_flex128.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_psquash_native.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_pstat_linux.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_ptl_client.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_ptl_server.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_mca_ptl_tool.la",
+      "sources": 125
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmix_util.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmixglobal.la",
+      "sources": 127
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmixutilkeyval.la",
+      "sources": 124
+    },
+    {
+      "kind": "executable",
+      "name": "log",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "nodeinfo",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "palloc",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pattrs",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pctrl",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pevent",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "plookup",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pmix_client",
+      "sources": 182
+    },
+    {
+      "kind": "executable",
+      "name": "pmix_environ",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pmix_info",
+      "sources": 174
+    },
+    {
+      "kind": "shared_library",
+      "name": "pmix_mca_pcompress_zlib.la",
+      "sources": 125
+    },
+    {
+      "kind": "executable",
+      "name": "pmix_regex",
+      "sources": 178
+    },
+    {
+      "kind": "executable",
+      "name": "pmix_test",
+      "sources": 178
+    },
+    {
+      "kind": "executable",
+      "name": "pmixcc",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pps",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pquery",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pset",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pub",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pubi",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "pubstress",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "resolve",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "simple_resolve",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "tool",
+      "sources": 173
+    },
+    {
+      "kind": "executable",
+      "name": "toolqry",
+      "sources": 173
+    }
+  ],
+  "tests": 1,
+  "version": "5.0.11"
+}

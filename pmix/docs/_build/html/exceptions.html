@@ -1,0 +1,1748 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4. Exceptions to the PMIx Standard &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="5. Building and installing PMIx" href="installing-pmix/index.html" />
+    <link rel="prev" title="3.4. General Run-Time Support Notes" href="release-notes/run-time.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Exceptions to the PMIx Standard</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#extensions">4.1. Extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#qualified-values">4.2. Qualified Values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scheduler-integration-apis">4.3. Scheduler Integration APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tool-apis">4.4. Tool APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#utility-apis">4.5. Utility APIs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#argv-handling">4.6. Argv Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#value-struct-functions">4.7. Value Struct Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-array-functions">4.8. Data Array Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#info-struct-functions">4.9. Info Struct Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#coordinate-struct-functions">4.10. Coordinate Struct Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#topology-functions">4.11. Topology Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cpuset-functions">4.12. Cpuset Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#geometry-functions">4.13. Geometry Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#device-distance-functions">4.14. Device Distance Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#byte-object-functions">4.15. Byte Object Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#endpoint-functions">4.16. Endpoint Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#envar-functions">4.17. Envar Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-buffer-functions">4.18. Data Buffer Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#proc-struct-functions">4.19. Proc Struct Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#proc-info-functions">4.20. Proc Info Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#proc-stats-functions">4.21. Proc Stats Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#disk-stats-functions">4.22. Disk Stats Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#net-stats-functions">4.23. Net Stats Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#process-data-functions">4.24. Process Data Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#app-struct-functions">4.25. App Struct Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pmix-info-list-functions">4.26. PMIx Info List Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#pretty-print-functions">4.27. Pretty-Print Functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#constants">4.28. Constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#attributes">4.29. Attributes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#datatypes">4.30. Datatypes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#datatype-static-initializers">4.30.1. Datatype static initializers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#macros">4.31. Macros</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scheduler-integration">4.32. Scheduler Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#session-control-function">4.32.1. Session Control Function</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#session-control-attributes">4.32.2. Session Control Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#server-module-function-pointers">4.32.3. Server module function pointers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#server-module-attributes">4.32.4. Server module attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scheduler-query-attributes">4.32.5. Scheduler query attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#allocation-attributes">4.32.6. Allocation attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#allocation-directive-values">4.32.7. Allocation directive values</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4. </span>Exceptions to the PMIx Standard</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/exceptions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="exceptions-to-the-pmix-standard">
+<h1><span class="section-number">4. </span>Exceptions to the PMIx Standard<a class="headerlink" href="#exceptions-to-the-pmix-standard" title="Link to this heading"></a></h1>
+<p>Exceptions to the base PMIx Standard are listed here. These exceptions
+are not indicative of any intent to stray
+from the Standard, but instead represent the difference between the
+pace of development of the library versus the normal Standard’s
+process. Accordingly, it is expected that the exceptions listed below
+will make their way into a future release of the PMIx Standard and
+then be removed from the list of exceptions in some future OpenPMIx
+release.</p>
+<section id="extensions">
+<h2><span class="section-number">4.1. </span>Extensions<a class="headerlink" href="#extensions" title="Link to this heading"></a></h2>
+<p>OpenPMIx v5.0.11 is based on the PMIx 5.1 Standard. In
+addition to <em>Extensions</em> to the Standard, this release includes the conversion of
+all support macros to PMIx function APIs — e.g., the
+<code class="docutils literal notranslate"><span class="pre">PMIX_LOAD_PROCID</span></code> macro is now the <code class="docutils literal notranslate"><span class="pre">PMIx_Load_procid()</span></code>
+function — in accordance with planned changes to the Standard.
+The macro versions have been retained as deprecated (without
+warnings) for backward compatibility.</p>
+</section>
+<section id="qualified-values">
+<h2><span class="section-number">4.2. </span>Qualified Values<a class="headerlink" href="#qualified-values" title="Link to this heading"></a></h2>
+<p>OpenPMIx has introduced the concept of <code class="docutils literal notranslate"><span class="pre">qualified</span> <span class="pre">values</span></code> to allow users to specify a value combined with one or more qualifiers.</p>
+</section>
+<section id="scheduler-integration-apis">
+<h2><span class="section-number">4.3. </span>Scheduler Integration APIs<a class="headerlink" href="#scheduler-integration-apis" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Allow a scheduler to direct the resource manager to execute a session-related operation, or allow the resource manager to report a session-related action (e.g., session terminated) to the scheduler:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Session_control</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">sessionID</span><span class="p">,</span>
+<span class="w">                                   </span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">directives</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ndirs</span><span class="p">,</span>
+<span class="w">                                   </span><span class="n">pmix_info_cbfunc_t</span><span class="w"> </span><span class="n">cbfunc</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">cbdata</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="tool-apis">
+<h2><span class="section-number">4.4. </span>Tool APIs<a class="headerlink" href="#tool-apis" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Check if the tool is connected to a PMIx server:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_tool_is_connected</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Allow the tool to register a server function pointer module so it can service client requests:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_tool_set_server_module</span><span class="p">(</span><span class="n">pmix_server_module_t</span><span class="w"> </span><span class="o">*</span><span class="n">mod</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="utility-apis">
+<h2><span class="section-number">4.5. </span>Utility APIs<a class="headerlink" href="#utility-apis" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Load a key:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Load_key</span><span class="p">(</span><span class="n">pmix_key_t</span><span class="w"> </span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">src</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check a key:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Check_key</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">key</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">str</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check to see if a key is a “reserved” key:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Check_reserved_key</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">key</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Load a string into a <code class="docutils literal notranslate"><span class="pre">pmix_nspace_t</span></code> struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Load_nspace</span><span class="p">(</span><span class="n">pmix_nspace_t</span><span class="w"> </span><span class="n">nspace</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">str</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check two <code class="docutils literal notranslate"><span class="pre">nspace</span></code> structs for equality:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Check_nspace</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">key1</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">key2</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if a namespace is invalid:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Nspace_invalid</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">nspace</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Load a process ID struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Load_procid</span><span class="p">(</span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span>
+<span class="w">                      </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">ns</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">pmix_rank_t</span><span class="w"> </span><span class="n">rk</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Transfer a process ID struct (non-destructive):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Xfer_procid</span><span class="p">(</span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">dst</span><span class="p">,</span>
+<span class="w">                      </span><span class="k">const</span><span class="w"> </span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">src</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check two proc IDs for equality:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Check_procid</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">a</span><span class="p">,</span>
+<span class="w">                       </span><span class="k">const</span><span class="w"> </span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check two ranks for equality:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Check_rank</span><span class="p">(</span><span class="n">pmix_rank_t</span><span class="w"> </span><span class="n">a</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">pmix_rank_t</span><span class="w"> </span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if proc ID is invalid:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Procid_invalid</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="argv-handling">
+<h2><span class="section-number">4.6. </span>Argv Handling<a class="headerlink" href="#argv-handling" title="Link to this heading"></a></h2>
+<p>Functions for handling of argv arrays (<code class="docutils literal notranslate"><span class="pre">NULL</span></code>-terminated array of strings)</p>
+<ul class="simple">
+<li><p>Count the number of entries</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="nf">PMIx_Argv_count</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">a</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Append a string to the array</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Argv_append_nosize</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">***</span><span class="n">argv</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Prepend a string to the array</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Argv_prepend_nosize</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">***</span><span class="n">argv</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Append a string to the array, but only if it doesn’t already
+appear on the array (ignore if it does)</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Argv_append_unique_nosize</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">***</span><span class="n">argv</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">arg</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Free an array, including each string on the array</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Argv_free</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">argv</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Split a string into an argv array, dividing the string on each occurrence
+of the specified delimiter character. Retain empty entries in the array
+when more than one copy of the delimiter character appears in a sequence.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="nf">PMIx_Argv_split_inter</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">src_string</span><span class="p">,</span>
+<span class="w">                             </span><span class="kt">int</span><span class="w"> </span><span class="n">delimiter</span><span class="p">,</span>
+<span class="w">                             </span><span class="kt">bool</span><span class="w"> </span><span class="n">include_empty</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Split a string into an argv array, dividing the string on each occurrence
+of the specified delimiter character. Retain empty entries in the array
+when more than one copy of the delimiter character appears in a sequence.
+Acts as a wrapper to <code class="docutils literal notranslate"><span class="pre">PMIx_Argv_split_inter</span></code> with <code class="docutils literal notranslate"><span class="pre">include_empty</span></code> set
+to <code class="docutils literal notranslate"><span class="pre">true</span></code></p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="nf">PMIx_Argv_split_with_empty</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">src_string</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">delimiter</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Split a string into an argv array, dividing the string on each occurrence
+of the specified delimiter character. Discard empty entries in the array
+when more than one copy of the delimiter character appears in a sequence.
+Acts as a wrapper to <code class="docutils literal notranslate"><span class="pre">PMIx_Argv_split_inter</span></code> with <code class="docutils literal notranslate"><span class="pre">include_empty</span></code> set
+to <code class="docutils literal notranslate"><span class="pre">false</span></code></p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="nf">PMIx_Argv_split</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">src_string</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">delimiter</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Join all the elements of an argv array into a single newly-allocated string,
+with the specified delimiter character at the join points.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="nf">PMIx_Argv_join</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">argv</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">delimiter</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Copy a <code class="docutils literal notranslate"><span class="pre">NULL</span></code>-terminated argv array.</p></li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="nf">PMIx_Argv_copy</span><span class="p">(</span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">argv</span><span class="p">);</span>
+</pre></div>
+</div>
+<ul>
+<li><p>Set environment variable:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Setenv</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">,</span>
+<span class="w">                          </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">value</span><span class="p">,</span>
+<span class="w">                          </span><span class="kt">bool</span><span class="w"> </span><span class="n">overwrite</span><span class="p">,</span>
+<span class="w">                          </span><span class="kt">char</span><span class="w"> </span><span class="o">***</span><span class="n">env</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="value-struct-functions">
+<h2><span class="section-number">4.7. </span>Value Struct Functions<a class="headerlink" href="#value-struct-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a value struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Value_construct</span><span class="p">(</span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">val</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a value struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Value_destruct</span><span class="p">(</span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">val</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of value structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_value_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Value_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of coord structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Value_free</span><span class="p">(</span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">v</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check the given value struct to determine if it includes a boolean
+value (includes strings for <code class="docutils literal notranslate"><span class="pre">true</span></code> and <code class="docutils literal notranslate"><span class="pre">false</span></code>, including
+abbreviations such as <code class="docutils literal notranslate"><span class="pre">t</span></code> or <code class="docutils literal notranslate"><span class="pre">f</span></code>), and if so, then its value. A
+value type of <code class="docutils literal notranslate"><span class="pre">PMIX_UNDEF</span></code> is taken to imply a boolean <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_boolean_t</span><span class="w"> </span><span class="nf">PMIx_Value_true</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">v</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Compare the contents of two <code class="docutils literal notranslate"><span class="pre">pmix_value_t</span></code> structures:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_value_cmp_t</span><span class="w"> </span><span class="nf">PMIx_Value_compare</span><span class="p">(</span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">v1</span><span class="p">,</span>
+<span class="w">                                    </span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">v2</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Get the size of the contents of a <code class="docutils literal notranslate"><span class="pre">pmix_value_t</span></code> structure:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Value_get_size</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">val</span><span class="p">,</span>
+<span class="w">                                  </span><span class="kt">size_t</span><span class="w"> </span><span class="o">*</span><span class="n">size</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="data-array-functions">
+<h2><span class="section-number">4.8. </span>Data Array Functions<a class="headerlink" href="#data-array-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Construct a data array object, allocating the memory for the indicated
+number of the specified data type. Memory for the provided data array
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_array_construct</span><span class="p">(</span><span class="n">pmix_data_array_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span>
+<span class="w">                               </span><span class="kt">size_t</span><span class="w"> </span><span class="n">num</span><span class="p">,</span><span class="w"> </span><span class="n">pmix_data_type_t</span><span class="w"> </span><span class="n">type</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Initialize the fields of a data array object without allocating any
+memory for the included array:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_array_init</span><span class="p">(</span><span class="n">pmix_data_array_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span>
+<span class="w">                          </span><span class="n">pmix_data_type_t</span><span class="w"> </span><span class="n">type</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Destroy a data array object, releasing all memory included in it:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_array_destruct</span><span class="p">(</span><span class="n">pmix_data_array_t</span><span class="w"> </span><span class="o">*</span><span class="n">d</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize a <code class="docutils literal notranslate"><span class="pre">pmix_data_array_t</span></code> structure, allocating the
+memory for the indicated number of the specified data type as well as
+the <code class="docutils literal notranslate"><span class="pre">pmix_data_array_t</span></code> object itself:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_data_array_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Data_array_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">pmix_data_type_t</span><span class="w"> </span><span class="n">type</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a <code class="docutils literal notranslate"><span class="pre">pmix_data_array_t</span></code> structure (does not free
+the provided <code class="docutils literal notranslate"><span class="pre">pmix_data_array_t</span></code> object itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_array_free</span><span class="p">(</span><span class="n">pmix_data_array_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="info-struct-functions">
+<h2><span class="section-number">4.9. </span>Info Struct Functions<a class="headerlink" href="#info-struct-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize an info struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_construct</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an info struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_destruct</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of info structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_info_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Info_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of coord structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_free</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check the given info struct to determine if it includes
+a boolean value (includes strings for <code class="docutils literal notranslate"><span class="pre">true</span></code> and <code class="docutils literal notranslate"><span class="pre">false</span></code>,
+including abbreviations such as <code class="docutils literal notranslate"><span class="pre">t</span></code> or <code class="docutils literal notranslate"><span class="pre">f</span></code>), and if so,
+then its value. A value type of <code class="docutils literal notranslate"><span class="pre">PMIX_UNDEF</span></code> is taken to imply
+a boolean <code class="docutils literal notranslate"><span class="pre">true</span></code> as the presence of the key defaults to
+indicating <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_boolean_t</span><span class="w"> </span><span class="nf">PMIx_Info_true</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Mark the info struct as required:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_required</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Mark the info struct as optional:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_optional</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if the info struct is required:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Info_is_required</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if the info struct is optional:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Info_is_optional</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Mark the info struct as processed:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_processed</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if the info struct has been processed:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Info_was_processed</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Mark the info struct as the end of an array:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_set_end</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if the info struct is the end of an array:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Info_is_end</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Mark the info as a qualifier:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_qualifier</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if the info struct is a qualifier:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Info_is_qualifier</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Mark the info struct as persistent — do <em>not</em> release its contents:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Info_persistent</span><span class="p">(</span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Check if the info struct is persistent:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">bool</span><span class="w"> </span><span class="nf">PMIx_Info_is_persistent</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Get the size of a <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> structure:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Info_get_size</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">val</span><span class="p">,</span>
+<span class="w">                                 </span><span class="kt">size_t</span><span class="w"> </span><span class="o">*</span><span class="n">size</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="coordinate-struct-functions">
+<h2><span class="section-number">4.10. </span>Coordinate Struct Functions<a class="headerlink" href="#coordinate-struct-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a coord struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Coord_construct</span><span class="p">(</span><span class="n">pmix_coord_t</span><span class="w"> </span><span class="o">*</span><span class="n">m</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a coord struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Coord_destruct</span><span class="p">(</span><span class="n">pmix_coord_t</span><span class="w"> </span><span class="o">*</span><span class="n">m</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of coord structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_coord_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Coord_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">dims</span><span class="p">,</span>
+<span class="w">                                </span><span class="kt">size_t</span><span class="w"> </span><span class="n">number</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of coord structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Coord_free</span><span class="p">(</span><span class="n">pmix_coord_t</span><span class="w"> </span><span class="o">*</span><span class="n">m</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">number</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="topology-functions">
+<h2><span class="section-number">4.11. </span>Topology Functions<a class="headerlink" href="#topology-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a topology struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Topology_construct</span><span class="p">(</span><span class="n">pmix_topology_t</span><span class="w"> </span><span class="o">*</span><span class="n">t</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of topology structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_topology_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Topology_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of topology structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Topology_free</span><span class="p">(</span><span class="n">pmix_topology_t</span><span class="w"> </span><span class="o">*</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="cpuset-functions">
+<h2><span class="section-number">4.12. </span>Cpuset Functions<a class="headerlink" href="#cpuset-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a cpuset struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Cpuset_construct</span><span class="p">(</span><span class="n">pmix_cpuset_t</span><span class="w"> </span><span class="o">*</span><span class="n">cpuset</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a cpuset struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Cpuset_destruct</span><span class="p">(</span><span class="n">pmix_cpuset_t</span><span class="w"> </span><span class="o">*</span><span class="n">cpuset</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of cpuset structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_cpuset_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Cpuset_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of cpuset structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Cpuset_free</span><span class="p">(</span><span class="n">pmix_cpuset_t</span><span class="w"> </span><span class="o">*</span><span class="n">c</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="geometry-functions">
+<h2><span class="section-number">4.13. </span>Geometry Functions<a class="headerlink" href="#geometry-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a geometry struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Geometry_construct</span><span class="p">(</span><span class="n">pmix_geometry_t</span><span class="w"> </span><span class="o">*</span><span class="n">g</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a cpuset struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Geometry_destruct</span><span class="p">(</span><span class="n">pmix_geometry_t</span><span class="w"> </span><span class="o">*</span><span class="n">g</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of cpuset structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_geometry_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Geometry_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of cpuset structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Geometry_free</span><span class="p">(</span><span class="n">pmix_geometry_t</span><span class="w"> </span><span class="o">*</span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="device-distance-functions">
+<h2><span class="section-number">4.14. </span>Device Distance Functions<a class="headerlink" href="#device-distance-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a device distance struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Device_distance_construct</span><span class="p">(</span><span class="n">pmix_device_distance_t</span><span class="w"> </span><span class="o">*</span><span class="n">d</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a device distance struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Device_distance_destruct</span><span class="p">(</span><span class="n">pmix_device_distance_t</span><span class="w"> </span><span class="o">*</span><span class="n">d</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of device distance structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_device_distance_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Device_distance_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of device distance structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Device_distance_free</span><span class="p">(</span><span class="n">pmix_device_distance_t</span><span class="w"> </span><span class="o">*</span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="byte-object-functions">
+<h2><span class="section-number">4.15. </span>Byte Object Functions<a class="headerlink" href="#byte-object-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a byte object struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Byte_object_construct</span><span class="p">(</span><span class="n">pmix_byte_object_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a byte object struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Byte_object_destruct</span><span class="p">(</span><span class="n">pmix_byte_object_t</span><span class="w"> </span><span class="o">*</span><span class="n">g</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of byte object structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_byte_object_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Byte_object_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of byte object structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Byte_object_free</span><span class="p">(</span><span class="n">pmix_byte_object_t</span><span class="w"> </span><span class="o">*</span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Load a byte object:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Byte_object_load</span><span class="p">(</span><span class="n">pmix_byte_object_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span>
+<span class="w">                           </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">d</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">sz</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="endpoint-functions">
+<h2><span class="section-number">4.16. </span>Endpoint Functions<a class="headerlink" href="#endpoint-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize an endpoint struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Endpoint_construct</span><span class="p">(</span><span class="n">pmix_endpoint_t</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an endpoint struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Endpoint_destruct</span><span class="p">(</span><span class="n">pmix_endpoint_t</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of endpoint structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_endpoint_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Endpoint_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of endpoint structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Endpoint_free</span><span class="p">(</span><span class="n">pmix_endpoint_t</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="envar-functions">
+<h2><span class="section-number">4.17. </span>Envar Functions<a class="headerlink" href="#envar-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize an envar struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Envar_construct</span><span class="p">(</span><span class="n">pmix_envar_t</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an envar struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Envar_destruct</span><span class="p">(</span><span class="n">pmix_envar_t</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of envar structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_envar_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Envar_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of envar structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Envar_free</span><span class="p">(</span><span class="n">pmix_envar_t</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Load an envar struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Envar_load</span><span class="p">(</span><span class="n">pmix_envar_t</span><span class="w"> </span><span class="o">*</span><span class="n">e</span><span class="p">,</span>
+<span class="w">                     </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">var</span><span class="p">,</span>
+<span class="w">                     </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">value</span><span class="p">,</span>
+<span class="w">                     </span><span class="kt">char</span><span class="w"> </span><span class="n">separator</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="data-buffer-functions">
+<h2><span class="section-number">4.18. </span>Data Buffer Functions<a class="headerlink" href="#data-buffer-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a data buffer struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_buffer_construct</span><span class="p">(</span><span class="n">pmix_data_buffer_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a data buffer struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_buffer_destruct</span><span class="p">(</span><span class="n">pmix_data_buffer_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create a data buffer struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_data_buffer_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Data_buffer_create</span><span class="p">(</span><span class="kt">void</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a data buffer struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_buffer_release</span><span class="p">(</span><span class="n">pmix_data_buffer_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Load a data buffer struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_buffer_load</span><span class="p">(</span><span class="n">pmix_data_buffer_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span>
+<span class="w">                           </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">sz</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Unload a data buffer struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Data_buffer_unload</span><span class="p">(</span><span class="n">pmix_data_buffer_t</span><span class="w"> </span><span class="o">*</span><span class="n">b</span><span class="p">,</span>
+<span class="w">                             </span><span class="kt">char</span><span class="w"> </span><span class="o">**</span><span class="n">bytes</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="o">*</span><span class="n">sz</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="proc-struct-functions">
+<h2><span class="section-number">4.19. </span>Proc Struct Functions<a class="headerlink" href="#proc-struct-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a proc struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_construct</span><span class="p">(</span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clear memory inside a proc struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_destruct</span><span class="p">(</span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of proc structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_proc_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Proc_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of proc structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_free</span><span class="p">(</span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Load a proc struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_load</span><span class="p">(</span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span>
+<span class="w">                    </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">nspace</span><span class="p">,</span><span class="w"> </span><span class="n">pmix_rank_t</span><span class="w"> </span><span class="n">rank</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Construct a multicluster <code class="docutils literal notranslate"><span class="pre">nspace</span></code> struct from cluster and
+<code class="docutils literal notranslate"><span class="pre">nspace</span></code> values:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Multicluster_nspace_construct</span><span class="p">(</span><span class="n">pmix_nspace_t</span><span class="w"> </span><span class="n">target</span><span class="p">,</span>
+<span class="w">                                        </span><span class="n">pmix_nspace_t</span><span class="w"> </span><span class="n">cluster</span><span class="p">,</span>
+<span class="w">                                        </span><span class="n">pmix_nspace_t</span><span class="w"> </span><span class="n">nspace</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Parse a multicluster nspace struct to separate out the cluster
+and <code class="docutils literal notranslate"><span class="pre">nspace</span></code> portions:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Multicluster_nspace_parse</span><span class="p">(</span><span class="n">pmix_nspace_t</span><span class="w"> </span><span class="n">target</span><span class="p">,</span>
+<span class="w">                                    </span><span class="n">pmix_nspace_t</span><span class="w"> </span><span class="n">cluster</span><span class="p">,</span>
+<span class="w">                                    </span><span class="n">pmix_nspace_t</span><span class="w"> </span><span class="n">nspace</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="proc-info-functions">
+<h2><span class="section-number">4.20. </span>Proc Info Functions<a class="headerlink" href="#proc-info-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a proc info struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_info_construct</span><span class="p">(</span><span class="n">pmix_proc_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clear memory inside a proc info struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_info_destruct</span><span class="p">(</span><span class="n">pmix_proc_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of proc info structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_proc_info_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Proc_info_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of proc info structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_info_free</span><span class="p">(</span><span class="n">pmix_proc_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="proc-stats-functions">
+<h2><span class="section-number">4.21. </span>Proc Stats Functions<a class="headerlink" href="#proc-stats-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a proc stats struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_stats_construct</span><span class="p">(</span><span class="n">pmix_proc_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clear memory inside a proc stats struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_stats_destruct</span><span class="p">(</span><span class="n">pmix_proc_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of proc stats structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_proc_stats_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Proc_stats_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of proc stats structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Proc_stats_free</span><span class="p">(</span><span class="n">pmix_proc_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="disk-stats-functions">
+<h2><span class="section-number">4.22. </span>Disk Stats Functions<a class="headerlink" href="#disk-stats-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a disk stats struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Disk_stats_construct</span><span class="p">(</span><span class="n">pmix_disk_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clear memory inside a disk stats struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Disk_stats_destruct</span><span class="p">(</span><span class="n">pmix_disk_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of disk stats structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_disk_stats_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Disk_stats_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of disk stats structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Disk_stats_free</span><span class="p">(</span><span class="n">pmix_disk_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="net-stats-functions">
+<h2><span class="section-number">4.23. </span>Net Stats Functions<a class="headerlink" href="#net-stats-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a net stats struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Net_stats_construct</span><span class="p">(</span><span class="n">pmix_net_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clear memory inside a net stats struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Net_stats_destruct</span><span class="p">(</span><span class="n">pmix_net_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of net stats structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_net_stats_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Net_stats_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of net stats structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Net_stats_free</span><span class="p">(</span><span class="n">pmix_net_stats_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="process-data-functions">
+<h2><span class="section-number">4.24. </span>Process Data Functions<a class="headerlink" href="#process-data-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a pdata struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Pdata_construct</span><span class="p">(</span><span class="n">pmix_pdata_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clear memory inside a pdata struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Pdata_destruct</span><span class="p">(</span><span class="n">pmix_pdata_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of pdata structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_pdata_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Pdata_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of pdata structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_Pdata_free</span><span class="p">(</span><span class="n">pmix_pdata_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="app-struct-functions">
+<h2><span class="section-number">4.25. </span>App Struct Functions<a class="headerlink" href="#app-struct-functions" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Initialize a <code class="docutils literal notranslate"><span class="pre">pmix_app_t</span></code> struct. Memory for the provided
+object must have previously been allocated or statically declared:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_App_construct</span><span class="p">(</span><span class="n">pmix_app_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Clear memory inside an app struct:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_App_destruct</span><span class="p">(</span><span class="n">pmix_app_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of app structs:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_app_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_App_create</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Create and initialize an array of <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> structs
+in the provided <code class="docutils literal notranslate"><span class="pre">pmix_app_t</span></code> object:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_App_info_create</span><span class="p">(</span><span class="n">pmix_app_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside an array of app structs (does
+not free the struct memory itself):</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_App_free</span><span class="p">(</span><span class="n">pmix_app_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Free memory stored inside a <code class="docutils literal notranslate"><span class="pre">pmix_app_t</span></code> object</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">PMIx_App_release</span><span class="p">(</span><span class="n">pmix_app_t</span><span class="w"> </span><span class="o">*</span><span class="n">p</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="pmix-info-list-functions">
+<h2><span class="section-number">4.26. </span>PMIx Info List Functions<a class="headerlink" href="#pmix-info-list-functions" title="Link to this heading"></a></h2>
+<p>Constructing arrays of <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> for passing to an API can
+be tedious since the <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> itself is not a “list object”.
+Since this is a very frequent operation, a set of APIs has been
+provided that opaquely manipulates internal PMIx list structures
+for this purpose. The user only need provide a <code class="docutils literal notranslate"><span class="pre">void*</span></code> pointer to
+act as the caddy for the internal list object. The base functions
+for these operations are in the Standard, but the following functions
+have been added here:</p>
+<ul>
+<li><p>Retrieve the next <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> from the provided list, given
+the current pointer. Passing a <code class="docutils literal notranslate"><span class="pre">NULL</span></code> to the <code class="docutils literal notranslate"><span class="pre">prev</span></code> parameter
+will return the first object on the list. A <code class="docutils literal notranslate"><span class="pre">NULL</span></code> is returned
+upon reaching the end of the list:</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_info_t</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Info_list_get_info</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">ptr</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">prev</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">**</span><span class="n">next</span><span class="p">);</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Insert a <cite>pmix_info_t`</cite> struct into the provided list. This directly
+copies the contents of the provided <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> struct, preserving
+any included pointers. The object on the list is subsequently marked
+as <code class="docutils literal notranslate"><span class="pre">persistent</span></code> to avoid free’ing any objects pointed to in the struct:</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Info_list_insert</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">ptr</span><span class="p">,</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">info</span><span class="p">);</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Prepend a value onto the provided list:</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Info_list_prepend</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">ptr</span><span class="p">,</span>
+<span class="w">                                     </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">key</span><span class="p">,</span>
+<span class="w">                                     </span><span class="k">const</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">value</span><span class="p">,</span>
+<span class="w">                                     </span><span class="n">pmix_data_type_t</span><span class="w"> </span><span class="n">type</span><span class="p">);</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</section>
+<section id="pretty-print-functions">
+<h2><span class="section-number">4.27. </span>Pretty-Print Functions<a class="headerlink" href="#pretty-print-functions" title="Link to this heading"></a></h2>
+<p>The following pretty-print support APIs have been added:</p>
+<ul>
+<li><p>Print a <code class="docutils literal notranslate"><span class="pre">pmix_value_cmp_t</span></code> value</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Value_comparison_string</span><span class="p">(</span><span class="n">pmix_value_cmp_t</span><span class="w"> </span><span class="n">cmp</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p>Print the contents of a <code class="docutils literal notranslate"><span class="pre">pmix_app_t</span></code> struct. Note that the returned
+string must be free’d by the caller:</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_App_string</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_app_t</span><span class="w"> </span><span class="o">*</span><span class="n">app</span><span class="p">);</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<p>The following pretty-print support APIs have been slightly modified
+to add a <code class="docutils literal notranslate"><span class="pre">const</span></code> qualifier to their input parameter:</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Get_attribute_string</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">attribute</span><span class="p">);</span>
+<span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Get_attribute_name</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">attrstring</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Info_string</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="o">*</span><span class="n">info</span><span class="p">);</span>
+<span class="kt">char</span><span class="o">*</span><span class="w"> </span><span class="nf">PMIx_Value_string</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">pmix_value_t</span><span class="w"> </span><span class="o">*</span><span class="n">value</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>This is not expected to cause any issues for users.</p>
+</div></blockquote>
+<p>The following function has been added to return the <code class="docutils literal notranslate"><span class="pre">pmix_status_t</span></code>
+corresponding to the string name of the constant:</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Error_code</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">errname</span><span class="p">);</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<section id="constants">
+<h2><span class="section-number">4.28. </span>Constants<a class="headerlink" href="#constants" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DATA_BUFFER</span></code>: data type for packing/unpacking of
+<code class="docutils literal notranslate"><span class="pre">pmix_data_buffer_t</span></code> objects</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISK_STATS</span></code>: data type for packing/unpacking of
+<code class="docutils literal notranslate"><span class="pre">pmix_disk_stats_t</span></code> objects</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NET_STATS</span></code>: data type for packing/unpacking of
+<code class="docutils literal notranslate"><span class="pre">pmix_net_stats_t</span></code> objects</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NODE_STATS</span></code>: data type for packing/unpacking of
+<code class="docutils literal notranslate"><span class="pre">pmix_node_stats_t</span></code> objects</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROC_STATS</span></code>: data type for packing/unpacking of
+<code class="docutils literal notranslate"><span class="pre">pmix_proc_stats_t</span></code> objects</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_JOB_EXE_NOT_FOUND</span></code>: specified executable not found</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_JOB_INSUFFICIENT_RESOURCES</span></code>: insufficient resources to
+spawn job</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_JOB_SYS_OP_FAILED</span></code>: system library operation failed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_JOB_WDIR_NOT_FOUND</span></code>: specified working directory not
+found</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_READY_FOR_DEBUG</span></code>: event indicating job/proc is ready for
+debug (accompanied by <code class="docutils literal notranslate"><span class="pre">PMIX_BREAKPOINT</span></code> indicating where proc is
+waiting)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_REQUESTED_ABORT</span></code>: process called <code class="docutils literal notranslate"><span class="pre">PMIx_Abort</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_KILLED_BY_CMD</span></code>: process was terminated by RTE
+command</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_FAILED_TO_START</span></code>: process failed to start</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_ABORTED_BY_SIG</span></code>: process aborted by signal (e.g.,
+segmentation fault)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_SENSOR_BOUND_EXCEEDED</span></code>: process terminated due to
+exceeding a sensor boundary</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_EXIT_NONZERO_TERM</span></code>: process exited normally, but with a
+non-zero status</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFO_QUALIFIER</span></code>  (value: 0x00000008): Info is a qualifier to the primary value</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFO_PERSISTENT</span></code> (value: 0x00000010): Do not release included value</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>OpenPMIx version v5.0.11 renamed the  <code class="docutils literal notranslate"><span class="pre">PMIX_DEBUG_WAIT_FOR_NOTIFY</span></code>
+to <code class="docutils literal notranslate"><span class="pre">PMIX_READY_FOR_DEBUG</span></code>. The prior name is retained as deprecated
+for backward compatibility.</p>
+</div>
+</section>
+<section id="attributes">
+<h2><span class="section-number">4.29. </span>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_EXTERNAL_AUX_EVENT_BASE</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pmix.evaux&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(void*)</span></code></p></td>
+<td><p>event base to be used for auxiliary
+functions (e.g., capturing signals) that would
+otherwise interfere with the
+host</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_CONNECT_TO_SCHEDULER</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pmix.cnct.sched&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Connect to the system scheduler</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_BIND_PROGRESS_THREAD</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pmix.bind.pt&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>Comma-delimited ranges of CPUs
+that the internal PMIx progress
+thread shall be bound to</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_BIND_REQUIRED</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pmix.bind.reqd&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Return error if the internal PMIx
+progress thread cannot be bound</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_COLOCATE_PROCS</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pmix.colproc&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(pmix_data_array_t*)</span></code></p></td>
+<td><p>Array of <code class="docutils literal notranslate"><span class="pre">pmix_proc_t</span></code> identifying the
+procs with which the new job’s procs
+are to be colocated</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_COLOCATE_NPERPROC</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pmix.colnum.proc&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(uint16_t)</span></code></p></td>
+<td><p>Number of procs to colocate with
+each identified proc</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_COLOCATE_NPERNODE</span></code> <code class="docutils literal notranslate"><span class="pre">&quot;pmix.colnum.node&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(uint16_t)</span></code></p></td>
+<td><p>Number of procs to colocate on the
+node of each identified proc</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_EVENT_ONESHOT</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.evone</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>when registering, indicate that this
+event handler is to be deleted after
+being invoked</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_GROUP_ADD_MEMBERS</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.grp.add</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(pmix_data_array_t*)</span></code></p></td>
+<td><p>Array of <code class="docutils literal notranslate"><span class="pre">pmix_proc_t</span></code> identifying
+procs that are not included in the
+membership specified in the procs
+array passed to the
+<code class="docutils literal notranslate"><span class="pre">PMIx_Group_construct[_nb]()</span></code> call,
+but are to be included in the final
+group. The identified procs will be
+sent an invitation to join the group
+during the construction procedure.
+This is used when some members of
+the proposed group do not know the
+full membership and therefore cannot
+include all members in the call to
+construct.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_GROUP_LOCAL_CID</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.grp.lclid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(size_t)</span></code></p></td>
+<td><p>Local context ID for the specified
+process member of a group</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_GROUP_INFO</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.grp.info</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pmix_data_array_t</span></code></p></td>
+<td><p>Array of pmix_info_t containing data
+that is to be shared across all
+members of a group during group
+construction</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_IOF_TAG_DETAILED_OUTPUT</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.iof.tagdet</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Tag output with the
+[local jobid,rank][hostname:pid]
+and channel it comes from</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_IOF_TAG_FULLNAME_OUTPUT</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.iof.tagfull</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Tag output with the [nspace,rank]
+and channel it comes from</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_LOG_AGG</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.log.agg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Whether to aggregate and prevent
+duplicate logging messages based
+on key value pairs.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_LOG_KEY</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.log.key</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>key to a logging message</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_LOG_VAL</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.log.val</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>value to a logging message</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_MYSERVER_URI</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.mysrvr.uri</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>URI of this proc’s listener socket</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_QUALIFIED_VALUE</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.qual.val</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(pmix_data_array_t*)</span></code></p></td>
+<td><p>Value being provided consists of the
+primary key-value pair in first position,
+followed by one or more key-value
+qualifiers to be used when
+subsequently retrieving the primary
+value</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_WDIR_USER_SPECIFIED</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.wdir.user</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>User specified the working directory</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_RUNTIME_OPTIONS</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.runopt</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>Environment-specific runtime
+directives that control job behavior</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_ABORT_NON_ZERO_TERM</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.abnz</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Abort the spawned job if any process
+terminates with non-zero status</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_DO_NOT_LAUNCH</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.dnl</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Execute all procedures to prepare the
+requested job for launch, but do not
+launch it. Typically combined with the
+PMIX_DISPLAY_MAP or
+PMIX_DISPLAY_MAP_DETAILED for
+debugging purposes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SHOW_LAUNCH_PROGRESS</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.showprog</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Provide periodic progress reports on
+job launch procedure (e.g., after
+every 100 processes have been
+spawned)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_AGGREGATE_HELP</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.agg.help</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Aggregate help messages, reporting
+each unique help message once
+accompanied by the number of
+processes that reported it</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_REPORT_CHILD_SEP</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.rptchildsep</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Report the exit status of any child
+jobs spawned by the primary job
+separately. If false, then the final
+exit status reported will be zero if the
+primary job and all spawned jobs exit
+normally, or the first non-zero status
+returned by either primary or child
+jobs.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISPLAY_MAP_DETAILED</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.dispmapdet</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>display a highly detailed placement
+map upon spawn</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISPLAY_ALLOCATION</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.dispalloc</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>display the resource allocation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISPLAY_TOPOLOGY</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.disptopo</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>comma-delimited list of hosts whose
+topology is to be displayed</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISPLAY_PROCESSORS</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.dispcpus</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>comma-delimited list of hosts whose
+available CPUs are to be displayed</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISPLAY_PARSEABLE_OUTPUT</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.dispparse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>display requested info in a format
+more amenable to machine parsing</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SORTED_PROC_ARRAY</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.sorted.parr</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>Proc array being passed has been
+sorted</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_QUERY_PROVISIONAL_ABI_VERSION</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.qry.prabiver</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>The PMIx Standard Provisional ABI
+version(s) supported, returned in the
+form of a comma separated list of
+“MAJOR.MINOR” pairs</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_QUERY_STABLE_ABI_VERSION</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.qry.stabiver</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>The PMIx Standard Stable ABI
+version(s) supported, returned in the
+form of a comma separated list of
+“MAJOR.MINOR” pairs</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The attribute <code class="docutils literal notranslate"><span class="pre">PMIX_DEBUG_STOP_IN_APP</span></code> has been modified
+to only support a <code class="docutils literal notranslate"><span class="pre">PMIX_BOOL</span></code> value instead of an optional
+array of ranks due to questions over the use-case calling
+for stopping a subset of a job’s processes while allowing
+others to run “free”.</p>
+</div>
+</section>
+<section id="datatypes">
+<h2><span class="section-number">4.30. </span>Datatypes<a class="headerlink" href="#datatypes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pmix_value_cmp_t</span></code>: an enum indicating the relative value of
+two <code class="docutils literal notranslate"><span class="pre">pmix_value_t</span> <span class="pre">objects</span></code>. Values include:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_EQUAL</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_VALUE1_GREATER</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_VALUE2_GREATER</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_VALUE_TYPE_DIFFERENT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_VALUE_INCOMPATIBLE_OBJECTS</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_VALUE_COMPARISON_NOT_AVAIL</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pmix_boolean_t</span></code>: an enum indicating boolean state of a
+<code class="docutils literal notranslate"><span class="pre">pmix_value_t</span></code> (possibly contained in a <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> object):</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_BOOL_TRUE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_BOOL_FALSE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NON_BOOL</span></code></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pmix_disk_stats_t</span></code>: contains statistics on disk read/write operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pmix_net_stats_t</span></code>: contains statistics on network activity</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pmix_node_stats_t</span></code>: contains statistics on node resource usage</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pmix_proc_stats_t</span></code>: contains statistics on process resource usage</p></li>
+</ul>
+<section id="datatype-static-initializers">
+<h3><span class="section-number">4.30.1. </span>Datatype static initializers<a class="headerlink" href="#datatype-static-initializers" title="Link to this heading"></a></h3>
+<p>Static initializers were added for each complex data type (i.e., a data type
+defined as a struct). Most are contained in the Standard, but the following
+extensions have been provided:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROC_STATS_STATIC_INIT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISK_STATS_STATIC_INIT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NET_STATS_STATIC_INIT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NODE_STATS_STATIC_INIT</span></code></p></li>
+</ul>
+</section>
+</section>
+<section id="macros">
+<h2><span class="section-number">4.31. </span>Macros<a class="headerlink" href="#macros" title="Link to this heading"></a></h2>
+<p>Although the convenience macros have been deprecated, several were
+added (in deprecated form) that previously were missing. These
+are added for symmetry to support those who continue to use
+the macros, and include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_XFER_PROCID</span></code>: transfer a <code class="docutils literal notranslate"><span class="pre">pmix_proc_t</span></code> to another one
+(non-destructive copy)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFO_SET_END</span></code>: mark this <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> as being at the end
+of an array</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFO_SET_PERSISTENT</span></code>: mark that the data in this
+<code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> is not to be released by <code class="docutils literal notranslate"><span class="pre">PMIX_Info_destruct()</span></code> (or its
+macro form)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFO_SET_QUALIFIER</span></code>: mark this <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> as a qualifier to the
+primary key</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFO_IS_PERSISTENT</span></code>: test if this <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> has been marked as persistent</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFO_IS_QUALIFIER</span></code>: test if this <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> has been marked as a qualifier</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DATA_ARRAY_INIT</span></code>: initialize a <code class="docutils literal notranslate"><span class="pre">pmix_data_array_t</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_CHECK_TRUE</span></code>: check if a <code class="docutils literal notranslate"><span class="pre">pmix_value_t</span></code> is boolean <code class="docutils literal notranslate"><span class="pre">true</span></code> (supports
+string as well as traditional boolean values)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_CHECK_BOOL</span></code>: check if a <code class="docutils literal notranslate"><span class="pre">pmix_value_t</span></code> is a boolean value (supports
+string as well as traditional boolean values)</p></li>
+</ul>
+<p>Macros supporting <code class="docutils literal notranslate"><span class="pre">pmix_disk_stats_t</span></code> objects:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISK_STATS_CONSTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISK_STATS_CREATE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISK_STATS_DESTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISK_STATS_FREE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DISK_STATS_RELEASE</span></code></p></li>
+</ul>
+<p>Macros supporting <code class="docutils literal notranslate"><span class="pre">pmix_net_stats_t</span></code> objects:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NET_STATS_CONSTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NET_STATS_CREATE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NET_STATS_DESTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NET_STATS_FREE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NET_STATS_RELEASE</span></code></p></li>
+</ul>
+<p>Macros supporting <code class="docutils literal notranslate"><span class="pre">pmix_node_stats_t</span></code> objects:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NODE_STATS_CONSTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NODE_STATS_CREATE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NODE_STATS_DESTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NODE_STATS_RELEASE</span></code></p></li>
+</ul>
+<p>Macros supporting <code class="docutils literal notranslate"><span class="pre">pmix_proc_stats_t</span></code> objects:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROC_STATS_CONSTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROC_STATS_CREATE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROC_STATS_DESTRUCT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROC_STATS_FREE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROC_STATS_RELEASE</span></code></p></li>
+</ul>
+</section>
+<section id="scheduler-integration">
+<h2><span class="section-number">4.32. </span>Scheduler Integration<a class="headerlink" href="#scheduler-integration" title="Link to this heading"></a></h2>
+<p>OpenPMIx has taken some initial steps towards supporting the
+integration of schedulers to runtime environments (RTEs) using
+PMIx as the middleware. Supporting definitions will continue
+to be added going forward. This section describes the current
+state of those definitions.</p>
+<section id="session-control-function">
+<h3><span class="section-number">4.32.1. </span>Session Control Function<a class="headerlink" href="#session-control-function" title="Link to this heading"></a></h3>
+<p>Used by the scheduler to request a session control action by the RTE - e.g.,
+setup a session (allocate the specified nodes to the new session,
+provision the nodes with the specified image,
+setup a user-level DVM across those nodes, and startup the given
+application under control of that DVM). In addition to setting
+up a new session, the function can be called to direct that a
+currently executing session be preempted or terminated.
+The sessionID identifies the
+session to which the specified control action is to be applied. A
+<code class="docutils literal notranslate"><span class="pre">UINT32_MAX</span></code> value can be used to indicate all sessions under the
+caller’s control.</p>
+<p>Also used by the RTE to report a change in session state - e.g.,
+that the session has completed
+The directives are provided as <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> structs in the
+directives array. The callback function provides a status to
+indicate whether or not the request was granted, and to provide some
+information as to the reason for any denial in the
+<code class="docutils literal notranslate"><span class="pre">pmix_info_cbfunc_t</span></code> array of <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> structures. If
+non-<code class="docutils literal notranslate"><span class="pre">NULL</span></code>, then the specified release_fn must be called when the
+callback function completes — this will be used to release any
+provided <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> array.</p>
+<p>Passing <code class="docutils literal notranslate"><span class="pre">NULL</span></code> as the <code class="docutils literal notranslate"><span class="pre">cbfunc</span></code> to this call indicates that it shall
+be treated as a blocking operation, with the return status
+indicative of the overall operation’s completion.</p>
+<blockquote>
+<div><div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">pmix_status_t</span><span class="w"> </span><span class="nf">PMIx_Session_control</span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">sessionID</span><span class="p">,</span>
+<span class="w">                                   </span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="n">directives</span><span class="p">[],</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ndirs</span><span class="p">,</span>
+<span class="w">                                   </span><span class="n">pmix_info_cbfunc_t</span><span class="w"> </span><span class="n">cbfunc</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">cbdata</span><span class="p">);</span>
+</pre></div>
+</div>
+</div></blockquote>
+</section>
+<section id="session-control-attributes">
+<h3><span class="section-number">4.32.2. </span>Session Control Attributes<a class="headerlink" href="#session-control-attributes" title="Link to this heading"></a></h3>
+<p>Schedulers calling to create a session are required to provide:</p>
+<ul class="simple">
+<li><p>the effective userID and groupID that the session should have
+when instantiated.</p></li>
+<li><p>description of the resources that are to be included in the session</p></li>
+<li><p>if applicable, the image that should be provisioned on nodes
+included in the session</p></li>
+<li><p>an array of applications (if any) that are to be started in the
+session once instantiated</p></li>
+</ul>
+<p>Attributes supported by this API when called by the scheduler include:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_APP</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.app</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(pmix_data_array_t*)</span></code></p></td>
+<td><p>Array of <code class="docutils literal notranslate"><span class="pre">pmix_app_t</span></code> to be executed
+in the assigned session upon session
+instantiation</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_PROVISION</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.pvn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(pmix_data_array_t*)</span></code></p></td>
+<td><p>description of nodes to be
+provisioned with specified image</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_PROVISION_NODES</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.pvnnds</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>regex identifying nodes that are to be
+provisioned</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_PROVISION_IMAGE</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.pvnimg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>name of the image that is to be
+provisioned</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_PAUSE</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.pause</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>pause all jobs in the specified session</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_RESUME</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.resume</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>“un-pause” all jobs in the specified session</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_TERMINATE</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.terminate</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>terminate all jobs in the specified
+session and recover all resources
+included in the session.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_PREEMPT</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.preempt</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>preempt indicated jobs (given in
+accompanying <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> via the
+<code class="docutils literal notranslate"><span class="pre">PMIX_NSPACE</span></code> attribute) in the specified
+session and recover all their resources. If
+no <code class="docutils literal notranslate"><span class="pre">PMIX_NSPACE</span></code> is specified, then preempt
+all jobs in the session.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_RESTORE</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.restore</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>restore indicated jobs (given in
+accompanying <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> via the
+<code class="docutils literal notranslate"><span class="pre">PMIX_NSPACE</span></code> attribute) in the specified
+session, including all their resources. If
+no <code class="docutils literal notranslate"><span class="pre">PMIX_NSPACE</span></code> is specified, then restore
+all jobs in the session.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_SIGNAL</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.sig</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(int)</span></code></p></td>
+<td><p>send given signal to all processes of every
+job in the session</p></td>
+</tr>
+</tbody>
+</table>
+<p>Attributes supported by this API when called by the RTE include:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_COMPLETE</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssn.complete</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>specified session has completed, all resources have been
+recovered and are available for scheduling. Must include
+<code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code> indicating ID and returned status of any jobs
+executing in the session.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="server-module-function-pointers">
+<h3><span class="section-number">4.32.3. </span>Server module function pointers<a class="headerlink" href="#server-module-function-pointers" title="Link to this heading"></a></h3>
+<p>The PMIx server module was extended to include the following interface
+that is used by the PMIx server to pass control requests received
+by the RTE from the scheduler. These include requests to establish
+a newly allocated session, preempt jobs, etc. A <code class="docutils literal notranslate"><span class="pre">UINT32_MAX</span></code> value
+for the sessionID indicates that the specified action shall be
+applied to all currently existing sessions.</p>
+<ul>
+<li><p>Provide a session control operation request</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="n">pmix_status_t</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">pmix_server_session_control_fn_t</span><span class="p">)(</span>
+<span class="w">                              </span><span class="k">const</span><span class="w"> </span><span class="n">pmix_proc_t</span><span class="w"> </span><span class="o">*</span><span class="n">requestor</span><span class="p">,</span>
+<span class="w">                              </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">sessionID</span><span class="p">,</span>
+<span class="w">                              </span><span class="k">const</span><span class="w"> </span><span class="n">pmix_info_t</span><span class="w"> </span><span class="n">directives</span><span class="p">[],</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ndirs</span><span class="p">,</span>
+<span class="w">                              </span><span class="n">pmix_info_cbfunc_t</span><span class="w"> </span><span class="n">cbfunc</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">cbdata</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="server-module-attributes">
+<h3><span class="section-number">4.32.4. </span>Server module attributes<a class="headerlink" href="#server-module-attributes" title="Link to this heading"></a></h3>
+<p>A number of allocation related attributes have already been defined
+in the Standard. These can be used to describe the request (e.g., the
+resources to be included in the session). The following
+attribute has been added to that list:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_SESSION_CTRL_ID</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.ssnctrl.id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(char*)</span></code></p></td>
+<td><p>provide a string identifier for this request.
+This identifier shall be included
+in all subsequent interactions relating to
+the request.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="scheduler-query-attributes">
+<h3><span class="section-number">4.32.5. </span>Scheduler query attributes<a class="headerlink" href="#scheduler-query-attributes" title="Link to this heading"></a></h3>
+<p>The scheduler typically discovers its available resources
+by querying the RTE for a list of them. The following
+attributes augment those already in the Standard to support
+the query:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_QUERY_ALLOCATION</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.query.allc</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(pmix_data_array_t*)</span></code></p></td>
+<td><p>returns an array of <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code>
+describing the nodes known to the
+server. Each array element will consist
+of the <code class="docutils literal notranslate"><span class="pre">PMIX_NODE_INFO</span></code> key containing
+a <code class="docutils literal notranslate"><span class="pre">pmix_data_array_t</span></code> of <code class="docutils literal notranslate"><span class="pre">pmix_info_t</span></code>.
+The first element of the array must be
+the hostname of that node, with
+additional info on the node in
+subsequent entries.
+SUPPORTED_QUALIFIER: a
+<code class="docutils literal notranslate"><span class="pre">PMIX_ALLOC_ID</span></code> qualifier indicating
+the specific allocation of interest</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_TOPOLOGY_INDEX</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.topo.index</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(int)</span></code></p></td>
+<td><p>index of a topology in a storage array. Used
+when returning an allocation to avoid duplicate
+topology information - the RTE can return an array
+of topologies and then indicate the index
+to the topology as part of each node entry.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="allocation-attributes">
+<h3><span class="section-number">4.32.6. </span>Allocation attributes<a class="headerlink" href="#allocation-attributes" title="Link to this heading"></a></h3>
+<p>A number of allocation related attributes have already been defined
+in the Standard. These can be used to describe the request (e.g., the
+number and type of resources being requested). The following
+attribute has been added to that list:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">PMIX_ALLOC_PREEMPTIBLE</span></code> <code class="docutils literal notranslate"><span class="pre">pmix.alloc.preempt</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">(bool)</span></code></p></td>
+<td><p>by default, all jobs in the resulting
+allocation are to be considered
+preemptible (can be overridden at
+per-job level)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="allocation-directive-values">
+<h3><span class="section-number">4.32.7. </span>Allocation directive values<a class="headerlink" href="#allocation-directive-values" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">PMIx_Allocation_request</span></code> API includes a <code class="docutils literal notranslate"><span class="pre">directive</span></code> parameter to
+specify the operation being requested. These values were extended to include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ALLOC_REQ_CANCEL</span></code> (value: 5): Cancel the indicated allocation request</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="release-notes/run-time.html" class="btn btn-neutral float-left" title="3.4. General Run-Time Support Notes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installing-pmix/index.html" class="btn btn-neutral float-right" title="5. Building and installing PMIx" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

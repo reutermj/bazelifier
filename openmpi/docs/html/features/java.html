@@ -1,0 +1,465 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.4. Open MPI Java bindings &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="6. Validating your installation" href="../validate.html" />
+    <link rel="prev" title="5.3. User-Level Fault Mitigation (ULFM)" href="ulfm.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">5. Open MPI-specific features</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="profiling.html">5.1. Open MPI profiling interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extensions.html">5.2. Open MPI extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ulfm.html">5.3. User-Level Fault Mitigation (ULFM)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">5.4. Open MPI Java bindings</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#building-the-java-bindings">5.4.1. Building the Java bindings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building-java-mpi-applications">5.4.2. Building Java MPI applications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-java-mpi-applications">5.4.3. Running Java MPI applications</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#basic-usage-of-the-java-bindings">5.4.4. Basic usage of the Java bindings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exception-handling">5.4.5. Exception handling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-specify-buffers">5.4.6. How to specify buffers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#specifying-offsets-in-buffers">5.4.7. Specifying offsets in buffers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#supported-apis">5.4.8. Supported APIs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#known-issues">5.4.9. Known issues</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#questions-problems">5.4.10. Questions?  Problems?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">5. </span>Open MPI-specific features</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.4. </span>Open MPI Java bindings</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/features/java.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="open-mpi-java-bindings">
+<span id="open-mpi-java-label"></span><h1><span class="section-number">5.4. </span>Open MPI Java bindings<a class="headerlink" href="#open-mpi-java-bindings" title="Link to this heading"></a></h1>
+<p>Open MPI v5.0.11 provides support for Java-based MPI applications.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The Open MPI Java bindings are provided on a
+“provisional” basis — i.e., they are not part of the current or
+proposed MPI standards.  Thus, inclusion of Java support is not
+required by the standard.  Continued inclusion of the Java bindings
+is contingent upon active user interest and continued developer
+support.</p>
+</div>
+<p>The rest of this document provides step-by-step instructions on
+building OMPI with Java bindings, and compiling and running Java-based
+MPI applications. Also, part of the functionality is explained with
+examples. Further details about the design, implementation and usage
+of Java bindings in Open MPI can be found in its canonical reference
+paper <a class="footnote-reference brackets" href="#ompijava" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>. The bindings follow a JNI approach, that is, we do
+not provide a pure Java implementation of MPI primitives, but a thin
+layer on top of the C implementation. This is the same approach as in
+mpiJava <a class="footnote-reference brackets" href="#mpijava" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a>; in fact, mpiJava was taken as a starting point
+for Open MPI Java bindings, but they were later totally rewritten.</p>
+<section id="building-the-java-bindings">
+<h2><span class="section-number">5.4.1. </span>Building the Java bindings<a class="headerlink" href="#building-the-java-bindings" title="Link to this heading"></a></h2>
+<p>Java support requires that Open MPI be built at least with shared
+libraries (i.e., <code class="docutils literal notranslate"><span class="pre">--enable-shared</span></code>).  Note that this is the default
+for Open MPI, so you don’t have to explicitly add the option. The Java
+bindings will build only if <code class="docutils literal notranslate"><span class="pre">--enable-mpi-java</span></code> is specified, and a
+JDK is found in a typical system default location.</p>
+<p>If the JDK is not in a place where we automatically find it, you can
+specify the location. For example, this is required on the Mac
+platform as the JDK headers are located in a non-typical location. Two
+options are available for this purpose:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-jdk-bindir=&lt;foo&gt;</span></code>: the location of <code class="docutils literal notranslate"><span class="pre">javac</span></code> and <code class="docutils literal notranslate"><span class="pre">javah</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-jdk-headers=&lt;bar&gt;</span></code>: the directory containing <code class="docutils literal notranslate"><span class="pre">jni.h</span></code></p></li>
+</ol>
+<p>Some example configurations are provided in Open MPI configuration
+platform files under <code class="docutils literal notranslate"><span class="pre">contrib/platform/hadoop</span></code>. These examples can
+provide a starting point for your own custom configuration.</p>
+<p>In summary, therefore, you can configure the system using the
+following Java-related options:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ ./configure --with-platform=contrib/platform/hadoop/&lt;your-platform&gt; ...
+</pre></div>
+</div>
+<p>or:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ ./configure --enable-mpi-java --with-jdk-bindir=&lt;foo&gt; --with-jdk-headers=&lt;bar&gt; ...
+</pre></div>
+</div>
+<p>or simply:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ ./configure --enable-mpi-java ...
+</pre></div>
+</div>
+<p>if JDK is in a “standard” place that <code class="docutils literal notranslate"><span class="pre">configure</span></code> can automatically
+find.</p>
+</section>
+<section id="building-java-mpi-applications">
+<h2><span class="section-number">5.4.2. </span>Building Java MPI applications<a class="headerlink" href="#building-java-mpi-applications" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">mpijavac</span></code> wrapper compiler is available for compiling
+Java-based MPI applications. It ensures that all required Open MPI
+libraries and classpaths are defined.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ mpijavac Hello.java
+</pre></div>
+</div>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">--showme</span></code> option to see the full command line of
+the Java compiler that is invoked:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ mpijavac Hello.java --showme
+/usr/bin/javac -cp /opt/openmpi/lib/mpi.jar Hello.java
+</pre></div>
+</div>
+<p>Note that if you are specifying a <code class="docutils literal notranslate"><span class="pre">-cp</span></code> argument on the command line
+to pass your application-specific classpaths, Open MPI will <em>extend</em>
+that argument to include the <code class="docutils literal notranslate"><span class="pre">mpi.jar</span></code>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ mpijavac -cp /path/to/my/app.jar Hello.java --showme
+/usr/bin/javac -cp /path/to/my/app.jar:/opt/openmpi/lib/mpi.jar Hello.java
+</pre></div>
+</div>
+<p>Similarly, if you have a <code class="docutils literal notranslate"><span class="pre">CLASSPATH</span></code> environment variable defined,
+<code class="docutils literal notranslate"><span class="pre">mpijavac</span></code> will convert that into a <code class="docutils literal notranslate"><span class="pre">-cp</span></code> argument and extend it
+to include the <code class="docutils literal notranslate"><span class="pre">mpi.jar</span></code>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ export CLASSPATH=/path/to/my/app.jar
+$ mpijavac Hello.java --showme
+/usr/bin/javac -cp /path/to/my/app.jar:/opt/openmpi/lib/mpi.jar Hello.java
+</pre></div>
+</div>
+</section>
+<section id="running-java-mpi-applications">
+<h2><span class="section-number">5.4.3. </span>Running Java MPI applications<a class="headerlink" href="#running-java-mpi-applications" title="Link to this heading"></a></h2>
+<p>Once your application has been compiled, you can run it with the
+standard <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ mpirun &lt;options&gt; java &lt;your-java-options&gt; &lt;my-app&gt;
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will detect the <code class="docutils literal notranslate"><span class="pre">java</span></code> token and ensure that the required
+MPI libraries and class paths are defined to support execution. You
+therefore do <strong>not</strong> need to specify the Java library path to the MPI
+installation, nor the MPI classpath. Any classpath definitions
+required for your application should be specified either on the
+command line or via the <code class="docutils literal notranslate"><span class="pre">CLASSPATH</span></code> environment variable. Note that
+the local directory will be added to the classpath if nothing is
+specified.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">java</span></code> executable, all required libraries, and your
+application classes must be available on all nodes.</p>
+</div>
+</section>
+<section id="basic-usage-of-the-java-bindings">
+<h2><span class="section-number">5.4.4. </span>Basic usage of the Java bindings<a class="headerlink" href="#basic-usage-of-the-java-bindings" title="Link to this heading"></a></h2>
+<p>There is an MPI package that contains all classes of the MPI Java
+bindings: <code class="docutils literal notranslate"><span class="pre">Comm</span></code>, <code class="docutils literal notranslate"><span class="pre">Datatype</span></code>, <code class="docutils literal notranslate"><span class="pre">Request</span></code>, etc. These classes have a
+direct correspondence with handle types defined by the MPI standard. MPI
+primitives are just methods included in these classes. The convention
+used for naming Java methods and classes is the usual camel-case
+convention, e.g., the equivalent of <code class="docutils literal notranslate"><span class="pre">MPI_File_set_info(fh,info)</span></code> is
+<code class="docutils literal notranslate"><span class="pre">fh.setInfo(info)</span></code>, where <code class="docutils literal notranslate"><span class="pre">fh</span></code> is an object of the class <code class="docutils literal notranslate"><span class="pre">File</span></code>.</p>
+<p>Apart from classes, the MPI package contains predefined public
+attributes under a convenience class <code class="docutils literal notranslate"><span class="pre">MPI</span></code>. Examples are the
+predefined communicator <code class="docutils literal notranslate"><span class="pre">MPI.COMM_WORLD</span></code> and predefined datatypes such
+as <code class="docutils literal notranslate"><span class="pre">MPI.DOUBLE</span></code>. Also, MPI initialization and finalization are methods
+of the <code class="docutils literal notranslate"><span class="pre">MPI</span></code> class and must be invoked by all MPI Java
+applications. The following example illustrates these concepts:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">mpi.*</span><span class="p">;</span>
+
+<span class="kd">class</span> <span class="nc">ComputePi</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">   </span><span class="kd">public</span><span class="w"> </span><span class="kd">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">String</span><span class="w"> </span><span class="n">args</span><span class="o">[]</span><span class="p">)</span><span class="w"> </span><span class="kd">throws</span><span class="w"> </span><span class="n">MPIException</span><span class="w"> </span><span class="p">{</span>
+
+<span class="w">       </span><span class="n">MPI</span><span class="p">.</span><span class="na">Init</span><span class="p">(</span><span class="n">args</span><span class="p">);</span>
+
+<span class="w">       </span><span class="kt">int</span><span class="w"> </span><span class="n">rank</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">getRank</span><span class="p">(),</span>
+<span class="w">           </span><span class="n">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">getSize</span><span class="p">(),</span>
+<span class="w">           </span><span class="n">nint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">100</span><span class="p">;</span><span class="w"> </span><span class="c1">// Intervals.</span>
+<span class="w">       </span><span class="kt">double</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="kt">double</span><span class="p">)</span><span class="n">nint</span><span class="p">,</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+
+<span class="w">       </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="o">=</span><span class="n">rank</span><span class="o">+</span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">&lt;=</span><span class="n">nint</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">+=</span><span class="n">size</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="kt">double</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">((</span><span class="kt">double</span><span class="p">)</span><span class="n">i</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">0.5</span><span class="p">);</span>
+<span class="w">           </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="p">(</span><span class="mf">4.0</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="mf">1.0</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">));</span>
+<span class="w">       </span><span class="p">}</span>
+
+<span class="w">       </span><span class="kt">double</span><span class="w"> </span><span class="n">sBuf</span><span class="o">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">h</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="p">},</span>
+<span class="w">              </span><span class="n">rBuf</span><span class="o">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">double</span><span class="o">[</span><span class="mi">1</span><span class="o">]</span><span class="p">;</span>
+
+<span class="w">       </span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">reduce</span><span class="p">(</span><span class="n">sBuf</span><span class="p">,</span><span class="w"> </span><span class="n">rBuf</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">DOUBLE</span><span class="p">,</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">SUM</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+
+<span class="w">       </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">rank</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">           </span><span class="n">System</span><span class="p">.</span><span class="na">out</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"PI: "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">rBuf</span><span class="o">[</span><span class="mi">0</span><span class="o">]</span><span class="p">);</span>
+<span class="w">       </span><span class="p">}</span>
+<span class="w">       </span><span class="n">MPI</span><span class="p">.</span><span class="na">Finalize</span><span class="p">();</span>
+<span class="w">   </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="exception-handling">
+<h2><span class="section-number">5.4.5. </span>Exception handling<a class="headerlink" href="#exception-handling" title="Link to this heading"></a></h2>
+<p>The Java bindings in Open MPI support exception handling. By default,
+errors are fatal, but this behavior can be changed. The Java API will
+throw exceptions if the <code class="docutils literal notranslate"><span class="pre">MPI.ERRORS_RETURN</span></code> error handler is set:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">setErrhandler</span><span class="p">(</span><span class="n">MPI</span><span class="p">.</span><span class="na">ERRORS_RETURN</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>If you add this statement to your program, it will show the line
+where it breaks, instead of just crashing in case of an error.
+Error-handling code can be separated from main application code by
+means of try-catch blocks, for instance:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="k">try</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">File</span><span class="w"> </span><span class="n">file</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">File</span><span class="p">(</span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_SELF</span><span class="p">,</span><span class="w"> </span><span class="s">"filename"</span><span class="p">,</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">MODE_RDONLY</span><span class="p">);</span>
+<span class="p">}</span>
+<span class="k">catch</span><span class="p">(</span><span class="n">MPIException</span><span class="w"> </span><span class="n">ex</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">System</span><span class="p">.</span><span class="na">err</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"Error Message: "</span><span class="o">+</span><span class="w"> </span><span class="n">ex</span><span class="p">.</span><span class="na">getMessage</span><span class="p">());</span>
+<span class="w">    </span><span class="n">System</span><span class="p">.</span><span class="na">err</span><span class="p">.</span><span class="na">println</span><span class="p">(</span><span class="s">"  Error Class: "</span><span class="o">+</span><span class="w"> </span><span class="n">ex</span><span class="p">.</span><span class="na">getErrorClass</span><span class="p">());</span>
+<span class="w">    </span><span class="n">ex</span><span class="p">.</span><span class="na">printStackTrace</span><span class="p">();</span>
+<span class="w">    </span><span class="n">System</span><span class="p">.</span><span class="na">exit</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="how-to-specify-buffers">
+<h2><span class="section-number">5.4.6. </span>How to specify buffers<a class="headerlink" href="#how-to-specify-buffers" title="Link to this heading"></a></h2>
+<p>In MPI primitives that require a buffer (either send or receive), the
+Java API admits a Java array. Since Java arrays can be relocated by
+the Java runtime environment, the MPI Java bindings need to make a
+copy of the contents of the array to a temporary buffer, then pass the
+pointer to this buffer to the underlying C implementation. From the
+practical point of view, this implies an overhead associated to all
+buffers that are represented by Java arrays. The overhead is small for
+small buffers but increases for large arrays.</p>
+<p>There is a pool of temporary buffers with a default capacity of 64K.
+If a temporary buffer of 64K or less is needed, then the buffer will
+be obtained from the pool. But if the buffer is larger, then it will
+be necessary to allocate the buffer and free it later.</p>
+<p>The default capacity of pool buffers can be modified with an Open MPI
+MCA parameter:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>$ mpirun --mca ompi_mpi_java_eager SIZE ...
+</pre></div>
+</div>
+<p>The value of <code class="docutils literal notranslate"><span class="pre">SIZE</span></code> can be:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">N</span></code>: An integer number of bytes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Nk</span></code>: An integer number (suffixed with <code class="docutils literal notranslate"><span class="pre">k</span></code>) of kilobytes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Nm</span></code>: An integer number (suffixed with <code class="docutils literal notranslate"><span class="pre">m</span></code>) of megabytes</p></li>
+</ul>
+<p>An alternative is to use “direct buffers” provided by standard classes
+available in the Java SDK such as <code class="docutils literal notranslate"><span class="pre">ByteBuffer</span></code>. For convenience,
+Open MPI provides a few static methods <code class="docutils literal notranslate"><span class="pre">new[Type]Buffer</span></code> in the
+<code class="docutils literal notranslate"><span class="pre">MPI</span></code> class to create direct buffers for a number of basic
+datatypes. Elements of the direct buffer can be accessed with methods
+<code class="docutils literal notranslate"><span class="pre">put()</span></code> and <code class="docutils literal notranslate"><span class="pre">get()</span></code>, and the number of elements in the buffer can
+be obtained with the method <code class="docutils literal notranslate"><span class="pre">capacity()</span></code>. This example illustrates
+its use:</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">myself</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">getRank</span><span class="p">();</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">tasks</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">getSize</span><span class="p">();</span>
+
+<span class="n">IntBuffer</span><span class="w"> </span><span class="n">in</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">newIntBuffer</span><span class="p">(</span><span class="n">MAXLEN</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tasks</span><span class="p">),</span>
+<span class="w">          </span><span class="n">out</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">newIntBuffer</span><span class="p">(</span><span class="n">MAXLEN</span><span class="p">);</span>
+
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">MAXLEN</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span>
+<span class="w">    </span><span class="n">out</span><span class="p">.</span><span class="na">put</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="w"> </span><span class="n">myself</span><span class="p">);</span><span class="w">      </span><span class="c1">// fill the buffer with the rank</span>
+
+<span class="n">Request</span><span class="w"> </span><span class="n">request</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">iAllGather</span><span class="p">(</span>
+<span class="w">                  </span><span class="n">out</span><span class="p">,</span><span class="w"> </span><span class="n">MAXLEN</span><span class="p">,</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">INT</span><span class="p">,</span><span class="w"> </span><span class="n">in</span><span class="p">,</span><span class="w"> </span><span class="n">MAXLEN</span><span class="p">,</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">INT</span><span class="p">);</span>
+<span class="n">request</span><span class="p">.</span><span class="na">waitFor</span><span class="p">();</span>
+<span class="n">request</span><span class="p">.</span><span class="na">free</span><span class="p">();</span>
+
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">tasks</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">MAXLEN</span><span class="p">;</span><span class="w"> </span><span class="n">k</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">in</span><span class="p">.</span><span class="na">get</span><span class="p">(</span><span class="n">k</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">MAXLEN</span><span class="p">)</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">i</span><span class="p">)</span>
+<span class="w">            </span><span class="k">throw</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="n">AssertionError</span><span class="p">(</span><span class="s">"Unexpected value"</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Direct buffers are available for: <code class="docutils literal notranslate"><span class="pre">BYTE</span></code>, <code class="docutils literal notranslate"><span class="pre">CHAR</span></code>, <code class="docutils literal notranslate"><span class="pre">SHORT</span></code>,
+<code class="docutils literal notranslate"><span class="pre">INT</span></code>, <code class="docutils literal notranslate"><span class="pre">LONG</span></code>, <code class="docutils literal notranslate"><span class="pre">FLOAT</span></code>, and <code class="docutils literal notranslate"><span class="pre">DOUBLE</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There is no direct buffer for booleans.</p>
+</div>
+<p>Direct buffers are not a replacement for arrays, because they have
+higher allocation and deallocation costs than arrays. In some cases
+arrays will be a better choice. You can easily convert a buffer into
+an array and vice versa.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All non-blocking methods <em>must</em> use direct buffers.
+Only blocking methods can choose between arrays and
+direct buffers.</p>
+</div>
+<p>The above example also illustrates that it is necessary to call the
+<code class="docutils literal notranslate"><span class="pre">free()</span></code> method on objects whose class implements the <code class="docutils literal notranslate"><span class="pre">Freeable</span></code>
+interface. Otherwise, a memory leak will occur.</p>
+</section>
+<section id="specifying-offsets-in-buffers">
+<h2><span class="section-number">5.4.7. </span>Specifying offsets in buffers<a class="headerlink" href="#specifying-offsets-in-buffers" title="Link to this heading"></a></h2>
+<p>In a C program, it is common to specify an offset in a array with
+<code class="docutils literal notranslate"><span class="pre">&amp;array[i]</span></code> or <code class="docutils literal notranslate"><span class="pre">array+i</span></code> to send data starting from a given
+position in the array. The equivalent form in the Java bindings is to
+<code class="docutils literal notranslate"><span class="pre">slice()</span></code> the buffer to start at an offset. Making a <code class="docutils literal notranslate"><span class="pre">slice()</span></code> on
+a buffer is only necessary, when the offset is not zero. Slices work
+for both arrays and direct buffers.</p>
+<div class="highlight-java notranslate"><div class="highlight"><pre><span></span><span class="kn">import static</span><span class="w"> </span><span class="nn">mpi.MPI.slice</span><span class="p">;</span>
+<span class="c1">// ...</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">numbers</span><span class="o">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">int</span><span class="o">[</span><span class="n">SIZE</span><span class="o">]</span><span class="p">;</span>
+<span class="c1">// ...</span>
+<span class="n">MPI</span><span class="p">.</span><span class="na">COMM_WORLD</span><span class="p">.</span><span class="na">send</span><span class="p">(</span><span class="n">slice</span><span class="p">(</span><span class="n">numbers</span><span class="p">,</span><span class="w"> </span><span class="n">offset</span><span class="p">),</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">MPI</span><span class="p">.</span><span class="na">INT</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="supported-apis">
+<h2><span class="section-number">5.4.8. </span>Supported APIs<a class="headerlink" href="#supported-apis" title="Link to this heading"></a></h2>
+<p>Complete MPI-3.1 coverage is provided in the Open MPI Java bindings,
+with a few exceptions:</p>
+<ul class="simple">
+<li><p>The bindings for the <code class="docutils literal notranslate"><span class="pre">MPI_Neighbor_alltoallw</span></code> and
+<code class="docutils literal notranslate"><span class="pre">MPI_Ineighbor_alltoallw</span></code> functions are not implemented.</p></li>
+<li><p>Also excluded are functions that incorporate the concepts of
+explicit virtual memory addressing, such as
+<code class="docutils literal notranslate"><span class="pre">MPI_Win_shared_query</span></code>.</p></li>
+</ul>
+</section>
+<section id="known-issues">
+<h2><span class="section-number">5.4.9. </span>Known issues<a class="headerlink" href="#known-issues" title="Link to this heading"></a></h2>
+<p>There exist issues with the Omnipath (PSM2) interconnect involving
+Java. The problems definitely exist in PSM2 v10.2; we have not tested
+previous versions.</p>
+<p>As of November 2016, there is not yet a PSM2 release that completely
+fixes the issue.</p>
+<p>The following <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command options will disable PSM2:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun ... --mca mtl ^psm2 java ...your-java-options... your-app-class
+</pre></div>
+</div>
+</section>
+<section id="questions-problems">
+<h2><span class="section-number">5.4.10. </span>Questions?  Problems?<a class="headerlink" href="#questions-problems" title="Link to this heading"></a></h2>
+<p>The Java API documentation is generated at build time in
+<code class="docutils literal notranslate"><span class="pre">$prefix/share/doc/openmpi/javadoc</span></code>.</p>
+<p>Additionally, <a class="reference external" href="https://blogs.cisco.com/performance/java-bindings-for-open-mpi">this Cisco blog post</a> has
+quite a bit of information about the Open MPI Java bindings.</p>
+<p>If you have any problems, or find any bugs, please feel free to report
+them to <a class="reference external" href="https://www.open-mpi.org/community/lists/ompi.php">Open MPI user’s mailing list</a>.</p>
+<p class="rubric">Footnotes</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="ompijava" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>O. Vega-Gisbert, J. E. Roman, and J. M. Squyres. “Design
+and implementation of Java bindings in Open MPI”. Parallel Comput.
+59: 1-20 (2016).</p>
+</aside>
+<aside class="footnote brackets" id="mpijava" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">2</a><span class="fn-bracket">]</span></span>
+<p>M. Baker et al. “mpiJava: An object-oriented Java
+interface to MPI”. In Parallel and Distributed Processing, LNCS
+vol. 1586, pp. 748-762, Springer (1999).</p>
+</aside>
+</aside>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ulfm.html" class="btn btn-neutral float-left" title="5.3. User-Level Fault Mitigation (ULFM)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../validate.html" class="btn btn-neutral float-right" title="6. Validating your installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

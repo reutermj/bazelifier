@@ -1,0 +1,298 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.3. Using Serial Debuggers to Debug Open MPI Applications &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.4. Using Parallel Debuggers to Debug Open MPI Applications" href="parallel-debug.html" />
+    <link rel="prev" title="12.2. Open MPI Runtime Debugging Options" href="debug-options.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Debugging Open MPI Parallel Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="debug-tools.html">12.1. Parallel Debugging Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="debug-options.html">12.2. Open MPI Runtime Debugging Options</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.3. Using Serial Debuggers to Debug Open MPI Applications</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#attach-to-individual-running-mpi-processes">12.3.1. Attach to Individual Running MPI processes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-mpirun-to-launch-separate-instances-of-serial-debuggers">12.3.2. Use <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> to Launch Separate Instances of Serial Debuggers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="parallel-debug.html">12.4. Using Parallel Debuggers to Debug Open MPI Applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lost-output.html">12.5. Application Output Lost with Abnormal Termination</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memchecker.html">12.6. Using Memchecker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="valgrind.html">12.7. Using Valgrind to Find Open MPI Application Errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpir-tools.html">12.8. Using MPIR-based tools with Open MPI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Debugging Open MPI Parallel Applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.3. </span>Using Serial Debuggers to Debug Open MPI Applications</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/app-debug/serial-debug.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="using-serial-debuggers-to-debug-open-mpi-applications">
+<h1><span class="section-number">12.3. </span>Using Serial Debuggers to Debug Open MPI Applications<a class="headerlink" href="#using-serial-debuggers-to-debug-open-mpi-applications" title="Link to this heading"></a></h1>
+<p>Since the GNU debugger (<code class="docutils literal notranslate"><span class="pre">gdb</span></code>) is fairly ubiquitiously
+available, it is common to use a serial debugger for debugging Open
+MPI applications.  Parallel debuggers are generally <em>better</em>, but
+<code class="docutils literal notranslate"><span class="pre">gdb</span></code> is free, and therefore quite common.</p>
+<p>There are two common ways to use serial debuggers.</p>
+<section id="attach-to-individual-running-mpi-processes">
+<h2><span class="section-number">12.3.1. </span>Attach to Individual Running MPI processes<a class="headerlink" href="#attach-to-individual-running-mpi-processes" title="Link to this heading"></a></h2>
+<p>You can use multiple invocations of a serial debugger to individually
+attach to every application process, or to a subset of application process.</p>
+<p>If you are using <code class="docutils literal notranslate"><span class="pre">gdb</span></code>, then you would log onto the nodes where you want
+to debug application processes and invoke gdb specifying the
+gdb <code class="docutils literal notranslate"><span class="pre">--pid</span></code> option and the PID for each application process you want to
+attach to.</p>
+<p>You can use a similar technique to attach to application processes in
+an application that was just invoked by <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a>.</p>
+<p>An inelegant-but-functional technique commonly used with this method
+is to insert the following code in your application where you want to
+suspend the application process until the debugger is attached, such as
+just after MPI is initialized.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">    </span><span class="k">volatile</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">hostname</span><span class="p">[</span><span class="mi">256</span><span class="p">];</span>
+<span class="w">    </span><span class="n">gethostname</span><span class="p">(</span><span class="n">hostname</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">hostname</span><span class="p">));</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">"PID %d on %s ready for attach</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span><span class="w"> </span><span class="n">getpid</span><span class="p">(),</span><span class="w"> </span><span class="n">hostname</span><span class="p">);</span>
+<span class="w">    </span><span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="mi">0</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">i</span><span class="p">)</span>
+<span class="w">        </span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This code will output a line to stdout outputting the name of the host
+where the process is running and the PID to attach to.  It will then
+spin on the <code class="docutils literal notranslate"><span class="pre">sleep(3)</span></code> function forever waiting for you to attach
+with a debugger.  Using <code class="docutils literal notranslate"><span class="pre">sleep(3)</span></code> as the inside of the loop means
+that the processor won’t be pegged at 100% while waiting for you to
+attach.</p>
+<p>Once you attach with a debugger, go up the function stack until you
+are in this block of code (you’ll likely attach during the
+<code class="docutils literal notranslate"><span class="pre">sleep(3)</span></code>) then set the variable <code class="docutils literal notranslate"><span class="pre">i</span></code> to a nonzero value.  With
+GDB, the syntax is:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="o">(</span>gdb<span class="o">)</span><span class="w"> </span><span class="nb">set</span><span class="w"> </span>var<span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">7</span>
+</pre></div>
+</div>
+<p>Then set a breakpoint after your block of code and continue execution
+until the breakpoint is hit.  Now you have control of your live MPI
+application and use of the full functionality of the debugger.</p>
+<p>You  can even  add  conditionals to  only allow  this  “pause” in  the
+application for specific MPI  processes (e.g., <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank
+0, or whatever process is misbehaving).</p>
+</section>
+<section id="use-mpirun-to-launch-separate-instances-of-serial-debuggers">
+<h2><span class="section-number">12.3.2. </span>Use <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> to Launch Separate Instances of Serial Debuggers<a class="headerlink" href="#use-mpirun-to-launch-separate-instances-of-serial-debuggers" title="Link to this heading"></a></h2>
+<p>This technique launches a separate window for each MPI process in
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>, each one running a serial debugger (such as
+<code class="docutils literal notranslate"><span class="pre">gdb</span></code>) that will launch and run your MPI application.  Having a
+separate window for each MPI process can be quite handy for low
+process-count MPI jobs, but requires a bit of setup and configuration
+that is outside of Open MPI to work properly.  A naive approach would
+be to assume that the following would immediately work:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>xterm<span class="w"> </span>-e<span class="w"> </span>gdb<span class="w"> </span>my_mpi_application
+</pre></div>
+</div>
+<p>If running on a personal computer, this will probably work.  You can
+also use <a class="reference external" href="https://github.com/Azrael3000/tmpi">tmpi</a> to launch the
+debuggers in separate <code class="docutils literal notranslate"><span class="pre">tmux</span></code> panes instead of separate <code class="docutils literal notranslate"><span class="pre">xterm</span></code>
+windows, which has the advantage of synchronizing keyboard input
+between all debugger instances.</p>
+<p>Unfortunately, the <code class="docutils literal notranslate"><span class="pre">tmpi</span></code> or <code class="docutils literal notranslate"><span class="pre">xterm</span></code> approaches likely <em>won’t</em>
+work on an computing cluster. Several factors must be considered:</p>
+<ol class="arabic simple">
+<li><p>What launcher is Open MPI using?  In an <code class="docutils literal notranslate"><span class="pre">ssh</span></code>-based environment,
+Open MPI will use <code class="docutils literal notranslate"><span class="pre">ssh</span></code> by default.
+But note that Open MPI closes the <code class="docutils literal notranslate"><span class="pre">ssh</span></code>
+sessions when the MPI job starts for scalability reasons.  This
+means that the built-in SSH X forwarding tunnels will be shut down
+before the <code class="docutils literal notranslate"><span class="pre">xterms</span></code> can be launched.  Although it is possible to
+force Open MPI to keep its SSH connections active (to keep the X
+tunneling available), we recommend using non-SSH-tunneled X
+connections, if possible (see below).</p></li>
+<li><p>In non-<code class="docutils literal notranslate"><span class="pre">ssh</span></code> environments (such as when using resource managers),
+the environment of the process invoking <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> may be copied to
+all nodes.  In this case, the <code class="docutils literal notranslate"><span class="pre">DISPLAY</span></code> environment variable may
+not be suitable.</p></li>
+<li><p>Some operating systems default to disabling the X11 server from
+listening for remote/network traffic.  For example, see <a class="reference external" href="https://www.open-mpi.org/community/lists/users/2008/02/4995.php">this post
+on the Open MPI user’s mailing list</a>
+describing how to enable network access to the X11 server on Fedora
+Linux.</p></li>
+<li><p>There may be intermediate firewalls or other network blocks that
+prevent X traffic from flowing between the hosts where the MPI
+processes (and <code class="docutils literal notranslate"><span class="pre">xterm</span></code>) are running and the host connected to
+the output display.</p></li>
+</ol>
+<p>The easiest way to get remote X applications (such as <code class="docutils literal notranslate"><span class="pre">xterm</span></code>) to
+display on your local screen is to forego the security of SSH-tunneled
+X forwarding.  In a closed environment such as an HPC cluster, this
+may be an acceptable practice (indeed, you may not even have the
+option of using SSH X forwarding if SSH logins to cluster nodes are
+disabled), but check with your security administrator to be sure.</p>
+<p>If using non-encrypted X11 forwarding is permissible, we recommend the
+following:</p>
+<ol class="arabic">
+<li><p>For each non-local host where you will be running an MPI process,
+add it to your X server’s permission list with the <code class="docutils literal notranslate"><span class="pre">xhost</span></code>
+command.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>my_hostfile
+inky
+blinky
+stinky
+clyde
+shell$<span class="w"> </span><span class="k">for</span><span class="w"> </span>host<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="sb">`</span>cat<span class="w"> </span>my_hostfile<span class="sb">`</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span>xhost<span class="w"> </span>+host<span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+</pre></div>
+</div>
+</li>
+<li><p>Use the <code class="docutils literal notranslate"><span class="pre">-x</span></code> option to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> to export an appropriate
+DISPLAY variable so that the launched X applications know where to
+send their output.  An appropriate value is <em>usually</em> (but not
+always) the hostname containing the display where you want the
+output and the <code class="docutils literal notranslate"><span class="pre">:0</span></code> (or <code class="docutils literal notranslate"><span class="pre">:0.0</span></code>) suffix.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>hostname
+arcade.example.come
+shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>--hostfile<span class="w"> </span>my_hostfile<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-x<span class="w"> </span><span class="nv">DISPLAY</span><span class="o">=</span>arcade.example.com:0<span class="w"> </span>xterm<span class="w"> </span>-e<span class="w"> </span>gdb<span class="w"> </span>my_mpi_application
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>X traffic is fairly “heavy” — if you are
+operating over a slow network connection, it may take
+some time before the <code class="docutils literal notranslate"><span class="pre">xterm</span></code> windows appear on your
+screen.</p>
+</div>
+</li>
+<li><p>If your <code class="docutils literal notranslate"><span class="pre">xterm</span></code> supports it, the <code class="docutils literal notranslate"><span class="pre">-hold</span></code> option may be useful.
+<code class="docutils literal notranslate"><span class="pre">-hold</span></code> tells <code class="docutils literal notranslate"><span class="pre">xterm</span></code> to stay open even when the application
+has completed.  This means that if something goes wrong (e.g.,
+<code class="docutils literal notranslate"><span class="pre">gdb</span></code> fails to execute, or unexpectedly dies, or …), the
+<code class="docutils literal notranslate"><span class="pre">xterm</span></code> window will stay open, allowing you to see what happened,
+instead of closing immediately and losing whatever error message
+may have been output.</p></li>
+<li><p>When you have finished, you may wish to disable X11 network
+permissions from the hosts that you were using.  Use <code class="docutils literal notranslate"><span class="pre">xhost</span></code>
+again to disable these permissions:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="k">for</span><span class="w"> </span>host<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="sb">`</span>cat<span class="w"> </span>my_hostfile<span class="sb">`</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span>xhost<span class="w"> </span>-host<span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will not complete until all the <code class="docutils literal notranslate"><span class="pre">xterm</span></code>
+instances are complete.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="debug-options.html" class="btn btn-neutral float-left" title="12.2. Open MPI Runtime Debugging Options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="parallel-debug.html" class="btn btn-neutral float-right" title="12.4. Using Parallel Debuggers to Debug Open MPI Applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

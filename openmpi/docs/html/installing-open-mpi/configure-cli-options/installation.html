@@ -1,0 +1,506 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4.9.2. Installation options &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="4.9.3. Networking support / options" href="networking.html" />
+    <link rel="prev" title="4.9.1. configure CLI option conventions" href="conventions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">4. Building and installing Open MPI</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html">4.1. Quick start: Installing Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../downloading.html">4.2. Downloading Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../supported-systems.html">4.3. Supported Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../definitions.html">4.4. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filesystem-requirements.html">4.5. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../vpath-builds.html">4.6. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../compilers-and-flags.html">4.7. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../required-support-libraries.html">4.8. Required support libraries</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">4.9. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="conventions.html">4.9.1. <code class="docutils literal notranslate"><span class="pre">configure</span></code> CLI option conventions</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">4.9.2. Installation options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="networking.html">4.9.3. Networking support / options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="runtime.html">4.9.4. Run-time system support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="required-support-libraries.html">4.9.5. CLI Options for required support libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mpi.html">4.9.6. MPI functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="oshmem.html">4.9.7. OpenSHMEM functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="misc.html">4.9.8. Miscellaneous functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rpath-and-runpath.html">4.9.9. Linker “rpath” and “runpath” functionality</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../configure-output-summary.html">4.10. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../make-targets.html">4.11. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation-location.html">4.12. Installation location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../custom-components.html">4.13. Installing custom components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../updating.html">4.14. Updating or upgrading an Open MPI installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../packagers.html">4.15. Advice for packagers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmins.html">4.16. Advice for System Administrators</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">4. </span>Building and installing Open MPI</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">4.9. </span><code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4.9.2. </span>Installation options</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/installing-open-mpi/configure-cli-options/installation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="installation-options">
+<span id="label-building-installation-cli-options"></span><h1><span class="section-number">4.9.2. </span>Installation options<a class="headerlink" href="#installation-options" title="Link to this heading"></a></h1>
+<p>The following are general installation command line options that can
+be used with <code class="docutils literal notranslate"><span class="pre">configure</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--prefix=DIR</span></code>:
+Install Open MPI into the base directory named <code class="docutils literal notranslate"><span class="pre">DIR</span></code>.  Hence, Open
+MPI will place its executables in <code class="docutils literal notranslate"><span class="pre">DIR/bin</span></code>, its header files in
+<code class="docutils literal notranslate"><span class="pre">DIR/include</span></code>, its libraries in <code class="docutils literal notranslate"><span class="pre">DIR/lib</span></code>, etc.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Also see the section on <a class="reference internal" href="../installation-location.html#building-open-mpi-installation-location-label"><span class="std std-ref">installation location</span></a> for more
+information on the installation prefix.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-shared</span></code>: By default, Open MPI and OpenSHMEM build
+shared libraries, and all components are included as part of those
+shared libraries. This switch disables this default; it is really
+only useful when used with <code class="docutils literal notranslate"><span class="pre">--enable-static</span></code>.  Specifically, this
+option does <em>not</em> imply <code class="docutils literal notranslate"><span class="pre">--enable-static</span></code>; enabling static
+libraries and disabling shared libraries are two independent
+options.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><a class="reference internal" href="../packagers.html#label-install-packagers-dso-or-not"><span class="std std-ref">See this section</span></a> for
+advice to packagers about this CLI option.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-static</span></code>:
+Build MPI and OpenSHMEM as static libraries, and statically link in
+all components.  Note that this option does <em>not</em> imply
+<code class="docutils literal notranslate"><span class="pre">--disable-shared</span></code>; enabling static libraries and disabling shared
+libraries are two independent options.</p>
+<p>Be sure to read the description of <code class="docutils literal notranslate"><span class="pre">--without-memory-manager</span></code>,
+below; it may have some effect on <code class="docutils literal notranslate"><span class="pre">--enable-static</span></code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><a class="reference internal" href="../packagers.html#label-install-packagers-dso-or-not"><span class="std std-ref">See this section</span></a> for
+advice to packagers about this CLI option.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-wrapper-runpath</span></code> / <code class="docutils literal notranslate"><span class="pre">--disable-wrapper-rpath</span></code>: By
+default, the wrapper compilers (e.g., <code class="docutils literal notranslate"><span class="pre">mpicc</span></code>) will explicitly add
+“runpath” and “rpath” linker flags when linking user executables on
+systems that support them.  That is, the created executables will
+include a filesystem path reference to the location of Open MPI’s
+libraries in the application executable itself.  This means that the
+user does not have to set <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> to find Open MPI’s
+libraries, which can be helpful if they are installed in a location
+that the run-time linker does not search by default.</p>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">--disable-wrapper-r*path</span></code> options will prevent the
+wrappers from explicitly adding one or both of these linker flags.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>By default, the wrapper compilers prefer “runpath”
+behavior over “rpath” behavior.</p>
+<ul class="simple">
+<li><p>Using <code class="docutils literal notranslate"><span class="pre">--disable-wrapper-runpath</span></code> alters this
+preference: explicit “runpath” linker flags will not be
+added by the wrappers.  However, “rpath” flags may still
+be added, if the platform supports them.</p></li>
+<li><p>Using both <code class="docutils literal notranslate"><span class="pre">--disable-wrapper-runpath</span></code> <em>and</em>
+<code class="docutils literal notranslate"><span class="pre">--disable-wrapper-rpath</span></code> will prevent the wrappers
+from explicitly adding “runpath” <em>and</em> “rpath” linker
+flags.</p></li>
+</ul>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Even if the wrapper compilers do not explicitly add
+“runpath” or “rpath” linker flags, the local compiler,
+linker, and/or operating system may implicitly enable
+either “runpath” or “rpath” behavior when linking.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--disable-wrapper-runpath</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--disable-wrapper-rpath</span></code> CLI options <em>only</em> affect
+the flags that the wrapper compilers use when
+building MPI/SHMEM applications.  These options do
+not affect how Open MPI or OpenSHMEM are built (to
+include the wrapper compilers themselves).</p>
+<p>See the <a class="reference internal" href="rpath-and-runpath.html#building-ompi-cli-options-rpath-and-runpath-label"><span class="std std-ref">Linker “rpath” and “runpath”
+functionality</span></a>
+section for details on how “rpath” and “runpath”
+affect the building and linking of Open MPI itself.</p>
+</div>
+<p>When either of “runpath” or “rpath” behaviors are enabled, the
+applications will have the filesystem path location of the Open MPI
+libraries hard-coded into the Open MPI/OpenSHMEM application.  The
+most notable differences between “runpath” and “rpath” behavior are:</p>
+<ul>
+<li><p>runpath</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>The run-time linker first searches the paths in the
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment variable for the relevant Open
+MPI/OpenSHMEM libraries.</p></li>
+<li><p>If not found there, the run-time linker falls back to checking
+the hard-coded location for the relevant Open MPI/OpenSHMEM
+libraries.</p></li>
+</ol>
+</div></blockquote>
+</li>
+<li><p>rpath</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p>The run-time linker first checks the hard-coded location for
+the relevant Open MPI/OpenSHMEM libraries.</p></li>
+<li><p>If not found there, the run-time linker falls back to
+searching the paths in the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment
+variable for the relevant Open MPI/OpenSHMEM libraries.</p></li>
+</ol>
+</div></blockquote>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>There are other, subtle differences between “runpath”
+and “rpath” which are out of scope for this
+documentation.  You may wish to consult other sources
+for more information.</p>
+<p>For example, a decent set of explanations can be found
+in the slides for a Linux course entitled “Building and
+Using Shared Libraries on Linux // <a class="reference external" href="https://man7.org/training/download/shlib_dynlinker_slides.pdf">Shared Libraries:
+The Dynamic Linker</a>”.</p>
+</div>
+<p>For example, consider that you install Open MPI vA.B.0 and
+compile/link your MPI/OpenSHMEM application against it.  Later, you
+install Open MPI vA.B.1 to a different installation prefix (e.g.,
+<code class="docutils literal notranslate"><span class="pre">/opt/openmpi/A.B.1</span></code> vs. <code class="docutils literal notranslate"><span class="pre">/opt/openmpi/A.B.0</span></code>), and you leave
+the old installation intact.</p>
+<p>In the runpath case, you can set the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment
+variable to point to the A.B.1 installation, and then your MPI
+application will use those libraries, since the runtime will search
+the paths in <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> first.</p>
+<p>In the rpath case, since the run-time linker searches the
+<code class="docutils literal notranslate"><span class="pre">/opt/openmpi/A.B.0</span></code> location that is hard-coded in your MPI
+application first, your application will use the libraries from your
+A.B.0 installation (regardless of the value of the
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment variable).</p>
+<p>Note that in both cases, however, if you remove the original A.B.0
+installation and set <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> to point to the A.B.1
+installation, your application will use the A.B.1 libraries.</p>
+<p>As noted above, both runpath/rpath behaviors can be disabled via
+<code class="docutils literal notranslate"><span class="pre">--disable-wrapper-rpath</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can also <a class="reference internal" href="../../building-apps/customizing-wrappers.html#label-customizing-wrapper-compiler"><span class="std std-ref">customize the compiler/linker flags
+that are used by the wrapper compilers</span></a> to build Open
+MPI/OpenSHMEM applications.</p>
+</div>
+</li>
+</ul>
+<ul id="building-ompi-cli-options-disable-dlopen-label">
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-dlopen</span></code>: Enable Open MPI to load components as
+standalone Dynamic Shared Objects (DSOs) at run-time.  This option
+is enabled by default.</p>
+<p>The opposite of this option, <code class="docutils literal notranslate"><span class="pre">--disable-dlopen</span></code>, causes the following:</p>
+<ol class="arabic simple">
+<li><p>Open MPI will not attempt to open any DSOs at run-time.</p></li>
+<li><p>configure behaves as if the <code class="docutils literal notranslate"><span class="pre">--enable-mca-static</span></code> argument was set.</p></li>
+<li><p>configure will ignore the <code class="docutils literal notranslate"><span class="pre">--enable-mca-dso</span></code> argument.</p></li>
+</ol>
+<p>See the description of <code class="docutils literal notranslate"><span class="pre">--enable-mca-static</span></code> / <code class="docutils literal notranslate"><span class="pre">--enable-mca-dso</span></code> for
+more information.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This option does <em>not</em> change how Open MPI’s libraries
+(<code class="docutils literal notranslate"><span class="pre">libmpi</span></code>, for example) will be built.  You can change
+whether Open MPI builds static or dynamic libraries via
+the <code class="docutils literal notranslate"><span class="pre">--enable|disable-static</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--enable|disable-shared</span></code> arguments.</p>
+</div>
+</li>
+</ul>
+<ul id="building-ompi-cli-options-mca-dso-label">
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-mca-dso[=LIST]</span></code> and <code class="docutils literal notranslate"><span class="pre">--enable-mca-static[=LIST]</span></code>
+These two options, along with <code class="docutils literal notranslate"><span class="pre">--enable-mca-no-build</span></code>, govern the
+behavior of how Open MPI’s frameworks and components are built.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p><a class="reference internal" href="../packagers.html#label-install-packagers-dso-or-not"><span class="std std-ref">See this section</span></a> for
+advice to packagers about these CLI options.</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--enable-mca-dso</span></code> option specifies which frameworks and/or
+components are built as Dynamic Shared Objects (DSOs).
+Specifically, DSOs are built as “plugins” outside of the core Open
+MPI libraries, and are loaded by Open MPI at run time.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--enable-mca-static</span></code> option specifies which frameworks and/or
+components are built as part of the core Open MPI libraries (i.e.,
+they are not built as DSOs, and therefore do not need to be
+separately discovered and opened at run time).</p>
+<p>Both options can be used one of two ways:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-mca-OPTION</span></code> (with no value)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-mca-OPTION=LIST</span></code></p></li>
+</ol>
+<p><code class="docutils literal notranslate"><span class="pre">--enable-mca-OPTION=no</span></code> or <code class="docutils literal notranslate"><span class="pre">--disable-mca-OPTION</span></code> are both legal
+options, but have no impact on the selection logic described below.
+Only affirmative options change the selection process.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">LIST</span></code> is not specified (e.g., <code class="docutils literal notranslate"><span class="pre">--enable-mca-dso</span></code> with no
+<code class="docutils literal notranslate"><span class="pre">LIST</span></code>), or if <code class="docutils literal notranslate"><span class="pre">LIST</span></code> is the special value <code class="docutils literal notranslate"><span class="pre">yes</span></code>, then <em>all</em>
+components will be selected.  If <code class="docutils literal notranslate"><span class="pre">LIST</span></code> is specified, it is a
+comma-delimited list of Open MPI frameworks and/or
+framework+component tuples.  Examples:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">btl</span></code> specifies the entire BTL framework</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">btl-tcp</span></code> specifies just the TCP component in the BTL framework</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mtl,btl-tcp</span></code> specifies the entire MTL framework and the TCP
+component in the BTL framework</p></li>
+</ul>
+<p>Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script uses the values of these two options
+when evaluating each component to determine how it should be built
+by evaluating these conditions in order:</p>
+<ol class="arabic simple">
+<li><p>If an individual component’s build behavior has been specified
+via these two options, <code class="docutils literal notranslate"><span class="pre">configure</span></code> uses that behavior.</p></li>
+<li><p>Otherwise, if the component is in a framework whose build
+behavior has been specified via these two options, <code class="docutils literal notranslate"><span class="pre">configure</span></code>
+uses that behavior.</p></li>
+<li><p>Otherwise, <code class="docutils literal notranslate"><span class="pre">configure</span></code> uses the global default build behavior.</p></li>
+</ol>
+<p>At each level of the selection process, if the component is
+specified to be built as both a static and DSO component, the static
+option will win.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As of Open MPI v5.0.11, <code class="docutils literal notranslate"><span class="pre">configure</span></code>’s global default
+is to build all components as static (i.e., part of the
+Open MPI core libraries, not as DSOs).  Prior to Open MPI
+v5.0.0, the global default behavior was to build
+most components as DSOs.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">--disable-dlopen</span></code> option is specified, then
+Open MPI will not be able to search for DSOs at run
+time, and the value of the <code class="docutils literal notranslate"><span class="pre">--enable-mca-dso</span></code>
+option will be silently ignored.</p>
+</div>
+<p>Some examples:</p>
+<ol class="arabic">
+<li><p>Default to building all components as static (i.e., as part of
+the Open MPI core libraries — no DSOs):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure
+</pre></div>
+</div>
+</li>
+<li><p>Build all components as DSOs:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --enable-mca-dso
+</pre></div>
+</div>
+</li>
+<li><p>Build all components as static, except the TCP BTL, which will be
+built as a DSO:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --enable-mca-dso=btl-tcp
+</pre></div>
+</div>
+</li>
+<li><p>Build all components as static, except all BTL components, which
+will be built as DSOs:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --enable-mca-dso=btl
+</pre></div>
+</div>
+</li>
+<li><p>Build all components as static, except all MTL components and the
+TCP BTL component, which will be built as DSOs:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --enable-mca-dso=mtl,btl-tcp
+</pre></div>
+</div>
+</li>
+<li><p>Build all BTLs as static, except the TCP BTL, as the
+<code class="docutils literal notranslate"><span class="pre">&lt;framework-component&gt;</span></code> option is more specific than the
+<code class="docutils literal notranslate"><span class="pre">&lt;framework&gt;</span></code> option:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --enable-mca-dso=btl --enable-mca-static=btl-tcp
+</pre></div>
+</div>
+</li>
+<li><p>Build the TCP BTL as static, because the static option at the
+same level always wins:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --enable-mca-dso=btl-tcp --enable-mca-static=btl-tcp
+</pre></div>
+</div>
+</li>
+</ol>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-mca-no-build=LIST</span></code>: Comma-separated list of
+<code class="docutils literal notranslate"><span class="pre">&lt;framework&gt;-&lt;component&gt;</span></code> pairs that will not be built. For
+example, <code class="docutils literal notranslate"><span class="pre">--enable-mca-no-build=threads-qthreads,pml-monitoring</span></code> will
+disable building both the <code class="docutils literal notranslate"><span class="pre">qthreads</span></code> threading component and the
+<code class="docutils literal notranslate"><span class="pre">monitoring</span></code> PML.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This option is typically only useful for components that
+would otherwise be built.  For example, if you are on a
+machine without Libfabric support, it is not necessary to
+specify:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --enable-mca-no-build=cm-ofi
+</pre></div>
+</div>
+<p>because the <code class="docutils literal notranslate"><span class="pre">configure</span></code> script will naturally see that
+you do not have support for Libfabric and will
+automatically skip the <code class="docutils literal notranslate"><span class="pre">ofi</span></code> CM component.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-show-load-errors=VALUE</span></code>:
+Set the default value of the <code class="docutils literal notranslate"><span class="pre">mca_base_component_show_load_errors</span></code>
+MCA variable.  The MCA <code class="docutils literal notranslate"><span class="pre">mca_base_component_show_load_errors</span></code> variable
+can still be overridden at run time via the usual MCA-variable-setting
+mechanisms; this configure option simply sets the default value.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">no</span></code>/<code class="docutils literal notranslate"><span class="pre">none</span></code> value of this option is intended for Open MPI
+packagers who tend to enable support for many different types of
+networks and systems in their packages.  For example, consider a
+packager who includes support for both the FOO and BAR networks in
+their Open MPI package, both of which require support libraries
+(<code class="docutils literal notranslate"><span class="pre">libFOO.so</span></code> and <code class="docutils literal notranslate"><span class="pre">libBAR.so</span></code>).  If an end user only has BAR
+hardware, they likely only have <code class="docutils literal notranslate"><span class="pre">libBAR.so</span></code> available on their
+systems — not <code class="docutils literal notranslate"><span class="pre">libFOO.so</span></code>.  Disabling load errors by default will
+prevent the user from seeing potentially confusing warnings about
+the FOO components failing to load because <code class="docutils literal notranslate"><span class="pre">libFOO.so</span></code> is not
+available on their systems.</p>
+<p>Conversely, the <code class="docutils literal notranslate"><span class="pre">yes</span></code>/<code class="docutils literal notranslate"><span class="pre">all</span></code> value of this option is intended for
+system administrators who tend to build an Open MPI that is
+targeted at their specific environment, and contains few (if any)
+components that are not needed.  In such cases, they might want
+their users to be warned that the FOO network components failed to
+load (e.g., if <code class="docutils literal notranslate"><span class="pre">libFOO.so</span></code> was mistakenly unavailable), because Open
+MPI may otherwise silently failover to a slower network path for MPI
+traffic.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See the section on <a class="reference internal" href="../../mca.html#label-mca-common-parameters"><span class="std std-ref">common MCA parameters</span></a> for details related to the
+<code class="docutils literal notranslate"><span class="pre">mca_base_component_show_load_errors</span></code> MCA variable.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-platform=FILE</span></code>:
+Load configure options for the build from <code class="docutils literal notranslate"><span class="pre">FILE</span></code>.  Options on the
+command line that are not in <code class="docutils literal notranslate"><span class="pre">FILE</span></code> are also used.  Options on the
+command line and in <code class="docutils literal notranslate"><span class="pre">FILE</span></code> are replaced by what is in <code class="docutils literal notranslate"><span class="pre">FILE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-libmpi-name=STRING</span></code>:
+Replace <code class="docutils literal notranslate"><span class="pre">libmpi.*</span></code> and <code class="docutils literal notranslate"><span class="pre">libmpi_FOO.*</span></code> (where <code class="docutils literal notranslate"><span class="pre">FOO</span></code> is one of the
+fortran supporting libraries installed in lib) with <code class="docutils literal notranslate"><span class="pre">libSTRING.*</span></code>
+and <code class="docutils literal notranslate"><span class="pre">libSTRING_FOO.*</span></code>. This is provided as a convenience mechanism
+for third-party packagers of Open MPI that might want to rename
+these libraries for their own purposes. This option is <em>not</em>
+intended for typical users of Open MPI.</p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="conventions.html" class="btn btn-neutral float-left" title="4.9.1. configure CLI option conventions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="networking.html" class="btn btn-neutral float-right" title="4.9.3. Networking support / options" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

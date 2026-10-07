@@ -1,0 +1,332 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.2.4. InifiniBand / RoCE support &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.2.5. iWARP Support" href="iwarp.html" />
+    <link rel="prev" title="11.2.3. Shared Memory" href="shared-memory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">11.2. Networking support</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ofi.html">11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tcp.html">11.2.2. TCP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared-memory.html">11.2.3. Shared Memory</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">11.2.4. InifiniBand / RoCE support</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-are-infiniband-roce-devices-supported-in-open-mpi">11.2.4.1. How are InfiniBand / RoCE devices supported in Open MPI?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-is-ucx">11.2.4.2. What is UCX?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-do-i-use-ucx-with-open-mpi">11.2.4.3. How do I use UCX with Open MPI?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-is-rdma-over-converged-ethernet-roce">11.2.4.4. What is RDMA over Converged Ethernet (RoCE)?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-do-i-know-what-mca-parameters-are-available-for-tuning-mpi-performance">11.2.4.5. How do I know what MCA parameters are available for tuning MPI performance?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-do-i-tell-open-mpi-which-ib-service-level-to-use">11.2.4.6. How do I tell Open MPI which IB Service Level to use?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#how-do-i-run-open-mpi-over-roce">11.2.4.7. How do I run Open MPI over RoCE?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#i-m-experiencing-a-problem-with-open-mpi-on-my-infiniband-roce-network-how-do-i-troubleshoot-and-get-help">11.2.4.8. I’m experiencing a problem with Open MPI on my InfiniBand / RoCE network; how do I troubleshoot and get help?</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="iwarp.html">11.2.5. iWARP Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cuda.html">11.2.6. CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rocm.html">11.2.7. ROCm</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11.2. </span>Networking support</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.2.4. </span>InifiniBand / RoCE support</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tuning-apps/networking/ib-and-roce.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="inifiniband-roce-support">
+<h1><span class="section-number">11.2.4. </span>InifiniBand / RoCE support<a class="headerlink" href="#inifiniband-roce-support" title="Link to this heading"></a></h1>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO This section needs to be converted from FAQ Q&amp;A style
+to regular documentation style.</p>
+</div>
+<section id="how-are-infiniband-roce-devices-supported-in-open-mpi">
+<h2><span class="section-number">11.2.4.1. </span>How are InfiniBand / RoCE devices supported in Open MPI?<a class="headerlink" href="#how-are-infiniband-roce-devices-supported-in-open-mpi" title="Link to this heading"></a></h2>
+<p>Open MPI’s support for InfiniBand and RoCE devices has changed over
+time.</p>
+<p>In the Open MPI v5.0.x series, InfiniBand and RoCE devices are
+supported via the UCX (<code class="docutils literal notranslate"><span class="pre">ucx</span></code>) PML.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Prior versions of Open MPI also included the <code class="docutils literal notranslate"><span class="pre">openib</span></code> BTL
+for InfiniBand and RoCE devices.  Open MPI v5.0.x no
+longer includes the <code class="docutils literal notranslate"><span class="pre">openib</span></code> BTL.</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="what-is-ucx">
+<h2><span class="section-number">11.2.4.2. </span>What is UCX?<a class="headerlink" href="#what-is-ucx" title="Link to this heading"></a></h2>
+<p><a class="reference external" href="https://openucx.org/">UCX</a> is an open-source optimized
+communication library which supports multiple networks, including
+RoCE, InfiniBand, uGNI, TCP, shared memory, and others. UCX
+mixes-and-matches transports and protocols which are available on the
+system to provide optimal performance. It also has built-in support
+for GPU transports (with CUDA and ROCm providers) which lets
+RDMA-capable transports access the GPU memory directly.</p>
+</section>
+<hr class="docutils" />
+<section id="how-do-i-use-ucx-with-open-mpi">
+<h2><span class="section-number">11.2.4.3. </span>How do I use UCX with Open MPI?<a class="headerlink" href="#how-do-i-use-ucx-with-open-mpi" title="Link to this heading"></a></h2>
+<p>If Open MPI includes UCX support, then UCX is enabled and selected by
+default for InfiniBand and RoCE network devices; typically, no
+additional parameters are required.  In this case, the network port
+with the highest bandwidth on the system will be used for inter-node
+communication, and shared memory will be used for intra-node
+communication.  To select a specific network device to use (for
+example, <code class="docutils literal notranslate"><span class="pre">mlx5_0</span></code> device port 1):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -x UCX_NET_DEVICES=mlx5_0:1 ...
+</pre></div>
+</div>
+<p>It’s also possible to force using UCX for MPI point-to-point and
+one-sided operations:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --mca pml ucx --mca osc ucx ...
+</pre></div>
+</div>
+<p>For OpenSHMEM, in addition to the above, it’s possible to force using
+UCX for remote memory access and atomic memory operations:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --mca pml ucx --mca osc ucx --mca scoll ucx --mca atomic ucx ...
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="what-is-rdma-over-converged-ethernet-roce">
+<h2><span class="section-number">11.2.4.4. </span>What is RDMA over Converged Ethernet (RoCE)?<a class="headerlink" href="#what-is-rdma-over-converged-ethernet-roce" title="Link to this heading"></a></h2>
+<p>RoCE (which stands for <em>RDMA over Converged Ethernet</em>) provides
+InfiniBand native RDMA transport on top of lossless Ethernet data
+links.</p>
+<p>Since we’re talking about Ethernet, there’s no Subnet Manager, no
+Subnet Administrator, no InfiniBand SL, nor any other InfiniBand
+Subnet Administration parameters.</p>
+<p>Connection management in RoCE is based on the OFED RDMACM (RDMA
+Connection Manager) service:</p>
+<ul class="simple">
+<li><p>The OS IP stack is used to resolve remote (IP,hostname) tuples to
+a DMAC.</p></li>
+<li><p>The outgoing Ethernet interface and VLAN are determined according
+to this resolution.</p></li>
+<li><p>The appropriate RoCE device is selected accordingly.</p></li>
+<li><p>Network parameters (such as MTU, SL, timeout) are set locally by
+the RDMACM in accordance with kernel policy.</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="how-do-i-know-what-mca-parameters-are-available-for-tuning-mpi-performance">
+<h2><span class="section-number">11.2.4.5. </span>How do I know what MCA parameters are available for tuning MPI performance?<a class="headerlink" href="#how-do-i-know-what-mca-parameters-are-available-for-tuning-mpi-performance" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> command can display all the parameters available for
+any Open MPI component.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ompi_info --param pml ucx --level 9
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Unlike most other Open MPI components, the UCX PML
+mainly uses environment variables for run-time tuning
+— not Open MPI MCA parameters.  Consult <a class="reference external" href="https://openucx.org/documentation/">the UCX
+documentation</a> for details
+about what environment variables are available.</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="how-do-i-tell-open-mpi-which-ib-service-level-to-use">
+<h2><span class="section-number">11.2.4.6. </span>How do I tell Open MPI which IB Service Level to use?<a class="headerlink" href="#how-do-i-tell-open-mpi-which-ib-service-level-to-use" title="Link to this heading"></a></h2>
+<p>In order to tell the UCX PML which SL to use, the IB SL must be
+specified using the <code class="docutils literal notranslate"><span class="pre">UCX_IB_SL</span></code> environment variable.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --mca pml ucx -x UCX_IB_SL=N ...
+</pre></div>
+</div>
+<p>The value of IB SL <code class="docutils literal notranslate"><span class="pre">N</span></code> should be between 0 and 15, where 0 is the
+default value.</p>
+</section>
+<hr class="docutils" />
+<section id="how-do-i-run-open-mpi-over-roce">
+<h2><span class="section-number">11.2.4.7. </span>How do I run Open MPI over RoCE?<a class="headerlink" href="#how-do-i-run-open-mpi-over-roce" title="Link to this heading"></a></h2>
+<p>In order to use RoCE with the UCX PML, the relevant Ethernet port must
+be specified using the <code class="docutils literal notranslate"><span class="pre">UCX_NET_DEVICES</span></code> environment variable.  For
+example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --mca pml ucx -x UCX_NET_DEVICES=mlx5_0:1 ...
+</pre></div>
+</div>
+<p>UCX selects IPv4 RoCEv2 by default. If different behavior is needed,
+you can set a specific GID index:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --mca pml ucx -x UCX_NET_DEVICES=mlx5_0:1 -x UCX_IB_GID_INDEX=1 ...
+</pre></div>
+</div>
+<hr class="docutils" />
+</section>
+<section id="i-m-experiencing-a-problem-with-open-mpi-on-my-infiniband-roce-network-how-do-i-troubleshoot-and-get-help">
+<span id="faq-ib-troubleshoot-label"></span><h2><span class="section-number">11.2.4.8. </span>I’m experiencing a problem with Open MPI on my InfiniBand / RoCE network; how do I troubleshoot and get help?<a class="headerlink" href="#i-m-experiencing-a-problem-with-open-mpi-on-my-infiniband-roce-network-how-do-i-troubleshoot-and-get-help" title="Link to this heading"></a></h2>
+<p>In order for us to help you, it is <em>most</em> helpful if you can run a few
+steps before sending an e-mail to both perform some basic
+troubleshooting and provide us with enough information about your
+environment to help you.  Please include answers to the following
+questions in your e-mail:</p>
+<ol class="arabic">
+<li><p>Which UCX and OpenFabrics version are you running?  Please specify
+where you got the software from (e.g., from the OpenFabrics and/or
+UCX community web sites, already included in your Linux
+distribution, downloaded from NVIDIA’s web site, etc.).</p></li>
+<li><p>What distro and version of Linux are you running?  What is your
+kernel version?</p></li>
+<li><p>What is the output of the <code class="docutils literal notranslate"><span class="pre">ibv_devinfo</span></code> command on a known “good”
+node and a known “bad” node?</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There must be at least one port listed as “PORT_ACTIVE”
+for Open MPI to work.  If there is not at least one
+PORT_ACTIVE port, something is wrong with your InfiniBand
+/ RoCE environment and Open MPI will not be able to run.</p>
+</div>
+</li>
+<li><p>What is the output of the <code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> command on a known “good”
+node and a known “bad” node?</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note that some Linux distributions do not put
+<code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> in the default path for normal users; look
+for it at <code class="docutils literal notranslate"><span class="pre">/sbin/ifconfig</span></code> or <code class="docutils literal notranslate"><span class="pre">/usr/sbin/ifconfig</span></code>.</p>
+</div>
+</li>
+<li><p>If running under Bourne shells, what is the output of the <code class="docutils literal notranslate"><span class="pre">ulimit</span>
+<span class="pre">-l</span></code> command?</p>
+<p>If running under C shells, what is the output of the <code class="docutils literal notranslate"><span class="pre">limit</span> <span class="pre">|</span> <span class="pre">grep</span>
+<span class="pre">memorylocked</span></code> command?</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If the value is not <code class="docutils literal notranslate"><span class="pre">unlimited</span></code>, ……………..</p>
+</div>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO Would be good to point to some UCX/vendor docs here
+about setting memory limits (rather than reproducing this
+information ourselves).</p>
+</div>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="shared-memory.html" class="btn btn-neutral float-left" title="11.2.3. Shared Memory" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="iwarp.html" class="btn btn-neutral float-right" title="11.2.5. iWARP Support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

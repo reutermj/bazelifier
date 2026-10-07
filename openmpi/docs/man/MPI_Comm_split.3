@@ -1,0 +1,218 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_COMM_SPLIT" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fI\%MPI_Comm_split\fP — Creates new communicators based on colors and keys.
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_Comm_split(MPI_Comm comm, int color, int key,
+     MPI_Comm *newcomm)
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE MPI
+! or the older form: INCLUDE \(aqmpif.h\(aq
+MPI_COMM_SPLIT(COMM, COLOR, KEY, NEWCOMM, IERROR)
+     INTEGER COMM, COLOR, KEY, NEWCOMM, IERROR
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran 2008 Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE mpi_f08
+MPI_Comm_split(comm, color, key, newcomm, ierror)
+     TYPE(MPI_Comm), INTENT(IN) :: comm
+     INTEGER, INTENT(IN) :: color, key
+     TYPE(MPI_Comm), INTENT(OUT) :: newcomm
+     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBcomm\fP: Communicator (handle).
+.IP \(bu 2
+\fBcolor\fP: Control of subset assignment (nonnegative integer).
+.IP \(bu 2
+\fBkey\fP: Control of rank assignment (integer).
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBnewcomm\fP: New communicator (handle).
+.IP \(bu 2
+\fBierror\fP: Fortran only: Error status (integer).
+.UNINDENT
+.SH DESCRIPTION
+.sp
+This function partitions the group associated with comm into disjoint
+subgroups, one for each value of color. Each subgroup contains all
+processes of the same color. Within each subgroup, the processes are
+ranked in the order defined by the value of the argument key, with ties
+broken according to their rank in the old group. A new communicator is
+created for each subgroup and returned in newcomm. A process may supply
+the color value MPI_UNDEFINED, in which case newcomm returns
+MPI_COMM_NULL. This is a collective call, but each process is permitted
+to provide different values for color and key.
+.sp
+When you call \fI\%MPI_Comm_split\fP on an inter\-communicator, the processes on
+the left with the same color as those on the right combine to create a
+new inter\-communicator. The key argument describes the relative rank of
+processes on each side of the inter\-communicator. The function returns
+MPI_COMM_NULL for those colors that are specified on only one side of
+the inter\-communicator, or for those that specify MPI_UNDEFINED as the
+color.
+.sp
+A call to MPI_Comm_create(comm, \fIgroup\fP, \fInewcomm\fP) is equivalent to a
+call to MPI_Comm_split(comm, \fIcolor\fP,\fIkey\fP, \fInewcomm\fP), where all
+members of \fIgroup\fP provide \fIcolor\fP = 0 and \fIkey\fP = rank in group, and
+all processes that are not members of \fIgroup\fP provide \fIcolor\fP =
+MPI_UNDEFINED. The function \fI\%MPI_Comm_split\fP allows more general
+partitioning of a group into one or more subgroups with optional
+reordering.
+.sp
+The value of \fIcolor\fP must be nonnegative or MPI_UNDEFINED.
+.SH NOTES
+.sp
+This is an extremely powerful mechanism for dividing a single
+communicating group of processes into k subgroups, with k chosen
+implicitly by the user (by the number of colors asserted over all the
+processes). Each resulting communicator will be nonoverlapping. Such a
+division could be useful for defining a hierarchy of computations, such
+as for multigrid or linear algebra.
+.sp
+Multiple calls to \fI\%MPI_Comm_split\fP can be used to overcome the requirement
+that any call have no overlap of the resulting communicators (each
+process is of only one color per call). In this way, multiple
+overlapping communication structures can be created. Creative use of the
+color and key in such splitting operations is encouraged.
+.sp
+Note that, for a fixed color, the keys need not be unique. It is
+\fI\%MPI_Comm_split\fP’s responsibility to sort processes in ascending order
+according to this key, and to break ties in a consistent way. If all the
+keys are specified in the same way, then all the processes in a given
+color will have the relative rank order as they did in their parent
+group. (In general, they will have different ranks.)
+.sp
+Essentially, making the key value zero for all processes of a given
+color means that one needn’t really pay attention to the rank\-order of
+the processes in the new communicator.
+.SH ERRORS
+.sp
+Almost all MPI routines return an error value; C routines as the return result
+of the function and Fortran routines in the last argument.
+.sp
+Before the error value is returned, the current MPI error handler associated
+with the communication object (e.g., communicator, window, file) is called.
+If no communication object is associated with the MPI call, then the call is
+considered attached to MPI_COMM_SELF and will call the associated MPI error
+handler. When MPI_COMM_SELF is not initialized (i.e., before
+\fI\%MPI_Init\fP/\fI\%MPI_Init_thread\fP, after \fI\%MPI_Finalize\fP, or when using the Sessions
+Model exclusively) the error raises the initial error handler. The initial
+error handler can be changed by calling \fI\%MPI_Comm_set_errhandler\fP on
+MPI_COMM_SELF when using the World model, or the mpi_initial_errhandler CLI
+argument to mpiexec or info key to \fI\%MPI_Comm_spawn\fP/\fI\%MPI_Comm_spawn_multiple\fP\&.
+If no other appropriate error handler has been set, then the MPI_ERRORS_RETURN
+error handler is called for MPI I/O functions and the MPI_ERRORS_ABORT error
+handler is called for all other MPI functions.
+.sp
+Open MPI includes three predefined error handlers that can be used:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_ERRORS_ARE_FATAL\fP
+Causes the program to abort all connected MPI processes.
+.IP \(bu 2
+\fBMPI_ERRORS_ABORT\fP
+An error handler that can be invoked on a communicator,
+window, file, or session. When called on a communicator, it
+acts as if \fI\%MPI_Abort\fP was called on that communicator. If
+called on a window or file, acts as if \fI\%MPI_Abort\fP was called
+on a communicator containing the group of processes in the
+corresponding window or file. If called on a session,
+aborts only the local process.
+.IP \(bu 2
+\fBMPI_ERRORS_RETURN\fP
+Returns an error code to the application.
+.UNINDENT
+.sp
+MPI applications can also implement their own error handlers by calling:
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Comm_create_errhandler\fP then \fI\%MPI_Comm_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_File_create_errhandler\fP then \fI\%MPI_File_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_Session_create_errhandler\fP then \fI\%MPI_Session_set_errhandler\fP or at \fI\%MPI_Session_init\fP
+.IP \(bu 2
+\fI\%MPI_Win_create_errhandler\fP then \fI\%MPI_Win_set_errhandler\fP
+.UNINDENT
+.sp
+Note that MPI does not guarantee that an MPI program can continue past
+an error.
+.sp
+See the \fI\%MPI man page\fP for a full list of \fI\%MPI error codes\fP\&.
+.sp
+See the Error Handling section of the MPI\-3.1 standard for
+more information.
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Comm_create\fP
+.IP \(bu 2
+\fI\%MPI_Intercomm_create\fP
+.IP \(bu 2
+\fI\%MPI_Comm_dup\fP
+.IP \(bu 2
+\fI\%MPI_Comm_free\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

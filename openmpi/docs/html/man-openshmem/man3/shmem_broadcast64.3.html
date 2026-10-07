@@ -1,0 +1,523 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>18.2.16. shmem_broadcast64 &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="18.2.17. shmem_char_g" href="shmem_char_g.3.html" />
+    <link rel="prev" title="18.2.15. shmem_broadcast32" href="shmem_broadcast32.3.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">18. OpenSHMEM manual pages</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../man1/index.html">18.1. Commands (section 1)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">18.2. OpenSHMEM API manual pages (section 3)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="OpenSHMEM.3.html">18.2.1. OpenSHMEM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_my_pe.3.html">18.2.2. _my_pe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_num_pes.3.html">18.2.3. _num_pes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="intro_shmem.3.html">18.2.4. intro_shmem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shfree.3.html">18.2.5. shfree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmalloc.3.html">18.2.6. shmalloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_addr_accessible.3.html">18.2.7. shmem_addr_accessible</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_align.3.html">18.2.8. shmem_align</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoall32.3.html">18.2.9. shmem_alltoall32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoall64.3.html">18.2.10. shmem_alltoall64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoalls32.3.html">18.2.11. shmem_alltoalls32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_alltoalls64.3.html">18.2.12. shmem_alltoalls64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_barrier.3.html">18.2.13. shmem_barrier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_barrier_all.3.html">18.2.14. shmem_barrier_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_broadcast32.3.html">18.2.15. shmem_broadcast32</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">18.2.16. shmem_broadcast64</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#synopsis">18.2.16.1. SYNOPSIS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#description">18.2.16.2. DESCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#notes">18.2.16.3. NOTES</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples">18.2.16.4. EXAMPLES</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_g.3.html">18.2.17. shmem_char_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_get.3.html">18.2.18. shmem_char_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_get_nbi.3.html">18.2.19. shmem_char_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_p.3.html">18.2.20. shmem_char_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_put.3.html">18.2.21. shmem_char_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_char_put_nbi.3.html">18.2.22. shmem_char_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_clear_cache_inv.3.html">18.2.23. shmem_clear_cache_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_clear_cache_line_inv.3.html">18.2.24. shmem_clear_cache_line_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_clear_lock.3.html">18.2.25. shmem_clear_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_collect32.3.html">18.2.26. shmem_collect32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_collect64.3.html">18.2.27. shmem_collect64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexd_prod_to_all.3.html">18.2.28. shmem_complexd_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexd_sum_to_all.3.html">18.2.29. shmem_complexd_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexf_prod_to_all.3.html">18.2.30. shmem_complexf_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_complexf_sum_to_all.3.html">18.2.31. shmem_complexf_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_fetch.3.html">18.2.32. shmem_double_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_g.3.html">18.2.33. shmem_double_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_get.3.html">18.2.34. shmem_double_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_get_nbi.3.html">18.2.35. shmem_double_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_iget.3.html">18.2.36. shmem_double_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_iput.3.html">18.2.37. shmem_double_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_max_to_all.3.html">18.2.38. shmem_double_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_min_to_all.3.html">18.2.39. shmem_double_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_p.3.html">18.2.40. shmem_double_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_prod_to_all.3.html">18.2.41. shmem_double_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_put.3.html">18.2.42. shmem_double_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_put_nbi.3.html">18.2.43. shmem_double_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_set.3.html">18.2.44. shmem_double_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_sum_to_all.3.html">18.2.45. shmem_double_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_double_swap.3.html">18.2.46. shmem_double_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_fcollect32.3.html">18.2.47. shmem_fcollect32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_fcollect64.3.html">18.2.48. shmem_fcollect64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_fence.3.html">18.2.49. shmem_fence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_finalize.3.html">18.2.50. shmem_finalize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_fetch.3.html">18.2.51. shmem_float_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_g.3.html">18.2.52. shmem_float_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_get.3.html">18.2.53. shmem_float_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_get_nbi.3.html">18.2.54. shmem_float_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_iget.3.html">18.2.55. shmem_float_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_iput.3.html">18.2.56. shmem_float_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_max_to_all.3.html">18.2.57. shmem_float_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_min_to_all.3.html">18.2.58. shmem_float_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_p.3.html">18.2.59. shmem_float_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_prod_to_all.3.html">18.2.60. shmem_float_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_put.3.html">18.2.61. shmem_float_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_put_nbi.3.html">18.2.62. shmem_float_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_set.3.html">18.2.63. shmem_float_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_sum_to_all.3.html">18.2.64. shmem_float_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_float_swap.3.html">18.2.65. shmem_float_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_free.3.html">18.2.66. shmem_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get128.3.html">18.2.67. shmem_get128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get128_nbi.3.html">18.2.68. shmem_get128_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get16_nbi.3.html">18.2.69. shmem_get16_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get32.3.html">18.2.70. shmem_get32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get32_nbi.3.html">18.2.71. shmem_get32_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get64.3.html">18.2.72. shmem_get64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get64_nbi.3.html">18.2.73. shmem_get64_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_get8_nbi.3.html">18.2.74. shmem_get8_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_getmem.3.html">18.2.75. shmem_getmem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_getmem_nbi.3.html">18.2.76. shmem_getmem_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_global_exit.3.html">18.2.77. shmem_global_exit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iget128.3.html">18.2.78. shmem_iget128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iget32.3.html">18.2.79. shmem_iget32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iget64.3.html">18.2.80. shmem_iget64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_info_get_name.3.html">18.2.81. shmem_info_get_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_info_get_version.3.html">18.2.82. shmem_info_get_version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_init.3.html">18.2.83. shmem_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_add.3.html">18.2.84. shmem_int_add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_and_to_all.3.html">18.2.85. shmem_int_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_cswap.3.html">18.2.86. shmem_int_cswap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_fadd.3.html">18.2.87. shmem_int_fadd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_fetch.3.html">18.2.88. shmem_int_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_finc.3.html">18.2.89. shmem_int_finc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_g.3.html">18.2.90. shmem_int_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_get.3.html">18.2.91. shmem_int_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_get_nbi.3.html">18.2.92. shmem_int_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_iget.3.html">18.2.93. shmem_int_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_inc.3.html">18.2.94. shmem_int_inc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_iput.3.html">18.2.95. shmem_int_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_max_to_all.3.html">18.2.96. shmem_int_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_min_to_all.3.html">18.2.97. shmem_int_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_or_to_all.3.html">18.2.98. shmem_int_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_p.3.html">18.2.99. shmem_int_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_prod_to_all.3.html">18.2.100. shmem_int_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_put.3.html">18.2.101. shmem_int_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_put_nbi.3.html">18.2.102. shmem_int_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_set.3.html">18.2.103. shmem_int_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_sum_to_all.3.html">18.2.104. shmem_int_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_swap.3.html">18.2.105. shmem_int_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_wait.3.html">18.2.106. shmem_int_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_wait_until.3.html">18.2.107. shmem_int_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_int_xor_to_all.3.html">18.2.108. shmem_int_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iput128.3.html">18.2.109. shmem_iput128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iput32.3.html">18.2.110. shmem_iput32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_iput64.3.html">18.2.111. shmem_iput64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_add.3.html">18.2.112. shmem_long_add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_and_to_all.3.html">18.2.113. shmem_long_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_cswap.3.html">18.2.114. shmem_long_cswap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_fadd.3.html">18.2.115. shmem_long_fadd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_fetch.3.html">18.2.116. shmem_long_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_finc.3.html">18.2.117. shmem_long_finc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_g.3.html">18.2.118. shmem_long_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_get.3.html">18.2.119. shmem_long_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_get_nbi.3.html">18.2.120. shmem_long_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_iget.3.html">18.2.121. shmem_long_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_inc.3.html">18.2.122. shmem_long_inc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_iput.3.html">18.2.123. shmem_long_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_max_to_all.3.html">18.2.124. shmem_long_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_min_to_all.3.html">18.2.125. shmem_long_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_or_to_all.3.html">18.2.126. shmem_long_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_p.3.html">18.2.127. shmem_long_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_prod_to_all.3.html">18.2.128. shmem_long_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_put.3.html">18.2.129. shmem_long_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_put_nbi.3.html">18.2.130. shmem_long_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_set.3.html">18.2.131. shmem_long_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_sum_to_all.3.html">18.2.132. shmem_long_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_swap.3.html">18.2.133. shmem_long_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_wait.3.html">18.2.134. shmem_long_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_wait_until.3.html">18.2.135. shmem_long_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_long_xor_to_all.3.html">18.2.136. shmem_long_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_g.3.html">18.2.137. shmem_longdouble_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_get.3.html">18.2.138. shmem_longdouble_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_get_nbi.3.html">18.2.139. shmem_longdouble_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_iget.3.html">18.2.140. shmem_longdouble_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_iput.3.html">18.2.141. shmem_longdouble_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_max_to_all.3.html">18.2.142. shmem_longdouble_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_min_to_all.3.html">18.2.143. shmem_longdouble_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_p.3.html">18.2.144. shmem_longdouble_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_prod_to_all.3.html">18.2.145. shmem_longdouble_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_put.3.html">18.2.146. shmem_longdouble_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_put_nbi.3.html">18.2.147. shmem_longdouble_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longdouble_sum_to_all.3.html">18.2.148. shmem_longdouble_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_add.3.html">18.2.149. shmem_longlong_add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_and_to_all.3.html">18.2.150. shmem_longlong_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_cswap.3.html">18.2.151. shmem_longlong_cswap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_fadd.3.html">18.2.152. shmem_longlong_fadd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_fetch.3.html">18.2.153. shmem_longlong_fetch</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_finc.3.html">18.2.154. shmem_longlong_finc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_g.3.html">18.2.155. shmem_longlong_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_get.3.html">18.2.156. shmem_longlong_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_get_nbi.3.html">18.2.157. shmem_longlong_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_iget.3.html">18.2.158. shmem_longlong_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_inc.3.html">18.2.159. shmem_longlong_inc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_iput.3.html">18.2.160. shmem_longlong_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_max_to_all.3.html">18.2.161. shmem_longlong_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_min_to_all.3.html">18.2.162. shmem_longlong_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_or_to_all.3.html">18.2.163. shmem_longlong_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_p.3.html">18.2.164. shmem_longlong_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_prod_to_all.3.html">18.2.165. shmem_longlong_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_put.3.html">18.2.166. shmem_longlong_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_put_nbi.3.html">18.2.167. shmem_longlong_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_set.3.html">18.2.168. shmem_longlong_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_sum_to_all.3.html">18.2.169. shmem_longlong_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_swap.3.html">18.2.170. shmem_longlong_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_wait.3.html">18.2.171. shmem_longlong_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_wait_until.3.html">18.2.172. shmem_longlong_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_longlong_xor_to_all.3.html">18.2.173. shmem_longlong_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_malloc.3.html">18.2.174. shmem_malloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_my_pe.3.html">18.2.175. shmem_my_pe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_n_pes.3.html">18.2.176. shmem_n_pes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_pe_accessible.3.html">18.2.177. shmem_pe_accessible</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_ptr.3.html">18.2.178. shmem_ptr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put128.3.html">18.2.179. shmem_put128</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put128_nbi.3.html">18.2.180. shmem_put128_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put16_nbi.3.html">18.2.181. shmem_put16_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put32.3.html">18.2.182. shmem_put32</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put32_nbi.3.html">18.2.183. shmem_put32_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put64.3.html">18.2.184. shmem_put64</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put64_nbi.3.html">18.2.185. shmem_put64_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_put8_nbi.3.html">18.2.186. shmem_put8_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_putmem.3.html">18.2.187. shmem_putmem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_putmem_nbi.3.html">18.2.188. shmem_putmem_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_quiet.3.html">18.2.189. shmem_quiet</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_realloc.3.html">18.2.190. shmem_realloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_set_cache_inv.3.html">18.2.191. shmem_set_cache_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_set_cache_line_inv.3.html">18.2.192. shmem_set_cache_line_inv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_set_lock.3.html">18.2.193. shmem_set_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_and_to_all.3.html">18.2.194. shmem_short_and_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_g.3.html">18.2.195. shmem_short_g</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_get.3.html">18.2.196. shmem_short_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_get_nbi.3.html">18.2.197. shmem_short_get_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_iget.3.html">18.2.198. shmem_short_iget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_iput.3.html">18.2.199. shmem_short_iput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_max_to_all.3.html">18.2.200. shmem_short_max_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_min_to_all.3.html">18.2.201. shmem_short_min_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_or_to_all.3.html">18.2.202. shmem_short_or_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_p.3.html">18.2.203. shmem_short_p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_prod_to_all.3.html">18.2.204. shmem_short_prod_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_put.3.html">18.2.205. shmem_short_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_put_nbi.3.html">18.2.206. shmem_short_put_nbi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_sum_to_all.3.html">18.2.207. shmem_short_sum_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_wait.3.html">18.2.208. shmem_short_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_wait_until.3.html">18.2.209. shmem_short_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_short_xor_to_all.3.html">18.2.210. shmem_short_xor_to_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_swap.3.html">18.2.211. shmem_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_test_lock.3.html">18.2.212. shmem_test_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_udcflush.3.html">18.2.213. shmem_udcflush</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_udcflush_line.3.html">18.2.214. shmem_udcflush_line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_wait.3.html">18.2.215. shmem_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmem_wait_until.3.html">18.2.216. shmem_wait_until</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shmemalign.3.html">18.2.217. shmemalign</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shrealloc.3.html">18.2.218. shrealloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="start_pes.3.html">18.2.219. start_pes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">18. </span>OpenSHMEM manual pages</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">18.2. </span>OpenSHMEM API manual pages (section 3)</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">18.2.16. </span>shmem_broadcast64</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/man-openshmem/man3/shmem_broadcast64.3.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="shmem-broadcast64">
+<span id="id1"></span><h1><span class="section-number">18.2.16. </span>shmem_broadcast64<a class="headerlink" href="#shmem-broadcast64" title="Link to this heading"></a></h1>
+<blockquote>
+<div></div></blockquote>
+<p>shmem_broadcast4(3), shmem_broadcast8(3),
+<a class="reference internal" href="shmem_broadcast32.3.html#shmem-broadcast32"><span class="std std-ref">shmem_broadcast32</span></a>(3), <a class="reference internal" href="#shmem-broadcast64"><span class="std std-ref">shmem_broadcast64</span></a>(3) - Copy a data object
+from a designated PE to a target location on all other PEs of the active
+set.</p>
+<section id="synopsis">
+<h2><span class="section-number">18.2.16.1. </span>SYNOPSIS<a class="headerlink" href="#synopsis" title="Link to this heading"></a></h2>
+<p>C or C++:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;mpp/shmem.h&gt;</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="n">shmem_broadcast32</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">source</span><span class="p">,</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">nelems</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">PE_root</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">PE_start</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">logPE_stride</span><span class="p">,</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">PE_size</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">pSync</span><span class="p">)</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="n">shmem_broadcast64</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">source</span><span class="p">,</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">nelems</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">PE_root</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">PE_start</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">logPE_stride</span><span class="p">,</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">PE_size</span><span class="p">,</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="o">*</span><span class="n">pSync</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Fortran:</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">INCLUDE</span><span class="w"> </span><span class="s2">"mpp/shmem.fh"</span>
+
+<span class="kt">INTEGER </span><span class="n">nelems</span><span class="p">,</span><span class="w"> </span><span class="n">PE_root</span><span class="p">,</span><span class="w"> </span><span class="n">PE_start</span><span class="p">,</span><span class="w"> </span><span class="n">logPE_stride</span><span class="p">,</span><span class="w"> </span><span class="n">PE_size</span>
+<span class="kt">INTEGER </span><span class="n">pSync</span><span class="p">(</span><span class="n">SHMEM_BCAST_SYNC_SIZE</span><span class="p">)</span>
+
+<span class="k">CALL </span><span class="n">SHMEM_BROADCAST4</span><span class="p">(</span><span class="k">target</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">,</span><span class="w"> </span><span class="n">nelems</span><span class="p">,</span><span class="w"> </span><span class="n">PE_root</span><span class="p">,</span>
+<span class="p">&amp;</span><span class="w"> </span><span class="n">PE_start</span><span class="p">,</span><span class="w"> </span><span class="n">logPE_stride</span><span class="p">,</span><span class="w"> </span><span class="n">PE_size</span><span class="p">,</span><span class="w"> </span><span class="n">fIpSync</span><span class="p">)</span>
+
+<span class="k">CALL </span><span class="n">SHMEM_BROADCAST8</span><span class="p">(</span><span class="k">target</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">,</span><span class="w"> </span><span class="n">nelems</span><span class="p">,</span><span class="w"> </span><span class="n">PE_root</span><span class="p">,</span>
+<span class="p">&amp;</span><span class="w"> </span><span class="n">PE_start</span><span class="p">,</span><span class="w"> </span><span class="n">logPE_stride</span><span class="p">,</span><span class="w"> </span><span class="n">PE_size</span><span class="p">,</span><span class="w"> </span><span class="n">pSync</span><span class="p">)</span>
+
+<span class="k">CALL </span><span class="n">SHMEM_BROADCAST32</span><span class="p">(</span><span class="k">target</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">,</span><span class="w"> </span><span class="n">nelems</span><span class="p">,</span>
+<span class="p">&amp;</span><span class="w"> </span><span class="n">PE_root</span><span class="p">,</span><span class="w"> </span><span class="n">PE_start</span><span class="p">,</span><span class="w"> </span><span class="n">logPE_stride</span><span class="p">,</span><span class="w"> </span><span class="n">PE_size</span><span class="p">,</span><span class="w"> </span><span class="n">pSync</span><span class="p">)</span>
+
+<span class="k">CALL </span><span class="n">SHMEM_BROADCAST64</span><span class="p">(</span><span class="k">target</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">,</span><span class="w"> </span><span class="n">nelems</span><span class="p">,</span>
+<span class="p">&amp;</span><span class="w"> </span><span class="n">PE_root</span><span class="p">,</span><span class="w"> </span><span class="n">PE_start</span><span class="p">,</span><span class="w"> </span><span class="n">logPE_stride</span><span class="p">,</span><span class="w"> </span><span class="n">PE_size</span><span class="p">,</span><span class="w"> </span><span class="n">pSync</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="description">
+<h2><span class="section-number">18.2.16.2. </span>DESCRIPTION<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<p>The broadcast routines write the data at address source of the PE
+specified by <strong>PE_root</strong> to address <strong>target</strong> on all other PEs in the
+active set. The active set of PEs is defined by the triplet
+<strong>PE_start</strong>, <strong>logPE_stride</strong> and <strong>PE_size</strong>. The data is not copied
+to the target address on the PE specified by <strong>PE_root</strong>. Before
+returning, the broadcast routines ensure that the elements of the pSync
+array are restored to their initial values.</p>
+<p>As with all SHMEM collective routines, each of these routines assumes
+that only PEs in the active set call the routine. If a PE not in the
+active set calls a SHMEM collective routine, undefined behavior results.</p>
+<p>The arguments are as follows:</p>
+<dl>
+<dt>target</dt><dd><p>A symmetric data object with one of the following data types:</p>
+<dl class="simple">
+<dt>shmem_broadcast8, <a class="reference internal" href="#shmem-broadcast64"><span class="std std-ref">shmem_broadcast64</span></a>: Any noncharacter type that</dt><dd><p>has an element size of 64 bits. No Fortran derived types or C/C++
+structures are allowed.</p>
+</dd>
+<dt><a class="reference internal" href="shmem_broadcast32.3.html#shmem-broadcast32"><span class="std std-ref">shmem_broadcast32</span></a>: Any noncharacter type that has an element size</dt><dd><p>of 32 bits. No Fortran derived types or C/C++ structures are
+allowed.</p>
+</dd>
+<dt>shmem_broadcast4: Any noncharacter type that has an element size</dt><dd><p>of 32 bits.</p>
+</dd>
+</dl>
+</dd>
+<dt>source</dt><dd><p>A symmetric data object that can be of any data type that is
+permissible for the target argument.</p>
+</dd>
+<dt>nelems</dt><dd><p>The number of elements in source. For <a class="reference internal" href="shmem_broadcast32.3.html#shmem-broadcast32"><span class="std std-ref">shmem_broadcast32</span></a> and
+shmem_broadcast4, this is the number of 32-bit halfwords. nelems must
+be of type integer. If you are using Fortran, it must be a default
+integer value.</p>
+</dd>
+<dt>PE_root</dt><dd><p>Zero-based ordinal of the PE, with respect to the active set, from
+which the data is copied. Must be greater than or equal to 0 and less
+than PE_size. PE_root must be of type integer. If you are using
+Fortran, it must be a default integer value.</p>
+</dd>
+<dt>PE_start</dt><dd><p>The lowest virtual PE number of the active set of PEs. PE_start must
+be of type integer. If you are using Fortran, it must be a default
+integer value.</p>
+</dd>
+<dt>logPE_stride</dt><dd><p>The log (base 2) of the stride between consecutive virtual PE numbers
+in the active set. log_PE_stride must be of type integer. If you are
+using Fortran, it must be a default integer value.</p>
+</dd>
+<dt>PE_size</dt><dd><p>The number of PEs in the active set. PE_size must be of type integer.
+If you are using Fortran, it must be a default integer value.</p>
+</dd>
+<dt>pSync</dt><dd><p>A symmetric work array. In C/C++, pSync must be of type long and size
+_SHMEM_BCAST_SYNC_SIZE. In Fortran, pSync must be of type integer
+and size SHMEM_BCAST_SYNC_SIZE. Every element of this array must be
+initialized with the value _SHMEM_SYNC_VALUE (in C/C++) or
+SHMEM_SYNC_VALUE (in Fortran) before any of the PEs in the active set
+enter shmem_barrier().</p>
+</dd>
+</dl>
+<p>The values of arguments PE_root, PE_start, logPE_stride, and PE_size
+must be equal on all PEs in the active set. The same target and source
+data objects and the same pSync work array must be passed to all PEs in
+the active set.</p>
+<p>Before any PE calls a broadcast routine, you must ensure that the
+following conditions exist (synchronization via a barrier or some other
+method is often needed to ensure this): The pSync array on all PEs in
+the active set is not still in use from a prior call to a broadcast
+routine. The target array on all PEs in the active set is ready to
+accept the broadcast data.</p>
+<p>Upon return from a broadcast routine, the following are true for the
+local PE: If the current PE is not the root PE, the target data object
+is updated. The values in the pSync array are restored to the original
+values.</p>
+</section>
+<section id="notes">
+<h2><span class="section-number">18.2.16.3. </span>NOTES<a class="headerlink" href="#notes" title="Link to this heading"></a></h2>
+<p>The terms collective and symmetric are defined in <em>intro_shmem</em>(3).</p>
+<p>All SHMEM broadcast routines restore pSync to its original contents.
+Multiple calls to SHMEM routines that use the same pSync array do not
+require that pSync be reinitialized after the first call.</p>
+<p>You must ensure the that the pSync array is not being updated by any PE
+in the active set while any of the PEs participates in processing of a
+SHMEM broadcast routine. Be careful to avoid these situations: If the
+pSync array is initialized at run time, some type of synchronization is
+needed to ensure that all PEs in the working set have initialized pSync
+before any of them enter a SHMEM routine called with the pSync
+synchronization array. A pSync array may be reused on a subsequent SHMEM
+broadcast routine only if none of the PEs in the active set are still
+processing a prior SHMEM broadcast routine call that used the same pSync
+array. In general, this can be ensured only by doing some type of
+synchronization. However, in the special case of SHMEM routines being
+called with the same active set, you can allocate two pSync arrays and
+alternate between them on successive calls.</p>
+</section>
+<section id="examples">
+<h2><span class="section-number">18.2.16.4. </span>EXAMPLES<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<p>In the following examples, the call to <a class="reference internal" href="#shmem-broadcast64"><span class="std std-ref">shmem_broadcast64</span></a> copies source
+on PE 4 to target on PEs 5, 6, and 7.</p>
+<p>C/C++ example:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">_SHMEM_BCAST_SYNC_SIZE</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">pSync</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">_SHMEM_SYNC_VALUE</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="n">shmem_barrier_all</span><span class="p">();</span><span class="w"> </span><span class="cm">/* Wait for all PEs to initialize pSync */</span>
+<span class="n">shmem_broadcast64</span><span class="p">(</span><span class="n">target</span><span class="p">,</span><span class="w"> </span><span class="n">source</span><span class="p">,</span><span class="w"> </span><span class="n">nelems</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">pSync</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Fortran example:</p>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="kt">INTEGER </span><span class="n">PSYNC</span><span class="p">(</span><span class="n">SHMEM_BCAST_SYNC_SIZE</span><span class="p">)</span>
+<span class="kt">INTEGER </span><span class="k">TARGET</span><span class="p">,</span><span class="w"> </span><span class="n">SOURCE</span><span class="p">,</span><span class="w"> </span><span class="n">NELEMS</span><span class="p">,</span><span class="w"> </span><span class="n">PE_ROOT</span><span class="p">,</span><span class="w"> </span><span class="n">PE_START</span><span class="p">,</span>
+<span class="p">&amp;</span><span class="w"> </span><span class="n">LOGPE_STRIDE</span><span class="p">,</span><span class="w"> </span><span class="n">PE_SIZE</span><span class="p">,</span><span class="w"> </span><span class="n">PSYNC</span>
+<span class="k">COMMON</span><span class="w"> </span><span class="o">/</span><span class="n">COM</span><span class="o">/</span><span class="w"> </span><span class="k">TARGET</span><span class="p">,</span><span class="w"> </span><span class="n">SOURCE</span>
+<span class="k">DATA </span><span class="n">PSYNC</span><span class="w"> </span><span class="o">/</span><span class="n">SHMEM_BCAST_SYNC_SIZE</span><span class="o">*</span><span class="n">SHMEM_SYNC_VALUE</span><span class="o">/</span>
+
+<span class="k">CALL </span><span class="n">SHMEM_BROADCAST64</span><span class="p">(</span><span class="k">TARGET</span><span class="p">,</span><span class="w"> </span><span class="n">SOURCE</span><span class="p">,</span><span class="w"> </span><span class="n">NELEMS</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="p">&amp;</span><span class="w"> </span><span class="n">PSYNC</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><em>intro_shmem</em>(3)</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="shmem_broadcast32.3.html" class="btn btn-neutral float-left" title="18.2.15. shmem_broadcast32" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="shmem_char_g.3.html" class="btn btn-neutral float-right" title="18.2.17. shmem_char_g" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

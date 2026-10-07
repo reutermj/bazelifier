@@ -1,0 +1,219 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.2. Customizing wrapper compiler behavior &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11.3. Extracting flags from the wrapper compilers" href="extracting-wrapper-flags.html" />
+    <link rel="prev" title="11.1. Quick start: Building PMIx-based applications" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">11. Building PMIx applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">11.1. Quick start: Building PMIx-based applications</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">11.2. Customizing wrapper compiler behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extracting-wrapper-flags.html">11.3. Extracting flags from the wrapper compilers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecation-warnings.html">11.4. Deprecated Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-static-apps.html">11.5. Building fully-static PMIx applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11. </span>Building PMIx applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.2. </span>Customizing wrapper compiler behavior</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/building-apps/customizing-wrappers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="customizing-wrapper-compiler-behavior">
+<span id="label-customizing-wrapper-compiler"></span><h1><span class="section-number">11.2. </span>Customizing wrapper compiler behavior<a class="headerlink" href="#customizing-wrapper-compiler-behavior" title="Link to this heading"></a></h1>
+<p>The PMIx wrapper compiler is driven by text files that contain,
+among other things, the flags that are passed to the underlying
+compiler.  The text file is generated automatically for PMIx
+and is customized for the compiler set that was selected when PMIx
+was configured; it is <em>not</em> recommended that users edit this
+file.</p>
+<p>However, there are cases where it may be necessary or desirable to
+edit the file and add to or subtract from the flags that PMIx
+selected.  The file is installed in <code class="docutils literal notranslate"><span class="pre">$pkgdatadir</span></code>, which
+defaults to <code class="docutils literal notranslate"><span class="pre">$prefix/share/pmix/pmixcc-wrapper-data.txt</span></code>.
+Several environment variables are also available for run-time
+replacement of the wrapper’s default values (from the text file):</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You may need to scroll right in the following table.</p>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Wrapper compiler</p></th>
+<th class="head"><p>Compiler</p></th>
+<th class="head"><p>Preprocessor flags</p></th>
+<th class="head"><p>Compiler flags</p></th>
+<th class="head"><p>Linker flags</p></th>
+<th class="head"><p>Linker library flags</p></th>
+<th class="head"><p>Data file</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mpmixcc</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PMIX_CC</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PMIX_CPPFLAGS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PMIX_CFLAGS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PMIX_LDFLAGS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PMIX_LIBS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pmixcc-wrapper-data.txt</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Note that changing the underlying compiler may not work
+at all.</p>
+<p>The traditional method of using multiple different compilers
+with PMIx is to install PMIx multiple times; each
+installation should be built/installed with a different compiler.
+This is annoying, but it is beyond the scope of PMIx to be able
+to fix.</p>
+</div>
+<p>Note that the values of these fields can be directly influenced by
+passing flags to PMIx’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script.  <a class="reference internal" href="../installing-pmix/configure-cli-options/installation.html#label-building-installation-cli-options"><span class="std std-ref">See this
+section in the Installation guide</span></a> for
+more details.</p>
+<p>The files cited in the above table use fairly simplistic “key=value”
+data formats.  The following are several fields that are likely to be
+of interest to end-users:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">project_short</span></code>: Prefix for all environment variables.  See
+below.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compiler_env</span></code>: Specifies the base name of the environment
+variable that can be used to override the wrapper’s underlying
+compiler at run-time.  The full name of the environment variable is
+of the form <code class="docutils literal notranslate"><span class="pre">&lt;project_short&gt;_&lt;compiler_env&gt;</span></code>; see table above.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compiler_flags_env</span></code>: Specifies the base name of the environment
+variable that can be used to override the wrapper’s compiler flags
+at run-time.  The full name of the environment variable is of the
+form <code class="docutils literal notranslate"><span class="pre">&lt;project_short&gt;_&lt;compiler_flags_env&gt;</span></code>; see table above.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compiler</span></code>: The executable name of the underlying compiler.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">extra_includes</span></code>: Relative to <code class="docutils literal notranslate"><span class="pre">$installdir</span></code>, a list of directories
+to also list in the preprocessor flags to find header files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preprocessor_flags</span></code>: A list of flags passed to the preprocessor.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">compiler_flags</span></code>: A list of flags passed to the compiler.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">linker_flags</span></code>: A list of flags passed to the linker.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libs</span></code>: A list of libraries passed to the linker.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">required_file</span></code>: If non-empty, check for the presence of this file
+before continuing.  If the file is not there, the wrapper will abort
+saying that the language is not supported.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">includedir</span></code>: Directory containing PMIx’s header files.  The
+proper compiler “include” flag is prepended to this directory and
+added into the preprocessor flags.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">libdir</span></code>: Directory containing PMIx’s library files.  The
+proper compiler “include” flag is prepended to this directory and
+added into the linker flags.</p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="11.1. Quick start: Building PMIx-based applications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="extracting-wrapper-flags.html" class="btn btn-neutral float-right" title="11.3. Extracting flags from the wrapper compilers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

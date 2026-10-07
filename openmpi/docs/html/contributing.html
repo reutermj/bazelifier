@@ -1,0 +1,333 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>14. Contributing to Open MPI &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="15. License" href="license/index.html" />
+    <link rel="prev" title="13.11. ReStructured Text for those who know Markdown" href="developers/rst-for-markdown-expats.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">14. Contributing to Open MPI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#open-source-contributions">14.1. Open source contributions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#contributor-s-declaration">14.1.1. Contributor’s Declaration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#git-commit-messages">14.1.2. Git commit messages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#code-style">14.1.3. Code style</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#closed-source-contributions">14.2. Closed source contributions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">14. </span>Contributing to Open MPI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/contributing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="contributing-to-open-mpi">
+<h1><span class="section-number">14. </span>Contributing to Open MPI<a class="headerlink" href="#contributing-to-open-mpi" title="Link to this heading"></a></h1>
+<p>There are many ways to contribute.  Here are a few:</p>
+<ol class="arabic">
+<li><p>Subscribe to <a class="reference external" href="https://www.open-mpi.org/community/lists/ompi.php">the mailing lists</a> and become
+active in the discussions.</p></li>
+<li><p>Obtain <a class="reference external" href="https://github.com/open-mpi/ompi/">a Git clone</a> of Open
+MPI’s code base and start looking through the code.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Be sure to see the <a class="reference internal" href="developers/index.html"><span class="doc">Developers guide</span></a> for technical details about the
+code base and how to build it).</p>
+</div>
+</li>
+<li><p>Report bug fixes to the main code base.</p>
+<ul class="simple">
+<li><p>First, ensure the bug was not already reported by searching
+<a class="reference external" href="https://github.com/open-mpi/ompi/issues">existing      GitHub Issues</a>.</p></li>
+<li><p>If you’re unable to find an open issue addressing the problem,
+<a class="reference external" href="https://github.com/open-mpi/ompi/issues/new">open a new one</a>.</p></li>
+</ul>
+</li>
+<li><p>Submit bug fixes to the main code base.</p>
+<ul class="simple">
+<li><p>Awesome!  Open a new GitHub pull request with the patch.</p>
+<ul>
+<li><p>Please submit bug fixes / new features on the <code class="docutils literal notranslate"><span class="pre">main</span></code> branch
+first, and then port them to the relevant release branch(es)
+after they have been accepted on <code class="docutils literal notranslate"><span class="pre">main</span></code>.  <a class="reference internal" href="developers/git-github.html#git-github-branch-scheme-label"><span class="std std-ref">See this
+section for more information</span></a>.</p></li>
+</ul>
+</li>
+<li><p>Ensure the PR description clearly describes the problem and
+solution. If there is an existing GitHub issue open describing
+this bug, please include it in the description so we can track
+them together.</p></li>
+<li><p>Be sure to see the <a class="reference internal" href="#contributing-open-source-label"><span class="std std-ref">Open source contributions</span></a> section, below.</p></li>
+</ul>
+</li>
+<li><p>Submit feature enhancements and/or new components to the main code
+base.</p>
+<ul class="simple">
+<li><p>Awesome!  We love new ideas!</p></li>
+<li><p>You might want to suggest your change on the <a class="reference external" href="https://www.open-mpi.org/community/lists/ompi.php">devel mail list</a> before you
+start writing code.  The <a class="reference external" href="https://www.open-mpi.org/faq/?category=developers">developer level technical information
+on the internals of Open MPI</a> may also be
+useful for large scale features.</p></li>
+<li><p>If you’re contributing a large new piece of functionality, that
+will be best viewed if you — or someone, anyone — is
+also stepping up to help maintain that functionality over time.
+We love new ideas and new features, but we do need to be
+realistic in what we can reliably test and deliver to our users.</p></li>
+<li><p>Be sure to see the <a class="reference internal" href="#contributing-open-source-label"><span class="std std-ref">Open source contributions</span></a> section, below.</p></li>
+</ul>
+</li>
+<li><p>Submit fixes and/or entirely new content to this documentation.</p>
+<ul class="simple">
+<li><p>Docs are great!  We always need help with documentation.</p></li>
+<li><p>These docs are authored using ReStructured Text markup with the
+Sphinx rendering tool under the <code class="docutils literal notranslate"><span class="pre">docs/</span></code> directory in the
+repository.  This means you can submit a pull request with your
+docs updates, just like you would for any Open MPI code contribution.</p></li>
+<li><p><a class="reference internal" href="developers/sphinx.html#developers-installing-sphinx-label"><span class="std std-ref">See this section</span></a> and
+<a class="reference internal" href="developers/rst-for-markdown-expats.html#developers-rst-for-markdown-expats"><span class="std std-ref">also this section</span></a> for
+information about how to install Sphinx locally and some
+high-level logistical instructions on how to write these docs.</p></li>
+</ul>
+</li>
+<li><p>Provide testing resources:</p>
+<ol class="arabic simple">
+<li><p>For Github Pull Request Continuous Integration (CI)</p></li>
+<li><p>For nightly snapshot builds and testing</p></li>
+</ol>
+</li>
+</ol>
+<section id="open-source-contributions">
+<span id="contributing-open-source-label"></span><h2><span class="section-number">14.1. </span>Open source contributions<a class="headerlink" href="#open-source-contributions" title="Link to this heading"></a></h2>
+<p>All code contributions are submitted as pull requests on the <a class="reference external" href="https://github.com/open-mpi/ompi/">Open
+MPI GitHub repository</a>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>All commits must include a <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line,
+indicating the submitter’s agreement to the <a class="reference internal" href="#contributing-contributors-declaration-label"><span class="std std-ref">Open
+MPI Contributor’s Declaration</span></a>.</p>
+</div>
+<section id="contributor-s-declaration">
+<span id="contributing-contributors-declaration-label"></span><h3><span class="section-number">14.1.1. </span>Contributor’s Declaration<a class="headerlink" href="#contributor-s-declaration" title="Link to this heading"></a></h3>
+<p>In order to ensure that we can keep distributing Open MPI under our
+<a class="reference internal" href="license/index.html"><span class="doc">open source license</span></a>, we need to ensure that
+all contributions are compatible with that license.  Put differently:
+we need to have an established intellectual property pedigree of the
+code in Open MPI.  This means being able to ensure that all code
+included in Open MPI is free, open source, and able to be distributed
+under <a class="reference internal" href="license/index.html"><span class="doc">the BSD license</span></a>.</p>
+<p>Open MPI has therefore adopted requirements based on the signed-off-by
+process as described in Section 11 of the Linux kernel document on
+<a class="reference external" href="https://www.kernel.org/doc/html/latest/process/submitting-patches.html#sign-your-work-the-developer-s-certificate-of-origin">Submitting Patches</a>.
+Each proposed contribution to the Open MPI code base must include the
+text <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> followed by the contributor’s name and email
+address.</p>
+<div class="tip admonition">
+<p class="admonition-title">Pro tip</p>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">-s</span></code> flag to the <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span></code> command (i.e.,
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-s</span> <span class="pre">...</span></code>) to automatically add the appropriate
+<code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line to your commit message.</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line is a developer’s certification that he or
+she has the right to submit the patch for inclusion into the project,
+and indicates agreement to the Developer’s Certificate of Origin:</p>
+<blockquote>
+<div><p>By making a contribution to this project, I certify that:</p>
+<ol class="arabic simple">
+<li><p>The contribution was created in whole or in part by me and I
+have the right to submit it under the <a class="reference internal" href="license/index.html"><span class="doc">Open MPI open
+source license</span></a>; or</p></li>
+<li><p>The contribution is based upon previous work that, to the best
+of my knowledge, is covered under an appropriate open source
+license and I have the right under that license to submit that
+work with modifications, whether created in whole or in part by
+me, under the <a class="reference internal" href="license/index.html"><span class="doc">Open MPI open source license</span></a> (unless I am permitted to submit under a
+different license); or</p></li>
+<li><p>The contribution was provided directly to me by some other
+person who certified (1) or (2) and I have not modified it.</p></li>
+<li><p>I understand and agree that this project and the contribution
+are public and that a record of the contribution (including all
+personal information I submit with it, including my sign-off)
+is maintained indefinitely and may be redistributed consistent
+with this project and the open source license(s) involved.</p></li>
+</ol>
+</div></blockquote>
+<p>Proposed contributions failing to include the <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code>
+certification will not be accepted into any Open MPI code
+repository. The community reserves the right to revert any commit
+inadvertently made without the required certification.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This policy prevents a situation where intellectual property
+gets into the Open MPI code base and then someone later
+claims that we owe them money for it.  Open MPI is a free,
+open source code base.  We intend it to remain that way.</p>
+</div>
+<p>If you have not already done so, please ensure that <em>every</em> commit in
+your pull request contains the <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line.</p>
+</section>
+<section id="git-commit-messages">
+<h3><span class="section-number">14.1.2. </span>Git commit messages<a class="headerlink" href="#git-commit-messages" title="Link to this heading"></a></h3>
+<p>Please write a good Git commit message, with a short first line
+describing <em>what</em> was done, and then a description of <em>why</em> it was
+done.</p>
+<div class="tip admonition">
+<p class="admonition-title">Pro tip</p>
+<p><a class="reference external" href="https://cbea.ms/git-commit/">See this blog entry</a> for an
+excellent description of how to write a good Git commit message.</p>
+</div>
+</section>
+<section id="code-style">
+<h3><span class="section-number">14.1.3. </span>Code style<a class="headerlink" href="#code-style" title="Link to this heading"></a></h3>
+<p>There are a small number of style rules for Open MPI:</p>
+<ol class="arabic simple">
+<li><p>For all code:</p>
+<ul class="simple">
+<li><p>4 space tabs.  No more, no less.</p></li>
+<li><p>No tab characters <strong>at all</strong>.  2 indentations are 8 spaces
+— not a tab.</p></li>
+<li><p>m4 code is a bit weird in terms of indentation: we don’t have a
+good, consistent indentation style in our existing code.  But
+still: no tab characters at all.</p></li>
+</ul>
+</li>
+<li><p>For C code:</p>
+<ul class="simple">
+<li><p>We prefer if all blocks are enclosed in <code class="docutils literal notranslate"><span class="pre">{}</span></code> (even 1-line
+blocks).</p></li>
+<li><p>We prefer that if you are testing equality with a constant, put
+the constant on the <strong>left</strong> of the <code class="docutils literal notranslate"><span class="pre">==</span></code>.  E.g., <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">(NULL</span> <span class="pre">==</span>
+<span class="pre">ptr)</span></code>.</p></li>
+<li><p>If there are no parameters to a C function, declare it with
+<code class="docutils literal notranslate"><span class="pre">(void)</span></code> (vs. <code class="docutils literal notranslate"><span class="pre">()</span></code>).</p></li>
+</ul>
+</li>
+</ol>
+</section>
+</section>
+<section id="closed-source-contributions">
+<h2><span class="section-number">14.2. </span>Closed source contributions<a class="headerlink" href="#closed-source-contributions" title="Link to this heading"></a></h2>
+<p>While we are creating free / open-source software, and we would prefer
+if everyone’s contributions to Open MPI were also free / open-source,
+we certainly recognize that other organizations have different goals
+from us.  Such is the reality of software development in today’s
+global economy.</p>
+<p>As such, it is perfectly acceptable to make non-free / non-open-source
+contributions to Open MPI.  We obviously cannot accept such
+contributions into the main code base, but you are free to distribute
+plugins, enhancements, etc. as you see fit.  Indeed, the <a class="reference internal" href="license/index.html"><span class="doc">the BSD
+license</span></a> is extremely liberal in its redistribution
+provisions.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="developers/rst-for-markdown-expats.html" class="btn btn-neutral float-left" title="13.11. ReStructured Text for those who know Markdown" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="license/index.html" class="btn btn-neutral float-right" title="15. License" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

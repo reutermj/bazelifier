@@ -1,0 +1,356 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open MPI v5.0.11 &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="1. Quick start" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Open MPI v5.0.11</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><img alt="_images/openmpi_logo.png" class="align-right" src="_images/openmpi_logo.png" />
+<section id="open-mpi-ompi-ver">
+<h1>Open MPI v5.0.11<a class="headerlink" href="#open-mpi-ompi-ver" title="Link to this heading"></a></h1>
+<p><a class="reference external" href="https://www.open-mpi.org/">The Open MPI Project</a> is an open source
+implementation of the <a class="reference external" href="https://www.mpi-forum.org/docs/">Message Passing Interface (MPI) specification</a> that is developed and maintained
+by a consortium of academic, research, and industry partners.  Open
+MPI is therefore able to combine the expertise, technologies, and
+resources from all across the High Performance Computing community in
+order to build the best MPI library available.  Open MPI offers
+advantages for system and software vendors, application developers and
+computer science researchers.</p>
+</section>
+<section id="documentation-locations">
+<h1>Documentation locations<a class="headerlink" href="#documentation-locations" title="Link to this heading"></a></h1>
+<p>Documentation for Open MPI can be found in the following locations:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Open MPI version</p></th>
+<th class="head"><p>Documentation location</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>v5.0.0 and later</p></td>
+<td><ul class="simple">
+<li><p>Web: <a class="reference external" href="https://docs.open-mpi.org/">https://docs.open-mpi.org/</a></p></li>
+<li><p>Included in tarball: <code class="docutils literal notranslate"><span class="pre">docs/html/index.html</span></code></p></li>
+<li><p>Built in source tree (if Sphinx available): <code class="docutils literal notranslate"><span class="pre">docs/_build/html/index.html</span></code></p></li>
+<li><p>Installed: <code class="docutils literal notranslate"><span class="pre">$docdir/html/index.html</span></code>
+(which defaults to: <code class="docutils literal notranslate"><span class="pre">$prefix/share/doc/openmpi/html/index.html</span></code>)</p></li>
+<li><p>An <code class="docutils literal notranslate"><span class="pre">llms.txt</span></code> index of LLM-friendly documentation (links to the
+human-facing HTML documentation and man pages) for this
+documentation version: <a class="reference external" href="llms.txt">llms.txt</a></p></li>
+</ul>
+</td>
+</tr>
+<tr class="row-odd"><td><p>v4.1.x and earlier</p></td>
+<td><p>See the <a class="reference external" href="https://www.open-mpi.org/faq/">legacy Open MPI FAQ</a>
+and the README file in the source tarball.</p>
+<p>For example:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/open-mpi/ompi/blob/v4.1.x/README">v4.1.x README file</a>,
+<a class="reference external" href="https://www.open-mpi.org/faq/">v4.1.x FAQ</a></p></li>
+<li><p><a class="reference external" href="https://github.com/open-mpi/ompi/blob/v4.0.x/README">v4.0.x README file</a></p></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="release-announcements">
+<h1>Release announcements<a class="headerlink" href="#release-announcements" title="Link to this heading"></a></h1>
+<p>The best way to hear about new Open MPI releases is via the
+<a class="reference external" href="https://lists.open-mpi.org/mailman/listinfo/announce">low-volume announcement mailing list</a>.</p>
+<p>Additionally, if you are a downstream packager of Open MPI (e.g., you
+package Open MPI for an operating system distribution), you may wish
+to sign up for the <a class="reference external" href="https://lists.open-mpi.org/mailman/listinfo/ompi-packagers">low-volume packagers list</a>.</p>
+</section>
+<section id="table-of-contents">
+<h1>Table of contents<a class="headerlink" href="#table-of-contents" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting-help.html#where-to-send">2.1. Where to send?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-help.html#for-problems-building-or-installing-open-mpi">2.2. For problems building or installing Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-help.html#for-problems-launching-mpi-or-openshmem-applications">2.3. For problems launching MPI or OpenSHMEM applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-help.html#for-problems-running-mpi-or-openshmem-applications">2.4. For problems running MPI or OpenSHMEM applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/changelog/index.html">3.1. Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/general.html">3.2. General notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/platform.html">3.3. Platform Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/compilers.html">3.4. Compiler Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/run-time.html">3.5. General Run-Time Support Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/mpi.html">3.6. MPI Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/openshmem.html">3.7. OpenSHMEM Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/mpi-collectives.html">3.8. MPI Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/openshmem-collectives.html">3.9. OpenSHMEM Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/networks.html">3.10. Network Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="release-notes/extensions.html">3.11. Open MPI Extensions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="installing-open-mpi/index.html">4. Building and installing Open MPI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/quickstart.html">4.1. Quick start: Installing Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/downloading.html">4.2. Downloading Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/supported-systems.html">4.3. Supported Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/definitions.html">4.4. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/filesystem-requirements.html">4.5. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/vpath-builds.html">4.6. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/compilers-and-flags.html">4.7. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/required-support-libraries.html">4.8. Required support libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/configure-cli-options/index.html">4.9. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/configure-output-summary.html">4.10. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/make-targets.html">4.11. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/installation-location.html">4.12. Installation location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/custom-components.html">4.13. Installing custom components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/updating.html">4.14. Updating or upgrading an Open MPI installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/packagers.html">4.15. Advice for packagers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installing-open-mpi/sysadmins.html">4.16. Advice for System Administrators</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="features/index.html">5. Open MPI-specific features</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="features/profiling.html">5.1. Open MPI profiling interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="features/extensions.html">5.2. Open MPI extensions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="features/ulfm.html">5.3. User-Level Fault Mitigation (ULFM)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="features/java.html">5.4. Open MPI Java bindings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="validate.html">6. Validating your installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="validate.html#checking-your-open-mpi-configuration">6.1. Checking your Open MPI configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="validate.html#testing-your-open-mpi-installation">6.2. Testing your Open MPI installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="version-numbering.html">7. Version numbers and compatibility</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="version-numbering.html#backward-compatibility">7.1. Backward Compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="version-numbering.html#software-version-number">7.2. Software Version Number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="version-numbering.html#shared-library-version-number">7.3. Shared Library Version Number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="version-numbering.html#api-and-abi-compatibility">7.4. API and ABI Compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">8. The Modular Component Architecture (MCA)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mca.html#terminology">8.1. Terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mca.html#setting-mca-parameter-values">8.2. Setting MCA parameter values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mca.html#displaying-mca-parameter-values">8.3. Displaying MCA parameter values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mca.html#selecting-which-open-mpi-components-are-used-at-run-time">8.4. Selecting which Open MPI components are used at run time</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mca.html#common-mca-parameters">8.5. Common MCA parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mca.html#mca-parameter-changes-between-open-mpi-4-x-and-5-x">8.6. MCA Parameter Changes Between Open MPI 4.x and 5.x</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">9. Building MPI applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="building-apps/quickstart.html">9.1. Quick start: Building MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-apps/customizing-wrappers.html">9.2. Customizing wrapper compiler behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-apps/extracting-wrapper-flags.html">9.3. Extracting flags from the wrapper compilers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-apps/abi-compatibility.html">9.4. ABI compatibility to previous versions of Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-apps/removed-mpi-constructs.html">9.5. Removed MPI constructs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-apps/deprecation-warnings.html">9.6. Deprecation warnings while compiling MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-apps/building-static-apps.html">9.7. Building fully-static MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">10. Launching MPI applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/quickstart.html">10.1. Quick start: Launching MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/prerequisites.html">10.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/pmix-and-prrte.html">10.3. The role of PMIx and PRRTE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/scheduling.html">10.4. Scheduling processes across hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/localhost.html">10.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/ssh.html">10.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/slurm.html">10.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/lsf.html">10.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/tm.html">10.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/gridengine.html">10.10. Launching with Grid Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/unusual.html">10.11. Unusual jobs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launching-apps/troubleshooting.html">10.12. Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/networking/index.html">11.2. Networking support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tuning-apps/heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="app-debug/index.html">12. Debugging Open MPI Parallel Applications</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/debug-tools.html">12.1. Parallel Debugging Tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/debug-options.html">12.2. Open MPI Runtime Debugging Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/serial-debug.html">12.3. Using Serial Debuggers to Debug Open MPI Applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/parallel-debug.html">12.4. Using Parallel Debuggers to Debug Open MPI Applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/lost-output.html">12.5. Application Output Lost with Abnormal Termination</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/memchecker.html">12.6. Using Memchecker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/valgrind.html">12.7. Using Valgrind to Find Open MPI Application Errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="app-debug/mpir-tools.html">12.8. Using MPIR-based tools with Open MPI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">13. Developer’s guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="developers/prerequisites.html">13.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/git-github.html">13.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/compiler-pickyness.html">13.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/autogen.html">13.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/building-open-mpi.html">13.5. Building Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/terminology.html">13.6. Open MPI terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/source-code.html">13.7. Source code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/frameworks.html">13.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/gnu-autotools.html">13.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/sphinx.html">13.10. Installing and running Sphinx (building the Open MPI docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="developers/rst-for-markdown-expats.html">13.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">14. Contributing to Open MPI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#open-source-contributions">14.1. Open source contributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#closed-source-contributions">14.2. Closed source contributions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license/index.html">15. License</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="license/index.html#open-mpi-license">15.1. Open MPI license</a></li>
+<li class="toctree-l2"><a class="reference internal" href="license/index.html#additional-licenses">15.2. Additional licenses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="license/index.html#redistributed-code">15.3. Redistributed code</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">16. History of Open MPI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="history.html#goals-of-the-open-mpi-project">16.1. Goals of the Open MPI Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="history.html#community">16.2. Community</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="man-openmpi/index.html">17. Open MPI manual pages</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="man-openmpi/man1/index.html">17.1. Commands (section 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="man-openmpi/man3/index.html">17.2. MPI API manual pages (section 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="man-openmpi/man7/index.html">17.3. General information manual pages (section 7)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="man-openshmem/index.html">18. OpenSHMEM manual pages</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="man-openshmem/man1/index.html">18.1. Commands (section 1)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="man-openshmem/man3/index.html">18.2. OpenSHMEM API manual pages (section 3)</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="contributors">
+<h1>Contributors<a class="headerlink" href="#contributors" title="Link to this heading"></a></h1>
+<p>A gigantic “thank you!” to all of our contributors:</p>
+<a class="reference external image-reference" href="https://github.com/open-mpi/ompi/graphs/contributors"><img alt="https://contrib.rocks/image?repo=open-mpi/ompi&amp;max=999" src="https://contrib.rocks/image?repo=open-mpi/ompi&amp;max=999" />
+</a>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="1. Quick start" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

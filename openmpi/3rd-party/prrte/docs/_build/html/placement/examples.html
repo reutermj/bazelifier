@@ -1,0 +1,501 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8.4. Examples &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.5. Fundamentals" href="fundamentals.html" />
+    <link rel="prev" title="8.1. Overview" href="overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Process placement</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-slot">8.2. Definition of ‘slot’</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-processor-element">8.3. Definition of “processor element”</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.4. Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#specifying-host-nodes">8.4.1. Specifying Host Nodes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#process-mapping-ranking-binding-options">8.4.2. Process Mapping / Ranking / Binding Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">8.4.3. Specifying Host Nodes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#specifying-number-of-processes">8.4.4. Specifying Number of Processes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mapping-processes-to-nodes-using-policies">8.4.5. Mapping Processes to Nodes Using Policies</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="fundamentals.html">8.5. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="limits.html">8.6. Overloading and Oversubscribing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diagnostics.html">8.7. Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rankfiles.html">8.8. Rankfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecated.html">8.9. Deprecated options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">8. </span>Process placement</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8.4. </span>Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/placement/examples.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="examples">
+<h1><span class="section-number">8.4. </span>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h1>
+<p>Listed here are the subset of command line options that will be used
+in the process mapping/ranking/binding examples below.</p>
+<section id="specifying-host-nodes">
+<h2><span class="section-number">8.4.1. </span>Specifying Host Nodes<a class="headerlink" href="#specifying-host-nodes" title="Link to this heading"></a></h2>
+<p>Use one of the following options to specify which hosts (nodes) within
+the PRRTE DVM environment to run on.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">host</span> <span class="o">&lt;</span><span class="n">host1</span><span class="p">,</span><span class="n">host2</span><span class="p">,</span><span class="o">...</span><span class="p">,</span><span class="n">hostN</span><span class="o">&gt;</span>
+
+<span class="c1"># or</span>
+
+<span class="o">--</span><span class="n">host</span> <span class="o">&lt;</span><span class="n">host1</span><span class="p">:</span><span class="n">X</span><span class="p">,</span><span class="n">host2</span><span class="p">:</span><span class="n">Y</span><span class="p">,</span><span class="o">...</span><span class="p">,</span><span class="n">hostN</span><span class="p">:</span><span class="n">Z</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>List of hosts on which to invoke processes. After each hostname a
+colon (<code class="docutils literal notranslate"><span class="pre">:</span></code>) followed by a positive integer can be used to specify
+the number of slots on that host (<code class="docutils literal notranslate"><span class="pre">:X</span></code>, <code class="docutils literal notranslate"><span class="pre">:Y</span></code>, and <code class="docutils literal notranslate"><span class="pre">:Z</span></code>). The
+default is <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p></li>
+</ul>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">hostfile</span> <span class="o">&lt;</span><span class="n">hostfile</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Provide a hostfile to use.</p></li>
+</ul>
+</section>
+<section id="process-mapping-ranking-binding-options">
+<h2><span class="section-number">8.4.2. </span>Process Mapping / Ranking / Binding Options<a class="headerlink" href="#process-mapping-ranking-binding-options" title="Link to this heading"></a></h2>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">-c</span> <span class="pre">#</span></code>, <code class="docutils literal notranslate"><span class="pre">-n</span> <span class="pre">#</span></code>, <code class="docutils literal notranslate"><span class="pre">--n</span> <span class="pre">#</span></code>, <code class="docutils literal notranslate"><span class="pre">--np</span> <span class="pre">&lt;#&gt;</span></code>: Run this many copies of
+the program on the given nodes. This option indicates that the
+specified file is an executable program and not an application
+context. If no value is provided for the number of copies to execute
+(i.e., neither the <code class="docutils literal notranslate"><span class="pre">-np</span></code> nor its synonyms are provided on the
+command line), <code class="docutils literal notranslate"><span class="pre">prun</span></code> will automatically execute a copy of the
+program on each process slot (see below for description of a
+“process slot”). This feature, however, can only be used in the SPMD
+model and will return an error (without beginning execution of the
+application) otherwise.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These options specify the number of processes to launch.
+None of the options imply a particular binding policy
+— e.g., requesting <code class="docutils literal notranslate"><span class="pre">N</span></code> processes for each package
+does not imply that the processes will be bound to the
+package.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">&lt;object&gt;</span></code>: Map to the specified object. Supported
+objects include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">slot</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hwthread</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">core</span></code> (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">l1cache</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">l2cache</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">l3cache</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">numa</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">package</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">seq</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ppr</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rankfile</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pe-list</span></code></p></li>
+</ul>
+<p>Any object can include qualifiers by adding a colon (<code class="docutils literal notranslate"><span class="pre">:</span></code>) and any
+colon-delimited combination of one or more of the following to the
+<code class="docutils literal notranslate"><span class="pre">--map-by</span></code> options:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">PE=n</span></code> bind <code class="docutils literal notranslate"><span class="pre">n</span></code> processing elements to each process (can not
+be used in combination with rankfile or pe-list directives)</p>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>JMS Several of the options below refer to <code class="docutils literal notranslate"><span class="pre">pe-list</span></code>.
+Is this option supposed to be <code class="docutils literal notranslate"><span class="pre">PE-LIST=n</span></code>, not
+<code class="docutils literal notranslate"><span class="pre">PE=n</span></code>?</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SPAN</span></code> load balance the processes across the allocation (cannot
+be used in combination with <code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">node</span></code>, <code class="docutils literal notranslate"><span class="pre">seq</span></code>, <code class="docutils literal notranslate"><span class="pre">ppr</span></code>,
+<code class="docutils literal notranslate"><span class="pre">rankfile</span></code>, or <code class="docutils literal notranslate"><span class="pre">pe-list</span></code> directives)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OVERSUBSCRIBE</span></code> allow more processes on a node than processing
+elements</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOOVERSUBSCRIBE</span></code> means <code class="docutils literal notranslate"><span class="pre">!OVERSUBSCRIBE</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOLOCAL</span></code> do not launch processes on the same node as <code class="docutils literal notranslate"><span class="pre">prun</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">HWTCPUS</span></code> use hardware threads as CPU slots</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CORECPUS</span></code> use cores as CPU slots (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">INHERIT</span></code> indicates that a child job (i.e., one spawned from
+within an application) shall inherit the placement policies of the
+parent job that spawned it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NOINHERIT</span></code> means <code class="docutils literal notranslate"><span class="pre">!INHERIT</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FILE=&lt;path&gt;</span></code> (path to file containing sequential or rankfile
+entries).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ORDERED</span></code> only applies to the PE-LIST option to indicate that
+procs are to be bound to each of the specified CPUs in the order
+in which they are assigned (i.e., the first proc on a node shall
+be bound to the first CPU in the list, the second proc shall be
+bound to the second CPU, etc.)</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">ppr</span></code> policy example: <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:N:&lt;object&gt;</span></code> will launch
+<code class="docutils literal notranslate"><span class="pre">N</span></code> times the number of objects of the specified type on each
+node.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Directives and qualifiers are case-insensitive and can be
+shortened to the minimum number of characters to uniquely
+identify them. Thus, <code class="docutils literal notranslate"><span class="pre">L1CACHE</span></code> can be given as
+<code class="docutils literal notranslate"><span class="pre">l1cache</span></code> or simply as <code class="docutils literal notranslate"><span class="pre">L1</span></code>.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span> <span class="pre">&lt;object&gt;</span></code>: This assigns ranks in round-robin fashion
+according to the specified object. The default follows the mapping
+pattern. Supported rank-by objects include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">slot</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fill</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">span</span></code></p></li>
+</ul>
+<p>There are no qualifiers for the <code class="docutils literal notranslate"><span class="pre">--rank-by</span></code> directive.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">&lt;object&gt;</span></code>: This binds processes to the specified
+object. See defaults in Quick Summary.  Supported bind-to objects
+include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hwthread</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">core</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">l1cache</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">l2cache</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">l3cache</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">numa</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">package</span></code></p></li>
+</ul>
+<p>Any object can include qualifiers by adding a colon (<code class="docutils literal notranslate"><span class="pre">:</span></code>) and any
+colon-delimited combination of one or more of the following to the
+<code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">overload-allowed</span></code> allows for binding more than one process in
+relation to a CPU</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">if-supported</span></code> if binding to that object is supported on this
+system.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="id1">
+<h2><span class="section-number">8.4.3. </span>Specifying Host Nodes<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p>Host nodes can be identified on the command line with the <code class="docutils literal notranslate"><span class="pre">--host</span></code>
+option or in a hostfile.</p>
+<p>For example, assuming no other resource manager or scheduler is
+involved:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span><span class="p">,</span><span class="n">aa</span><span class="p">,</span><span class="n">bb</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches two processes on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and one on <code class="docutils literal notranslate"><span class="pre">bb</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches one process on node <code class="docutils literal notranslate"><span class="pre">aa</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span><span class="p">:</span><span class="mi">5</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches five processes on node <code class="docutils literal notranslate"><span class="pre">aa</span></code>.</p>
+<p>Or, consider the hostfile:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+aa slots=2
+bb slots=2
+cc slots=2
+</pre></div>
+</div>
+<p>Here, we list both the host names (<code class="docutils literal notranslate"><span class="pre">aa</span></code>, <code class="docutils literal notranslate"><span class="pre">bb</span></code>, and <code class="docutils literal notranslate"><span class="pre">cc</span></code>) but
+also how many “slots” there are for each. Slots indicate how many
+processes can potentially execute on a node. For best performance, the
+number of slots may be chosen to be the number of cores on the node or
+the number of processor sockets.</p>
+<p>If the hostfile does not provide slots information, the PRRTE DVM will
+attempt to discover the number of cores (or hwthreads, if the
+<code class="docutils literal notranslate"><span class="pre">:HWTCPUS</span></code> qualifier to the <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> option is set) and set the
+number of slots to that value.</p>
+<p>Examples using the hostfile above with and without the <code class="docutils literal notranslate"><span class="pre">--host</span></code>
+option:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This will launch two processes on each of the three nodes.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This will launch two processes, both on node <code class="docutils literal notranslate"><span class="pre">aa</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="n">host</span> <span class="n">dd</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This will find no hosts to run on and abort with an error. That is, the
+specified host <code class="docutils literal notranslate"><span class="pre">dd</span></code> is not in the specified hostfile.</p>
+<p>When running under resource managers (e.g., SLURM, Torque, etc.), PRTE
+will obtain both the hostnames and the number of slots directly from
+the resource manger. The behavior of <code class="docutils literal notranslate"><span class="pre">--host</span></code> in that environment
+will behave the same as if a hostfile was provided (since it is
+provided by the resource manager).</p>
+</section>
+<section id="specifying-number-of-processes">
+<h2><span class="section-number">8.4.4. </span>Specifying Number of Processes<a class="headerlink" href="#specifying-number-of-processes" title="Link to this heading"></a></h2>
+<p>As we have just seen, the number of processes to run can be set using
+the hostfile. Other mechanisms exist.</p>
+<p>The number of processes launched can be specified as a multiple of the
+number of nodes or processor sockets available. Consider the hostfile
+below for the examples that follow.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+aa
+bb
+</pre></div>
+</div>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">ppr</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="n">package</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches processes 0-3 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and process 4-7 on node
+<code class="docutils literal notranslate"><span class="pre">bb</span></code>, where <code class="docutils literal notranslate"><span class="pre">aa</span></code> and <code class="docutils literal notranslate"><span class="pre">bb</span></code> are both dual-package nodes. The
+<code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:2:package</span></code> option also turns on the <code class="docutils literal notranslate"><span class="pre">--bind-to</span>
+<span class="pre">package</span></code> option, which is discussed in a later section.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">ppr</span><span class="p">:</span><span class="mi">2</span><span class="p">:</span><span class="n">node</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches processes 0-1 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and processes 2-3 on node
+<code class="docutils literal notranslate"><span class="pre">bb</span></code>.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">ppr</span><span class="p">:</span><span class="mi">1</span><span class="p">:</span><span class="n">node</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches one process per host node.</p>
+<p>Another alternative is to specify the number of processes with the
+<code class="docutils literal notranslate"><span class="pre">--np</span></code> option. Consider now the hostfile:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+aa slots=4
+bb slots=4
+cc slots=4
+</pre></div>
+</div>
+<p>With this hostfile:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="n">np</span> <span class="mi">6</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This will launch processes 0-3 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and processes 4-5 on
+node <code class="docutils literal notranslate"><span class="pre">bb</span></code>.  The remaining slots in the hostfile will not be used
+since the <code class="docutils literal notranslate"><span class="pre">-np</span></code> option indicated that only 6 processes should be
+launched.</p>
+</section>
+<section id="mapping-processes-to-nodes-using-policies">
+<h2><span class="section-number">8.4.5. </span>Mapping Processes to Nodes Using Policies<a class="headerlink" href="#mapping-processes-to-nodes-using-policies" title="Link to this heading"></a></h2>
+<p>The examples above illustrate the default mapping of process processes
+to nodes. This mapping can also be controlled with various
+<code class="docutils literal notranslate"><span class="pre">prun</span></code> / <code class="docutils literal notranslate"><span class="pre">prterun</span></code> options that describe mapping policies.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+aa slots=4
+bb slots=4
+cc slots=4
+</pre></div>
+</div>
+<p>Consider the hostfile above, with <code class="docutils literal notranslate"><span class="pre">--np</span> <span class="pre">6</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Ranks on <code class="docutils literal notranslate"><span class="pre">aa</span></code></p></th>
+<th class="head"><p>Ranks on <code class="docutils literal notranslate"><span class="pre">bb</span></code></p></th>
+<th class="head"><p>Ranks on <code class="docutils literal notranslate"><span class="pre">cc</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prun</span></code></p></td>
+<td><p>0 1 2 3</p></td>
+<td><p>4 5</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prun</span> <span class="pre">--map-by</span> <span class="pre">node</span></code></p></td>
+<td><p>0 3</p></td>
+<td><p>1 4</p></td>
+<td><p>2 5</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prun</span> <span class="pre">--map-by</span> <span class="pre">node:NOLOCAL</span></code></p></td>
+<td></td>
+<td><p>0 2 4</p></td>
+<td><p>1 3 5</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">node</span></code> option will load balance the processes across
+the available nodes, numbering each process by node in a round-robin
+fashion.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">:NOLOCAL</span></code> qualifier to <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> prevents any processes from
+being mapped onto the local host (in this case node <code class="docutils literal notranslate"><span class="pre">aa</span></code>). While
+<code class="docutils literal notranslate"><span class="pre">prun</span></code> typically consumes few system resources, the <code class="docutils literal notranslate"><span class="pre">:NOLOCAL</span></code>
+qualifier can be helpful for launching very large jobs where <code class="docutils literal notranslate"><span class="pre">prun</span></code>
+may actually need to use noticeable amounts of memory and/or
+processing time.</p>
+<p>Just as <code class="docutils literal notranslate"><span class="pre">--np</span></code> can specify fewer processes than there are slots, it
+can also oversubscribe the slots. For example, with the same hostfile:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="n">np</span> <span class="mi">14</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This will produce an error since the default <code class="docutils literal notranslate"><span class="pre">:NOOVERSUBSCRIBE</span></code>
+qualifier to <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> prevents oversubscription.</p>
+<p>To oversubscribe the nodes you can use the <code class="docutils literal notranslate"><span class="pre">:OVERSUBSCRIBE</span></code>
+qualifier to <code class="docutils literal notranslate"><span class="pre">--map-by</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="n">np</span> <span class="mi">14</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="p">:</span><span class="n">OVERSUBSCRIBE</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This will launch processes 0-5 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code>, 6-9 on <code class="docutils literal notranslate"><span class="pre">bb</span></code>, and
+10-13 on <code class="docutils literal notranslate"><span class="pre">cc</span></code>.</p>
+<p>Limits to oversubscription can also be specified in the hostfile
+itself with the <code class="docutils literal notranslate"><span class="pre">max_slots</span></code> field:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+aa slots=4 max_slots=4
+bb         max_slots=8
+cc slots=4
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">max_slots</span></code> field specifies such a limit. When it does, the
+<code class="docutils literal notranslate"><span class="pre">slots</span></code> value defaults to the limit. Now:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="n">np</span> <span class="mi">14</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="p">:</span><span class="n">OVERSUBSCRIBE</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This causes the first 12 processes to be launched as before, but the
+remaining two processes will be forced onto node cc. The other two
+nodes are protected by the hostfile against oversubscription by this
+job.</p>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">:NOOVERSUBSCRIBE</span></code> qualifier to <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> option can be
+helpful since the PRTE DVM currently does not get <code class="docutils literal notranslate"><span class="pre">max_slots</span></code> values
+from the resource manager.</p>
+<p>Of course, <code class="docutils literal notranslate"><span class="pre">--np</span></code> can also be used with the <code class="docutils literal notranslate"><span class="pre">--host</span></code> option. For
+example,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span><span class="p">,</span><span class="n">bb</span> <span class="o">--</span><span class="n">np</span> <span class="mi">8</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This will produce an error since the default <code class="docutils literal notranslate"><span class="pre">:NOOVERSUBSCRIBE</span></code>
+qualifier to <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> prevents oversubscription.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span><span class="p">,</span><span class="n">bb</span> <span class="o">--</span><span class="n">np</span> <span class="mi">8</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="p">:</span><span class="n">OVERSUBSCRIBE</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches 8 processes. Since only two hosts are specified, after
+the first two processes are mapped, one to <code class="docutils literal notranslate"><span class="pre">aa</span></code> and one to <code class="docutils literal notranslate"><span class="pre">bb</span></code>,
+the remaining processes oversubscribe the specified hosts evenly.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span><span class="p">:</span><span class="mi">2</span><span class="p">,</span><span class="n">bb</span><span class="p">:</span><span class="mi">6</span> <span class="o">--</span><span class="n">np</span> <span class="mi">8</span> <span class="o">./</span><span class="n">a</span><span class="o">.</span><span class="n">out</span>
+</pre></div>
+</div>
+<p>This launches 8 processes. Processes 0-1 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> since it has 2
+slots and processes 2-7 on node <code class="docutils literal notranslate"><span class="pre">bb</span></code> since it has 6 slots.</p>
+<p>And here is a MIMD example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">host</span> <span class="n">aa</span> <span class="o">--</span><span class="n">np</span> <span class="mi">1</span> <span class="n">hostname</span> <span class="p">:</span> <span class="o">--</span><span class="n">host</span> <span class="n">bb</span><span class="p">,</span><span class="n">cc</span> <span class="o">--</span><span class="n">np</span> <span class="mi">2</span> <span class="n">uptime</span>
+</pre></div>
+</div>
+<p>This will launch process 0 running <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and
+processes 1 and 2 each running <code class="docutils literal notranslate"><span class="pre">uptime</span></code> on nodes <code class="docutils literal notranslate"><span class="pre">bb</span></code> and <code class="docutils literal notranslate"><span class="pre">cc</span></code>,
+respectively.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="overview.html" class="btn btn-neutral float-left" title="8.1. Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fundamentals.html" class="btn btn-neutral float-right" title="8.5. Fundamentals" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

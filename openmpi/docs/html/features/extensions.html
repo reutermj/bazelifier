@@ -1,0 +1,222 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.2. Open MPI extensions &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="5.3. User-Level Fault Mitigation (ULFM)" href="ulfm.html" />
+    <link rel="prev" title="5.1. Open MPI profiling interface" href="profiling.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">5. Open MPI-specific features</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="profiling.html">5.1. Open MPI profiling interface</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">5.2. Open MPI extensions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#available-extensions">5.2.1. Available extensions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#compiling-the-extensions">5.2.2. Compiling the extensions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-the-extensions">5.2.3. Using the extensions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ulfm.html">5.3. User-Level Fault Mitigation (ULFM)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="java.html">5.4. Open MPI Java bindings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">5. </span>Open MPI-specific features</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.2. </span>Open MPI extensions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/features/extensions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="open-mpi-extensions">
+<span id="ompi-features-extensions-label"></span><h1><span class="section-number">5.2. </span>Open MPI extensions<a class="headerlink" href="#open-mpi-extensions" title="Link to this heading"></a></h1>
+<p>Open MPI contains a framework for extending the MPI API that is
+available to applications.  Each extension is usually a standalone set
+of functionality that is distinct from other extensions (similar to
+how Open MPI’s plugins are usually unrelated to each other).  These
+extensions provide new functions and/or constants that are available
+to MPI applications.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>These extensions are neither standard nor portable to
+other MPI implementations!</p>
+<p>They are a mechanism for the Open MPI developer community to
+provide new functionality to users, typically before it becomes
+standardized by the MPI Forum.</p>
+</div>
+<section id="available-extensions">
+<h2><span class="section-number">5.2.1. </span>Available extensions<a class="headerlink" href="#available-extensions" title="Link to this heading"></a></h2>
+<p>The following extensions are included in this version of Open MPI:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">shortfloat</span></code>: Provides MPI datatypes <code class="docutils literal notranslate"><span class="pre">MPIX_C_FLOAT16</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MPIX_SHORT_FLOAT</span></code>, <code class="docutils literal notranslate"><span class="pre">MPIX_SHORT_FLOAT</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">MPIX_CXX_SHORT_FLOAT_COMPLEX</span></code> if corresponding language types are
+available. See <code class="docutils literal notranslate"><span class="pre">ompi/mpiext/shortfloat/README.txt</span></code> for details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">affinity</span></code>: Provides the <code class="docutils literal notranslate"><span class="pre">OMPI_Affinity_str()</span></code> API, which returns
+a string indicating the resources which a process is bound. For
+more details, see its man page.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cuda</span></code>: When the library is compiled with CUDA-aware support, it
+provides two things.  First, a macro
+<code class="docutils literal notranslate"><span class="pre">MPIX_CUDA_AWARE_SUPPORT</span></code>. Secondly, the function
+<code class="docutils literal notranslate"><span class="pre">MPIX_Query_cuda_support()</span></code> that can be used to query for support.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">example</span></code>: A non-functional extension; its only purpose is to
+provide an example for how to create other extensions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ftmpi</span></code>: An implementation of the User Level Fault Mitigation
+(ULFM) proposal.  <a class="reference internal" href="ulfm.html#ulfm-label"><span class="std std-ref">See its documentation section</span></a>
+for more details.</p></li>
+</ol>
+</section>
+<section id="compiling-the-extensions">
+<h2><span class="section-number">5.2.2. </span>Compiling the extensions<a class="headerlink" href="#compiling-the-extensions" title="Link to this heading"></a></h2>
+<p>Open MPI extensions are all enabled by default; they can be disabled
+via the <code class="docutils literal notranslate"><span class="pre">--disable-mpi-ext</span></code> command line switch.</p>
+<p>Since extensions are meant to be used by advanced users only, this
+file does not document which extensions are available or what they do.
+Look in the <code class="docutils literal notranslate"><span class="pre">ompi/mpiext</span></code> directory in a distribution Open MPI
+tarball to see the extensions; each subdirectory of that directory
+contains an extension.  Each has a <code class="docutils literal notranslate"><span class="pre">README</span></code> file that describes what
+it does.</p>
+</section>
+<section id="using-the-extensions">
+<h2><span class="section-number">5.2.3. </span>Using the extensions<a class="headerlink" href="#using-the-extensions" title="Link to this heading"></a></h2>
+<p>To reinforce the fact that these extensions are non-standard, you must
+include a separate header file after <code class="docutils literal notranslate"><span class="pre">&lt;mpi.h&gt;</span></code> to obtain the function
+prototypes, constant declarations, etc.  For example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;mpi.h&gt;</span>
+<span class="cp">#if defined(OPEN_MPI) &amp;&amp; OPEN_MPI</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;mpi-ext.h&gt;</span>
+<span class="cp">#endif</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">MPI_Init</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="nb">NULL</span><span class="p">);</span>
+
+<span class="cp">#if defined(OPEN_MPI) &amp;&amp; OPEN_MPI</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">ompi_bound</span><span class="p">[</span><span class="n">OMPI_AFFINITY_STRING_MAX</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">current_binding</span><span class="p">[</span><span class="n">OMPI_AFFINITY_STRING_MAX</span><span class="p">];</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="n">exists</span><span class="p">[</span><span class="n">OMPI_AFFINITY_STRING_MAX</span><span class="p">];</span>
+
+<span class="w">    </span><span class="n">OMPI_Affinity_str</span><span class="p">(</span><span class="n">OMPI_AFFINITY_LAYOUT_FMT</span><span class="p">,</span><span class="w"> </span><span class="n">ompi_bound</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">current_bindings</span><span class="p">,</span><span class="w"> </span><span class="n">exists</span><span class="p">);</span>
+<span class="cp">#endif</span>
+
+<span class="w">    </span><span class="n">MPI_Finalize</span><span class="p">();</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Notice that the Open MPI-specific code is surrounded by the <code class="docutils literal notranslate"><span class="pre">#if</span></code>
+statement to ensure that it is only ever compiled by Open MPI.</p>
+<p>The Open MPI wrapper compilers (<code class="docutils literal notranslate"><span class="pre">mpicc</span></code> and friends) should
+automatically insert all relevant compiler and linker flags necessary
+to use the extensions.  No special flags or steps should be necessary
+compared to “normal” MPI applications.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="profiling.html" class="btn btn-neutral float-left" title="5.1. Open MPI profiling interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ulfm.html" class="btn btn-neutral float-right" title="5.3. User-Level Fault Mitigation (ULFM)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

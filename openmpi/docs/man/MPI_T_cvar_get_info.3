@@ -1,0 +1,179 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_T_CVAR_GET_INFO" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+MPI_T see MPI\-3 section 14.3.5.
+.sp
+\fI\%MPI_T_cvar_get_info\fP — Query information from a control variable
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_T_cvar_get_info(int cvar_index, char *name, int *name_len,
+                        int *verbosity, MPI_Datatype *datatype, MPI_T_enum *enumtype,
+                        const *desc, int *desc_len, int *bind, int *scope)
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBcvar_index\fP: Index of the control variable to be queried.
+.UNINDENT
+.SH INPUT/OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBname_len\fP: Length of the string and/or buffer for name.
+.IP \(bu 2
+\fBdesc_len\fP: Length of the string and/or buffer for desc.
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBname\fP: Buffer to return the string containing the name of the control variable.
+.IP \(bu 2
+\fBverbosity\fP: Verbosity level of this variable.
+.IP \(bu 2
+\fBdatatype\fP: MPI datatype of the information stored in the control variable.
+.IP \(bu 2
+\fBenumtype\fP: Optional descriptor for enumeration information.
+.IP \(bu 2
+\fBdesc\fP: Buffer to return the string containing the description of the control variable.
+.IP \(bu 2
+\fBbind\fP: Type of MPI object to which this variable must be bound.
+.IP \(bu 2
+\fBscope\fP: Scope of when changes to this variable are possible.
+.UNINDENT
+.SH DESCRIPTION
+.sp
+\fI\%MPI_T_cvar_get_info\fP can be used to query information about a control
+variable. The function returns the verbosity, datatype, enumeration
+type, binding, and scope of the queried control variable in the
+arguments \fIverbosity\fP, \fIdatatype\fP, \fIenumtype\fP, \fIbind\fP, and \fIscope\fP,
+respectively. Control variables in Open MPI are the same as MCA
+parameters.
+.SH VERBOSITY
+.sp
+As Open MPI exposes a very large number of MCA parameters (control
+variables), control variables are categorized into nine verbosity
+levels corresponding to the equivalent \fI\%ompi_info\fP level. The nine levels are (in increasing order):
+.INDENT 0.0
+.IP 1. 3
+\fBMPI_T_VERBOSITY_USER_BASIC\fP: Basic information of interest to users
+.IP 2. 3
+\fBMPI_T_VERBOSITY_USER_DETAIL\fP: Detailed information of interest to users
+.IP 3. 3
+\fBMPI_T_VERBOSITY_USER_ALL\fP: All remaining information of interest to users
+.IP 4. 3
+\fBMPI_T_VERBOSITY_TUNER_BASIC\fP: Basic information required for tuning
+.IP 5. 3
+\fBMPI_T_VERBOSITY_TUNER_DETAIL\fP: Detailed information required for tuning
+.IP 6. 3
+\fBMPI_T_VERBOSITY_TUNER_ALL\fP: All remaining information required for tuning
+.IP 7. 3
+\fBMPI_T_VERBOSITY_MPIDEV_BASIC\fP: Basic information for MPI implementors
+.IP 8. 3
+\fBMPI_T_VERBOSITY_MPIDEV_DETAIL\fP: Detailed information for MPI implementors
+.IP 9. 3
+\fBMPI_T_VERBOSITY_MPIDEV_ALL\fP: All remaining information for MPI implementors
+.UNINDENT
+.sp
+For more information see MPI\-3 section 14.3.1.
+.SH DATATYPE
+.sp
+The datatype returned by \fI\%MPI_T_cvar_get_info\fP is restricted to
+one of the following datatypes: \fBMPI_INT\fP, \fBMPI_UNSIGNED\fP,
+\fBMPI_UNSIGNED_LONG\fP, \fBMPI_UNSIGNED_LONG_LONG\fP, \fBMPI_COUNT\fP,
+\fBMPI_CHAR\fP, and \fBMPI_DOUBLE\fP\&. For more information on datatypes in
+MPI_T see MPI\-3 section 14.3.5.
+.SH SCOPE
+.sp
+The scope describes when and how changes can be made to a control
+variable. From MPI\-3 section 14.3.6, the scope may be any of the following:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_T_SCOPE_CONSTANT\fP: read\-only, value is constant
+.IP \(bu 2
+\fBMPI_T_SCOPE_READONLY\fP: read\-only, cannot be written, but can change
+.IP \(bu 2
+\fBMPI_T_SCOPE_LOCAL\fP: may be writeable, writing is a local operation
+.IP \(bu 2
+\fBMPI_T_SCOPE_GROUP\fP: may be writeable, must be done to a group of
+processes, all processes in a group must be set to consistent
+values
+.IP \(bu 2
+\fBMPI_T_SCOPE_GROUP_EQ\fP: may be writeable, must be done to a group
+of processes, all processes in a group must be set to the same value
+.IP \(bu 2
+\fBMPI_T_SCOPE_ALL\fP: may be writeable, must be done to all
+processes, all connected processes must be set to consistent values
+.IP \(bu 2
+\fBMPI_T_SCOPE_ALL_EQ\fP: may be writeable, must be done to all
+processes, all connected processes must be set to the same value
+.UNINDENT
+.sp
+For more information see MPI\-3 section 14.3.6 Table 14.4.
+.SH NOTES
+.sp
+This MPI tool interface function returns two strings. This function
+takes two argument for each string: a buffer to store the string, and a
+length which must initially specify the size of the buffer. If the
+length passed is n then this function will copy at most n \- 1 characters
+of the string into the corresponding buffer and set the length to the
+number of characters copied \- 1. If the length argument is NULL or the
+value specified in the length is 0 the corresponding string buffer is
+ignored and the string is not returned.
+.sp
+Open MPI does not currently support binding control variables to MPI
+objects.
+.SH ERRORS
+.sp
+\fI\%MPI_T_cvar_get_info\fP will fail if:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_T_ERR_NOT_INITIALIZED\fP: The MPI Tools interface not initialized
+.IP \(bu 2
+\fBMPI_T_ERR_INVALID_INDEX\fP: The control variable index is invalid
+.UNINDENT
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fI\%ompi_info\fP
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

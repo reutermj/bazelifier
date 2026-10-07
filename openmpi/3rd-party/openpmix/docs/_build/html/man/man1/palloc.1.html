@@ -1,0 +1,229 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17.1.2. palloc &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="17.1.3. pattrs" href="pattrs.1.html" />
+    <link rel="prev" title="17.1.1. pmix_info" href="pmix_info.1.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../news/index.html">16. News</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">17. OpenPMIx manual pages</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">17.1. Commands (section 1)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="pmix_info.1.html">17.1.1. pmix_info</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">17.1.2. palloc</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#synopsis">17.1.2.1. SYNOPSIS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#description">17.1.2.2. DESCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#options">17.1.2.3. OPTIONS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exit-status">17.1.2.4. EXIT STATUS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples">17.1.2.5. EXAMPLES</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="pattrs.1.html">17.1.3. pattrs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pevent.1.html">17.1.4. pevent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="plookup.1.html">17.1.5. plookup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pmixcc.1.html">17.1.6. PMIx Wrapper Compiler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pps.1.html">17.1.7. pps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="pquery.1.html">17.1.8. pquery</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../man3/index.html">17.2. APIs (section 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../man5/index.html">17.3. Config file manual pages (section 5)</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">17. </span>OpenPMIx manual pages</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">17.1. </span>Commands (section 1)</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">17.1.2. </span>palloc</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/man/man1/palloc.1.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="palloc">
+<span id="man1-palloc"></span><h1><span class="section-number">17.1.2. </span>palloc<a class="headerlink" href="#palloc" title="Link to this heading"></a></h1>
+<p>palloc — Request a resource allocation</p>
+<section id="synopsis">
+<h2><span class="section-number">17.1.2.1. </span>SYNOPSIS<a class="headerlink" href="#synopsis" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">palloc</span> <span class="pre">[options]</span></code></p>
+</section>
+<section id="description">
+<h2><span class="section-number">17.1.2.2. </span>DESCRIPTION<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">palloc</span></code> allows a user to request an allocation of resources,
+either as part of a job script or for an interactive session.
+In addition to describing the requested resources, users can
+provide a job script or application to be executed upon establishment
+of the resulting session.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">palloc</span></code> can also be used to <em>modify</em> an existing
+allocation or allocation request - e.g., extending its time limit,
+or changing the allocated resources.</p>
+</section>
+<section id="options">
+<h2><span class="section-number">17.1.2.3. </span>OPTIONS<a class="headerlink" href="#options" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">palloc</span></code> accepts the following options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code> | <code class="docutils literal notranslate"><span class="pre">--help</span> <span class="pre">&lt;arg0&gt;</span></code>: Show help message. If the optional
+argument is not provided, then a generalized help message similar
+to the information provided here is returned. If an argument is
+provided, then a more detailed help message for that specific
+command line option is returned.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code> | <code class="docutils literal notranslate"><span class="pre">--verbose</span></code>: Enable debug output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-V</span></code> | <code class="docutils literal notranslate"><span class="pre">--version</span></code>: Print version and exit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--uri</span> <span class="pre">&lt;arg0&gt;</span></code>: Specify the URI of the server to which we are to connect, or
+the name of the file (specified as <code class="docutils literal notranslate"><span class="pre">file:filename</span></code>) that contains that info</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--namespace</span> <span class="pre">&lt;arg0&gt;</span></code>: Namespace of the daemon to which we should connect</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--nspace</span> <span class="pre">&lt;arg0&gt;</span></code>: Synonym for <code class="docutils literal notranslate"><span class="pre">namespace</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--pid</span> <span class="pre">&lt;arg0&gt;</span></code>: PID of the daemon to which we should connect (<code class="docutils literal notranslate"><span class="pre">int</span></code> =&gt; <code class="docutils literal notranslate"><span class="pre">PID</span></code>
+or <code class="docutils literal notranslate"><span class="pre">file:&lt;file&gt;</span></code> for file containing the PID</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--system-server-first</span></code>: First look for a system server and connect to it if found</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--system-server-only</span></code>: Connect only to a system-level server</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--system-controller</span></code>: Connect to the system controller</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--tmpdir</span> <span class="pre">&lt;arg0&gt;</span></code>: Set the root for the session directory tree</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--connect-order</span> <span class="pre">&lt;arg0&gt;</span></code>: Specify search order for server connections - e.g., scheduler, system controller, system-level server, or local server</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--wait-to-connect</span> <span class="pre">&lt;arg0&gt;</span></code>: Delay specified number of seconds before trying to connect</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--num-connect-retries</span> <span class="pre">&lt;arg0&gt;</span></code>: Max number of times to try to connect</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--request-id</span> <span class="pre">&lt;arg0&gt;</span></code>: String identifier for this allocation request</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-q</span></code> | <code class="docutils literal notranslate"><span class="pre">--queue</span> <span class="pre">&lt;arg0&gt;</span></code>: Scheduler queue this request should be passed to for processing</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-N</span></code> | <code class="docutils literal notranslate"><span class="pre">--nodes</span> <span class="pre">&lt;arg0&gt;</span></code>: Number of nodes to be allocated</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-i</span></code> | <code class="docutils literal notranslate"><span class="pre">--image</span> <span class="pre">&lt;arg0&gt;</span></code>: OS image to be provisioned on allocated nodes prior to initiating execution of specified job, or turning nodes over to an interactive session</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-x</span></code> | <code class="docutils literal notranslate"><span class="pre">--exclude</span> <span class="pre">&lt;arg0&gt;</span></code>: Comma-delimited list of nodes that are to be excluded from consideration for scheduling this allocation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--wait-all-nodes</span></code>: Wait for all nodes to be ready before starting execution of the specified job.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-w</span></code> | <code class="docutils literal notranslate"><span class="pre">--nodelist</span> <span class="pre">&lt;arg0&gt;</span></code>: Comma-delimited list of ranges of specific nodes being requested [e.g., host0[1-5],host128]. Can also pass the argument as a filename using the “file:&lt;path&gt;” syntax. Ordering of names and/or duplicate names are ignored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--uid</span> <span class="pre">&lt;arg0&gt;</span></code>: Assign the resulting allocation to the specified user ID</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--gid</span> <span class="pre">&lt;arg0&gt;</span></code>: Assign the resulting allocation to the specified group ID</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-t</span></code> | <code class="docutils literal notranslate"><span class="pre">--time</span> <span class="pre">&lt;arg0&gt;</span></code>: Time limit on the assigned allocation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--signal</span> <span class="pre">&lt;arg0&gt;[&#64;arg1]</span></code>: Send all processes executing within the allocated session the specified signal when it reaches the (optional) specified seconds of its end time.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-s</span></code> | <code class="docutils literal notranslate"><span class="pre">--share</span></code>: Allocated resources can be shared with other allocations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--extend</span>&#160;&#160; <span class="pre">&lt;arg0&gt;</span></code>:Extend the specified existing session ID per the rest of the given request.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--shrink</span> <span class="pre">&lt;arg0&gt;</span></code>: Shrink the specified existing session ID per the rest of the given request.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no-shell</span></code>: Immediately exit after allocating resources, without running a command.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--begin</span> <span class="pre">&lt;arg0&gt;</span></code>: Direct the scheduler to defer allocation until the specified time.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-I``|</span> <span class="pre">``--immediate</span> <span class="pre">&lt;arg0&gt;</span></code>: Exit if resources are not available within the time period specified.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-d</span></code> | <code class="docutils literal notranslate"><span class="pre">--dependency</span> <span class="pre">&lt;arg0&gt;</span></code>: Defer the start of this session until the specified dependencies have successfully completed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--do-not-wait</span></code>: Submit the allocation request to the scheduler, but do not wait for the allocation to be assigned. Intended for use when submitting a job for batch execution.</p></li>
+</ul>
+</section>
+<section id="exit-status">
+<h2><span class="section-number">17.1.2.4. </span>EXIT STATUS<a class="headerlink" href="#exit-status" title="Link to this heading"></a></h2>
+<p>Returns 0 for success, non-zero error code if a problem occurred. Note that success does not necessarily translate to success of the requested operation, depending upon provided options, but may instead mean that the request has been accepted for processing.</p>
+<p>The command outputs the integer session ID of the resulting allocation, or if executed with the <code class="docutils literal notranslate"><span class="pre">--do-not-wait</span></code> option, a message indicating
+if the request has been accepted for processing. Any command line arguments following the provided
+options are taken as the job script or executable to be run within the allocation (once assigned) and its attendant
+argv array. In this case, the allocation will terminate once the provide job script or executable completes.</p>
+</section>
+<section id="examples">
+<h2><span class="section-number">17.1.2.5. </span>EXAMPLES<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<p>Examples of using this command.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../man5/openpmix.5.html#man5-openpmix"><span class="std std-ref">openpmix(5)</span></a></p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pmix_info.1.html" class="btn btn-neutral float-left" title="17.1.1. pmix_info" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pattrs.1.html" class="btn btn-neutral float-right" title="17.1.3. pattrs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

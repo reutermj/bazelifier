@@ -1,0 +1,435 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3.4. Compiler Notes &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="3.5. General Run-Time Support Notes" href="run-time.html" />
+    <link rel="prev" title="3.3. Platform Notes" href="platform.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">3. Release notes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="changelog/index.html">3.1. Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="general.html">3.2. General notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform.html">3.3. Platform Notes</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.4. Compiler Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run-time.html">3.5. General Run-Time Support Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi.html">3.6. MPI Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="openshmem.html">3.7. OpenSHMEM Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi-collectives.html">3.8. MPI Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="openshmem-collectives.html">3.9. OpenSHMEM Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="networks.html">3.10. Network Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extensions.html">3.11. Open MPI Extensions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">3. </span>Release notes</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">3.4. </span>Compiler Notes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/release-notes/compilers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="compiler-notes">
+<span id="compiler-notes-section-label"></span><h1><span class="section-number">3.4. </span>Compiler Notes<a class="headerlink" href="#compiler-notes" title="Link to this heading"></a></h1>
+<ul>
+<li><p>Open MPI requires a C99-capable compiler to build.</p></li>
+<li><p>On platforms other than x86-64, AArc64 (64-bit ARM), and PPC, Open
+MPI requires a compiler that either supports C11 atomics or the GCC
+<code class="docutils literal notranslate"><span class="pre">__atomic</span></code> atomics (e.g., GCC &gt;= v4.8.x).</p></li>
+<li><p>32-bit platforms are only supported with a recent compiler that
+supports C11 atomics. This includes GCC 4.9.x+ (although GCC 6.x or
+newer is recommended), the Intel compiler suite 16, and clang 3.1.</p></li>
+<li><p>Mixing compilers from different vendors when building Open MPI
+(e.g., using the C/C++ compiler from one vendor and the Fortran
+compiler from a different vendor) has been successfully employed by
+some Open MPI users (discussed on the Open MPI user’s mailing list),
+but such configurations are not tested and not documented.  For
+example, such configurations may require additional compiler /
+linker flags to make Open MPI build properly.</p>
+<p>A not-uncommon case for this is when building on MacOS with the
+system-default GCC compiler (i.e., <code class="docutils literal notranslate"><span class="pre">/usr/bin/gcc</span></code>), but a 3rd party
+gfortran (e.g., provided by Homebrew, in <code class="docutils literal notranslate"><span class="pre">/usr/local/bin/gfortran</span></code>).
+Since these compilers are provided by different organizations, they
+have different default search paths.  For example, if Homebrew has
+also installed a local copy of Libevent (a 3rd party package that
+Open MPI requires), the MacOS-default <code class="docutils literal notranslate"><span class="pre">gcc</span></code> linker will find it
+without any additional command line flags, but the Homebrew-provided
+gfortran linker will not.  In this case, it may be necessary to
+provide the following on the configure command line:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span><span class="nv">FCFLAGS</span><span class="o">=</span>-L/usr/local/lib<span class="w"> </span>...
+</pre></div>
+</div>
+<p>This <code class="docutils literal notranslate"><span class="pre">-L</span></code> flag will then be passed to the Fortran linker when
+creating Open MPI’s Fortran libraries, and it will therefore be able
+to find the installed Libevent.</p>
+</li>
+<li><p>In general, the latest versions of compilers of a given vendor’s
+series have the least bugs.  We have seen cases where Vendor XYZ’s
+compiler version A.B fails to compile Open MPI, but version A.C
+(where C&gt;B) works just fine.  If you run into a compile failure, you
+might want to double check that you have the latest bug fixes and
+patches for your compiler.</p></li>
+<li><p>Users have reported issues with older versions of the Fortran PGI
+compiler suite when using Open MPI’s (non-default) <code class="docutils literal notranslate"><span class="pre">--enable-debug</span></code>
+configure option.  Per the above advice of using the most recent
+version of a compiler series, the Open MPI team recommends using the
+latest version of the PGI suite, and/or not using the <code class="docutils literal notranslate"><span class="pre">--enable-debug</span></code>
+configure option.  If it helps, here’s what we have found with some
+(not comprehensive) testing of various versions of the PGI compiler
+suite:</p>
+<ul class="simple">
+<li><p>pgi-8 : NO known good version with <code class="docutils literal notranslate"><span class="pre">--enable-debug</span></code></p></li>
+<li><p>pgi-9 : 9.0-4 known GOOD</p></li>
+<li><p>pgi-10: 10.0-0 known GOOD</p></li>
+<li><p>pgi-11: NO known good version with <code class="docutils literal notranslate"><span class="pre">--enable-debug</span></code></p></li>
+<li><p>pgi-12: 12.10 known BAD with <code class="docutils literal notranslate"><span class="pre">-m32</span></code>, but known GOOD without <code class="docutils literal notranslate"><span class="pre">-m32</span></code>
+(and 12.8 and 12.9 both known BAD with <code class="docutils literal notranslate"><span class="pre">--enable-debug</span></code>)</p></li>
+<li><p>pgi-13: 13.9 known BAD with <code class="docutils literal notranslate"><span class="pre">-m32</span></code>, 13.10 known GOOD without <code class="docutils literal notranslate"><span class="pre">-m32</span></code></p></li>
+<li><p>pgi-15: 15.10 known BAD with <code class="docutils literal notranslate"><span class="pre">-m32</span></code></p></li>
+</ul>
+</li>
+<li><p>Similarly, there is a known Fortran PGI compiler issue with long
+source directory path names that was resolved in 9.0-4 (9.0-3 is
+known to be broken in this regard).</p></li>
+<li><p>Open MPI does not support the PGI compiler suite on OS X or MacOS.
+See issues below for more details:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/open-mpi/ompi/issues/2604">https://github.com/open-mpi/ompi/issues/2604</a></p></li>
+<li><p><a class="reference external" href="https://github.com/open-mpi/ompi/issues/2605">https://github.com/open-mpi/ompi/issues/2605</a></p></li>
+</ul>
+</li>
+<li><p>OpenSHMEM Fortran bindings do not support the “no underscore”
+Fortran symbol convention. IBM’s <code class="docutils literal notranslate"><span class="pre">xlf</span></code> compilers build in that mode
+by default.  As such, IBM’s <code class="docutils literal notranslate"><span class="pre">xlf</span></code> compilers cannot build/link the
+OpenSHMEM Fortran bindings by default. A workaround is to pass
+<code class="docutils literal notranslate"><span class="pre">FC=&quot;xlf</span> <span class="pre">-qextname&quot;</span></code> at configure time to force a trailing
+underscore. See <a class="reference external" href="https://github.com/open-mpi/ompi/issues/3612">https://github.com/open-mpi/ompi/issues/3612</a> for
+more details.</p></li>
+<li><p>MPI applications that use the <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module on PowerPC platforms
+(tested ppc64le) will likely experience runtime failures if:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>they are using a GNU linker (ld) version after v2.25.1 and before
+v2.28,
+<em>and</em></p></li>
+<li><p>they compiled with PGI (tested 17.5) or XL (tested v15.1.5)
+compilers.  This was noticed on Ubuntu 16.04 which uses the
+2.26.1 version of <code class="docutils literal notranslate"><span class="pre">ld</span></code> by default. However, this issue impacts
+any OS using a version of <code class="docutils literal notranslate"><span class="pre">ld</span></code> noted above. This GNU linker
+regression will be fixed in version 2.28.  <a class="reference external" href="https://sourceware.org/bugzilla/show_bug.cgi?id=21306">Here is a link to the
+GNU bug on this issue</a>.  The
+XL compiler will include a fix for this issue in a future
+release.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>On NetBSD-6 (at least AMD64 and i386), and possibly on OpenBSD,
+Libtool misidentifies properties of f95/g95, leading to obscure
+compile-time failures if used to build Open MPI.  You can work
+around this issue by ensuring that libtool will not use f95/g95
+(e.g., by specifying <code class="docutils literal notranslate"><span class="pre">FC=&lt;some_other_compiler&gt;</span></code>, or otherwise ensuring
+a different Fortran compiler will be found earlier in the path than
+<code class="docutils literal notranslate"><span class="pre">f95</span></code>/<code class="docutils literal notranslate"><span class="pre">g95</span></code>), or by disabling the Fortran MPI bindings with
+<code class="docutils literal notranslate"><span class="pre">--disable-mpi-fortran</span></code>.</p></li>
+<li><p>On OpenBSD/i386, if you configure with
+<code class="docutils literal notranslate"><span class="pre">--enable-mca-no-build=patcher</span></code>, you will also need to add
+<code class="docutils literal notranslate"><span class="pre">--disable-dlopen</span></code>.  Otherwise, odd crashes can occur
+nondeterministically.</p></li>
+<li><p>Absoft 11.5.2 plus a service pack from September 2012 (which Absoft
+says is available upon request), or a version later than 11.5.2
+(e.g., 11.5.3), is required to compile the Fortran <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code>
+module.</p></li>
+<li><p>Open MPI does not support the Sparc v8 CPU target.  However,
+as of Solaris Studio 12.1, and later compilers, one should not
+specify <code class="docutils literal notranslate"><span class="pre">-xarch=v8plus</span></code> or <code class="docutils literal notranslate"><span class="pre">-xarch=v9</span></code>.  The use of the options
+<code class="docutils literal notranslate"><span class="pre">-m32</span></code> and <code class="docutils literal notranslate"><span class="pre">-m64</span></code> for producing 32 and 64 bit targets, respectively,
+are now preferred by the Solaris Studio compilers.  GCC may
+require either <code class="docutils literal notranslate"><span class="pre">-m32</span></code> or <code class="docutils literal notranslate"><span class="pre">-mcpu=v9</span> <span class="pre">-m32</span></code>, depending on GCC version.</p></li>
+<li><p>If one tries to build OMPI on Ubuntu with Solaris Studio using the C++
+compiler and the <code class="docutils literal notranslate"><span class="pre">-m32</span></code> option, you might see a warning:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>CC: Warning: failed to detect system linker version, falling back to custom linker usage
+</pre></div>
+</div>
+<p>And the build will fail.  One can overcome this error by either
+setting <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> to the location of the 32 bit libraries
+(most likely <code class="docutils literal notranslate"><span class="pre">/lib32</span></code>), or giving <code class="docutils literal notranslate"><span class="pre">LDFLAGS=&quot;-L/lib32</span> <span class="pre">-R/lib32&quot;</span></code>
+to the <code class="docutils literal notranslate"><span class="pre">configure</span></code> command.  Officially, Solaris Studio is not
+supported on Ubuntu Linux distributions, so additional problems
+might occur.</p>
+</li>
+<li><p>Open MPI does not support the <code class="docutils literal notranslate"><span class="pre">gccfss</span></code> compiler (GCC For SPARC
+Systems; a now-defunct compiler project from Sun).</p></li>
+<li><p>At least some versions of the Intel 8.1 compiler seg fault while
+compiling certain Open MPI source code files.  As such, it is not
+supported.</p></li>
+<li><p>It has been reported that the Intel 9.1 and 10.0 compilers fail to
+compile Open MPI on IA64 platforms.  As of 12 Sep 2012, there is
+very little (if any) testing performed on IA64 platforms (with any
+compiler).  Support is “best effort” for these platforms, but it is
+doubtful that any effort will be expended to fix the Intel 9.1 /
+10.0 compiler issuers on this platform.</p></li>
+<li><p>Early versions of the Intel 12.1 Linux compiler suite on x86_64 seem
+to have a bug that prevents Open MPI from working.  Symptoms
+including immediate segv of the wrapper compilers (e.g., <code class="docutils literal notranslate"><span class="pre">mpicc</span></code>) and
+MPI applications.  As of 1 Feb 2012, if you upgrade to the latest
+version of the Intel 12.1 Linux compiler suite, the problem will go
+away.</p></li>
+<li><p><a class="reference external" href="https://github.com/open-mpi/ompi/issues/7615">Users have reported</a> that the Intel
+Fortran compiler will fail to link Fortran-based MPI applications on
+macOS with linker errors similar to this:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Undefined symbols for architecture x86_64:
+  "_ompi_buffer_detach_f08", referenced from:
+      import-atom in libmpi_usempif08.dylib
+ld: symbol(s) not found for architecture x86_64
+</pre></div>
+</div>
+<p>It appears that setting the environment variable
+<code class="docutils literal notranslate"><span class="pre">lt_cx_ld_force_load=no</span></code> before invoking Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code>
+script works around the issue.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nv">lt_cv_ld_force_load</span><span class="o">=</span>no<span class="w"> </span>./configure<span class="w"> </span>...
+</pre></div>
+</div>
+</li>
+<li><p>The Portland Group compilers prior to version 7.0 require the
+<code class="docutils literal notranslate"><span class="pre">-Msignextend</span></code> compiler flag to extend the sign bit when converting
+from a shorter to longer integer.  This is different than other
+compilers (such as GNU).  When compiling Open MPI with the Portland
+compiler suite, the following flags should be passed to Open MPI’s
+<code class="docutils literal notranslate"><span class="pre">configure</span></code> script:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span><span class="nv">CFLAGS</span><span class="o">=</span>-Msignextend<span class="w"> </span><span class="nv">CXXFLAGS</span><span class="o">=</span>-Msignextend<span class="w"> </span><span class="se">\</span>
+<span class="w">       </span>--with-wrapper-cflags<span class="o">=</span>-Msignextend<span class="w"> </span><span class="se">\</span>
+<span class="w">       </span>--with-wrapper-cxxflags<span class="o">=</span>-Msignextend<span class="w"> </span>...
+</pre></div>
+</div>
+<p>This will both compile Open MPI with the proper compile flags and
+also automatically add <code class="docutils literal notranslate"><span class="pre">-Msignextend</span></code> when the C and C++ MPI wrapper
+compilers are used to compile user MPI applications.</p>
+</li>
+<li><p>It has been reported that Pathscale 5.0.5 and 6.0.527 compilers
+give an internal compiler error when trying to build Open MPI.</p></li>
+<li><p>As of July 2017, the Pathscale compiler suite apparently has no
+further commercial support, and it does not look like there will be
+further releases.  Any issues discovered regarding building /
+running Open MPI with the Pathscale compiler suite therefore may not
+be able to be resolved.</p></li>
+<li><p>Using the Absoft compiler to build the MPI Fortran bindings on Suse
+9.3 is known to fail due to a Libtool compatibility issue.</p></li>
+<li><p>There is now only a single Fortran MPI wrapper compiler and a
+single Fortran OpenSHMEM wrapper compiler: <code class="docutils literal notranslate"><span class="pre">mpifort</span></code> and <code class="docutils literal notranslate"><span class="pre">oshfort</span></code>,
+respectively.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The legacy executable names <code class="docutils literal notranslate"><span class="pre">mpif77</span></code> and <code class="docutils literal notranslate"><span class="pre">mpif90</span></code>
+still exist, but they are symbolic links to
+<code class="docutils literal notranslate"><span class="pre">mpifort</span></code>.  Users should immediately stop using the
+legacy names, and should always use <code class="docutils literal notranslate"><span class="pre">mpifort</span></code>.</p>
+</div>
+<p>Similarly, Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script only recognizes the <code class="docutils literal notranslate"><span class="pre">FC</span></code>
+and <code class="docutils literal notranslate"><span class="pre">FCFLAGS</span></code> environment variables (to specify the Fortran
+compiler and compiler flags, respectively).  The <code class="docutils literal notranslate"><span class="pre">F77</span></code> and <code class="docutils literal notranslate"><span class="pre">FFLAGS</span></code>
+environment variables are <strong>IGNORED</strong>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>As a direct result, it is <strong>STRONGLY</strong> recommended
+that you specify a Fortran compiler that uses file suffixes to
+determine Fortran code layout (e.g., free form vs. fixed).  For
+example, with some versions of the IBM XLF compiler, it is
+preferable to use <code class="docutils literal notranslate"><span class="pre">FC=xlf</span></code> instead of <code class="docutils literal notranslate"><span class="pre">FC=xlf90</span></code>, because
+<code class="docutils literal notranslate"><span class="pre">xlf</span></code> will automatically determine the difference between free
+form and fixed Fortran source code.</p>
+</div>
+<p>However, many Fortran compilers allow specifying additional
+command-line arguments to indicate which Fortran dialect to use.
+For example, if <code class="docutils literal notranslate"><span class="pre">FC=xlf90</span></code>, you may need to use <code class="docutils literal notranslate"><span class="pre">mpifort</span> <span class="pre">--qfixed</span> <span class="pre">...</span></code>
+to compile fixed format Fortran source files.</p>
+<p>You can use either <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> or <code class="docutils literal notranslate"><span class="pre">oshmem_info</span></code> to see with which
+Fortran compiler Open MPI was configured and compiled.</p>
+<p>There are up to three sets of Fortran MPI bindings that may be
+provided (depending on your Fortran compiler):</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mpif.h</span></code>: This is the first MPI Fortran interface that was
+defined in MPI-1.  It is a file that is included in Fortran
+source code.  The only interface declared in Open MPI’s
+<code class="docutils literal notranslate"><span class="pre">mpif.h</span></code> is <code class="docutils literal notranslate"><span class="pre">MPI_SIZEOF</span></code> (because of its polymorphism).  All
+other interfaces are implicit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi</span></code> module: The <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module file was added in MPI-2.  It
+provides strong compile-time parameter type checking for MPI all
+interfaces.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module: The <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module was added in MPI-3.
+It provides many advantages over the <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code> file and <code class="docutils literal notranslate"><span class="pre">mpi</span></code>
+module.  For example, MPI handles have distinct types (vs. all
+being integers).  See the <a class="reference external" href="https://www.mpi-forum.org/docs/">MPI-3.0 (or later) standard</a> for more details.</p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module is <strong>STRONGLY</strong> recommended
+for all new MPI Fortran subroutines and applications.  Note that
+the <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module can be used in conjunction with the other
+two Fortran MPI bindings in the same application (only one
+binding can be used per subroutine/function, however).  Full
+interoperability between <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code>/<code class="docutils literal notranslate"><span class="pre">mpi</span></code> module and
+<code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module MPI handle types is provided, allowing
+<code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> to be used in new subroutines in legacy MPI
+applications.</p>
+</div>
+<p>Per the OpenSHMEM specification, there is only one Fortran OpenSHMEM
+binding provided:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">shmem.fh</span></code>: All Fortran OpenSHMEM programs should include
+<code class="docutils literal notranslate"><span class="pre">shmem.f</span></code>, and Fortran OpenSHMEM programs that use constants
+defined by OpenSHMEM <strong>MUST</strong> include <code class="docutils literal notranslate"><span class="pre">shmem.fh</span></code>.</p></li>
+</ul>
+<p>The following notes apply to the above-listed Fortran bindings:</p>
+<ul>
+<li><p>All Fortran compilers support the <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code>/<code class="docutils literal notranslate"><span class="pre">shmem.fh</span></code>-based
+bindings, with one exception: the <code class="docutils literal notranslate"><span class="pre">MPI_SIZEOF</span></code> interfaces will
+only be present when Open MPI is built with a Fortran compiler
+that supports the <code class="docutils literal notranslate"><span class="pre">INTERFACE</span></code> keyword and <code class="docutils literal notranslate"><span class="pre">ISO_FORTRAN_ENV</span></code>.  Most
+notably, this excludes the GNU Fortran compiler suite before
+version 4.9.</p></li>
+<li><p>The level of support provided by the <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module is based on your
+Fortran compiler.</p>
+<p>If Open MPI is built with a non-GNU Fortran compiler, or if Open
+MPI is built with the GNU Fortran compiler &gt;= v4.9, all MPI
+subroutines will be prototyped in the <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module.  All calls to
+MPI subroutines will therefore have their parameter types checked
+at compile time.</p>
+<p>If Open MPI is built with an old <code class="docutils literal notranslate"><span class="pre">gfortran</span></code> (i.e., &lt; v4.9), a
+limited <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module will be built.  Due to the limitations of
+these compilers, and per guidance from the MPI-3.0 (and later)
+specification, all MPI subroutines with “choice” buffers are
+specifically <em>not</em> included in the <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module, and their
+parameters will not be checked at compile time.  Specifically, all
+MPI subroutines with no “choice” buffers are prototyped and will
+receive strong parameter type checking at run-time (e.g.,
+<code class="docutils literal notranslate"><span class="pre">MPI_INIT</span></code>, <code class="docutils literal notranslate"><span class="pre">MPI_COMM_RANK</span></code>, etc.).</p>
+<p>Similar to the <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code> interface, <code class="docutils literal notranslate"><span class="pre">MPI_SIZEOF</span></code> is only
+supported on Fortran compilers that support <code class="docutils literal notranslate"><span class="pre">INTERFACE</span></code> and
+<code class="docutils literal notranslate"><span class="pre">ISO_FORTRAN_ENV</span></code>.</p>
+</li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module has been tested with the Intel Fortran
+compiler and gfortran &gt;= 4.9.  Other modern Fortran compilers
+likely also work.</p>
+<p>Many older Fortran compilers do not provide enough modern Fortran
+features to support the <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module.  For example, <code class="docutils literal notranslate"><span class="pre">gfortran</span></code>
+&lt; v4.9 does provide enough support for the <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module.</p>
+</li>
+</ul>
+<p>You can examine the output of the following command to see all
+the Fortran features that are/are not enabled in your Open MPI
+installation:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>ompi_info<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>fort
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="platform.html" class="btn btn-neutral float-left" title="3.3. Platform Notes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="run-time.html" class="btn btn-neutral float-right" title="3.5. General Run-Time Support Notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

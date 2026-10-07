@@ -1,0 +1,181 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.4. Dynamically loading libmpi at runtime &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11.5. Calling fork(), system(), or popen() in MPI processes" href="fork-system-popen.html" />
+    <link rel="prev" title="11.3. Running multi-threaded MPI applications" href="multithreaded.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="networking/index.html">11.2. Networking support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.4. </span>Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tuning-apps/dynamic-loading.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="dynamically-loading-libmpi-at-runtime">
+<span id="label-running-dynamic-loading-libmpi"></span><h1><span class="section-number">11.4. </span>Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime<a class="headerlink" href="#dynamically-loading-libmpi-at-runtime" title="Link to this heading"></a></h1>
+<p>If you want to explicitly load Open MPI’s shared library <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at
+runtime by using <code class="docutils literal notranslate"><span class="pre">dlopen()</span></code> from C/C ++ or something like the
+<code class="docutils literal notranslate"><span class="pre">ctypes</span></code> package from Python, extra care is required.  The
+default configuration of Open MPI uses <code class="docutils literal notranslate"><span class="pre">dlopen()</span></code> internally to load
+its support components.  These components rely on symbols available in
+<code class="docutils literal notranslate"><span class="pre">libmpi</span></code>.  In order to make the symbols in <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> available to
+the components loaded by Open MPI at runtime, your application must load
+<code class="docutils literal notranslate"><span class="pre">libmpi</span></code> with the <code class="docutils literal notranslate"><span class="pre">RTLD_GLOBAL</span></code> option.</p>
+<p>In C/C++, this option is specified as the second parameter to the
+POSIX <code class="docutils literal notranslate"><span class="pre">dlopen(3)</span></code> function.</p>
+<p>When using <code class="docutils literal notranslate"><span class="pre">ctypes</span></code> with Python, this can be done with the second
+(optional) parameter to <code class="docutils literal notranslate"><span class="pre">CDLL()</span></code>.  For example (shown below in Mac OS
+X, where Open MPI’s shared library name ends in <code class="docutils literal notranslate"><span class="pre">.dylib</span></code>; other
+operating systems use other suffixes, such as <code class="docutils literal notranslate"><span class="pre">.so</span></code>):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ctypes</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">mpi</span> <span class="o">=</span> <span class="n">CDLL</span><span class="p">(</span><span class="s1">'libmpi.0.dylib'</span><span class="p">,</span> <span class="n">RTLD_GLOBAL</span><span class="p">)</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="n">pythonapi</span><span class="o">.</span><span class="n">Py_GetArgcArgv</span>
+<span class="n">argc</span> <span class="o">=</span> <span class="n">c_int</span><span class="p">()</span>
+<span class="n">argv</span> <span class="o">=</span> <span class="n">POINTER</span><span class="p">(</span><span class="n">c_char_p</span><span class="p">)()</span>
+<span class="n">f</span><span class="p">(</span><span class="n">byref</span><span class="p">(</span><span class="n">argc</span><span class="p">),</span> <span class="n">byref</span><span class="p">(</span><span class="n">argv</span><span class="p">))</span>
+<span class="n">mpi</span><span class="o">.</span><span class="n">MPI_Init</span><span class="p">(</span><span class="n">byref</span><span class="p">(</span><span class="n">argc</span><span class="p">),</span> <span class="n">byref</span><span class="p">(</span><span class="n">argv</span><span class="p">))</span>
+
+<span class="c1"># Your MPI program here</span>
+
+<span class="n">mpi</span><span class="o">.</span><span class="n">MPI_Finalize</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The above is just an example showing dynamic loading.  If
+you want to use MPI in Python, you are much better off using
+<a class="reference external" href="https://mpi4py.github.io/">MPI4Py</a>.</p>
+</div>
+<p>Other scripting languages should have similar options when dynamically
+loading shared libraries.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="multithreaded.html" class="btn btn-neutral float-left" title="11.3. Running multi-threaded MPI applications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="fork-system-popen.html" class="btn btn-neutral float-right" title="11.5. Calling fork(), system(), or popen() in MPI processes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

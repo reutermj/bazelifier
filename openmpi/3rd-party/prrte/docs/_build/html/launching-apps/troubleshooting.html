@@ -1,0 +1,299 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9.12. Troubleshooting &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="10. Notifications" href="../notifications.html" />
+    <link rel="prev" title="9.11. Unusual jobs" href="unusual.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">9. Launching applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">9.1. Quick start: Launching applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">9.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html">9.3. Placing processes across hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html#fundamentals">9.4. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="localhost.html">9.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ssh.html">9.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm.html">9.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsf.html">9.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tm.html">9.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gridengine.html">9.10. Launching with Grid Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unusual.html">9.11. Unusual jobs</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9.12. Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#errors-about-missing-libraries">9.12.1. Errors about missing libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#problems-when-running-across-multiple-hosts">9.12.2. Problems when running across multiple hosts</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">9. </span>Launching applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9.12. </span>Troubleshooting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/launching-apps/troubleshooting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="troubleshooting">
+<h1><span class="section-number">9.12. </span>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h1>
+<p>Launching applications can be a complex process that involves many moving parts.
+This section attempts to provide solutions to some of the most common
+problems users encounter.</p>
+<section id="errors-about-missing-libraries">
+<h2><span class="section-number">9.12.1. </span>Errors about missing libraries<a class="headerlink" href="#errors-about-missing-libraries" title="Link to this heading"></a></h2>
+<p>When building PRRTE with the compilers that have libraries in
+non-default search path locations, you may see errors about those
+compiler’s support libraries when trying to launch applications if
+their corresponding environments were not setup properly.</p>
+<p>For example, you may see warnings similar to the following:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># With the Intel compiler suite</span>
+shell$<span class="w"> </span>prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host<span class="w"> </span>node1.example.com<span class="w"> </span>hello
+prted:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libimf.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+--------------------------------------------------------------------------
+A<span class="w"> </span>daemon<span class="w"> </span><span class="o">(</span>pid<span class="w"> </span><span class="m">11893</span><span class="o">)</span><span class="w"> </span>died<span class="w"> </span>unexpectedly<span class="w"> </span>with<span class="w"> </span>status<span class="w"> </span><span class="m">127</span><span class="w"> </span><span class="k">while</span>
+attempting<span class="w"> </span>to<span class="w"> </span>launch<span class="w"> </span>so<span class="w"> </span>we<span class="w"> </span>are<span class="w"> </span>aborting.
+...more<span class="w"> </span>error<span class="w"> </span>messages...
+
+<span class="c1"># With the PGI compiler suite</span>
+shell$<span class="w"> </span>prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host<span class="w"> </span>node1.example.com<span class="w"> </span>hello
+prted:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libpgcc.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+...more<span class="w"> </span>error<span class="w"> </span>messages...
+
+<span class="c1"># With the PathScale compiler suite</span>
+shell$<span class="w"> </span>prterun<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--host<span class="w"> </span>node1.example.com<span class="w"> </span>hello
+prted:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libmv.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+...more<span class="w"> </span>error<span class="w"> </span>messages...
+</pre></div>
+</div>
+<p>Specifically, PRRTE first attempts to launch a “helper” daemon
+<code class="docutils literal notranslate"><span class="pre">prted</span></code> on <code class="docutils literal notranslate"><span class="pre">node1.example.com</span></code>, but it failed because one of
+<code class="docutils literal notranslate"><span class="pre">prted</span></code>’s dependent libraries was not able to be found.  The
+libraries shown above (<code class="docutils literal notranslate"><span class="pre">libimf.so</span></code>, <code class="docutils literal notranslate"><span class="pre">libpgcc.so</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">libmv.so</span></code>) are specific to their compiler suites (Intel, PGI, and
+PathScale, respectively).  As such, it is likely that the user did not
+setup the compiler library in their environment properly on this node.</p>
+<p>Double check that you have setup the appropriate user environment
+on the target node, for both interactive and non-interactive logins.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is a common error to ensure that the user environment
+is setup properly for <em>interactive</em> logins, but not for
+<em>non-interactive</em> logins.</p>
+</div>
+<p>Here’s an example of a user-compiled MPI application working fine
+locally, but failing when invoked non-interactively on a remote node:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Compile a trivial MPI application</span>
+head_node$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>
+head_node$<span class="w"> </span>mpicc<span class="w"> </span>mpi_hello.c<span class="w"> </span>-o<span class="w"> </span>mpi_hello
+
+<span class="c1"># Run it locally; it works fine</span>
+head_node$<span class="w"> </span>./mpi_hello
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">1</span>.
+
+<span class="c1"># Run it remotely interactively; it works fine</span>
+head_node$<span class="w"> </span>ssh<span class="w"> </span>node2.example.com
+
+Welcome<span class="w"> </span>to<span class="w"> </span>node2.
+node2$<span class="w"> </span>./mpi_hello
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">1</span>.
+node2$<span class="w"> </span><span class="nb">exit</span>
+
+<span class="c1"># Run it remotely *NON*-interactively; it fails</span>
+head_node$<span class="w"> </span>ssh<span class="w"> </span>node2.example.com<span class="w"> </span><span class="nv">$HOME</span>/mpi_hello
+mpi_hello:<span class="w"> </span>error<span class="w"> </span><span class="k">while</span><span class="w"> </span>loading<span class="w"> </span>shared<span class="w"> </span>libraries:<span class="w"> </span>libimf.so:<span class="w"> </span>cannot<span class="w"> </span>open<span class="w"> </span>shared<span class="w"> </span>object<span class="w"> </span>file:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+</pre></div>
+</div>
+<p>In cases like this, check your shell script startup files and verify
+that the appropriate compiler environment is setup properly for
+non-interactive logins.</p>
+</section>
+<section id="problems-when-running-across-multiple-hosts">
+<h2><span class="section-number">9.12.2. </span>Problems when running across multiple hosts<a class="headerlink" href="#problems-when-running-across-multiple-hosts" title="Link to this heading"></a></h2>
+<p>When you are able to run jobs on a single host, but fail to run
+them across multiple hosts, try the following:</p>
+<ol class="arabic">
+<li><p>Ensure that your launcher is able to launch across multiple hosts.
+For example, if you are using <code class="docutils literal notranslate"><span class="pre">ssh</span></code>, try to <code class="docutils literal notranslate"><span class="pre">ssh</span></code> to each
+remote host and ensure that you are not prompted for a password.
+For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ ssh remotehost hostname
+remotehost
+</pre></div>
+</div>
+<p>If you are unable to launch across multiple hosts, check that your
+SSH keys are setup properly.  Or, if you are running in a managed
+environment, such as in a Slurm, Torque, or other job launcher,
+check that you have reserved enough hosts, are running in an
+allocated job, etc.</p>
+</li>
+<li><p>Ensure that your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> are set correctly
+on each remote host on which you are trying to run.  For example,
+with <code class="docutils literal notranslate"><span class="pre">ssh</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ ssh remotehost env | grep -i path
+PATH=...path on the remote host...
+LD_LIBRARY_PATH=...LD library path on the remote host...
+</pre></div>
+</div>
+<p>If your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> or <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> are not set properly, see
+<a class="reference internal" href="prerequisites.html#running-prerequisites-label"><span class="std std-ref">this section</span></a> for
+the correct values.  Keep in mind that it is fine to have multiple
+PRRTE installations installed on a machine; the <em>first</em> PRRTE
+installation found by <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">LD_LIBARY_PATH</span></code> is the one
+that matters.</p>
+</li>
+<li><p>Run a simple operating system job across multiple hosts.  This verifies
+that the PRRTE run-time system is functioning properly across
+multiple hosts.  For example, try running the <code class="docutils literal notranslate"><span class="pre">hostname</span></code> command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ prterun --host remotehost hostname
+remotehost
+shell$ prterun --host remotehost,otherhost hostname
+remotehost
+otherhost
+</pre></div>
+</div>
+<p>If you are unable to run operating system jobs across multiple hosts, check
+for common problems such as:</p>
+<ol class="arabic">
+<li><p>Check your non-interactive shell setup on each remote host to
+ensure that it is setting up the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> properly.</p></li>
+<li><p>Check that PRRTE is finding and launching the correct
+version of PRRTE on the remote hosts.</p></li>
+<li><p>Ensure that you have firewalling disabled between hosts (PRRTE
+opens random TCP and sometimes random UDP ports between
+hosts in a single MPI job).</p></li>
+<li><p>Try running with the <code class="docutils literal notranslate"><span class="pre">plm_base_verbose</span></code> MCA parameter at level
+10, which will enable extra debugging output to see how PRRTE
+launches on remote hosts.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>prterun --prtemca plm_base_verbose 10 --host remotehost hostname``
+</pre></div>
+</div>
+</li>
+</ol>
+</li>
+<li><p>Now run a simple PMIx-based job across multiple hosts that does not
+involve inter-process communications.  The <code class="docutils literal notranslate"><span class="pre">hello_c</span></code> program in the
+<code class="docutils literal notranslate"><span class="pre">examples</span></code> directory in the PRRTE distribution is a good
+choice.  This verifies that the PMIx subsystem is able to initialize
+and terminate properly.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ prterun --host remotehost,otherhost hello_c
+Hello, world, I am 0 of 1, (PRRTE VERSION, package: PRRTE jsquyres@example.com Distribution, ident: VERSION, DATE)
+Hello, world, I am 1 of 1, (PRRTE VERSION, package: PRRTE jsquyres@example.com Distribution, ident: VERSION, DATE)
+</pre></div>
+</div>
+<p>If you are unable to run simple, non-communication jobs, this
+can indicate that your PRRTE installation is unable to
+initialize properly on remote hosts.  Double check your
+non-interactive login setup on remote hosts.</p>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="unusual.html" class="btn btn-neutral float-left" title="9.11. Unusual jobs" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../notifications.html" class="btn btn-neutral float-right" title="10. Notifications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

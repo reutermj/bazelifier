@@ -1,0 +1,248 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_RECV" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fI\%MPI_Recv\fP — Performs a standard\-mode blocking receive.
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_Recv(void *buf, int count, MPI_Datatype datatype,
+     int source, int tag, MPI_Comm comm, MPI_Status *status)
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE MPI
+! or the older form: INCLUDE \(aqmpif.h\(aq
+MPI_RECV(BUF, COUNT, DATATYPE, SOURCE, TAG, COMM, STATUS, IERROR)
+     <type>  BUF(*)
+     INTEGER COUNT, DATATYPE, SOURCE, TAG, COMM
+     INTEGER STATUS(MPI_STATUS_SIZE), IERROR
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran 2008 Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE mpi_f08
+MPI_Recv(buf, count, datatype, source, tag, comm, status, ierror)
+     TYPE(*), DIMENSION(..) :: buf
+     INTEGER, INTENT(IN) :: count, source, tag
+     TYPE(MPI_Datatype), INTENT(IN) :: datatype
+     TYPE(MPI_Comm), INTENT(IN) :: comm
+     TYPE(MPI_Status) :: status
+     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBcount\fP: Maximum number of elements to receive (integer).
+.IP \(bu 2
+\fBdatatype\fP: Datatype of each receive buffer entry (handle).
+.IP \(bu 2
+\fBsource\fP: Rank of source (integer).
+.IP \(bu 2
+\fBtag\fP: Message tag (integer).
+.IP \(bu 2
+\fBcomm\fP: Communicator (handle).
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBbuf\fP: Initial address of receive buffer (choice).
+.IP \(bu 2
+\fBstatus\fP: Status object (status).
+.IP \(bu 2
+\fBierror\fP: Fortran only: Error status (integer).
+.UNINDENT
+.SH DESCRIPTION
+.sp
+This basic receive operation, \fI\%MPI_Recv\fP, is blocking: it returns only
+after the receive buffer contains the newly received message. A receive
+can complete before the matching send has completed (of course, it can
+complete only after the matching send has started).
+.sp
+The blocking semantics of this call are described in the
+“Communication Modes” section of the \X'tty: link https://www.mpi-forum.org/docs/'\fI\%MPI Standard\fP\X'tty: link'\&.
+.sp
+The receive buffer contains a number (defined by the value of \fIcount\fP)
+of consecutive elements. The first element in the set of elements is
+located at \fIaddress_buf\fP\&. The type of each of these elements is
+specified by \fIdatatype\fP\&.
+.sp
+The length of the received message must be less than or equal to the
+length of the receive buffer. An MPI_ERR_TRUNCATE is returned upon the
+overflow condition.
+.sp
+If a message that is shorter than the length of the receive buffer
+arrives, then only those locations corresponding to the (shorter)
+received message are modified.
+.SH NOTES
+.sp
+The \fIcount\fP argument indicates the maximum number of entries of type
+\fIdatatype\fP that can be received in a message. Once a message is
+received, use the \fI\%MPI_Get_count\fP function to determine the actual number
+of entries within that message.
+.sp
+To receive messages of unknown length, use the \fI\%MPI_Probe\fP
+function.  For more information about \fI\%MPI_Probe\fP and
+\fI\%MPI_Cancel\fP, see their respective man pages and the “Probe and
+Cancel” section of the \X'tty: link https://www.mpi-forum.org/docs/'\fI\%MPI Standard\fP\X'tty: link'\&.
+.sp
+A message can be received by a receive operation only if it is addressed
+to the receiving process, and if its source, tag, and communicator
+(comm) values match the source, tag, and comm values specified by the
+receive operation. The receive operation may specify a wildcard value
+for source and/or tag, indicating that any source and/or tag are
+acceptable. The wildcard value for source is source = \fBMPI_ANY_SOURCE\fP\&.
+The wildcard value for tag is tag = \fBMPI_ANY_TAG\fP\&. There is no wildcard
+value for comm. The scope of these wildcards is limited to the processes
+in the group of the specified communicator.
+.sp
+The message tag is specified by the tag argument of the receive
+operation.
+.sp
+The argument source, if different from \fBMPI_ANY_SOURCE\fP, is specified as a
+rank within the process group associated with that same communicator
+(remote process group, for intercommunicators). Thus, the range of valid
+values for the source argument is {0,…,n\-1} {\fBMPI_ANY_SOURCE\fP}, where n
+is the number of processes in this group.
+.sp
+Note the asymmetry between send and receive operations: A receive
+operation may accept messages from an arbitrary sender; on the other
+hand, a send operation must specify a unique receiver. This matches a
+“push” communication mechanism, where data transfer is effected by the
+sender (rather than a “pull” mechanism, where data transfer is effected
+by the receiver).
+.sp
+Source = destination is allowed, that is, a process can send a message
+to itself. However, it is not recommended for a process to send messages
+to itself using the blocking send and receive operations described
+above, since this may lead to deadlock.  See the “Semantics of
+Point\-to\-Point Communication” of the \X'tty: link https://www.mpi-forum.org/docs/'\fI\%MPI Standard\fP\X'tty: link' for more details.
+.sp
+If your application does not need to examine the \fIstatus\fP field, you can
+save resources by using the predefined constant \fBMPI_STATUS_IGNORE\fP as a
+special value for the \fIstatus\fP argument.
+.SH ERRORS
+.sp
+Almost all MPI routines return an error value; C routines as the return result
+of the function and Fortran routines in the last argument.
+.sp
+Before the error value is returned, the current MPI error handler associated
+with the communication object (e.g., communicator, window, file) is called.
+If no communication object is associated with the MPI call, then the call is
+considered attached to MPI_COMM_SELF and will call the associated MPI error
+handler. When MPI_COMM_SELF is not initialized (i.e., before
+\fI\%MPI_Init\fP/\fI\%MPI_Init_thread\fP, after \fI\%MPI_Finalize\fP, or when using the Sessions
+Model exclusively) the error raises the initial error handler. The initial
+error handler can be changed by calling \fI\%MPI_Comm_set_errhandler\fP on
+MPI_COMM_SELF when using the World model, or the mpi_initial_errhandler CLI
+argument to mpiexec or info key to \fI\%MPI_Comm_spawn\fP/\fI\%MPI_Comm_spawn_multiple\fP\&.
+If no other appropriate error handler has been set, then the MPI_ERRORS_RETURN
+error handler is called for MPI I/O functions and the MPI_ERRORS_ABORT error
+handler is called for all other MPI functions.
+.sp
+Open MPI includes three predefined error handlers that can be used:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_ERRORS_ARE_FATAL\fP
+Causes the program to abort all connected MPI processes.
+.IP \(bu 2
+\fBMPI_ERRORS_ABORT\fP
+An error handler that can be invoked on a communicator,
+window, file, or session. When called on a communicator, it
+acts as if \fI\%MPI_Abort\fP was called on that communicator. If
+called on a window or file, acts as if \fI\%MPI_Abort\fP was called
+on a communicator containing the group of processes in the
+corresponding window or file. If called on a session,
+aborts only the local process.
+.IP \(bu 2
+\fBMPI_ERRORS_RETURN\fP
+Returns an error code to the application.
+.UNINDENT
+.sp
+MPI applications can also implement their own error handlers by calling:
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Comm_create_errhandler\fP then \fI\%MPI_Comm_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_File_create_errhandler\fP then \fI\%MPI_File_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_Session_create_errhandler\fP then \fI\%MPI_Session_set_errhandler\fP or at \fI\%MPI_Session_init\fP
+.IP \(bu 2
+\fI\%MPI_Win_create_errhandler\fP then \fI\%MPI_Win_set_errhandler\fP
+.UNINDENT
+.sp
+Note that MPI does not guarantee that an MPI program can continue past
+an error.
+.sp
+See the \fI\%MPI man page\fP for a full list of \fI\%MPI error codes\fP\&.
+.sp
+See the Error Handling section of the MPI\-3.1 standard for
+more information.
+.sp
+Note that per the “Return Status” section in the “Point\-to\-Point
+Communication” chapter in the \X'tty: link https://www.mpi-forum.org/docs/'\fI\%MPI Standard\fP\X'tty: link', MPI errors on messages received
+by \fI\%MPI_Recv\fP do not set the \fBstatus.MPI_ERROR\fP field in the
+returned \fIstatus\fP\&.  The error code is always passed to the back\-end
+error handler and may be passed back to the caller through the return
+value of \fI\%MPI_Recv\fP if the back\-end error handler returns it.
+The pre\-defined MPI error handler \fBMPI_ERRORS_RETURN\fP exhibits this
+behavior, for example.
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Irecv\fP
+.IP \(bu 2
+\fI\%MPI_Probe\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

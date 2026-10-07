@@ -1,0 +1,342 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3.6. MPI Functionality and Features &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="3.7. OpenSHMEM Functionality and Features" href="openshmem.html" />
+    <link rel="prev" title="3.5. General Run-Time Support Notes" href="run-time.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">3. Release notes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="changelog/index.html">3.1. Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="general.html">3.2. General notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform.html">3.3. Platform Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compilers.html">3.4. Compiler Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run-time.html">3.5. General Run-Time Support Notes</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.6. MPI Functionality and Features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-standard-conformance">3.6.1. MPI Standard conformance</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#mpi-4-0-partial-compliance">3.6.1.1. MPI-4.0 partial compliance</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#removed-mpi-apis">3.6.2. Removed MPI APIs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#other-mpi-features">3.6.3. Other MPI features</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="openshmem.html">3.7. OpenSHMEM Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi-collectives.html">3.8. MPI Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="openshmem-collectives.html">3.9. OpenSHMEM Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="networks.html">3.10. Network Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extensions.html">3.11. Open MPI Extensions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">3. </span>Release notes</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">3.6. </span>MPI Functionality and Features</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/release-notes/mpi.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="mpi-functionality-and-features">
+<h1><span class="section-number">3.6. </span>MPI Functionality and Features<a class="headerlink" href="#mpi-functionality-and-features" title="Link to this heading"></a></h1>
+<section id="mpi-standard-conformance">
+<span id="release-notes-mpi-standard-conformance-label"></span><h2><span class="section-number">3.6.1. </span>MPI Standard conformance<a class="headerlink" href="#mpi-standard-conformance" title="Link to this heading"></a></h2>
+<p>In the Open MPI v5.0.x series, all MPI-3.1
+functionality is supported.  <em>Some</em> MPI-4.0 functionality is
+supported.</p>
+<p>As such, <code class="docutils literal notranslate"><span class="pre">MPI_VERSION</span></code> is set to 3 and <code class="docutils literal notranslate"><span class="pre">MPI_SUBVERSION</span></code> is set
+to 1.</p>
+<p>For historical reference:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>MPI standards conformance</p></th>
+<th class="head"><p>Introduced in Open MPI version</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>MPI-2.0</p></td>
+<td><p>Open MPI v1.2</p></td>
+</tr>
+<tr class="row-odd"><td><p>MPI-2.1</p></td>
+<td><p>Open MPI v1.3</p></td>
+</tr>
+<tr class="row-even"><td><p>MPI-3.0</p></td>
+<td><p>Open MPI v1.8</p></td>
+</tr>
+<tr class="row-odd"><td><p>MPI-3.1</p></td>
+<td><p>Open MPI v2.0</p></td>
+</tr>
+</tbody>
+</table>
+<section id="mpi-4-0-partial-compliance">
+<h3><span class="section-number">3.6.1.1. </span>MPI-4.0 partial compliance<a class="headerlink" href="#mpi-4-0-partial-compliance" title="Link to this heading"></a></h3>
+<p>In the Open MPI v5.0.x series, only partial MPI-4.0 functionality is
+supported. This section contains a list of features added for the release.</p>
+<ul class="simple">
+<li><p>Added support for MPI Sessions.</p></li>
+<li><p>Added partitioned communication using persistent sends and persistent receives.</p></li>
+<li><p>Added persistent collectives to the <code class="docutils literal notranslate"><span class="pre">MPI_</span></code> namespace (they were previously
+available via the <code class="docutils literal notranslate"><span class="pre">MPIX_</span></code> prefix).</p></li>
+<li><p>Added support for <a class="reference internal" href="../man-openmpi/man3/MPI_Isendrecv.3.html#mpi-isendrecv"><span class="std std-ref">MPI_Isendrecv()</span></a> and its variants.</p></li>
+<li><p>Added support for <a class="reference internal" href="../man-openmpi/man3/MPI_Comm_idup_with_info.3.html#mpi-comm-idup-with-info"><span class="std std-ref">MPI_Comm_idup_with_info()</span></a>.</p></li>
+<li><p>Added support for <a class="reference internal" href="../man-openmpi/man3/MPI_Info_get_string.3.html#mpi-info-get-string"><span class="std std-ref">MPI_Info_get_string()</span></a>.</p></li>
+<li><p>Added support for <code class="docutils literal notranslate"><span class="pre">initial_error_handler</span></code> info key and the
+<code class="docutils literal notranslate"><span class="pre">MPI_ERRORS_ABORT</span></code> infrastructure.</p></li>
+<li><p>Added support for <code class="docutils literal notranslate"><span class="pre">mpi_minimum_memory_alignment</span></code> info key.</p></li>
+<li><p>Added support for <code class="docutils literal notranslate"><span class="pre">MPI_COMM_TYPE_HW_GUIDED</span></code> and
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_TYPE_HW_UNGUIDED</span></code>.</p></li>
+<li><p>Added support for <a class="reference internal" href="../man-openmpi/man3/MPI_Info_create_env.3.html#mpi-info-create-env"><span class="std std-ref">MPI_Info_create_env()</span></a>.</p></li>
+<li><p>Added error handling for “unbound” errors to <code class="docutils literal notranslate"><span class="pre">MPI_COMM_SELF</span></code>.</p></li>
+<li><p>Added <code class="docutils literal notranslate"><span class="pre">MPI_F_STATUS_SIZE</span></code>, <code class="docutils literal notranslate"><span class="pre">MPI_F_SOURCE</span></code>, <code class="docutils literal notranslate"><span class="pre">MPI_F_TAG</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">MPI_F_ERROR</span></code>.</p></li>
+<li><p>Made <a class="reference internal" href="../man-openmpi/man3/MPI_Comm_get_info.3.html#mpi-comm-get-info"><span class="std std-ref">MPI_Comm_get_info()</span></a>,
+<a class="reference internal" href="../man-openmpi/man3/MPI_File_get_info.3.html#mpi-file-get-info"><span class="std std-ref">MPI_File_get_info()</span></a>, and
+<a class="reference internal" href="../man-openmpi/man3/MPI_Win_get_info.3.html#mpi-win-get-info"><span class="std std-ref">MPI_Win_get_info()</span></a> MPI-4.0 compliant.</p></li>
+<li><p>Info keys that are not understood by Open MPI will be silently ignored and
+dropped on communicators, files, and windows.</p></li>
+<li><p>Deprecated <a class="reference internal" href="../man-openmpi/man3/MPI_Sizeof.3.html#mpi-sizeof"><span class="std std-ref">MPI_Sizeof()</span></a>.</p></li>
+<li><p>Deprecated <a class="reference internal" href="../man-openmpi/man3/MPI_Cancel.3.html#mpi-cancel"><span class="std std-ref">MPI_Cancel()</span></a> on send requests.</p></li>
+<li><p>Deprecated <a class="reference internal" href="../man-openmpi/man3/MPI_Info_get.3.html#mpi-info-get"><span class="std std-ref">MPI_Info_get()</span></a> and
+<a class="reference internal" href="../man-openmpi/man3/MPI_Info_get_valuelen.3.html#mpi-info-get-valuelen"><span class="std std-ref">MPI_Info_get_valuelen()</span></a>.</p></li>
+</ul>
+</section>
+</section>
+<section id="removed-mpi-apis">
+<h2><span class="section-number">3.6.2. </span>Removed MPI APIs<a class="headerlink" href="#removed-mpi-apis" title="Link to this heading"></a></h2>
+<p>Note that starting with Open MPI v4.0.0, prototypes for several
+legacy MPI-1 symbols that were deleted in the MPI-3.0 specification
+are no longer available by default in <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code>.  Specifically,
+several MPI-1 symbols were deprecated in the 1996 publishing of the
+MPI-2.0 specification.  These deprecated symbols were eventually
+removed from the MPI-3.0 specification in
+2012.</p>
+<p>The symbols that now no longer appear by default in Open MPI’s
+<code class="docutils literal notranslate"><span class="pre">mpi.h</span></code> are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Address</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Get_address</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Errhandler_create</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Comm_create_errhandler</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Errhandler_get</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Comm_get_errhandler</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Errhandler_set</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Comm_set_errhandler</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Type_extent</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_get_extent</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Type_hindexed</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_create_hindexed</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Type_hvector</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_create_hvector</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Type_lb</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_get_extent</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Type_struct</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_create_struct</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Type_ub</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_get_extent</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_LB</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_create_resized</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_UB</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Type_create_resized</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HINDEXED_INTEGER</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HVECTOR_INTEGER</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_STRUCT_INTEGER</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_Handler_function</span></code> (replaced by <code class="docutils literal notranslate"><span class="pre">MPI_Comm_errhandler_function</span></code>)</p></li>
+</ul>
+<p>Although these symbols are no longer prototyped in <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code>, they
+are still present in the MPI library in Open MPI v5.0.x. This
+enables legacy MPI applications to link and run successfully with
+Open MPI v5.0.x, even though they will fail to compile.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Future releases of Open MPI beyond the v5.0.x
+series may remove these symbols altogether.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The Open MPI team <strong>STRONGLY</strong> encourages all MPI
+application developers to stop using these constructs that were
+first deprecated over 20 years ago, and finally removed from the
+MPI specification in MPI-3.0 (in 2012).</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><a class="reference internal" href="../building-apps/removed-mpi-constructs.html#label-removed-mpi-constructs"><span class="std std-ref">The “Removed MPI constructs” section</span></a> contains examples of how to update
+legacy MPI applications using these deleted symbols to use the
+“new” symbols.</p>
+</div>
+<p>All that being said, if you are unable to immediately update your
+application to stop using these legacy MPI-1 symbols, you can
+re-enable them in <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code> by configuring Open MPI with the
+<code class="docutils literal notranslate"><span class="pre">--enable-mpi1-compatibility</span></code> flag.</p>
+</section>
+<section id="other-mpi-features">
+<h2><span class="section-number">3.6.3. </span>Other MPI features<a class="headerlink" href="#other-mpi-features" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Rank reordering support is available using the TreeMatch library. It
+is activated for the graph and <code class="docutils literal notranslate"><span class="pre">dist_graph</span></code> communicator topologies.</p></li>
+<li><p>When using MPI deprecated functions, some compilers will emit
+warnings.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat deprecated_example.c
+#include &lt;mpi.h&gt;
+void foo(void) {
+    MPI_Datatype type;
+    MPI_Type_struct(1, NULL, NULL, NULL, &amp;type);
+}
+shell$ mpicc -c deprecated_example.c
+deprecated_example.c: In function 'foo':
+deprecated_example.c:4: warning: 'MPI_Type_struct' is deprecated (declared at /opt/openmpi/include/mpi.h:1522)
+shell$
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_THREAD_MULTIPLE</span></code> is supported with some exceptions.</p>
+<p>The following PMLs support <code class="docutils literal notranslate"><span class="pre">MPI_THREAD_MULTIPLE</span></code>:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cm</span></code>, when used with the following MTLs:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ofi</span></code> (Libfabric)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">portals4</span></code></p></li>
+</ol>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ob1</span></code>, when used with the following BTLs:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">self</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sm</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">smcuda</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tcp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ugni</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usnic</span></code></p></li>
+</ol>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ucx</span></code></p></li>
+</ol>
+<p>Currently, MPI File operations are not thread safe even if MPI is
+initialized for <code class="docutils literal notranslate"><span class="pre">MPI_THREAD_MULTIPLE</span></code> support.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_REAL16</span></code> and <code class="docutils literal notranslate"><span class="pre">MPI_COMPLEX32</span></code> are only supported on platforms
+where a portable C datatype can be found that matches the Fortran
+type <code class="docutils literal notranslate"><span class="pre">REAL*16</span></code>, both in size and bit representation.</p></li>
+<li><p>The “libompitrace” library is bundled in Open MPI and is installed
+by default (it can be disabled via the <code class="docutils literal notranslate"><span class="pre">--disable-libompitrace</span></code>
+flag).  This library provides a simplistic tracing of select MPI
+function calls via the MPI profiling interface.  Linking it in to
+your application via (e.g., via <code class="docutils literal notranslate"><span class="pre">-lompitrace</span></code>) will automatically
+output to stderr when some MPI functions are invoked:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cd examples/
+shell$ mpicc hello_c.c -o hello_c -lompitrace
+shell$ mpirun -n 1 hello_c
+MPI_INIT: argc 1
+Hello, world, I am 0 of 1
+MPI_BARRIER[0]: comm MPI_COMM_WORLD
+MPI_FINALIZE[0]
+shell$
+</pre></div>
+</div>
+<p>Keep in mind that the output from the trace library is going to
+<code class="docutils literal notranslate"><span class="pre">stderr</span></code>, so it may output in a slightly different order than the
+<code class="docutils literal notranslate"><span class="pre">stdout</span></code> from your application.</p>
+<p>This library is being offered as a “proof of concept” / convenience
+from Open MPI.  If there is interest, it is trivially easy to extend
+it to printf for other MPI functions.  Pull requests on github.com
+would be greatly appreciated.</p>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="run-time.html" class="btn btn-neutral float-left" title="3.5. General Run-Time Support Notes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="openshmem.html" class="btn btn-neutral float-right" title="3.7. OpenSHMEM Functionality and Features" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

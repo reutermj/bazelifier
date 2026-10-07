@@ -1,0 +1,179 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7. Release Notes &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=786a2b67"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="8. History" href="history.html" />
+    <link rel="prev" title="6.2. Resolving Peers and Nodes" href="how-things-work/resolve.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">7. Release Notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#general-notes">7.1. General notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compiler-notes">7.2. Compiler Notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7. </span>Release Notes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/release-notes.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="release-notes">
+<h1><span class="section-number">7. </span>Release Notes<a class="headerlink" href="#release-notes" title="Link to this heading"></a></h1>
+<p>The following abbreviated list of release notes applies to this code
+base as of this writing (10 Mar 2023):</p>
+<section id="general-notes">
+<h2><span class="section-number">7.1. </span>General notes<a class="headerlink" href="#general-notes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Systems that have been tested are:</p>
+<ul>
+<li><p>Linux (various flavors/distros), 64 bit (x86), with gcc, Intel,
+and Portland (*)</p></li>
+<li><p>OS X (10.7 and above), 64 bit (x86_64), with gcc and clang (*)</p></li>
+</ul>
+</li>
+<li><p>OpenPMIx has taken some steps towards Reproducible Builds
+(<a class="reference external" href="https://reproducible-builds.org/">https://reproducible-builds.org/</a>).  Specifically, OpenPMIx’s
+<code class="docutils literal notranslate"><span class="pre">configure</span></code> and <code class="docutils literal notranslate"><span class="pre">make</span></code> process, by default, records the build date
+and some system-specific information such as the hostname where OpenPMIx
+was built and the username who built it.  If you desire a
+Reproducible Build, set the <code class="docutils literal notranslate"><span class="pre">$SOURCE_DATE_EPOCH</span></code>, <code class="docutils literal notranslate"><span class="pre">$USER</span></code> and <code class="docutils literal notranslate"><span class="pre">$HOSTNAME</span></code>
+environment variables before invoking <code class="docutils literal notranslate"><span class="pre">configure</span></code> and <code class="docutils literal notranslate"><span class="pre">make</span></code>, and
+OpenPMIx will use those values instead of invoking <code class="docutils literal notranslate"><span class="pre">whoami</span></code> and/or
+<code class="docutils literal notranslate"><span class="pre">hostname</span></code>, respectively.  See
+<a class="reference external" href="https://reproducible-builds.org/docs/source-date-epoch/">https://reproducible-builds.org/docs/source-date-epoch/</a> for
+information on the expected format and content of the
+<code class="docutils literal notranslate"><span class="pre">$SOURCE_DATE_EPOCH</span></code> variable.</p></li>
+</ul>
+</section>
+<section id="compiler-notes">
+<h2><span class="section-number">7.2. </span>Compiler Notes<a class="headerlink" href="#compiler-notes" title="Link to this heading"></a></h2>
+<ul>
+<li><p>The Portland Group compilers prior to version 7.0 require the
+<code class="docutils literal notranslate"><span class="pre">-Msignextend</span></code> compiler flag to extend the sign bit when converting
+from a shorter to longer integer.  This is is different than other
+compilers (such as GNU).  When compiling PMIx with the Portland
+compiler suite, the following flags should be passed to PMIx’s
+configure script:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span><span class="nv">CFLAGS</span><span class="o">=</span>-Msignextend<span class="w"> </span>...
+</pre></div>
+</div>
+<p>This will compile PMIx with the proper compile flags.</p>
+</li>
+<li><p>Running on nodes with different endian and/or different datatype
+sizes within a single parallel job is supported in this release.
+However, PMIx does not resize data when datatypes differ in size
+(for example, sending a 4 byte double and receiving an 8 byte
+double will fail).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="how-things-work/resolve.html" class="btn btn-neutral float-left" title="6.2. Resolving Peers and Nodes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="history.html" class="btn btn-neutral float-right" title="8. History" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

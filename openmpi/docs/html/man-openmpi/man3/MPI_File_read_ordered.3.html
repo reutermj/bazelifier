@@ -1,0 +1,739 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17.2.135. MPI_File_read_ordered &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="17.2.136. MPI_File_read_ordered_begin" href="MPI_File_read_ordered_begin.3.html" />
+    <link rel="prev" title="17.2.134. MPI_File_read_at_all_end" href="MPI_File_read_at_all_end.3.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">17. Open MPI manual pages</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../man1/index.html">17.1. Commands (section 1)</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">17.2. MPI API manual pages (section 3)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="MPI_Abort.3.html">17.2.1. MPI_Abort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Accumulate.3.html">17.2.2. MPI_Accumulate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Add_error_class.3.html">17.2.3. MPI_Add_error_class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Add_error_code.3.html">17.2.4. MPI_Add_error_code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Add_error_string.3.html">17.2.5. MPI_Add_error_string</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Address.3.html">17.2.6. MPI_Address</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Aint_add.3.html">17.2.7. MPI_Aint_add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Aint_diff.3.html">17.2.8. MPI_Aint_diff</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Allgather.3.html">17.2.9. MPI_Allgather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Allgather_init.3.html">17.2.10. MPI_Allgather_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Allgatherv.3.html">17.2.11. MPI_Allgatherv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Allgatherv_init.3.html">17.2.12. MPI_Allgatherv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Alloc_mem.3.html">17.2.13. MPI_Alloc_mem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Allreduce.3.html">17.2.14. MPI_Allreduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Allreduce_init.3.html">17.2.15. MPI_Allreduce_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Alltoall.3.html">17.2.16. MPI_Alltoall</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Alltoall_init.3.html">17.2.17. MPI_Alltoall_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Alltoallv.3.html">17.2.18. MPI_Alltoallv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Alltoallv_init.3.html">17.2.19. MPI_Alltoallv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Alltoallw.3.html">17.2.20. MPI_Alltoallw</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Alltoallw_init.3.html">17.2.21. MPI_Alltoallw_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Attr_delete.3.html">17.2.22. MPI_Attr_delete</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Attr_get.3.html">17.2.23. MPI_Attr_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Attr_put.3.html">17.2.24. MPI_Attr_put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Barrier.3.html">17.2.25. MPI_Barrier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Barrier_init.3.html">17.2.26. MPI_Barrier_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Bcast.3.html">17.2.27. MPI_Bcast</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Bcast_init.3.html">17.2.28. MPI_Bcast_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Bsend.3.html">17.2.29. MPI_Bsend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Bsend_init.3.html">17.2.30. MPI_Bsend_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Buffer_attach.3.html">17.2.31. MPI_Buffer_attach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Buffer_detach.3.html">17.2.32. MPI_Buffer_detach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cancel.3.html">17.2.33. MPI_Cancel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cart_coords.3.html">17.2.34. MPI_Cart_coords</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cart_create.3.html">17.2.35. MPI_Cart_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cart_get.3.html">17.2.36. MPI_Cart_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cart_map.3.html">17.2.37. MPI_Cart_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cart_rank.3.html">17.2.38. MPI_Cart_rank</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cart_shift.3.html">17.2.39. MPI_Cart_shift</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cart_sub.3.html">17.2.40. MPI_Cart_sub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Cartdim_get.3.html">17.2.41. MPI_Cartdim_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Close_port.3.html">17.2.42. MPI_Close_port</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_accept.3.html">17.2.43. MPI_Comm_accept</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_c2f.3.html">17.2.44. MPI_Comm_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_call_errhandler.3.html">17.2.45. MPI_Comm_call_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_compare.3.html">17.2.46. MPI_Comm_compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_connect.3.html">17.2.47. MPI_Comm_connect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_create.3.html">17.2.48. MPI_Comm_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_create_errhandler.3.html">17.2.49. MPI_Comm_create_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_create_from_group.3.html">17.2.50. MPI_Comm_create_from_group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_create_group.3.html">17.2.51. MPI_Comm_create_group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_create_keyval.3.html">17.2.52. MPI_Comm_create_keyval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_delete_attr.3.html">17.2.53. MPI_Comm_delete_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_disconnect.3.html">17.2.54. MPI_Comm_disconnect</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_dup.3.html">17.2.55. MPI_Comm_dup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_dup_with_info.3.html">17.2.56. MPI_Comm_dup_with_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_f2c.3.html">17.2.57. MPI_Comm_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_free.3.html">17.2.58. MPI_Comm_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_free_keyval.3.html">17.2.59. MPI_Comm_free_keyval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_get_attr.3.html">17.2.60. MPI_Comm_get_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_get_errhandler.3.html">17.2.61. MPI_Comm_get_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_get_info.3.html">17.2.62. MPI_Comm_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_get_name.3.html">17.2.63. MPI_Comm_get_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_get_parent.3.html">17.2.64. MPI_Comm_get_parent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_group.3.html">17.2.65. MPI_Comm_group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_idup.3.html">17.2.66. MPI_Comm_idup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_idup_with_info.3.html">17.2.67. MPI_Comm_idup_with_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_join.3.html">17.2.68. MPI_Comm_join</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_rank.3.html">17.2.69. MPI_Comm_rank</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_remote_group.3.html">17.2.70. MPI_Comm_remote_group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_remote_size.3.html">17.2.71. MPI_Comm_remote_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_set_attr.3.html">17.2.72. MPI_Comm_set_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_set_errhandler.3.html">17.2.73. MPI_Comm_set_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_set_info.3.html">17.2.74. MPI_Comm_set_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_set_name.3.html">17.2.75. MPI_Comm_set_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_size.3.html">17.2.76. MPI_Comm_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_spawn.3.html">17.2.77. MPI_Comm_spawn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_spawn_multiple.3.html">17.2.78. MPI_Comm_spawn_multiple</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_split.3.html">17.2.79. MPI_Comm_split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_split_type.3.html">17.2.80. MPI_Comm_split_type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Comm_test_inter.3.html">17.2.81. MPI_Comm_test_inter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Compare_and_swap.3.html">17.2.82. MPI_Compare_and_swap</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Dims_create.3.html">17.2.83. MPI_Dims_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Dist_graph_create.3.html">17.2.84. MPI_Dist_graph_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Dist_graph_create_adjacent.3.html">17.2.85. MPI_Dist_graph_create_adjacent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Dist_graph_neighbors.3.html">17.2.86. MPI_Dist_graph_neighbors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Dist_graph_neighbors_count.3.html">17.2.87. MPI_Dist_graph_neighbors_count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Errhandler_create.3.html">17.2.88. MPI_Errhandler_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Errhandler_free.3.html">17.2.89. MPI_Errhandler_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Errhandler_get.3.html">17.2.90. MPI_Errhandler_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Errhandler_set.3.html">17.2.91. MPI_Errhandler_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Errors.3.html">17.2.92. MPI Errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Error_class.3.html">17.2.93. MPI_Error_class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Error_string.3.html">17.2.94. MPI_Error_string</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Exscan.3.html">17.2.95. MPI_Exscan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Exscan_init.3.html">17.2.96. MPI_Exscan_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Fetch_and_op.3.html">17.2.97. MPI_Fetch_and_op</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_c2f.3.html">17.2.98. MPI_File_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_call_errhandler.3.html">17.2.99. MPI_File_call_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_close.3.html">17.2.100. MPI_File_close</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_create_errhandler.3.html">17.2.101. MPI_File_create_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_delete.3.html">17.2.102. MPI_File_delete</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_f2c.3.html">17.2.103. MPI_File_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_amode.3.html">17.2.104. MPI_File_get_amode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_atomicity.3.html">17.2.105. MPI_File_get_atomicity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_byte_offset.3.html">17.2.106. MPI_File_get_byte_offset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_errhandler.3.html">17.2.107. MPI_File_get_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_group.3.html">17.2.108. MPI_File_get_group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_info.3.html">17.2.109. MPI_File_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_position.3.html">17.2.110. MPI_File_get_position</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_position_shared.3.html">17.2.111. MPI_File_get_position_shared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_size.3.html">17.2.112. MPI_File_get_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_type_extent.3.html">17.2.113. MPI_File_get_type_extent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_get_view.3.html">17.2.114. MPI_File_get_view</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iread.3.html">17.2.115. MPI_File_iread</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iread_all.3.html">17.2.116. MPI_File_iread_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iread_at.3.html">17.2.117. MPI_File_iread_at</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iread_at_all.3.html">17.2.118. MPI_File_iread_at_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iread_shared.3.html">17.2.119. MPI_File_iread_shared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iwrite.3.html">17.2.120. MPI_File_iwrite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iwrite_all.3.html">17.2.121. MPI_File_iwrite_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iwrite_at.3.html">17.2.122. MPI_File_iwrite_at</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iwrite_at_all.3.html">17.2.123. MPI_File_iwrite_at_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_iwrite_shared.3.html">17.2.124. MPI_File_iwrite_shared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_open.3.html">17.2.125. MPI_File_open</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_preallocate.3.html">17.2.126. MPI_File_preallocate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read.3.html">17.2.127. MPI_File_read</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_all.3.html">17.2.128. MPI_File_read_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_all_begin.3.html">17.2.129. MPI_File_read_all_begin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_all_end.3.html">17.2.130. MPI_File_read_all_end</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_at.3.html">17.2.131. MPI_File_read_at</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_at_all.3.html">17.2.132. MPI_File_read_at_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_at_all_begin.3.html">17.2.133. MPI_File_read_at_all_begin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_at_all_end.3.html">17.2.134. MPI_File_read_at_all_end</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">17.2.135. MPI_File_read_ordered</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#syntax">17.2.135.1. SYNTAX</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#input-parameters">17.2.135.2. INPUT PARAMETERS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#output-parameters">17.2.135.3. OUTPUT PARAMETERS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#description">17.2.135.4. DESCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#errors">17.2.135.5. ERRORS</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_ordered_begin.3.html">17.2.136. MPI_File_read_ordered_begin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_ordered_end.3.html">17.2.137. MPI_File_read_ordered_end</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_read_shared.3.html">17.2.138. MPI_File_read_shared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_seek.3.html">17.2.139. MPI_File_seek</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_seek_shared.3.html">17.2.140. MPI_File_seek_shared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_set_atomicity.3.html">17.2.141. MPI_File_set_atomicity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_set_errhandler.3.html">17.2.142. MPI_File_set_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_set_info.3.html">17.2.143. MPI_File_set_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_set_size.3.html">17.2.144. MPI_File_set_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_set_view.3.html">17.2.145. MPI_File_set_view</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_sync.3.html">17.2.146. MPI_File_sync</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write.3.html">17.2.147. MPI_File_write</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_all.3.html">17.2.148. MPI_File_write_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_all_begin.3.html">17.2.149. MPI_File_write_all_begin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_all_end.3.html">17.2.150. MPI_File_write_all_end</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_at.3.html">17.2.151. MPI_File_write_at</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_at_all.3.html">17.2.152. MPI_File_write_at_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_at_all_begin.3.html">17.2.153. MPI_File_write_at_all_begin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_at_all_end.3.html">17.2.154. MPI_File_write_at_all_end</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_ordered.3.html">17.2.155. MPI_File_write_ordered</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_ordered_begin.3.html">17.2.156. MPI_File_write_ordered_begin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_ordered_end.3.html">17.2.157. MPI_File_write_ordered_end</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_File_write_shared.3.html">17.2.158. MPI_File_write_shared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Finalize.3.html">17.2.159. MPI_Finalize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Finalized.3.html">17.2.160. MPI_Finalized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Free_mem.3.html">17.2.161. MPI_Free_mem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Gather.3.html">17.2.162. MPI_Gather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Gather_init.3.html">17.2.163. MPI_Gather_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Gatherv.3.html">17.2.164. MPI_Gatherv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Gatherv_init.3.html">17.2.165. MPI_Gatherv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get.3.html">17.2.166. MPI_Get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_accumulate.3.html">17.2.167. MPI_Get_accumulate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_address.3.html">17.2.168. MPI_Get_address</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_count.3.html">17.2.169. MPI_Get_count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_elements.3.html">17.2.170. MPI_Get_elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_elements_x.3.html">17.2.171. MPI_Get_elements_x</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_library_version.3.html">17.2.172. MPI_Get_library_version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_processor_name.3.html">17.2.173. MPI_Get_processor_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Get_version.3.html">17.2.174. MPI_Get_version</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Graph_create.3.html">17.2.175. MPI_Graph_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Graph_get.3.html">17.2.176. MPI_Graph_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Graph_map.3.html">17.2.177. MPI_Graph_map</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Graph_neighbors.3.html">17.2.178. MPI_Graph_neighbors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Graph_neighbors_count.3.html">17.2.179. MPI_Graph_neighbors_count</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Graphdims_get.3.html">17.2.180. MPI_Graphdims_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Grequest_complete.3.html">17.2.181. MPI_Grequest_complete</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Grequest_start.3.html">17.2.182. MPI_Grequest_start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_c2f.3.html">17.2.183. MPI_Group_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_compare.3.html">17.2.184. MPI_Group_compare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_difference.3.html">17.2.185. MPI_Group_difference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_excl.3.html">17.2.186. MPI_Group_excl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_f2c.3.html">17.2.187. MPI_Group_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_free.3.html">17.2.188. MPI_Group_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_from_session_pset.3.html">17.2.189. MPI_Group_from_session_pset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_incl.3.html">17.2.190. MPI_Group_incl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_intersection.3.html">17.2.191. MPI_Group_intersection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_range_excl.3.html">17.2.192. MPI_Group_range_excl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_range_incl.3.html">17.2.193. MPI_Group_range_incl</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_rank.3.html">17.2.194. MPI_Group_rank</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_size.3.html">17.2.195. MPI_Group_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_translate_ranks.3.html">17.2.196. MPI_Group_translate_ranks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Group_union.3.html">17.2.197. MPI_Group_union</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iallgather.3.html">17.2.198. MPI_Iallgather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iallgatherv.3.html">17.2.199. MPI_Iallgatherv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iallreduce.3.html">17.2.200. MPI_Iallreduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ialltoall.3.html">17.2.201. MPI_Ialltoall</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ialltoallv.3.html">17.2.202. MPI_Ialltoallv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ialltoallw.3.html">17.2.203. MPI_Ialltoallw</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ibarrier.3.html">17.2.204. MPI_Ibarrier</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ibcast.3.html">17.2.205. MPI_Ibcast</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ibsend.3.html">17.2.206. MPI_Ibsend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iexscan.3.html">17.2.207. MPI_Iexscan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Igather.3.html">17.2.208. MPI_Igather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Igatherv.3.html">17.2.209. MPI_Igatherv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Improbe.3.html">17.2.210. MPI_Improbe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Imrecv.3.html">17.2.211. MPI_Imrecv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ineighbor_allgather.3.html">17.2.212. MPI_Ineighbor_allgather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ineighbor_allgatherv.3.html">17.2.213. MPI_Ineighbor_allgatherv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ineighbor_alltoall.3.html">17.2.214. MPI_Ineighbor_alltoall</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ineighbor_alltoallv.3.html">17.2.215. MPI_Ineighbor_alltoallv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ineighbor_alltoallw.3.html">17.2.216. MPI_Ineighbor_alltoallw</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_c2f.3.html">17.2.217. MPI_Info_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_create.3.html">17.2.218. MPI_Info_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_create_env.3.html">17.2.219. MPI_Info_create_env</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_delete.3.html">17.2.220. MPI_Info_delete</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_dup.3.html">17.2.221. MPI_Info_dup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_env.3.html">17.2.222. MPI_Info_env</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_f2c.3.html">17.2.223. MPI_Info_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_free.3.html">17.2.224. MPI_Info_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_get.3.html">17.2.225. MPI_Info_get</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_get_nkeys.3.html">17.2.226. MPI_Info_get_nkeys</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_get_nthkey.3.html">17.2.227. MPI_Info_get_nthkey</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_get_string.3.html">17.2.228. MPI_Info_get_string</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_get_valuelen.3.html">17.2.229. MPI_Info_get_valuelen</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Info_set.3.html">17.2.230. MPI_Info_set</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Init.3.html">17.2.231. MPI_Init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Init_thread.3.html">17.2.232. MPI_Init_thread</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Initialized.3.html">17.2.233. MPI_Initialized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Intercomm_create.3.html">17.2.234. MPI_Intercomm_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Intercomm_create_from_groups.3.html">17.2.235. MPI_Intercomm_create_from_groups</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Intercomm_merge.3.html">17.2.236. MPI_Intercomm_merge</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iprobe.3.html">17.2.237. MPI_Iprobe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Irecv.3.html">17.2.238. MPI_Irecv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ireduce.3.html">17.2.239. MPI_Ireduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ireduce_scatter.3.html">17.2.240. MPI_Ireduce_scatter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ireduce_scatter_block.3.html">17.2.241. MPI_Ireduce_scatter_block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Irsend.3.html">17.2.242. MPI_Irsend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Is_thread_main.3.html">17.2.243. MPI_Is_thread_main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iscan.3.html">17.2.244. MPI_Iscan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iscatter.3.html">17.2.245. MPI_Iscatter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Iscatterv.3.html">17.2.246. MPI_Iscatterv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Isend.3.html">17.2.247. MPI_Isend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Isendrecv.3.html">17.2.248. MPI_Isendrecv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Isendrecv_replace.3.html">17.2.249. MPI_Isendrecv_replace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Issend.3.html">17.2.250. MPI_Issend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Keyval_create.3.html">17.2.251. MPI_Keyval_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Keyval_free.3.html">17.2.252. MPI_Keyval_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Lookup_name.3.html">17.2.253. MPI_Lookup_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Message_c2f.3.html">17.2.254. MPI_Message_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Message_f2c.3.html">17.2.255. MPI_Message_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Mprobe.3.html">17.2.256. MPI_Mprobe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Mrecv.3.html">17.2.257. MPI_Mrecv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_allgather.3.html">17.2.258. MPI_Neighbor_allgather</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_allgather_init.3.html">17.2.259. MPI_Neighbor_allgather_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_allgatherv.3.html">17.2.260. MPI_Neighbor_allgatherv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_allgatherv_init.3.html">17.2.261. MPI_Neighbor_allgatherv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_alltoall.3.html">17.2.262. MPI_Neighbor_alltoall</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_alltoall_init.3.html">17.2.263. MPI_Neighbor_alltoall_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_alltoallv.3.html">17.2.264. MPI_Neighbor_alltoallv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_alltoallv_init.3.html">17.2.265. MPI_Neighbor_alltoallv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_alltoallw.3.html">17.2.266. MPI_Neighbor_alltoallw</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Neighbor_alltoallw_init.3.html">17.2.267. MPI_Neighbor_alltoallw_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Op_c2f.3.html">17.2.268. MPI_Op_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Op_commutative.3.html">17.2.269. MPI_Op_commutative</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Op_create.3.html">17.2.270. MPI_Op_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Op_f2c.3.html">17.2.271. MPI_Op_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Op_free.3.html">17.2.272. MPI_Op_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Open_port.3.html">17.2.273. MPI_Open_port</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pack.3.html">17.2.274. MPI_Pack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pack_external.3.html">17.2.275. MPI_Pack_external</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pack_external_size.3.html">17.2.276. MPI_Pack_external_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pack_size.3.html">17.2.277. MPI_Pack_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Parrived.3.html">17.2.278. MPI_Parrived</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pcontrol.3.html">17.2.279. MPI_Pcontrol</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pready.3.html">17.2.280. MPI_Pready</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pready_list.3.html">17.2.281. MPI_Pready_list</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Pready_range.3.html">17.2.282. MPI_Pready_range</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Precv_init.3.html">17.2.283. MPI_Precv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Probe.3.html">17.2.284. MPI_Probe</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Psend_init.3.html">17.2.285. MPI_Psend_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Publish_name.3.html">17.2.286. MPI_Publish_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Put.3.html">17.2.287. MPI_Put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Query_thread.3.html">17.2.288. MPI_Query_thread</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Raccumulate.3.html">17.2.289. MPI_Raccumulate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Recv.3.html">17.2.290. MPI_Recv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Recv_init.3.html">17.2.291. MPI_Recv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Reduce.3.html">17.2.292. MPI_Reduce</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Reduce_init.3.html">17.2.293. MPI_Reduce_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Reduce_local.3.html">17.2.294. MPI_Reduce_local</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Reduce_scatter.3.html">17.2.295. MPI_Reduce_scatter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Reduce_scatter_block.3.html">17.2.296. MPI_Reduce_scatter_block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Reduce_scatter_block_init.3.html">17.2.297. MPI_Reduce_scatter_block_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Reduce_scatter_init.3.html">17.2.298. MPI_Reduce_scatter_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Register_datarep.3.html">17.2.299. MPI_Register_datarep</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Request_c2f.3.html">17.2.300. MPI_Request_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Request_f2c.3.html">17.2.301. MPI_Request_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Request_free.3.html">17.2.302. MPI_Request_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Request_get_status.3.html">17.2.303. MPI_Request_get_status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Rget.3.html">17.2.304. MPI_Rget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Rget_accumulate.3.html">17.2.305. MPI_Rget_accumulate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Rput.3.html">17.2.306. MPI_Rput</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Rsend.3.html">17.2.307. MPI_Rsend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Rsend_init.3.html">17.2.308. MPI_Rsend_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Scan.3.html">17.2.309. MPI_Scan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Scan_init.3.html">17.2.310. MPI_Scan_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Scatter.3.html">17.2.311. MPI_Scatter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Scatter_init.3.html">17.2.312. MPI_Scatter_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Scatterv.3.html">17.2.313. MPI_Scatterv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Scatterv_init.3.html">17.2.314. MPI_Scatterv_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Send.3.html">17.2.315. MPI_Send</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Send_init.3.html">17.2.316. MPI_Send_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Sendrecv.3.html">17.2.317. MPI_Sendrecv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Sendrecv_replace.3.html">17.2.318. MPI_Sendrecv_replace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_call_errhandler.3.html">17.2.319. MPI_Session_call_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_create_errhandler.3.html">17.2.320. MPI_Session_create_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_c2f.3.html">17.2.321. MPI_Session_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_f2c.3.html">17.2.322. MPI_Session_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_finalize.3.html">17.2.323. MPI_Session_finalize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_get_errhandler.3.html">17.2.324. MPI_Session_get_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_get_info.3.html">17.2.325. MPI_Session_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_get_nth_pset.3.html">17.2.326. MPI_Session_get_nth_pset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_get_num_psets.3.html">17.2.327. MPI_Session_get_num_psets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_get_pset_info.3.html">17.2.328. MPI_Session_get_pset_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_init.3.html">17.2.329. MPI_Session_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Session_set_errhandler.3.html">17.2.330. MPI_Session_set_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Sizeof.3.html">17.2.331. MPI_Sizeof</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ssend.3.html">17.2.332. MPI_Ssend</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Ssend_init.3.html">17.2.333. MPI_Ssend_init</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Start.3.html">17.2.334. MPI_Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Startall.3.html">17.2.335. MPI_Startall</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_c2f.3.html">17.2.336. MPI_Status_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_c2f08.3.html">17.2.337. MPI_Status_c2f08</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_f082c.3.html">17.2.338. MPI_Status_f082c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_f082f.3.html">17.2.339. MPI_Status_f082f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_f2c.3.html">17.2.340. MPI_Status_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_f2f08.3.html">17.2.341. MPI_Status_f2f08</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_set_cancelled.3.html">17.2.342. MPI_Status_set_cancelled</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_set_elements.3.html">17.2.343. MPI_Status_set_elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Status_set_elements_x.3.html">17.2.344. MPI_Status_set_elements_x</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T.3.html">17.2.345. MPI_T</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_category_changed.3.html">17.2.346. MPI_T_category_changed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_category_get_categories.3.html">17.2.347. MPI_T_category_get_categories</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_category_get_cvars.3.html">17.2.348. MPI_T_category_get_cvars</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_category_get_info.3.html">17.2.349. MPI_T_category_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_category_get_num.3.html">17.2.350. MPI_T_category_get_num</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_category_get_pvars.3.html">17.2.351. MPI_T_category_get_pvars</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_cvar_get_info.3.html">17.2.352. MPI_T_cvar_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_cvar_get_num.3.html">17.2.353. MPI_T_cvar_get_num</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_cvar_handle_alloc.3.html">17.2.354. MPI_T_cvar_handle_alloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_cvar_handle_free.3.html">17.2.355. MPI_T_cvar_handle_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_cvar_read.3.html">17.2.356. MPI_T_cvar_read</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_cvar_write.3.html">17.2.357. MPI_T_cvar_write</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_enum_get_info.3.html">17.2.358. MPI_T_enum_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_enum_get_item.3.html">17.2.359. MPI_T_enum_get_item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_finalize.3.html">17.2.360. MPI_T_finalize</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_init_thread.3.html">17.2.361. MPI_T_init_thread</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_get_info.3.html">17.2.362. MPI_T_pvar_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_get_num.3.html">17.2.363. MPI_T_pvar_get_num</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_handle_alloc.3.html">17.2.364. MPI_T_pvar_handle_alloc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_handle_free.3.html">17.2.365. MPI_T_pvar_handle_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_read.3.html">17.2.366. MPI_T_pvar_read</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_readreset.3.html">17.2.367. MPI_T_pvar_readreset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_reset.3.html">17.2.368. MPI_T_pvar_reset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_session_create.3.html">17.2.369. MPI_T_pvar_session_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_session_free.3.html">17.2.370. MPI_T_pvar_session_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_start.3.html">17.2.371. MPI_T_pvar_start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_stop.3.html">17.2.372. MPI_T_pvar_stop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_T_pvar_write.3.html">17.2.373. MPI_T_pvar_write</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Test.3.html">17.2.374. MPI_Test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Test_cancelled.3.html">17.2.375. MPI_Test_cancelled</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Testall.3.html">17.2.376. MPI_Testall</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Testany.3.html">17.2.377. MPI_Testany</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Testsome.3.html">17.2.378. MPI_Testsome</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Topo_test.3.html">17.2.379. MPI_Topo_test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_c2f.3.html">17.2.380. MPI_Type_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_commit.3.html">17.2.381. MPI_Type_commit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_contiguous.3.html">17.2.382. MPI_Type_contiguous</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_darray.3.html">17.2.383. MPI_Type_create_darray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_f90_complex.3.html">17.2.384. MPI_Type_create_f90_complex</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_f90_integer.3.html">17.2.385. MPI_Type_create_f90_integer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_f90_real.3.html">17.2.386. MPI_Type_create_f90_real</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_hindexed.3.html">17.2.387. MPI_Type_create_hindexed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_hindexed_block.3.html">17.2.388. MPI_Type_create_hindexed_block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_hvector.3.html">17.2.389. MPI_Type_create_hvector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_indexed_block.3.html">17.2.390. MPI_Type_create_indexed_block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_keyval.3.html">17.2.391. MPI_Type_create_keyval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_resized.3.html">17.2.392. MPI_Type_create_resized</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_struct.3.html">17.2.393. MPI_Type_create_struct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_create_subarray.3.html">17.2.394. MPI_Type_create_subarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_delete_attr.3.html">17.2.395. MPI_Type_delete_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_dup.3.html">17.2.396. MPI_Type_dup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_extent.3.html">17.2.397. MPI_Type_extent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_f2c.3.html">17.2.398. MPI_Type_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_free.3.html">17.2.399. MPI_Type_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_free_keyval.3.html">17.2.400. MPI_Type_free_keyval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_attr.3.html">17.2.401. MPI_Type_get_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_contents.3.html">17.2.402. MPI_Type_get_contents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_envelope.3.html">17.2.403. MPI_Type_get_envelope</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_extent.3.html">17.2.404. MPI_Type_get_extent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_extent_x.3.html">17.2.405. MPI_Type_get_extent_x</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_name.3.html">17.2.406. MPI_Type_get_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_true_extent.3.html">17.2.407. MPI_Type_get_true_extent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_get_true_extent_x.3.html">17.2.408. MPI_Type_get_true_extent_x</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_hindexed.3.html">17.2.409. MPI_Type_hindexed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_hvector.3.html">17.2.410. MPI_Type_hvector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_indexed.3.html">17.2.411. MPI_Type_indexed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_lb.3.html">17.2.412. MPI_Type_lb</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_match_size.3.html">17.2.413. MPI_Type_match_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_set_attr.3.html">17.2.414. MPI_Type_set_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_set_name.3.html">17.2.415. MPI_Type_set_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_size.3.html">17.2.416. MPI_Type_size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_size_x.3.html">17.2.417. MPI_Type_size_x</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_struct.3.html">17.2.418. MPI_Type_struct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_ub.3.html">17.2.419. MPI_Type_ub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Type_vector.3.html">17.2.420. MPI_Type_vector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Unpack.3.html">17.2.421. MPI_Unpack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Unpack_external.3.html">17.2.422. MPI_Unpack_external</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Unpublish_name.3.html">17.2.423. MPI_Unpublish_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Wait.3.html">17.2.424. MPI_Wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Waitall.3.html">17.2.425. MPI_Waitall</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Waitany.3.html">17.2.426. MPI_Waitany</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Waitsome.3.html">17.2.427. MPI_Waitsome</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_allocate.3.html">17.2.428. MPI_Win_allocate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_allocate_shared.3.html">17.2.429. MPI_Win_allocate_shared</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_attach.3.html">17.2.430. MPI_Win_attach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_c2f.3.html">17.2.431. MPI_Win_c2f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_call_errhandler.3.html">17.2.432. MPI_Win_call_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_complete.3.html">17.2.433. MPI_Win_complete</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_create.3.html">17.2.434. MPI_Win_create</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_create_dynamic.3.html">17.2.435. MPI_Win_create_dynamic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_create_errhandler.3.html">17.2.436. MPI_Win_create_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_create_keyval.3.html">17.2.437. MPI_Win_create_keyval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_delete_attr.3.html">17.2.438. MPI_Win_delete_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_detach.3.html">17.2.439. MPI_Win_detach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_f2c.3.html">17.2.440. MPI_Win_f2c</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_fence.3.html">17.2.441. MPI_Win_fence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_flush.3.html">17.2.442. MPI_Win_flush</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_flush_all.3.html">17.2.443. MPI_Win_flush_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_flush_local.3.html">17.2.444. MPI_Win_flush_local</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_flush_local_all.3.html">17.2.445. MPI_Win_flush_local_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_free.3.html">17.2.446. MPI_Win_free</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_free_keyval.3.html">17.2.447. MPI_Win_free_keyval</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_get_attr.3.html">17.2.448. MPI_Win_get_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_get_errhandler.3.html">17.2.449. MPI_Win_get_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_get_group.3.html">17.2.450. MPI_Win_get_group</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_get_info.3.html">17.2.451. MPI_Win_get_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_get_name.3.html">17.2.452. MPI_Win_get_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_lock.3.html">17.2.453. MPI_Win_lock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_lock_all.3.html">17.2.454. MPI_Win_lock_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_post.3.html">17.2.455. MPI_Win_post</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_set_attr.3.html">17.2.456. MPI_Win_set_attr</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_set_errhandler.3.html">17.2.457. MPI_Win_set_errhandler</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_set_info.3.html">17.2.458. MPI_Win_set_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_set_name.3.html">17.2.459. MPI_Win_set_name</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_shared_query.3.html">17.2.460. MPI_Win_shared_query</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_start.3.html">17.2.461. MPI_Win_start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_sync.3.html">17.2.462. MPI_Win_sync</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_test.3.html">17.2.463. MPI_Win_test</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_unlock.3.html">17.2.464. MPI_Win_unlock</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_unlock_all.3.html">17.2.465. MPI_Win_unlock_all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Win_wait.3.html">17.2.466. MPI_Win_wait</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Wtick.3.html">17.2.467. MPI_Wtick</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPI_Wtime.3.html">17.2.468. MPI_Wtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_ack_failed.3.html">17.2.469. MPIX_Comm_ack_failed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_agree.3.html">17.2.470. MPIX_Comm_agree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_get_failed.3.html">17.2.471. MPIX_Comm_get_failed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_iagree.3.html">17.2.472. MPIX_Comm_iagree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_ishrink.3.html">17.2.473. MPIX_Comm_ishrink</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_is_revoked.3.html">17.2.474. MPIX_Comm_is_revoked</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_revoke.3.html">17.2.475. MPIX_Comm_revoke</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Comm_shrink.3.html">17.2.476. MPIX_Comm_shrink</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Query_cuda_support.3.html">17.2.477. MPIX_Query_cuda_support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="MPIX_Query_rocm_support.3.html">17.2.478. MPIX_Query_rocm_support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="OMPI_Affinity_str.3.html">17.2.479. OMPI_Affinity_str</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../man7/index.html">17.3. General information manual pages (section 7)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">17. </span>Open MPI manual pages</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">17.2. </span>MPI API manual pages (section 3)</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">17.2.135. </span>MPI_File_read_ordered</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/man-openmpi/man3/MPI_File_read_ordered.3.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="mpi-file-read-ordered">
+<span id="id1"></span><h1><span class="section-number">17.2.135. </span>MPI_File_read_ordered<a class="headerlink" href="#mpi-file-read-ordered" title="Link to this heading"></a></h1>
+<p><a class="reference internal" href="#mpi-file-read-ordered"><span class="std std-ref">MPI_File_read_ordered</span></a> — Reads a file at a location specified by a
+shared file pointer (blocking, collective).</p>
+<section id="syntax">
+<h2><span class="section-number">17.2.135.1. </span>SYNTAX<a class="headerlink" href="#syntax" title="Link to this heading"></a></h2>
+<section id="c-syntax">
+<h3><span class="section-number">17.2.135.1.1. </span>C Syntax<a class="headerlink" href="#c-syntax" title="Link to this heading"></a></h3>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;mpi.h&gt;</span>
+
+<span class="kt">int</span><span class="w"> </span><span class="n">MPI_File_read_ordered</span><span class="p">(</span><span class="n">MPI_File</span><span class="w"> </span><span class="n">fh</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">buf</span><span class="p">,</span>
+<span class="w">     </span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_Datatype</span><span class="w"> </span><span class="n">datatype</span><span class="p">,</span>
+<span class="w">     </span><span class="n">MPI_Status</span><span class="w"> </span><span class="o">*</span><span class="n">status</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="fortran-syntax">
+<h3><span class="section-number">17.2.135.1.2. </span>Fortran Syntax<a class="headerlink" href="#fortran-syntax" title="Link to this heading"></a></h3>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">USE </span><span class="n">MPI</span>
+<span class="c">! or the older form: INCLUDE 'mpif.h'</span>
+<span class="n">MPI_FILE_READ_ORDERED</span><span class="p">(</span><span class="n">FH</span><span class="p">,</span><span class="w"> </span><span class="n">BUF</span><span class="p">,</span><span class="w"> </span><span class="nb">COUNT</span><span class="p">,</span><span class="w"> </span><span class="n">DATATYPE</span><span class="p">,</span>
+<span class="w">     </span><span class="n">STATUS</span><span class="p">,</span><span class="w"> </span><span class="n">IERROR</span><span class="p">)</span>
+<span class="w">     </span><span class="o">&lt;</span><span class="k">type</span><span class="o">&gt;</span><span class="w">  </span><span class="n">BUF</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+<span class="w">     </span><span class="kt">INTEGER </span><span class="n">FH</span><span class="p">,</span><span class="w"> </span><span class="nb">COUNT</span><span class="p">,</span><span class="w"> </span><span class="n">DATATYPE</span><span class="p">,</span><span class="w"> </span><span class="n">STATUS</span><span class="p">(</span><span class="n">MPI_STATUS_SIZE</span><span class="p">),</span><span class="w"> </span><span class="n">IERROR</span>
+</pre></div>
+</div>
+</section>
+<section id="fortran-2008-syntax">
+<h3><span class="section-number">17.2.135.1.3. </span>Fortran 2008 Syntax<a class="headerlink" href="#fortran-2008-syntax" title="Link to this heading"></a></h3>
+<div class="highlight-fortran notranslate"><div class="highlight"><pre><span></span><span class="k">USE </span><span class="n">mpi_f08</span>
+<span class="n">MPI_File_read_ordered</span><span class="p">(</span><span class="n">fh</span><span class="p">,</span><span class="w"> </span><span class="n">buf</span><span class="p">,</span><span class="w"> </span><span class="nb">count</span><span class="p">,</span><span class="w"> </span><span class="n">datatype</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+<span class="w">     </span><span class="k">TYPE</span><span class="p">(</span><span class="n">MPI_File</span><span class="p">),</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">fh</span>
+<span class="w">     </span><span class="k">TYPE</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="k">DIMENSION</span><span class="p">(..)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">buf</span>
+<span class="w">     </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="nb">count</span>
+<span class="nb">     </span><span class="k">TYPE</span><span class="p">(</span><span class="n">MPI_Datatype</span><span class="p">),</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">IN</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">datatype</span>
+<span class="w">     </span><span class="k">TYPE</span><span class="p">(</span><span class="n">MPI_Status</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">status</span>
+<span class="w">     </span><span class="kt">INTEGER</span><span class="p">,</span><span class="w"> </span><span class="k">OPTIONAL</span><span class="p">,</span><span class="w"> </span><span class="k">INTENT</span><span class="p">(</span><span class="n">OUT</span><span class="p">)</span><span class="w"> </span><span class="kd">::</span><span class="w"> </span><span class="n">ierror</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="input-parameters">
+<h2><span class="section-number">17.2.135.2. </span>INPUT PARAMETERS<a class="headerlink" href="#input-parameters" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fh</span></code>: File handle (handle).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">count</span></code>: Number of elements in buffer (integer).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">datatype</span></code>: Data type of each buffer element (handle).</p></li>
+</ul>
+</section>
+<section id="output-parameters">
+<h2><span class="section-number">17.2.135.3. </span>OUTPUT PARAMETERS<a class="headerlink" href="#output-parameters" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">buf</span></code>: Initial address of buffer (choice).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">status</span></code>: Status object (Status).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ierror</span></code>: Fortran only: Error status (integer).</p></li>
+</ul>
+</section>
+<section id="description">
+<h2><span class="section-number">17.2.135.4. </span>DESCRIPTION<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="#mpi-file-read-ordered"><span class="std std-ref">MPI_File_read_ordered</span></a> is a collective routine. This routine must be
+called by all processes in the communicator group associated with the
+file handle <em>fh.</em> Each process may pass different argument values for
+the <em>datatype</em> and <em>count</em> arguments. Each process attempts to read,
+from the file associated with <em>fh,</em> a total number of <em>count</em> data items
+having <em>datatype</em> type into the user’s buffer <em>buf.</em> For each process,
+the location in the file at which data is read is the position at which
+the shared file pointer would be after all processes whose ranks within
+the group are less than that of this process had read their data.
+<a class="reference internal" href="#mpi-file-read-ordered"><span class="std std-ref">MPI_File_read_ordered</span></a> returns the actual number of <em>datatype</em> elements
+read in <em>status.</em> The shared file pointer is updated by the amounts of
+data requested by all processes of the group.</p>
+</section>
+<section id="errors">
+<h2><span class="section-number">17.2.135.5. </span>ERRORS<a class="headerlink" href="#errors" title="Link to this heading"></a></h2>
+<p>Almost all MPI routines return an error value; C routines as the return result
+of the function and Fortran routines in the last argument.</p>
+<p>Before the error value is returned, the current MPI error handler associated
+with the communication object (e.g., communicator, window, file) is called.
+If no communication object is associated with the MPI call, then the call is
+considered attached to MPI_COMM_SELF and will call the associated MPI error
+handler. When MPI_COMM_SELF is not initialized (i.e., before
+<a class="reference internal" href="MPI_Init.3.html#mpi-init"><span class="std std-ref">MPI_Init</span></a>/<a class="reference internal" href="MPI_Init_thread.3.html#mpi-init-thread"><span class="std std-ref">MPI_Init_thread</span></a>, after <a class="reference internal" href="MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_Finalize</span></a>, or when using the Sessions
+Model exclusively) the error raises the initial error handler. The initial
+error handler can be changed by calling <a class="reference internal" href="MPI_Comm_set_errhandler.3.html#mpi-comm-set-errhandler"><span class="std std-ref">MPI_Comm_set_errhandler</span></a> on
+MPI_COMM_SELF when using the World model, or the mpi_initial_errhandler CLI
+argument to mpiexec or info key to <a class="reference internal" href="MPI_Comm_spawn.3.html#mpi-comm-spawn"><span class="std std-ref">MPI_Comm_spawn</span></a>/<a class="reference internal" href="MPI_Comm_spawn_multiple.3.html#mpi-comm-spawn-multiple"><span class="std std-ref">MPI_Comm_spawn_multiple</span></a>.
+If no other appropriate error handler has been set, then the MPI_ERRORS_RETURN
+error handler is called for MPI I/O functions and the MPI_ERRORS_ABORT error
+handler is called for all other MPI functions.</p>
+<p>Open MPI includes three predefined error handlers that can be used:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_ERRORS_ARE_FATAL</span></code>
+Causes the program to abort all connected MPI processes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_ERRORS_ABORT</span></code>
+An error handler that can be invoked on a communicator,
+window, file, or session. When called on a communicator, it
+acts as if <a class="reference internal" href="MPI_Abort.3.html#mpi-abort"><span class="std std-ref">MPI_Abort</span></a> was called on that communicator. If
+called on a window or file, acts as if <a class="reference internal" href="MPI_Abort.3.html#mpi-abort"><span class="std std-ref">MPI_Abort</span></a> was called
+on a communicator containing the group of processes in the
+corresponding window or file. If called on a session,
+aborts only the local process.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_ERRORS_RETURN</span></code>
+Returns an error code to the application.</p></li>
+</ul>
+<p>MPI applications can also implement their own error handlers by calling:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="MPI_Comm_create_errhandler.3.html#mpi-comm-create-errhandler"><span class="std std-ref">MPI_Comm_create_errhandler</span></a> then <a class="reference internal" href="MPI_Comm_set_errhandler.3.html#mpi-comm-set-errhandler"><span class="std std-ref">MPI_Comm_set_errhandler</span></a></p></li>
+<li><p><a class="reference internal" href="MPI_File_create_errhandler.3.html#mpi-file-create-errhandler"><span class="std std-ref">MPI_File_create_errhandler</span></a> then <a class="reference internal" href="MPI_File_set_errhandler.3.html#mpi-file-set-errhandler"><span class="std std-ref">MPI_File_set_errhandler</span></a></p></li>
+<li><p><a class="reference internal" href="MPI_Session_create_errhandler.3.html#mpi-session-create-errhandler"><span class="std std-ref">MPI_Session_create_errhandler</span></a> then <a class="reference internal" href="MPI_Session_set_errhandler.3.html#mpi-session-set-errhandler"><span class="std std-ref">MPI_Session_set_errhandler</span></a> or at <a class="reference internal" href="MPI_Session_init.3.html#mpi-session-init"><span class="std std-ref">MPI_Session_init</span></a></p></li>
+<li><p><a class="reference internal" href="MPI_Win_create_errhandler.3.html#mpi-win-create-errhandler"><span class="std std-ref">MPI_Win_create_errhandler</span></a> then <a class="reference internal" href="MPI_Win_set_errhandler.3.html#mpi-win-set-errhandler"><span class="std std-ref">MPI_Win_set_errhandler</span></a></p></li>
+</ul>
+<p>Note that MPI does not guarantee that an MPI program can continue past
+an error.</p>
+<p>See the <a class="reference internal" href="../man7/Open-MPI.7.html#open-mpi"><span class="std std-ref">MPI man page</span></a> for a full list of <a class="reference internal" href="MPI_Errors.3.html#open-mpi-errors"><span class="std std-ref">MPI error codes</span></a>.</p>
+<p>See the Error Handling section of the MPI-3.1 standard for
+more information.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="MPI_File_read_at_all_end.3.html" class="btn btn-neutral float-left" title="17.2.134. MPI_File_read_at_all_end" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="MPI_File_read_ordered_begin.3.html" class="btn btn-neutral float-right" title="17.2.136. MPI_File_read_ordered_begin" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

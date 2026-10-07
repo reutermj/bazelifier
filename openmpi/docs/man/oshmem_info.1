@@ -1,0 +1,235 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "OSHMEM_INFO" "1" "Sep 16, 2026" "" "Open MPI"
+.sp
+oshmem_info \- Display information about the OpenSHMEM installation
+.SH SYNOPSIS
+.sp
+\fBoshmem_info [options]\fP
+.SH DESCRIPTION
+.sp
+\fBoshmem_info\fP provides detailed information about the OpenSHMEM
+installation. It can be useful for at least three common scenarios:
+.INDENT 0.0
+.IP 1. 3
+Checking local configuration and seeing how OpenSHMEM was
+installed.
+.IP 2. 3
+Submitting bug reports / help requests to the OpenSHMEM
+community
+(see \fI\%Getting help\fP).
+.IP 3. 3
+Seeing a list of installed OpenSHMEM plugins and querying what MCA
+parameters they support.
+.UNINDENT
+.sp
+\fBNOTE:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fBoshmem_info\fP defaults to only showing a few MCA parameters
+by default (i.e., level 1 parameters). Use the \fB\-\-level\fP
+option to enable showing more options (see the \fI\%LEVELS\fP section for more information).
+.UNINDENT
+.UNINDENT
+.SH OPTIONS
+.sp
+\fBoshmem_info\fP accepts the following options:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-a\fP, \fB\-\-all\fP: Show all configuration options and MCA parameters
+.IP \(bu 2
+\fB\-\-arch\fP: Show architecture OpenSHMEM was compiled on
+.IP \(bu 2
+\fB\-c\fP, \fB\-\-config\fP: Show configuration options
+.IP \(bu 2
+\fB\-gmca\fP, \fB\-\-gmca <param> <value>*\fP: Pass global MCA parameters
+that are applicable to all contexts.
+.IP \(bu 2
+\fB\-h\fP, \fB\-\-help*\fP: Shows help / usage message
+.IP \(bu 2
+\fB\-\-hostname\fP: Show the hostname that OpenSHMEM was configured
+and built on
+.IP \(bu 2
+\fB\-\-internal\fP: Show internal MCA parameters (not meant to be
+modified by users)
+.IP \(bu 2
+\fB\-\-level\fP: Show only variables with at most this level (1\-9). The
+default is 1 unless \fB\-\-all\fP is specified without \fB\-\-level\fP in
+which case the default is 9. See the \fI\%LEVELS\fP section for more information.
+.IP \(bu 2
+\fB\-mca\fP, \fB\-\-mca <param> <value>\fP: Pass context\-specific MCA
+parameters; they are considered global if
+\fB\-\-gmca\fP is not used and only one context is specified.
+.IP \(bu 2
+\fB\-\-param <type> <component>\fP: Show MCA parameters. The first
+parameter is the type of the component to display; the second
+parameter is the specific component to display (or the keyword
+\fBall\fP, meaning “display all components of this type”).
+.IP \(bu 2
+\fB\-\-parsable\fP: When used in conjunction with other parameters,
+the output is displayed in a machine\-parsable format \fB\-\-parseable\fP
+Synonym for \fB\-\-parsable\fP\&.
+.IP \(bu 2
+\fB\-\-path <type>\fP: Show paths that OpenSHMEM was configured
+with. Accepts the following parameters: \fBprefix\fP, \fBbindir\fP,
+\fBlibdir\fP, \fBincdir\fP, \fBpkglibdir\fP, \fBsysconfdir\fP\&.
+.IP \(bu 2
+\fB\-\-pretty\fP: When used in conjunction with other parameters, the
+output is displayed in prettyprint format (default)
+.IP \(bu 2
+\fB\-\-selected\-only\fP: Show only variables from selected components.
+.IP \(bu 2
+\fB\-V\fP, \fB\-\-version*\fP: Show version of OpenSHMEM.
+.UNINDENT
+.SH LEVELS
+.INDENT 0.0
+.IP 1. 3
+Basic information of interest to users
+.IP 2. 3
+Detailed information of interest to users
+.IP 3. 3
+All remaining information of interest to users
+.IP 4. 3
+Basic information required for tuning
+.IP 5. 3
+Detailed information required for tuning
+.IP 6. 3
+All remaining information required for tuning
+.IP 7. 3
+Basic information for OpenSHMEM implementors
+.IP 8. 3
+Detailed information for OpenSHMEM implementors
+.IP 9. 3
+All remaining information for OpenSHMEM implementors
+.UNINDENT
+.SH EXAMPLES
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the default output of options and listing of installed components
+in a human\-readable / prettyprint format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-parsable
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the default output of options and listing of installed components
+in a machine\-parsable format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-param btl openib
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the MCA parameters of the “openib” BTL component in a
+human\-readable / prettyprint format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-param btl openib \-\-parsable
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the MCA parameters of the “openib” BTL component in a
+machine\-parsable format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-path bindir
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the “bindir” that OpenSHMEM was configured with.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-version ompi full \-\-parsable
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the full version numbers of OpenSHMEM (including the ORTE
+and OPAL version numbers) in a machine\-readable format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-version btl major
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the major version number of all BTL components in a prettyprint
+format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-version btl:tcp minor
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show the minor version number of the TCP BTL component in a
+prettyprint format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ oshmem_info \-\-all
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show \fIall\fP information about the OpenSHMEM installation, including all
+components that can be found, the MCA parameters that they support,
+versions of OpenSHMEM and the components, etc.
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

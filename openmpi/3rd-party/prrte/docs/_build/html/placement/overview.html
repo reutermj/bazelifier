@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8.1. Overview &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.4. Examples" href="examples.html" />
+    <link rel="prev" title="8. Process placement" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Process placement</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.1. Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#quick-summary">8.1.1. Quick Summary</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#definition-of-slot">8.2. Definition of ‘slot’</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#slots-are-not-hardware-resources">8.2.1. Slots are not hardware resources</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#definition-of-processor-element">8.3. Definition of “processor element”</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">8.4. Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fundamentals.html">8.5. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="limits.html">8.6. Overloading and Oversubscribing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diagnostics.html">8.7. Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rankfiles.html">8.8. Rankfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecated.html">8.9. Deprecated options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">8. </span>Process placement</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8.1. </span>Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/placement/overview.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="overview">
+<h1><span class="section-number">8.1. </span>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
+<p>PRRTE provides a set of three controls for assigning process
+locations and ranks:</p>
+<ol class="arabic simple">
+<li><p>Mapping: Assigns a default location to each process</p></li>
+<li><p>Ranking: Assigns a unique integer rank value to each process</p></li>
+<li><p>Binding: Constrains each process to run on specific processors</p></li>
+</ol>
+<p>This section provides an overview of these three controls.  Unless
+otherwise this behavior is shared by <code class="docutils literal notranslate"><span class="pre">prun(1)</span></code> (working with a PRRTE
+DVM), and <code class="docutils literal notranslate"><span class="pre">prterun(1)</span></code>. More detail about PRRTE process placement is
+available in the following sections (using <code class="docutils literal notranslate"><span class="pre">--help</span>
+<span class="pre">placement-&lt;section&gt;</span></code>):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">examples</span></code>: some examples of the interactions between mapping,
+ranking, and binding options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fundamentals</span></code>: provides deeper insight into PRRTE’s mapping,
+ranking, and binding options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">limits</span></code>: explains the difference between <em>overloading</em> and
+<em>oversubscribing</em> resources.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">diagnostics</span></code>: describes options for obtaining various diagnostic
+reports that aid the user in verifying and tuning the placement for
+a specific job.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rankfiles</span></code>: explains the format and use of the rankfile mapper
+for specifying arbitrary process placements.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">deprecated</span></code>: a list of deprecated options and their new
+equivalents.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all</span></code>: outputs all the placement help except for the
+<code class="docutils literal notranslate"><span class="pre">deprecated</span></code> section.</p></li>
+</ul>
+<section id="quick-summary">
+<h2><span class="section-number">8.1.1. </span>Quick Summary<a class="headerlink" href="#quick-summary" title="Link to this heading"></a></h2>
+<p>The two binaries that most influence process layout are <code class="docutils literal notranslate"><span class="pre">prte(1)</span></code>
+and <code class="docutils literal notranslate"><span class="pre">prun(1)</span></code>.  The <code class="docutils literal notranslate"><span class="pre">prte(1)</span></code> process discovers the allocation,
+establishes a Distributed Virtual Machine by starting a <code class="docutils literal notranslate"><span class="pre">prted(1)</span></code>
+daemon on each node of the allocation, and defines the efault
+mapping/ranking/binding policies for all jobs.  The <code class="docutils literal notranslate"><span class="pre">prun(1)</span></code> process
+defines the specific mapping/ranking/binding for a specific job. Most
+of the command line controls are targeted to <code class="docutils literal notranslate"><span class="pre">prun(1)</span></code> since each job
+has its own unique requirements.</p>
+<p><code class="docutils literal notranslate"><span class="pre">prterun(1)</span></code> is just a wrapper around <code class="docutils literal notranslate"><span class="pre">prte(1)</span></code> for a single job
+PRRTE DVM. It is doing the job of both <code class="docutils literal notranslate"><span class="pre">prte(1)</span></code> and <code class="docutils literal notranslate"><span class="pre">prun(1)</span></code>,
+and, as such, accepts the sum all of their command line arguments. Any
+example that uses <code class="docutils literal notranslate"><span class="pre">prun(1)</span></code> can substitute the use of <code class="docutils literal notranslate"><span class="pre">prterun(1)</span></code>
+except where otherwise noted.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">prte(1)</span></code> process attempts to automatically discover the nodes
+in the allocation by querying supported resource managers. If a
+supported resource manager is not present then <code class="docutils literal notranslate"><span class="pre">prte(1)</span></code> relies on a
+hostfile provided by the user.  In the absence of such a hostfile it
+will run all processes on the localhost.</p>
+<p>If running under a supported resource manager, the <code class="docutils literal notranslate"><span class="pre">prte(1)</span></code> process
+will start the daemon processes (<code class="docutils literal notranslate"><span class="pre">prted(1)</span></code>) on the remote nodes
+using the corresponding resource manager process starter. If no such
+starter is available then <code class="docutils literal notranslate"><span class="pre">ssh</span></code> (or <code class="docutils literal notranslate"><span class="pre">rsh</span></code>) is used.</p>
+<p>Minus user direction, PRRTE will automatically map processes in a
+round-robin fashion by CPU, binding each process to its own CPU. The
+type of CPU used (core vs hwthread) is determined by (in priority
+order):</p>
+<ul class="simple">
+<li><p>user directive on the command line via the HWTCPUS qualifier to
+the <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> directive</p></li>
+<li><p>setting the <code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code> MCA parameter to
+include the <code class="docutils literal notranslate"><span class="pre">HWTCPUS</span></code> qualifier. This parameter sets the default
+value for a PRRTE DVM — qualifiers are carried across to DVM
+jobs started via <code class="docutils literal notranslate"><span class="pre">prun</span></code> unless overridden by the user’s command
+line</p></li>
+<li><p>defaulting to <code class="docutils literal notranslate"><span class="pre">CORE</span></code> in topologies where core CPUs are defined,
+and to <code class="docutils literal notranslate"><span class="pre">hwthreads</span></code> otherwise.</p></li>
+</ul>
+<p>By default, the ranks are assigned in accordance with the mapping
+directive — e.g., jobs that are mapped by-node will have the
+process ranks assigned round-robin on a per-node basis.</p>
+<p>PRRTE automatically binds processes unless directed not to do so by
+the user. Minus direction, PRRTE will bind individual processes to
+their own CPU within the object to which they were mapped. Should a
+node become oversubscribed during the mapping process, and if
+oversubscription is allowed, all subsequent processes assigned to that
+node will <em>not</em> be bound.</p>
+</section>
+</section>
+<section id="definition-of-slot">
+<h1><span class="section-number">8.2. </span>Definition of ‘slot’<a class="headerlink" href="#definition-of-slot" title="Link to this heading"></a></h1>
+<p>The term “slot” is used extensively in the rest of this documentation.
+A slot is an allocation unit for a process.  The number of slots on a
+node indicate how many processes can potentially execute on that node.
+By default, PRRTE will allow one process per slot.</p>
+<p>If PRRTE is not explicitly told how many slots are available on a node
+(e.g., if a hostfile is used and the number of slots is not specified
+for a given node), it will determine a maximum number of slots for
+that node in one of two ways:</p>
+<ol class="arabic simple">
+<li><p>Default behavior: By default, PRRTE will attempt to discover the
+number of processor cores on the node, and use that as the number
+of slots available.</p></li>
+<li><p>When <code class="docutils literal notranslate"><span class="pre">--use-hwthread-cpus</span></code> is used: If <code class="docutils literal notranslate"><span class="pre">--use-hwthread-cpus</span></code> is
+specified on the command line, then PRRTE will attempt to discover
+the number of hardware threads on the node, and use that as the
+number of slots available.</p></li>
+</ol>
+<p>This default behavior also occurs when specifying the <code class="docutils literal notranslate"><span class="pre">--host</span></code>
+option with a single host.  Thus, the command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>prun<span class="w"> </span>--host<span class="w"> </span>node1<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>launches a number of processes equal to the number of cores on node
+<code class="docutils literal notranslate"><span class="pre">node1</span></code>, whereas:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>prun<span class="w"> </span>--host<span class="w"> </span>node1<span class="w"> </span>--use-hwthread-cpus<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>launches a number of processes equal to the number of hardware
+threads on <code class="docutils literal notranslate"><span class="pre">node1</span></code>.</p>
+<p>When PRRTE applications are invoked in an environment managed by a
+resource manager (e.g., inside of a Slurm job), and PRRTE was built
+with appropriate support for that resource manager, then PRRTE will
+be informed of the number of slots for each node by the resource
+manager.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>prun<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>launches one process for every slot (on every node) as dictated by
+the resource manager job specification.</p>
+<p>Also note that the one-process-per-slot restriction can be overridden
+in unmanaged environments (e.g., when using hostfiles without a
+resource manager) if oversubscription is enabled (by default, it is
+disabled).  Most parallel applications and HPC environments do not
+oversubscribe; for simplicity, the majority of this documentation
+assumes that oversubscription is not enabled.</p>
+<section id="slots-are-not-hardware-resources">
+<h2><span class="section-number">8.2.1. </span>Slots are not hardware resources<a class="headerlink" href="#slots-are-not-hardware-resources" title="Link to this heading"></a></h2>
+<p>Slots are frequently incorrectly conflated with hardware resources.
+It is important to realize that slots are an entirely different metric
+than the number (and type) of hardware resources available.</p>
+<p>Here are some examples that may help illustrate the difference:</p>
+<ol class="arabic">
+<li><p>More processor cores than slots: Consider a resource manager job
+environment that tells PRRTE that there is a single node with 20
+processor cores and 2 slots available.  By default, PRRTE will
+only let you run up to 2 processes.</p>
+<p>Meaning: you run out of slots long before you run out of processor
+cores.</p>
+</li>
+<li><p>More slots than processor cores: Consider a hostfile with a single
+node listed with a <code class="docutils literal notranslate"><span class="pre">slots=50</span></code> qualification.  The node has 20
+processor cores.  By default, PRRTE will let you run up to 50
+processes.</p>
+<p>Meaning: you can run many more processes than you have processor
+cores.</p>
+</li>
+</ol>
+</section>
+</section>
+<section id="definition-of-processor-element">
+<h1><span class="section-number">8.3. </span>Definition of “processor element”<a class="headerlink" href="#definition-of-processor-element" title="Link to this heading"></a></h1>
+<p>By default, PRRTE defines that a “processing element” is a processor
+core.  However, if <code class="docutils literal notranslate"><span class="pre">--use-hwthread-cpus</span></code> is specified on the command
+line, then a “processing element” is a hardware thread.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="8. Process placement" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="8.4. Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

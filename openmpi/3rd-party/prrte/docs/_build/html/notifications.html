@@ -1,0 +1,200 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10. Notifications &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2efb4362"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="11. Session directory" href="session-directory.html" />
+    <link rel="prev" title="9.12. Troubleshooting" href="launching-apps/troubleshooting.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">10. </span>Notifications</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/notifications.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="notifications">
+<h1><span class="section-number">10. </span>Notifications<a class="headerlink" href="#notifications" title="Link to this heading"></a></h1>
+<p>PRRTE provides notifications on a variety of process and job
+states. Each notification includes not only the PMIx event code that
+generated it, but also information on the cause of the event to the
+extent to which this is known.</p>
+<p>Supported job events include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_READY_FOR_DEBUG</span></code>: indicates that all processes in the
+reported nspace have reached the specified debug stopping point.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_LAUNCH_COMPLETE</span></code>: indicates that the reported nspace has
+been launched — i.e., the involved PRRTE daemons all report
+that their respective child processes have completed fork/exec.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_JOB_CANCELED</span></code>: indicates that the job was cancelled by
+user command, usually issued via an appropriate PMIx-enabled tool.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_JOB_FAILED_TO_LAUNCH</span></code>: indicates that the specified job
+failed to launch.  This can be due to a variety of factors that
+include inability to find the executable on at least one involved
+node.</p></li>
+</ul>
+<p>Supported process events include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_TERM_WO_SYNC</span></code>: indicates that at least one process
+in the job called <code class="docutils literal notranslate"><span class="pre">PMIx_Init</span></code>, thus indicating some notion of a
+global existence, and at least one process in the job subsequently
+exited without calling <code class="docutils literal notranslate"><span class="pre">PMIx_Finalize</span></code>. This usually indicates a
+failure somewhere in the application itself that precluded an
+orderly shutdown of the process. Notification will include the
+process ID that exited in this manner.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_EVENT_PROC_TERMINATED</span></code>: indicates that the reported process
+terminated normally.  Notification will include the process ID that
+exited and its exit status.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_KILLED_BY_CMD</span></code>: indicates that the reported process
+was killed by PRRTE command. This typically occurs in response to a
+Ctrl-C (or equivalent) being applied to the PRRTE launcher, thereby
+instructing PRRTE to forcibly terminate its processes. The event
+currently will only be issued in the case where forcible termination
+is commanded via a tool that can pass the process IDs that are
+specifically to be terminated — otherwise, in the case of the
+Ctrl-C event previously described, all processes in the job will be
+terminated, leaving none to be notified. Notification will include
+the process ID that was terminated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_SENSOR_BOUND_EXCEEDED</span></code>: indicates that the
+specified process exceeded a previously-set sensor boundary —
+e.g., it may have grown beyond a defined memory limit. Such events
+may or may not automatically trigger termination by command,
+depending upon the behavior of the sensor. Notification will include
+the process ID that exceeded the sensor boundary plus whatever
+information the sensor provides regarding measurements and bounds.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_ABORTED_BY_SIG</span></code>: indicates that the specified
+process was killed by a signal — e.g., a segmentation
+fault/violation or an externally applied signal. Notifications will
+include the process ID that was killed and the corresponding
+reported signal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_REQUESTED_ABORT:</span></code> indicates that the specified
+process has aborted by calling the <code class="docutils literal notranslate"><span class="pre">PMIx_Abort</span></code>
+function. Notification will include the process ID that called abort
+and its exit status.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_EXIT_NONZERO_TERM</span></code>: indicates that the specified process
+terminated with a non-zero exit status. This notification is only
+generated in the case where the runtime option
+<code class="docutils literal notranslate"><span class="pre">ERROR-NONZERO-STATUS</span></code> is set to true, thereby indicating that a
+process exiting with non-zero status is to be considered an
+error. As PRRTE can be overwhelmed by a large job where every
+process exits with a non-zero status, only the <em>first</em> process in a
+given job that exits with a non-zero status will generate a
+notification unless the <code class="docutils literal notranslate"><span class="pre">RECOVERABLE</span></code> runtime option is also
+provided as otherwise the job will be immediately
+terminated. Notifications will include the process ID that exited
+and the status it returned.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_ERR_PROC_RESTART</span></code>: indicates that the specified process has
+been restarted.  Additional information may include the hostname
+where the process is now executing.</p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="launching-apps/troubleshooting.html" class="btn btn-neutral float-left" title="9.12. Troubleshooting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="session-directory.html" class="btn btn-neutral float-right" title="11. Session directory" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

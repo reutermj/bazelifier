@@ -1,0 +1,981 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.10. Tuning Collectives &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11.11. Benchmarking Open MPI applications" href="benchmarking.html" />
+    <link rel="prev" title="11.9.2. ROMIO" href="mpi-io/romio.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="networking/index.html">11.2. Networking support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">11.10. Tuning Collectives</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fixed-forced-and-dynamic-decisions">11.10.1. Fixed, Forced, and Dynamic Decisions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#forcing-an-algorithm">11.10.2. Forcing an Algorithm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dynamic-decisions-and-the-rules-file">11.10.3. Dynamic Decisions and the Rules File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#collectives-and-their-algorithms">11.10.4. Collectives and their Algorithms</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#allgather-id-0">11.10.4.1. Allgather (Id=0)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#allgatherv-id-1">11.10.4.2. Allgatherv (Id=1)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#allreduce-id-2">11.10.4.3. Allreduce (Id=2)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#alltoall-id-3">11.10.4.4. Alltoall (Id=3)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#alltoallv-id-4">11.10.4.5. Alltoallv (Id=4)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#barrier-id-6">11.10.4.6. Barrier (Id=6)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bcast-id-7">11.10.4.7. Bcast (Id=7)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#exscan-id-8">11.10.4.8. Exscan (Id=8)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#gather-id-9">11.10.4.9. Gather (Id=9)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reduce-id-11">11.10.4.10. Reduce (Id=11)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reduce-scatter-id-12">11.10.4.11. Reduce_scatter (Id=12)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reduce-scatter-block-id-13">11.10.4.12. Reduce_scatter_block (Id=13)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scan-id-14">11.10.4.13. Scan (Id=14)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scatter-id-15">11.10.4.14. Scatter (Id=15)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.10. </span>Tuning Collectives</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tuning-apps/coll-tuned.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="tuning-collectives">
+<h1><span class="section-number">11.10. </span>Tuning Collectives<a class="headerlink" href="#tuning-collectives" title="Link to this heading"></a></h1>
+<p>Open MPI’s <code class="docutils literal notranslate"><span class="pre">coll</span></code> framework provides a number of components implementing
+collective communication, including: <code class="docutils literal notranslate"><span class="pre">han</span></code>, <code class="docutils literal notranslate"><span class="pre">libnbc</span></code>, <code class="docutils literal notranslate"><span class="pre">self</span></code>, <code class="docutils literal notranslate"><span class="pre">ucc</span></code> <code class="docutils literal notranslate"><span class="pre">base</span></code>,
+<code class="docutils literal notranslate"><span class="pre">hcoll</span></code>, <code class="docutils literal notranslate"><span class="pre">sync</span></code>, <code class="docutils literal notranslate"><span class="pre">xhc</span></code>, <code class="docutils literal notranslate"><span class="pre">accelerator</span></code>, <code class="docutils literal notranslate"><span class="pre">basic</span></code>, <code class="docutils literal notranslate"><span class="pre">ftagree</span></code>, <code class="docutils literal notranslate"><span class="pre">inter</span></code>, <code class="docutils literal notranslate"><span class="pre">portals4</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">tuned</span></code>.  Some of these components may not be available depending on how
+Open MPI was compiled and what hardware is available on the system.  A run-time
+decision based on each component’s self reported priority, selects which
+component will be used.  These priorities may be adjusted on the command line
+or with any of the other usual ways of setting MCA variables, giving us a way
+to influence or override component selection.  In the end, which of the
+available components is selected depends on a number of factors such as the
+underlying hardware and the whether or not a specific collective is provided by
+the component as not all components implement all collectives.  However, there
+is always a fallback <code class="docutils literal notranslate"><span class="pre">base</span></code> component that steps in and takes over when another
+component fails to provide an implementation.</p>
+<p>The remainder of this section describes the tuning options available in the
+<code class="docutils literal notranslate"><span class="pre">tuned</span></code> collective component.</p>
+<section id="fixed-forced-and-dynamic-decisions">
+<h2><span class="section-number">11.10.1. </span>Fixed, Forced, and Dynamic Decisions<a class="headerlink" href="#fixed-forced-and-dynamic-decisions" title="Link to this heading"></a></h2>
+<p>Open MPI’s <code class="docutils literal notranslate"><span class="pre">tuned</span></code> collective component has three modes of operation, <em>fixed
+decision</em>, <em>forced algorithm</em>, and <em>dynamic decision</em>.  Since different
+collective algorithms perform better in different situations, the purpose of
+these modes is, when a collective is called, to select an appropriate
+algorithm.</p>
+<p>In the <em>fixed decision</em> mode a decision tree, essentially a large set of nested
+if-then-else-if blocks with baked in comm and message size thresholds derived
+by measuring performance on existing clusters, selects one of a number of
+available algorithms for the specific collective being called.  <em>Fixed
+decision</em> is the default.  The <em>fixed decision</em> mode can work well if your
+cluster hardware is similar to the systems profiled when constructing the
+decision tree.  However, in some cases the <em>fixed decision</em> rules can yield
+less than ideal performance. For instance, when your hardware differs
+substantially from that which was used to derive the fixed rules decision
+tree.</p>
+<p>In the <em>dynamic decision</em> mode a user can provide a set of rules encoded in an
+ASCII file that tell the <code class="docutils literal notranslate"><span class="pre">tuned</span></code> component which algorithm should be for one or
+more collectives as a function of communicator and message size.  For the
+collectives which rules are not provided the <em>fixed decision</em> mode is used.
+More detail about the dynamic decision mode and rules file can be found in
+section <a class="reference internal" href="#rulesfile"><span class="std std-ref">Rules File</span></a>.</p>
+<p>In the <em>forced algorithm</em> mode one can specify an algorithm for a specific
+collective on the command line. This is discussed in detail in section
+<a class="reference internal" href="#forcealg"><span class="std std-ref">Forcing an Algorithm</span></a>.</p>
+</section>
+<section id="forcing-an-algorithm">
+<span id="forcealg"></span><h2><span class="section-number">11.10.2. </span>Forcing an Algorithm<a class="headerlink" href="#forcing-an-algorithm" title="Link to this heading"></a></h2>
+<p>The simplest method of tuning is to force the <code class="docutils literal notranslate"><span class="pre">tuned</span></code> collective component to
+use a specific algorithm for all calls to a specific collective. This can be
+done on the command line, or by any of the other usual ways of setting MCA
+variables.  For example, the following command line sets the algorithm to
+linear for all MPI_Alltoall calls in the entire run.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>...<span class="w"> </span>--mca<span class="w"> </span>coll_tuned_use_dynamic_rules<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>--mca<span class="w"> </span>coll_tuned_alltoall_algorithm<span class="w"> </span><span class="m">1</span><span class="w"> </span>...
+</pre></div>
+</div>
+<p>When an algorithm is selected this way, the <em>fixed decision</em> rules associated
+with that collective are short circuited.  This is an easy way to select a
+collective algorithm and is most effective when there is a single communicator
+and message sizes are static with in the run. On the other hand, when the
+message size for a given collective varies during the run, or there are
+multiple communicators of different sizes, the effectiveness of this approach
+may be limited. The <a class="reference internal" href="#rulesfile"><span class="std std-ref">rules file</span></a> provides a more comprehensive
+and flexible approach to tuning.  For collectives where an algorithm is not
+forced on the command line, the <em>fixed decision</em> rules are used.</p>
+</section>
+<section id="dynamic-decisions-and-the-rules-file">
+<span id="rulesfile"></span><h2><span class="section-number">11.10.3. </span>Dynamic Decisions and the Rules File<a class="headerlink" href="#dynamic-decisions-and-the-rules-file" title="Link to this heading"></a></h2>
+<p>Given that the best choice of algorithm for a given collective depends on a
+number of factors only known at run time, and that some of these factors may
+vary within a run, setting an algorithm on the command line often is an
+ineffective means of tuning.  The rules file provides a means of choosing
+an algorithm at run time based on communicator and message size.  The rules
+file can be specified on the command line, or the other usual ways to set MCA
+variables. The file is parsed during initialization and takes affect there
+after.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>...<span class="w"> </span>--mca<span class="w"> </span>coll_tuned_use_dynamic_rules<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>--mca<span class="w"> </span>coll_tuned_dynamic_rules_filename<span class="w"> </span>/path/to/my_rules.conf<span class="w"> </span>...
+</pre></div>
+</div>
+<p>The loaded set of rules then are used to select the algorithm
+to use based on the collective, the communicator size, and the message size.
+Collectives for which rules have not be specified in the file will make use of
+the <em>fixed decision</em> rules as usual.</p>
+<p>Dynamic tuning files are organized in this format:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span>rule-file-version-2
+<span class="linenos"> 2</span><span class="m">1</span><span class="w">   </span><span class="c1"># num of collectives</span>
+<span class="linenos"> 3</span><span class="m">3</span><span class="w">   </span><span class="c1"># collective ID</span>
+<span class="linenos"> 4</span><span class="m">1</span><span class="w">   </span><span class="c1"># number of comm sizes</span>
+<span class="linenos"> 5</span><span class="c1">#=====================</span>
+<span class="linenos"> 6</span><span class="m">64</span><span class="w">   </span><span class="c1"># comm size</span>
+<span class="linenos"> 7</span><span class="m">14</span><span class="w">   </span><span class="c1"># number of rules</span>
+<span class="linenos"> 8</span><span class="c1"># Bytes   alg topo segs reqs</span>
+<span class="linenos"> 9</span><span class="c1">#----------------------</span>
+<span class="linenos">10</span><span class="m">0</span><span class="w">            </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span>
+<span class="linenos">11</span><span class="m">512000</span><span class="w">       </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">64</span>
+<span class="linenos">12</span><span class="m">1536000</span><span class="w">      </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">64</span>
+<span class="linenos">13</span><span class="m">3072000</span><span class="w">      </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">64</span>
+<span class="linenos">14</span><span class="m">6144000</span><span class="w">      </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">64</span>
+<span class="linenos">15</span><span class="m">12288000</span><span class="w">     </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="linenos">16</span><span class="m">24576000</span><span class="w">     </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="linenos">17</span><span class="m">49152000</span><span class="w">     </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="linenos">18</span><span class="m">98304000</span><span class="w">     </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">16</span>
+<span class="linenos">19</span><span class="m">196608000</span><span class="w">    </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">8</span>
+<span class="linenos">20</span><span class="m">393216000</span><span class="w">    </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">8</span>
+<span class="linenos">21</span><span class="m">786432000</span><span class="w">    </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">1</span>
+<span class="linenos">22</span><span class="m">1572864000</span><span class="w">   </span><span class="m">4</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">1</span>
+<span class="linenos">23</span><span class="m">2621440000</span><span class="w">   </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span>
+</pre></div>
+</div>
+<p>The rules file effectively defines, for one or more collectives, a function of
+two variables, which given communicator and message size, returns an algorithm
+id to use for the call.  This mechanism allows one to specify for each
+collective, an algorithm for any number of ranges of message and communicator
+sizes.  As communicators are constructed, a search of the rules table is made
+using the communicator size to select a set of message size rules to be used
+with that communicator.  Later as the collective is invoked, a search of the
+message size rules associated with the communicator is made. The rule with the
+nearest (less than) matching message size specifies the algorithm that is used.
+The actual definition of <em>message size</em> is dependent on the collective in
+question, see the section on <a class="reference internal" href="#collectivesandalgorithms"><span class="std std-ref">collectives and algorithms</span></a>
+for details.</p>
+<p>One may provide rules for as many collectives, communicator sizes, and message
+sizes as desired. Simply repeat the sections as needed and adjust the relevant
+count parameters.  One must always provide a rule for message size of zero.
+Message size rules are expected in ascending order. The last parameters in the
+message size rule may or may not be used and have different meaning depending
+on the collective and algorithm. The first two parameters in the rule following
+the algorithm ID, <cite>topo</cite> and <cite>segment size</cite>, are always required. In version 2
+of the file format a third parameter, <cite>max requests</cite>, may also be provided. A
+release of Open MPI at least v5.0.7 is required for version 2 features.</p>
+<p>The file format version specifier, <cite>rule-file-version-N</cite> where N is an integer
+greater or equal to 1, should appear on the first line of the file.  If the
+version specifier is not present, the file format is assumed to be version 1.
+Version 2 or greater is required to use the <cite>max requests</cite> parameter. Open MPI
+releases older than v5.0.7 do not support the file format version
+identifier. When using older releases of Open MPI do not include a version
+specifier and do not use the <cite>max requests</cite> parameter in message size rules.</p>
+</section>
+<section id="collectives-and-their-algorithms">
+<span id="collectivesandalgorithms"></span><h2><span class="section-number">11.10.4. </span>Collectives and their Algorithms<a class="headerlink" href="#collectives-and-their-algorithms" title="Link to this heading"></a></h2>
+<p>The following table lists the collectives
+implemented by the <code class="docutils literal notranslate"><span class="pre">tuned</span></code> collective component along with the enumeration value identifying it.
+It is this value that must be used in the rules file when specifying a set of rules.
+The definition of <em>message size</em> is dependent on the collective and is given in the table.
+Tables describing the algorithms available for each collective, and there identifiers, are linked.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Collectives</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 21.1%" />
+<col style="width: 10.5%" />
+<col style="width: 68.4%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Collective</p></th>
+<th class="head"><p>Id</p></th>
+<th class="head"><p>Message Size</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#allgather"><span class="std std-ref">Allgather</span></a></p></td>
+<td><p>0</p></td>
+<td><p>datatype size * comm size * number of elements in send buffer</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#allgatherv"><span class="std std-ref">Allgatherv</span></a></p></td>
+<td><p>1</p></td>
+<td><p>datatype size * sum of number of elements that are to be received from each process (sum of recvcounts)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#allreduce"><span class="std std-ref">Allreduce</span></a></p></td>
+<td><p>2</p></td>
+<td><p>datatype size * number of elements in send buffer</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#alltoall"><span class="std std-ref">Alltoall</span></a></p></td>
+<td><p>3</p></td>
+<td><p>datatype size * comm size * number of elements to send to each process</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#alltoallv"><span class="std std-ref">Alltoallv</span></a></p></td>
+<td><p>4</p></td>
+<td><p>not used</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#barrier"><span class="std std-ref">Barrier</span></a></p></td>
+<td><p>6</p></td>
+<td><p>not used</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#bcast"><span class="std std-ref">Bcast</span></a></p></td>
+<td><p>7</p></td>
+<td><p>datatype size * number of entries in buffer</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#exscan"><span class="std std-ref">Exscan</span></a></p></td>
+<td><p>8</p></td>
+<td><p>datatype size * comm size</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#gather"><span class="std std-ref">Gather</span></a></p></td>
+<td><p>9</p></td>
+<td><p>datatype size * comm size * number of elements in send buffer</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#reduce"><span class="std std-ref">Reduce</span></a></p></td>
+<td><p>11</p></td>
+<td><p>datatype size * number of elements in send buffer</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#reduce-scatter"><span class="std std-ref">Reduce_scatter</span></a></p></td>
+<td><p>12</p></td>
+<td><p>datatype size * sum of number of elements in result distributed to each process (sum of recvcounts)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#reduce-scatter-block"><span class="std std-ref">Reduce_scatter_block</span></a></p></td>
+<td><p>13</p></td>
+<td><p>datatype size * comm size * element count per block</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#scan"><span class="std std-ref">Scan</span></a></p></td>
+<td><p>14</p></td>
+<td><p>datatype size * comm size</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#scatter"><span class="std std-ref">Scatter</span></a></p></td>
+<td><p>15</p></td>
+<td><p>datatype size * number of elements in send buffer</p></td>
+</tr>
+</tbody>
+</table>
+<section id="allgather-id-0">
+<span id="allgather"></span><h3><span class="section-number">11.10.4.1. </span>Allgather (Id=0)<a class="headerlink" href="#allgather-id-0" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Allgather Algorithms</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>bruck-k-fanout</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>recursive_doubling</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>ring</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>neighbor</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p>two_proc</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>7</p></td>
+<td><p>sparbit</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>8</p></td>
+<td><p>direct-messaging</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="allgatherv-id-1">
+<span id="allgatherv"></span><h3><span class="section-number">11.10.4.2. </span>Allgatherv (Id=1)<a class="headerlink" href="#allgatherv-id-1" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Allgatherv Algorithms</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>default</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>bruck</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>ring</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>neighbor</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>two_proc</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p>sparbit</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="allreduce-id-2">
+<span id="allreduce"></span><h3><span class="section-number">11.10.4.3. </span>Allreduce (Id=2)<a class="headerlink" href="#allreduce-id-2" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Allreduce Algorithms</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>basic_linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>nonoverlapping</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>recursive_doubling</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>ring</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>segmented_ring</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p>rabenseifner</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>7</p></td>
+<td><p>allgather_reduce</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="alltoall-id-3">
+<span id="alltoall"></span><h3><span class="section-number">11.10.4.4. </span>Alltoall (Id=3)<a class="headerlink" href="#alltoall-id-3" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Alltoall Algorithms</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>linear</p></td>
+<td><p>Launches all non-blocking send/recv pairs and wait for them to complete.</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>pairwise</p></td>
+<td><p>For comm size P, implemented as P rounds of blocking MPI_Sendrecv</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>modified_bruck</p></td>
+<td><p>An algorithm exploiting network packet quantization to achieve O(log) time complexity. Typically best for very small message sizes.</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>linear_sync</p></td>
+<td><p>Keep N non-blocking MPI_Isend/Irecv pairs in flight at all times. N is set by the coll_tuned_alltoall_max_requests MCA variable.</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>two_proc</p></td>
+<td><p>An implementation tailored for alltoall between 2 ranks, otherwise it is not used.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="alltoallv-id-4">
+<span id="alltoallv"></span><h3><span class="section-number">11.10.4.5. </span>Alltoallv (Id=4)<a class="headerlink" href="#alltoallv-id-4" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">Alltoallv Algorithms</span><a class="headerlink" href="#id6" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>basic_linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>pairwise</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="barrier-id-6">
+<span id="barrier"></span><h3><span class="section-number">11.10.4.6. </span>Barrier (Id=6)<a class="headerlink" href="#barrier-id-6" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Barrier Algorithms</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>double_ring</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>recursive_doubling</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>bruck</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>two_proc</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p>tree</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="bcast-id-7">
+<span id="bcast"></span><h3><span class="section-number">11.10.4.7. </span>Bcast (Id=7)<a class="headerlink" href="#bcast-id-7" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Bcast Algorithms</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>basic_linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>chain</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>pipeline</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>split_binary_tree</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>binary_tree</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p>binomial</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>7</p></td>
+<td><p>knomial</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>8</p></td>
+<td><p>scatter_allgather</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>9</p></td>
+<td><p>scatter_allgather_ring</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="exscan-id-8">
+<span id="exscan"></span><h3><span class="section-number">11.10.4.8. </span>Exscan (Id=8)<a class="headerlink" href="#exscan-id-8" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Exscan Algorithms</span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>recursive_doubling</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="gather-id-9">
+<span id="gather"></span><h3><span class="section-number">11.10.4.9. </span>Gather (Id=9)<a class="headerlink" href="#gather-id-9" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">Gather Algorithms</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>basic_linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>binomial</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>linear_sync</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reduce-id-11">
+<span id="reduce"></span><h3><span class="section-number">11.10.4.10. </span>Reduce (Id=11)<a class="headerlink" href="#reduce-id-11" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">Reduce Algorithms</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>chain</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>pipeline</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>binary</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>5</p></td>
+<td><p>binomial</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>6</p></td>
+<td><p>in-order_binary</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>7</p></td>
+<td><p>rabenseifner</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>8</p></td>
+<td><p>knomial</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reduce-scatter-id-12">
+<span id="reduce-scatter"></span><h3><span class="section-number">11.10.4.11. </span>Reduce_scatter (Id=12)<a class="headerlink" href="#reduce-scatter-id-12" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text">Reduce_scatter Algorithms</span><a class="headerlink" href="#id12" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>non-overlapping</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>recursive_halving</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>ring</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>butterfly</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reduce-scatter-block-id-13">
+<span id="reduce-scatter-block"></span><h3><span class="section-number">11.10.4.12. </span>Reduce_scatter_block (Id=13)<a class="headerlink" href="#reduce-scatter-block-id-13" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id13">
+<caption><span class="caption-text">Reduce_scatter_block Algorithms</span><a class="headerlink" href="#id13" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>basic_linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>recursive_doubling</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>recursive_halving</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p>butterfly</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="scan-id-14">
+<span id="scan"></span><h3><span class="section-number">11.10.4.13. </span>Scan (Id=14)<a class="headerlink" href="#scan-id-14" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">Scan Algorithms</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>recursive_doubling</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="scatter-id-15">
+<span id="scatter"></span><h3><span class="section-number">11.10.4.14. </span>Scatter (Id=15)<a class="headerlink" href="#scatter-id-15" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id15">
+<caption><span class="caption-text">Scatter Algorithms</span><a class="headerlink" href="#id15" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.5%" />
+<col style="width: 26.3%" />
+<col style="width: 63.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Id</p></th>
+<th class="head"><p>Name</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>ignore</p></td>
+<td><p>Use fixed rules</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>basic_linear</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>binomial</p></td>
+<td><p>…</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>linear_nb</p></td>
+<td><p>…</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="mpi-io/romio.html" class="btn btn-neutral float-left" title="11.9.2. ROMIO" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="benchmarking.html" class="btn btn-neutral float-right" title="11.11. Benchmarking Open MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

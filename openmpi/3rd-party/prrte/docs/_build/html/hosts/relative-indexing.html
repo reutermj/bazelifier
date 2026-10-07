@@ -1,0 +1,230 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>7.4. Relative host indexing &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8. Process placement" href="../placement/index.html" />
+    <link rel="prev" title="7.3. Listing Hosts on the Command Line" href="cli.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">7. Host specification</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="rm.html">7.1. Resource Manager-Provided Hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="hostfiles.html">7.2. Hostfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cli.html">7.3. Listing Hosts on the Command Line</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">7.4. Relative host indexing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">7. </span>Host specification</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">7.4. </span>Relative host indexing</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hosts/relative-indexing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="relative-host-indexing">
+<h1><span class="section-number">7.4. </span>Relative host indexing<a class="headerlink" href="#relative-host-indexing" title="Link to this heading"></a></h1>
+<p>Hostfile and <code class="docutils literal notranslate"><span class="pre">--host</span></code> specifications can also be made using relative
+indexing. This allows a user to stipulate which hosts are to be used
+for a given app context without specifying the particular host name,
+but rather its relative position in the allocation.</p>
+<p>This can probably best be understood through consideration of a few
+examples. Consider the case where a DVM is comprised of a set of nodes
+named <code class="docutils literal notranslate"><span class="pre">foo1</span></code>, <code class="docutils literal notranslate"><span class="pre">foo2</span></code>, <code class="docutils literal notranslate"><span class="pre">foo3</span></code>, <code class="docutils literal notranslate"><span class="pre">foo4</span></code>. The user wants the first
+app context to have exclusive use of the first two nodes, and a second
+app context to use the last two nodes. Of course, the user could
+printout the allocation to find the names of the nodes allocated to
+them and then use <code class="docutils literal notranslate"><span class="pre">--host</span></code> to specify this layout, but this is
+cumbersome and would require hand-manipulation for every invocation.</p>
+<p>A simpler method is to utilize PRRTE’s relative indexing capability to
+specify the desired layout. In this case, a command line containing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">host</span> <span class="o">+</span><span class="n">n1</span><span class="p">,</span><span class="o">+</span><span class="n">n2</span> <span class="o">./</span><span class="n">app1</span> <span class="p">:</span> <span class="o">--</span><span class="n">host</span> <span class="o">+</span><span class="n">n3</span><span class="p">,</span><span class="o">+</span><span class="n">n4</span> <span class="o">./</span><span class="n">app2</span>
+</pre></div>
+</div>
+<p>would provide the desired pattern. The <code class="docutils literal notranslate"><span class="pre">+</span></code> syntax indicates that the
+information is being provided as a relative index into the existing
+allocation. Two methods of relative indexing are supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">+n#</span></code>: A relative index into the allocation referencing the <code class="docutils literal notranslate"><span class="pre">#</span></code>
+node. PRRTE will substitute the <code class="docutils literal notranslate"><span class="pre">#</span></code> node in the allocation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">+e[:#]</span></code>: A request for <code class="docutils literal notranslate"><span class="pre">#</span></code> empty nodes — i.e., PRRTE is
+to substitute this reference with nodes that have not yet been used
+by any other app_context. If the <code class="docutils literal notranslate"><span class="pre">:#</span></code> is not provided, PRRTE will
+substitute the reference with all empty nodes. Note that PRRTE does
+track the empty nodes that have been assigned in this manner, so
+multiple uses of this option will result in assignment of unique
+nodes up to the limit of the available empty nodes. Requests for
+more empty nodes than are available will generate an error.</p></li>
+</ul>
+<p>Relative indexing can be combined with absolute naming of hosts in any
+arbitrary manner, and can be used in hostfiles as well as with the
+<code class="docutils literal notranslate"><span class="pre">--host</span></code> command line option. In addition, any slot specification
+provided in hostfiles will be respected — thus, a user can
+specify that only a certain number of slots from a relative indexed
+host are to be used for a given app context.</p>
+<p>Another example may help illustrate this point. Consider the case
+where the user has a hostfile containing:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dummy1</span> <span class="n">slots</span><span class="o">=</span><span class="mi">4</span>
+<span class="n">dummy2</span> <span class="n">slots</span><span class="o">=</span><span class="mi">4</span>
+<span class="n">dummy3</span> <span class="n">slots</span><span class="o">=</span><span class="mi">4</span>
+<span class="n">dummy4</span> <span class="n">slots</span><span class="o">=</span><span class="mi">4</span>
+<span class="n">dummy5</span> <span class="n">slots</span><span class="o">=</span><span class="mi">4</span>
+</pre></div>
+</div>
+<p>This may, for example, be a hostfile that describes a set of
+commonly-used resources that the user wishes to execute applications
+against. For this particular application, the user plans to map
+byslot, and wants the first two ranks to be on the second node of any
+allocation, the next ranks to land on an empty node, have one rank
+specifically on <code class="docutils literal notranslate"><span class="pre">dummy4</span></code>, the next rank to be on the second node of the
+allocation again, and finally any remaining ranks to be on whatever
+empty nodes are left. To accomplish this, the user provides a hostfile
+of:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">+</span><span class="n">n2</span> <span class="n">slots</span><span class="o">=</span><span class="mi">2</span>
+<span class="o">+</span><span class="n">e</span><span class="p">:</span><span class="mi">1</span>
+<span class="n">dummy4</span> <span class="n">slots</span><span class="o">=</span><span class="mi">1</span>
+<span class="o">+</span><span class="n">n2</span>
+<span class="o">+</span><span class="n">e</span>
+</pre></div>
+</div>
+<p>The user can now use this information in combination with PRRTE’s
+sequential mapper to obtain their specific layout:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">launcher</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">dummyhosts</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">mylayout</span> <span class="o">--</span><span class="n">prtemca</span> <span class="n">rmaps</span> <span class="n">seq</span> <span class="o">./</span><span class="n">my_app</span>
+</pre></div>
+</div>
+<p>which will result in:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rank0</span> <span class="n">being</span> <span class="n">mapped</span> <span class="n">to</span> <span class="n">dummy3</span>
+<span class="n">rank1</span> <span class="n">to</span> <span class="n">dummy1</span> <span class="k">as</span> <span class="n">the</span> <span class="n">first</span> <span class="n">empty</span> <span class="n">node</span>
+<span class="n">rank2</span> <span class="n">to</span> <span class="n">dummy4</span>
+<span class="n">rank3</span> <span class="n">to</span> <span class="n">dummy3</span>
+<span class="n">rank4</span> <span class="n">to</span> <span class="n">dummy2</span> <span class="ow">and</span> <span class="n">rank5</span> <span class="n">to</span> <span class="n">dummy5</span> <span class="k">as</span> <span class="n">the</span> <span class="n">last</span> <span class="n">remaining</span> <span class="n">unused</span> <span class="n">nodes</span>
+</pre></div>
+</div>
+<p>Note that the sequential mapper ignores the number of slots arguments
+as it only maps one rank at a time to each node in the list.</p>
+<p>If the default round-robin mapper had been used, then the mapping
+would have resulted in:</p>
+<ul class="simple">
+<li><p>ranks 0 and 1 being mapped to dummy3 since two slots were specified</p></li>
+<li><p>ranks 2-5 on dummy1 as the first empty node, which has four slots</p></li>
+<li><p>rank6 on dummy4 since the hostfile specifies only a single slot from
+that node is to be used</p></li>
+<li><p>ranks 7 and 8 on dummy3 since only two slots remain available</p></li>
+<li><p>ranks 9-12 on dummy2 since it is the next available empty node and
+has four slots</p></li>
+<li><p>ranks 13-16 on dummy5 since it is the last remaining unused node and
+has four slots</p></li>
+</ul>
+<p>Thus, the use of relative indexing can allow for complex mappings to
+be ported across allocations, including those obtained from automated
+resource managers, without the need for manual manipulation of scripts
+and/or command lines.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="cli.html" class="btn btn-neutral float-left" title="7.3. Listing Hosts on the Command Line" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../placement/index.html" class="btn btn-neutral float-right" title="8. Process placement" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1124 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17.1. PRRTE v3.x series &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="17.2. PRRTE v2.x series" href="news-v2.x.html" />
+    <link rel="prev" title="17. News" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">17. News</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">17.1. PRRTE v3.x series</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#jun-2026">17.1.1. 3.0.14 – 23 Jun 2026</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jan-2026">17.1.2. 3.0.13 – 23 Jan 2026</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sept-2025">17.1.3. 3.0.12 – 9 Sept 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#may-2025">17.1.4. 3.0.11 – 18 May 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">17.1.5. 3.0.10 – 10 May 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mar-2025">17.1.6. 3.0.9 – 19 Mar 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dec-2024">17.1.7. 3.0.8 – 15 Dec 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nov-2024">17.1.8. 3.0.7 – 13 Nov 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jul-2024">17.1.9. 3.0.6 – 8 Jul 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mar-2024">17.1.10. 3.0.5 – 21 Mar 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#feb-2024">17.1.11. 3.0.4 – 4 Feb 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dec-2023">17.1.12. 3.0.3 – 19 Dec 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#oct-2023">17.1.13. 3.0.2 – 23 Oct 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sep-2023">17.1.14. 3.0.1 – 27 Sep 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nov-2022">17.1.15. 3.0.0 – 13 Nov 2022</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="news-v2.x.html">17.2. PRRTE v2.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v1.x.html">17.3. PRRTE v1.x series</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">17. </span>News</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">17.1. </span>PRRTE v3.x series</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/news/news-v3.x.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="prrte-v3-x-series">
+<h1><span class="section-number">17.1. </span>PRRTE v3.x series<a class="headerlink" href="#prrte-v3-x-series" title="Link to this heading"></a></h1>
+<p>This file contains all the NEWS updates for the PRRTE v3.x
+series, in reverse chronological order.</p>
+<section id="jun-2026">
+<h2><span class="section-number">17.1.1. </span>3.0.14 – 23 Jun 2026<a class="headerlink" href="#jun-2026" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release includes the following critical changes:</p>
+<ul class="simple">
+<li><p>repair of support for STOP-ON-EXEC debugger operations.
+The ptrace usage must be pinned to the correct thread
+and the wait-for-child-exit logic updated to deal with
+stop/wakeup of the process</p></li>
+<li><p>repair of the LSF mapper when LSB_AFFINITY_HOSTFILE is
+set but empty. Mapper must fallback to a different method.</p></li>
+</ul>
+</div>
+<ul class="simple">
+<li><p>PR #24: Update NEWS and VERSION for release</p></li>
+<li><dl class="simple">
+<dt>PR #2477: Multiple commits</dt><dd><ul>
+<li><p>odls: fix STOP_ON_EXEC race between do_parent and wait_signal_callback</p></li>
+<li><p>examples/debugger: add STOP_ON_EXEC support to indirect + daemon</p></li>
+<li><p>odls: pin STOP_ON_EXEC children to prte_event_base (ptrace tracer-thread affinity)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2476: Multiple commits</dt><dd><ul>
+<li><p>fix: rmaps/lsf mapper broken when LSB_AFFINITY_HOSTFILE is set but empty</p></li>
+<li><p>fix: suppress unused-parameter warning in prte_hide_unused_params</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="jan-2026">
+<h2><span class="section-number">17.1.2. </span>3.0.13 – 23 Jan 2026<a class="headerlink" href="#jan-2026" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release includes the following critical changes:</p>
+<ul class="simple">
+<li><p>repair of the indirect debugger connection procedure. The
+prterun launcher was using the incorrect proc name to
+retrieve its parent’s processID</p></li>
+<li><p>repair of the LSF mapper when LSF affinity has been specified</p></li>
+<li><p>a number of fixes to various mapper components and printing
+of binding ranges</p></li>
+<li><p>an improved mechanism for automatically detecting the
+presence of heterogeneous nodes</p></li>
+</ul>
+</div>
+<ul class="simple">
+<li><p>PR #2385: Final update of NEWS</p></li>
+<li><p>PR #2384: Update NEWS and VERSION for release</p></li>
+<li><dl class="simple">
+<dt>PR #2377: Multiple commits</dt><dd><ul>
+<li><p>Provide an MCA param to control hwloc shmem sharing</p></li>
+<li><p>Update the directive list in check_multi</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2362: Multiple commits</dt><dd><ul>
+<li><p>Revert back to explicitly setting hwloc support for xml import</p></li>
+<li><p>Cleanup bind output when partial allocations exist</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2359: Update NEWS</p></li>
+<li><dl class="simple">
+<dt>PR #2358: Multiple commits</dt><dd><ul>
+<li><p>Enable MCA param support for display and runtime-options</p></li>
+<li><p>Update prun to new cmd line option spellings</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2355: Update NEWS and VERSION to rc3</p></li>
+<li><p>PR #2354: Don’t force map display for donotlaunch if bind display requested</p></li>
+<li><dl class="simple">
+<dt>PR #2352: Multiple commits</dt><dd><ul>
+<li><p>Extend existing build check CI</p></li>
+<li><p>Fix debugger daemon rendezvous on remote nodes</p></li>
+<li><p>Workflow does not contain permissions</p></li>
+<li><p>Potential use after free (alerts 10-12)</p></li>
+<li><p>Fix hetero launch</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2345: Fix ppr mapper</p></li>
+<li><p>PR #2343: Update NEWS with important note</p></li>
+<li><p>PR #2342: Update VERSION and NEWS</p></li>
+<li><p>PR #2341: Slight mod to the indirect debugger example</p></li>
+<li><p>PR #2339: Correct the nprocs check to support moving to next node</p></li>
+<li><p>PR #2336: Allow setting default cpus/rank</p></li>
+<li><p>PR #2334: Retrieve PMIX_PARENT_ID with wildcard rank</p></li>
+<li><p>PR #2330: Centralize quickmatch to ensure consistency</p></li>
+<li><dl class="simple">
+<dt>PR #2328: Multiple commits</dt><dd><ul>
+<li><p>Correctly set the number of procs for rankfile apps</p></li>
+<li><p>Do not override user-specified num procs</p></li>
+<li><p>Some cleanup on hostfile parsing</p></li>
+<li><p>Remove LSF references in rank_file mapper</p></li>
+<li><p>Update ras to allow rank/seq files to define allocation</p></li>
+<li><p>Add the rmaps/lsf component</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2321: Fix typo in examples Makefile</p></li>
+<li><p>PR #2320: Fix prte_info to output correct version</p></li>
+<li><dl class="simple">
+<dt>PR #2318: Multiple commits</dt><dd><ul>
+<li><p>Correct ordering of macro variables</p></li>
+<li><p>Fix printing of binding ranges</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2314: Roll rc1</p></li>
+<li><p>PR #2312: Mark uncached daemons as reported</p></li>
+<li><dl class="simple">
+<dt>PR #2309: Multiple commits</dt><dd><ul>
+<li><p>Inherit env directives if requested</p></li>
+<li><p>Extend inheritance to app level</p></li>
+<li><p>Extend testbuild launchers support</p></li>
+<li><p>Fix the colocation algorithm</p></li>
+<li><p>Fix precedence ordering on envar operations</p></li>
+<li><p>Bugfix: inconsistently setting PMIX_JOB_RECOVERABLE</p></li>
+<li><p>Clarify help messages</p></li>
+<li><p>Do not assign DVM’s bookmark to the application job</p></li>
+<li><p>Error out when asymmetric topologies cannot support ppr requests</p></li>
+<li><p>Let seq and rankfile mappers compute their own num-procs</p></li>
+<li><p>Fix relative node processing</p></li>
+<li><p>Replace sprintf with snprintf</p></li>
+<li><p>Add launching-apps section to docs</p></li>
+<li><p>Improve hetero node detection a bit</p></li>
+<li><p>Tweak the forwarding of signals</p></li>
+<li><p>Cleanup and improve autohandling of hetero nodes</p></li>
+<li><p>Fix prun tool</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="sept-2025">
+<h2><span class="section-number">17.1.3. </span>3.0.12 – 9 Sept 2025<a class="headerlink" href="#sept-2025" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #2269: Final update of NEWS and VERSION for release</p></li>
+<li><dl class="simple">
+<dt>PR #2263: Multiple commits</dt><dd><ul>
+<li><p>Extend control over client connections</p></li>
+<li><p>Ensure we have HNP node aliases</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2255: Update NEWS</p></li>
+<li><p>PR #2254: Replace some incorrectly removed code</p></li>
+<li><dl class="simple">
+<dt>PR #2253: Multiple commits</dt><dd><ul>
+<li><p>Update NEWS</p></li>
+<li><p>Extend support for specifying tool connection parameters</p></li>
+<li><p>Cleanup queries and completely register tools</p></li>
+<li><p>Correct handling of tool-based spawn requests</p></li>
+<li><p>Change no-foreign-tools default to “false”</p></li>
+<li><p>Include node object when registering tool</p></li>
+<li><p>Properly implement the “abort” operation</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2245: Multiple commits</dt><dd><ul>
+<li><p>Adjust top session dir name</p></li>
+<li><p>Update NEWS</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2244: Multiple commits</dt><dd><ul>
+<li><p>Declare the process set during registration</p></li>
+<li><p>Add support for client_connected2 server module upcall</p></li>
+<li><p>Customize the OMPI “allow-run-as-root” doc snippet</p></li>
+<li><p>Add some finer-grained connection support</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2236: Protect against running with PMIx versions too high</p></li>
+<li><p>PR #2235: Check for PMIx version too high</p></li>
+<li><dl class="simple">
+<dt>PR #2232: Multiple commits</dt><dd><ul>
+<li><p>Properly handle sigterm when started by singleton</p></li>
+<li><p>Ensure to progress job launch for singleton</p></li>
+<li><p>Update CI</p></li>
+<li><p>Process deprecated “stop” CLI</p></li>
+<li><p>Minor cleanups in tool connection</p></li>
+<li><p>Add some missing command strings for debug output</p></li>
+<li><p>Provide error message when ssh fails</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2222: Multiple commits</dt><dd><ul>
+<li><p>iof/hnp: correctly handle short write to stdin</p></li>
+<li><p>check for pthread_np.h header</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2219: Update OAC submodule</p></li>
+<li><dl class="simple">
+<dt>PR #2214: Multiple commits</dt><dd><ul>
+<li><p>Preserve source ID across API call</p></li>
+<li><p>src/docs/prrte-rst-content: Add missing file to Makefile.am</p></li>
+<li><p>Add external OMPI build CI</p></li>
+<li><p>Remove debug output</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="may-2025">
+<h2><span class="section-number">17.1.4. </span>3.0.11 – 18 May 2025<a class="headerlink" href="#may-2025" title="Link to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is a minor bug fix release to resolve
+a problem when running with schedulers that
+allocate at the individual CPU (vs the node)
+level. Users operating in such an environment
+need to add the <code class="docutils literal notranslate"><span class="pre">--hetero-nodes</span></code> option to
+their <code class="docutils literal notranslate"><span class="pre">prte</span></code> or <code class="docutils literal notranslate"><span class="pre">prterun</span></code> cmd lines, or
+set the <code class="docutils literal notranslate"><span class="pre">prte_hetero_nodes</span></code> MCA param to
+a value of 1, <cite>t</cite>, <cite>T</cite>, “true”, or “True”.
+Administrators of such systems can set the
+MCA param for their users by adding it to
+the default MCA param file for the 3.0.11
+installation.</p>
+</div>
+<ul class="simple">
+<li><p>PR #2203: Update VERSION and NEWS for release</p></li>
+<li><p>PR #2201: Add missing OMPI cmd line option</p></li>
+<li><p>PR #2199: Properly handle hetero node configurations</p></li>
+</ul>
+</section>
+<section id="id1">
+<h2><span class="section-number">17.1.5. </span>3.0.10 – 10 May 2025<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #2195: Update NEWS for release</p></li>
+<li><dl class="simple">
+<dt>PR #2194: Multiple commits</dt><dd><ul>
+<li><p>Remove stale Solaris references</p></li>
+<li><p>docs: Add a “Last updated on:” HTML footer</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2190: Multiple commits</dt><dd><ul>
+<li><p>Enable shim-based testing of PLM launchers</p></li>
+<li><p>Roll version to 3.0.10</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2186: Fix one more typo</p></li>
+<li><p>PR #2184: Fix typo</p></li>
+<li><p>PR #2182: Properly terminate RST label</p></li>
+<li><p>PR #2181: Add new CI test - build OMPI internally</p></li>
+<li><p>PR #2178: Don’t link to pmixcc if we don’t find it</p></li>
+<li><dl class="simple">
+<dt>PR #2176: Multiple commits</dt><dd><ul>
+<li><p>Extend support for envar operations</p></li>
+<li><p>Do not require PMIx wrapper compiler</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="mar-2025">
+<h2><span class="section-number">17.1.6. </span>3.0.9 – 19 Mar 2025<a class="headerlink" href="#mar-2025" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release contains configure logic to
+protect it from PMIx versions that have been
+updated to support the LTO optimizer as that
+infrastructure conflicts with the PRRTE v3.0
+series. PMIx versions v6.0 and above are not
+supported by the PRRTE v3.0 series.</p>
+</div>
+<ul class="simple">
+<li><p>PR #2172: Update NEWS for release</p></li>
+<li><dl class="simple">
+<dt>PR #2171: Multiple commits</dt><dd><ul>
+<li><p>Remove ALPS support</p></li>
+<li><p>Require pmixcc be available to build PRRTE</p></li>
+<li><p>Fix oob include/exclude matching</p></li>
+<li><p>Constrain PMIx versions</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2163: Protect against stone age HWLOC</p></li>
+<li><dl class="simple">
+<dt>PR #2162: Multiple commits</dt><dd><ul>
+<li><p>Break thread deadlock</p></li>
+<li><p>data_server: changes to handle first_read better</p></li>
+<li><p>Allow “not supported” to be returned by query upcall</p></li>
+<li><p>Try adding timeout to CI</p></li>
+<li><p>Add PMIx v4.2 build</p></li>
+<li><p>Fix the data server</p></li>
+<li><p>Just ignore any lto settings</p></li>
+<li><p>Accommodate changes in Slurm version string</p></li>
+<li><p>Correctly support the OMPI stream-buffering option</p></li>
+<li><p>Correct the handling of “prefix”</p></li>
+<li><p>Correct syntax errors in RST files</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2157: Update OAC submodule pointer</p></li>
+<li><p>PR #2147: Cleanup the pending lookup request when resolved</p></li>
+<li><dl class="simple">
+<dt>PR #2145: Multiple commits</dt><dd><ul>
+<li><p>Fix inheritance</p></li>
+<li><p>Provide a user error message when srun fails</p></li>
+<li><p>Update NEWS</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2142: Multiple commits</dt><dd><ul>
+<li><p>gcc compilation failure fixes</p></li>
+<li><p>Update CI workflow</p></li>
+<li><p>Silence warnings exposed by revised CI</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2141: Multiple commits</dt><dd><ul>
+<li><p>Silence warnings exposed by revised CI</p></li>
+<li><p>Add build against older PMIx CI</p></li>
+<li><p>Add mpi4py CI</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2137: Multiple commits</dt><dd><ul>
+<li><p>Add spawn_multiple test</p></li>
+<li><p>Minor cleanups</p></li>
+<li><p>Implement query support for PMIx resolve functions</p></li>
+<li><p>Add ability to direct app GPU support</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2125: hurd: fix build</p></li>
+<li><p>PR #2123: Refactor ranking algorithms</p></li>
+<li><dl class="simple">
+<dt>PR #2109: Multiple commits</dt><dd><ul>
+<li><p>Add a test for CI purposes</p></li>
+<li><p>Try a DVM-based action</p></li>
+<li><p>Update users of pmix_os_dirpath_create</p></li>
+<li><p>Remove the group CI as this release branch doesn’t support it</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="dec-2024">
+<h2><span class="section-number">17.1.7. </span>3.0.8 – 15 Dec 2024<a class="headerlink" href="#dec-2024" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #2103: Final update for release</p></li>
+<li><p>PR #2102: Remove stale config .m4 files</p></li>
+<li><p>PR #2100: Update NEWS and VERSION</p></li>
+<li><p>PR #2099: maintain correct ref count of child jobs</p></li>
+<li><p>PR #2097: Correctly parse map-by modifiers</p></li>
+<li><p>PR #2086: Propertly compute number of procs when not given</p></li>
+<li><dl class="simple">
+<dt>PR #2082: Multiple commits</dt><dd><ul>
+<li><p>Enclose XML output in a high-level tag</p></li>
+<li><p>Add support for show_help XML output</p></li>
+<li><p>Properly build the nidmap</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #2076: Multiple commits</dt><dd><ul>
+<li><p>Register the singleton’s nspace with the PMIx server</p></li>
+<li><p>Fix data type declaration in data server</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="nov-2024">
+<h2><span class="section-number">17.1.8. </span>3.0.7 – 13 Nov 2024<a class="headerlink" href="#nov-2024" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release represents the expected end of
+the v3.0 series. Any follow-on bug fixes will
+be committed to the release branch, but are
+unlikely to generate an official release
+tarball.</p>
+</div>
+<ul class="simple">
+<li><p>PR #2067: Update NEWS and VERSION for final release</p></li>
+<li><dl class="simple">
+<dt>PR #2064: Multiple commits</dt><dd><ul>
+<li><p>Update help message to PRTE MCA parameter handling</p></li>
+<li><p>Fix typo in Makefile</p></li>
+<li><p>Fix rankfile use of relative node indexing</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2060: Update NEWS and VERSION for release</p></li>
+<li><p>PR #2059: Protect against old PMIx versions</p></li>
+<li><p>PR #2057: Fix support for hetero LSF environments</p></li>
+<li><p>PR #2049: Cleanup show-help files</p></li>
+<li><p>PR #2047: Implement the PMIX_JOB_CHILD_SEP support</p></li>
+<li><dl class="simple">
+<dt>PR #2044: Multiple commits</dt><dd><ul>
+<li><p>Add a threaded client example</p></li>
+<li><p>Restore parsing of OMPI param files</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2039: Unlock stdin target</p></li>
+<li><p>PR #2037: Pull a couple of fixes from master branch</p></li>
+<li><p>PR #2034: Fix deprecation warnings for ppr on socket objects</p></li>
+<li><dl class="simple">
+<dt>PR #2032: Multiple commits</dt><dd><ul>
+<li><p>avoid warnings (as errors) spots (init vars, etc.)</p></li>
+<li><p>remove unused Level var</p></li>
+<li><p>init installdirs structure (avoids warn-as-error)</p></li>
+<li><p>Pay attention to interface include/exclude params</p></li>
+<li><p>Protect against the envar version of the Slurm custom args param</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2018: fix support for MPIEXEC_TIMEOUT</p></li>
+<li><p>PR #2017: Update prte_portable_platform_real.h from upstream gasnet</p></li>
+<li><p>PR #2015: Always have show-help available</p></li>
+<li><p>PR #2013: Remove unused yaml</p></li>
+<li><p>PR #2011: Cleanup show help formatting</p></li>
+<li><p>PR #2009: docs: update for Python 3.12</p></li>
+<li><p>PR #2007: Fix a segfault when no arguments are provided</p></li>
+<li><dl class="simple">
+<dt>PR #2005: Multiple commits</dt><dd><ul>
+<li><p>Remove unused function</p></li>
+<li><p>Revise cmd line parsing to handle special case</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #2002: Update OAC to latest HEAD</p></li>
+<li><p>PR #2000: Use the PMIx functions to check params</p></li>
+<li><p>PR #1998: Protect against LTO optimizer</p></li>
+<li><p>PR #1996: Read the Docs updates</p></li>
+<li><p>PR #1994: Provide a warning of potentially unknown Slurm params</p></li>
+</ul>
+</section>
+<section id="jul-2024">
+<h2><span class="section-number">17.1.9. </span>3.0.6 – 8 Jul 2024<a class="headerlink" href="#jul-2024" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #1992: Update NEWS and VERSION for release</p></li>
+<li><dl class="simple">
+<dt>PR #1991: Multiple commits</dt><dd><ul>
+<li><p>Protect against missing HWLOC object types</p></li>
+<li><p>Minor fixes to allow compile with pre-stone age HWLOC</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1988: Github action: bring back MacOS builds</p></li>
+<li><p>PR #1986: Tailored backport of “various fixes for singleton support”</p></li>
+<li><dl class="simple">
+<dt>PR #1985: Multiple commits</dt><dd><ul>
+<li><p>Don’t strip quotes from cmd line entries</p></li>
+<li><p>Update tar format to tar-pax</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1983: Check the runtime version of PMIx</p></li>
+<li><dl class="simple">
+<dt>PR #1979: Multiple commits</dt><dd><ul>
+<li><p>Cleanup issues surfaced by devel-check</p></li>
+<li><p>Cleanup unused var warning</p></li>
+<li><p>Add CI build with clang</p></li>
+<li><p>Enable devel-check by default in Git repos</p></li>
+<li><p>Stop warning on LSF detection when not requested</p></li>
+<li><p>Silence warning</p></li>
+<li><p>MPI 4.1: add support for memory-alloc-kinds</p></li>
+<li><p>Remove MacOS CI builds</p></li>
+<li><p>Add support for PMIX_MEM_ALLOC_KIND</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1971: Remove stale resilience document</p></li>
+<li><p>PR #1968: Try to improve an error message a bit</p></li>
+<li><p>PR #1966: Fix typo</p></li>
+<li><p>PR #1964: Repair the binding algorithm</p></li>
+<li><p>PR #1962: Correct name of help file for –hostfile</p></li>
+<li><dl class="simple">
+<dt>PR #1959: Multiple commits</dt><dd><ul>
+<li><p>Update the allocation simulator</p></li>
+<li><p>Use of pmix_getline from PMIx started in v4.2.5</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1956: Multiple commits</dt><dd><ul>
+<li><p>Allow execution without an active plm component</p></li>
+<li><p>Fix the binding algorithm to handle partial disablement</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="mar-2024">
+<h2><span class="section-number">17.1.10. </span>3.0.5 – 21 Mar 2024<a class="headerlink" href="#mar-2024" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><dl class="simple">
+<dt>PR #1952: Multiple commits</dt><dd><ul>
+<li><p>Update docs</p></li>
+<li><p>Update PMIx-related configure code</p></li>
+<li><p>update the hwloc utility code</p></li>
+<li><p>Add missing doc</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1949: Update VERSION and NEWS for release</p></li>
+<li><p>PR #1946: Correct deprecation translation for use-hwthread-cpus</p></li>
+<li><p>PR #1936: Add missing show_help text</p></li>
+<li><p>PR #1933: Check for appfile and ingest it if found</p></li>
+<li><dl class="simple">
+<dt>PR #1931: Multiple commits</dt><dd><ul>
+<li><p>Fix testing of suicide for daemons</p></li>
+<li><p>Fix daemon suicide and preserve output files</p></li>
+<li><p>Remove unused MCA param</p></li>
+<li><p>Only trigger job failed to start once</p></li>
+<li><p>Add “close stale issues” actions</p></li>
+<li><p>oac: strengthen Sphinx check</p></li>
+<li><p>Revamp the session directory system</p></li>
+<li><p>guard against possible segfault in prted</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="feb-2024">
+<h2><span class="section-number">17.1.11. </span>3.0.4 – 4 Feb 2024<a class="headerlink" href="#feb-2024" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><dl class="simple">
+<dt>PR #1918: Multiple commits</dt><dd><ul>
+<li><p>Support query for number of available slots</p></li>
+<li><p>Add an option ‘–allow-run-as-root’ into prted</p></li>
+<li><p>Update the Python regex for doc build</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1910: Fix the map-by pe-list option</p></li>
+<li><dl class="simple">
+<dt>PR #1908: Multiple commits</dt><dd><ul>
+<li><p>Use pmix_path_nfs to detect shared file systems</p></li>
+<li><p>Remove debug</p></li>
+<li><p>Remove extra character at end of error messages</p></li>
+<li><p>psets: fix some problems with PMIX_QUERY_PSET_MEMBERSHIP query.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="dec-2023">
+<h2><span class="section-number">17.1.12. </span>3.0.3 – 19 Dec 2023<a class="headerlink" href="#dec-2023" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #1893: Check for stdatomic.h</p></li>
+<li><p>PR #1891: add nodes to job data for ALL jobs included in the launch message</p></li>
+<li><dl class="simple">
+<dt>PR #1888: Multiple commits</dt><dd><ul>
+<li><p>Minor tweaks of cmd line processing</p></li>
+<li><p>Preserve the clichk test code for future use</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1884: Multiple commits</dt><dd><ul>
+<li><p>Fix copy/paste error</p></li>
+<li><p>Remove daemonize option from prterun</p></li>
+<li><p>Fix the ras simulator module</p></li>
+<li><p>Preserve backward compatibility</p></li>
+<li><p>Check the PMIx version for min required</p></li>
+<li><p>Correct min version for pmix_getline util</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1877: Multiple commits</dt><dd><ul>
+<li><p>Remove the “refresh” key before requesting dmodx from PMIx server</p></li>
+<li><p>Shift a code block to enable MCA param directive for ppr mapping</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1870: Multiple commits</dt><dd><ul>
+<li><p>Begin to restore the detailed help topics</p></li>
+<li><p>docs: add prrte-rst-content to conf.py’s exclude_patterns</p></li>
+<li><p>src/docs: update README.txt</p></li>
+<li><p>Consolidate non-component show_help files</p></li>
+<li><p>Add missing file</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1865: Fix the seq mapper</p></li>
+<li><dl class="simple">
+<dt>PR #1860: Multiple commits</dt><dd><ul>
+<li><p>prte.c: a prefix of “/” is ok</p></li>
+<li><p>Correctly translate the plm_rsh MCA params</p></li>
+<li><p>Fix add-hostfile and add-host operations</p></li>
+<li><p>Add print functions for node, job, and proc flags</p></li>
+<li><p>Add missing “acquire_object”</p></li>
+<li><p>Fix handling of “–” in cmd line</p></li>
+<li><p>Use global PRRTE event base for sigchld callback</p></li>
+<li><p>Remove the event base param to prte_wait_cb</p></li>
+<li><p>Fix OMPI cmd line processing</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1846: Multiple commits</dt><dd><ul>
+<li><p>Restore the prun help strings</p></li>
+<li><p>Restore prte_info show help topics</p></li>
+<li><p>Recover the pterm show-help strings</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1843: Avoid adding NULL prefix value to app attributes</p></li>
+<li><dl class="simple">
+<dt>PR #1841: Multiple commits</dt><dd><ul>
+<li><p>Error out of attempts for 32-bit builds</p></li>
+<li><p>Convert OMPI MCA params from legacy orte</p></li>
+<li><p>Fix display of DVM allocation</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</section>
+<section id="oct-2023">
+<h2><span class="section-number">17.1.13. </span>3.0.2 – 23 Oct 2023<a class="headerlink" href="#oct-2023" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #1832: Update NEWS for release</p></li>
+<li><p>PR #1831: Silence error log</p></li>
+<li><dl class="simple">
+<dt>PR #1829: Multiple commits</dt><dd><ul>
+<li><p>docs/show-help-files: Re-enable Sphinx warning checks</p></li>
+<li><p>Correctly forward stdin to remote procs</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1826: Multiple commits</dt><dd><ul>
+<li><p>docs: document minimum PMIx version needed</p></li>
+<li><p>prte_setup_pmix.m4: use PMIx min version from VERSION</p></li>
+<li><p>Make checking min versions consistent</p></li>
+<li><p>Update CPPFLAGS for HWLOC config tests</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1822: Fix rpmbuild error</p></li>
+<li><p>PR #1821: Roll VERSION to v3.0.2</p></li>
+</ul>
+</section>
+<section id="sep-2023">
+<h2><span class="section-number">17.1.14. </span>3.0.1 – 27 Sep 2023<a class="headerlink" href="#sep-2023" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release contains a major revision of the PRRTE
+documentation infrastructure. Accordingly, the various
+documents may contain some number of errors and should
+be regarded as a work-in-progress. We apologize in
+advance for any inconvenience this may create, and will
+continue to improve and correct the documents in future
+releases.</p>
+</div>
+<ul class="simple">
+<li><p>PR #1818: Update VERSION and rename news file</p></li>
+<li><p>PR #1816: Correct confusion over help file names</p></li>
+<li><p>PR #1814: Update NEWS infrastructure</p></li>
+<li><p>PR #1810: Blacklist the HWLOC GL component to avoid deadlock</p></li>
+<li><dl class="simple">
+<dt>PR #1807: Multiple commits</dt><dd><ul>
+<li><p>src/docs/show-help-files/Makefile.am: fix syntax</p></li>
+<li><p>docs: Fix up several minor bugs that showed up via CI</p></li>
+<li><p>Prototype Github Actions for PRRTE CI</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1800: Keep trying to find the solution to the docs problem</p></li>
+<li><p>PR #1798: Keep trying to fix this Python stuff</p></li>
+<li><p>PR #1796: Don’t ignore failure to create directory</p></li>
+<li><p>PR #1793: build-dummy-ini-files: Be safe for Python 2</p></li>
+<li><p>PR #1791: Update to track master branch</p></li>
+<li><p>PR #1787: Add support for dynamic definition of process sets</p></li>
+<li><dl class="simple">
+<dt>PR #1784: Multiple commits</dt><dd><ul>
+<li><p>docs: fix HTML word wapping in table cells</p></li>
+<li><p>Support fix for OMPI Github issue #11532</p></li>
+<li><p>Fix binding to multiple pe’s</p></li>
+<li><p>Fix typos in the –enable-dlopen support</p></li>
+<li><p>Fix typo of variable name (PRRTE-&gt;PRTE)</p></li>
+<li><p>Remove Doxygen</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1766: Multiple commits</dt><dd><ul>
+<li><p>Update ignores</p></li>
+<li><p>mca/rmaps: impute process count when np is not set</p></li>
+<li><p>Complete cleanup of map/bind default settings</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1762: v3.0: .github/workflows: update actions versions</p></li>
+<li><p>PR #1752: [v3.0] rmaps/base: remove call to hwloc_bitmap_andnot() in bind_generic()</p></li>
+<li><p>PR #1747: Respect “–” marker</p></li>
+<li><p>PR #1741: [v3.0] RTD: Add .readthedocs.yaml file</p></li>
+<li><dl class="simple">
+<dt>PR #1737: Multiple commits</dt><dd><ul>
+<li><p>Add debug output in fence upcall</p></li>
+<li><p>Silence TSan data race warning.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1734: v3.0: backport fixes for ompi v5.0 submodule update</p></li>
+<li><p>PR #1727: Protect against bad ppr directives</p></li>
+<li><p>PR #1724: Fix one more place</p></li>
+<li><p>PR #1721: Just disable the xml map output for ancient hwloc</p></li>
+<li><p>PR #1718: Protect against ancient hwloc versions</p></li>
+<li><dl class="simple">
+<dt>PR #1714: Multiple commits</dt><dd><ul>
+<li><p>Parsable output in an XML format</p></li>
+<li><p>Support odd topologies and relax pe-binding rules</p></li>
+<li><p>Cleanup some formatting and unnecessary debug</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1705: Allow specifying ppr as the default mapping policy</p></li>
+<li><dl class="simple">
+<dt>PR #1702: Multiple commits</dt><dd><ul>
+<li><p>Recoverable jobs may report more than one proc error over the lifetime</p></li>
+<li><p>Fix double-counting of failed procs in recoverable jobs</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1700: Update headers for rc2</p></li>
+<li><p>PR #1696: Always set waitpid-fired flag when proc exits</p></li>
+<li><p>PR #1694: Fix passing of envars for spawn</p></li>
+<li><dl class="simple">
+<dt>PR #1692: Multiple commits</dt><dd><ul>
+<li><p>Plug small memory leaks.</p></li>
+<li><p>Plug memory leaks.</p></li>
+<li><p>Adhere to project’s variable declaration convention.</p></li>
+<li><p>Cleanup initial implementation of allocate and session ctrl</p></li>
+<li><p>Protect one more place for Session_control</p></li>
+<li><p>Fix the routing for non-tree-spawn launch</p></li>
+<li><p>Cleanup prte_info output</p></li>
+<li><p>Ensure we exit cleanly when a daemon fails to start</p></li>
+<li><p>Store prted URI under correct name</p></li>
+<li><p>Remove duplicate computation of routing tree</p></li>
+<li><p>Minor cleanup of verbose output</p></li>
+<li><p>Fix typo</p></li>
+<li><p>Send direct to HNP if we don’t know a route</p></li>
+<li><p>Cleanup some mangled formatting</p></li>
+<li><p>Cleanup some debug output</p></li>
+<li><p>Update the pmix server integration</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1686: Update config/oac submodule</p></li>
+<li><dl class="simple">
+<dt>PR #1682: Multiple commits</dt><dd><ul>
+<li><p>Remove wrapper definitions</p></li>
+<li><p>Extend example to check for sessionID and jobID</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1678: Multiple commits</dt><dd><ul>
+<li><p>add –debug-daemon to prted options</p></li>
+<li><p>Add the rml and routed types to prte_info array</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1674: Ensure cmd line errors provide error messages</p></li>
+<li><dl class="simple">
+<dt>PR #1672: Multiple commits</dt><dd><ul>
+<li><p>Correct default binding for map-by node/slot</p></li>
+<li><p>Provide better error message for cross-package binding</p></li>
+<li><p>Add missing command line directives</p></li>
+<li><p>Fix minor issues found in tests.</p></li>
+<li><p>Silence compiler warning in test/connect.</p></li>
+<li><p>Silence compiler warnings in examples.</p></li>
+<li><p>Use exit macros in example dmodex.</p></li>
+<li><p>Remove antiquated code that can cause problems</p></li>
+<li><p>Update sphinx requirements</p></li>
+<li><p>Remove the PMIX_SIZE_ESTIMATE support</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1660: Correct function name when using older hwloc versions</p></li>
+<li><dl class="simple">
+<dt>PR #1658: Multiple commits</dt><dd><ul>
+<li><p>Properly handle overload-allowed</p></li>
+<li><p>Define MIN for environments that lack it</p></li>
+<li><p>Fix a typo in the README, fixes #1645</p></li>
+<li><p>docs: fix Sphinx parsing error</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1644: Multiple commits</dt><dd><ul>
+<li><p>Add a spawn_multiple test</p></li>
+<li><p>Provide an estimate of the size of registration data</p></li>
+<li><p>Provide size estimates for collective operations that return data</p></li>
+<li><p>Add an option to display the available CPUs</p></li>
+<li><p>Fix generate_dist type</p></li>
+<li><p>Protect against missing attribute definition</p></li>
+<li><p>Set distances array type</p></li>
+<li><p>Add “parseable” display qualifier</p></li>
+<li><p>Generate distances by default</p></li>
+<li><p>Show help message when mapping too low</p></li>
+<li><p>Fix round-robin by obj with multiple cpus/rank</p></li>
+<li><p>Fix map-by slot and node for multiple cpus/rank</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1633: v3.0.x: First cut of Sphinx/ReadTheDocs docs</p></li>
+<li><p>PR #1626: Remove unused variable</p></li>
+<li><dl class="simple">
+<dt>PR #1622: Multiple commits</dt><dd><ul>
+<li><p>Update version to 3.0.1</p></li>
+<li><p>Extend query support to include allocation info</p></li>
+<li><p>Remove debug</p></li>
+<li><p>Include topology in allocated node info</p></li>
+<li><p>Minor touchups of the “fault” example</p></li>
+<li><p>Designate the framework project as PRTE</p></li>
+<li><p>Begin adding support for new server module function pointer</p></li>
+<li><p>Silence warning - add return values</p></li>
+<li><p>Update to compatibility with PMIx master ranch</p></li>
+<li><p>Protect against earlier PMIx versions</p></li>
+<li><p>Add an IOF stress test</p></li>
+<li><p>Accept local group op upcalls</p></li>
+<li><p>Check for and track scheduler attachment</p></li>
+<li><p>Check for map/bind conflicting directive, improve unbound report</p></li>
+<li><p>Don’t error out on binding if not required</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #1600: Multiple commits</dt><dd><ul>
+<li><p>Minor change to check_os_flavors</p></li>
+<li><p>Don’t emit an error output if not needed</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1597: Fix oac_check_package.m4</p></li>
+<li><p>PR #1595: build: fix bashisms in configure</p></li>
+</ul>
+</section>
+<section id="nov-2022">
+<h2><span class="section-number">17.1.15. </span>3.0.0 – 13 Nov 2022<a class="headerlink" href="#nov-2022" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release represents a major update to the PRRTE
+code base from prior releases. Many of the changes will be
+transparent to the user. However, there are a few key areas that
+may (likely) impact users. These include:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>changes to the cmd line interpreter. PRRTE has provided an
+abstraction layer that allows programming library developers
+and environment vendors to customize the cmd line of PRRTE
+binaries (e.g., prterun and prun). This is governed by the
+detection of a “personality” that is to be used for defining
+the cmd line options. The personality can be set either directly
+on the cmd line itself (via the “–personality foo” option) or
+is detected by PRRTE thru the environment.</p></li>
+<li><p>a more extensive “–help” support system.</p></li>
+<li><p>reduction in the “–rank-by” options.</p></li>
+<li><p>addition of new “–output” options</p></li>
+<li><p>removal of the “mindist” mapper due to lack of a maintainer</p></li>
+</ul>
+</div></blockquote>
+<p>There are quite a few more changes than listed here, but they mostly
+pertain to code internals. However, these dictate that PRRTE v3.0.0
+require use of PMIx v4.2 or above to compile. Note that this doesn’t
+impact the PMIx level associated with any applications executed by
+PRRTE - the only requirement is that applications link against a
+PMIx version that meets the PMIx cross-version requirements (i.e., a
+minimum of PMIx v2.5).</p>
+</div>
+<p>Detailed changes include:</p>
+<ul class="simple">
+<li><p>PR #1412: Restrict PRRTE to PMIx v4.2+</p></li>
+<li><p>PR #1410: Remove schizo/hydra component</p></li>
+<li><p>PR #1409: Add new output options to help string</p></li>
+<li><p>PR #1407: Support a broader range of IO output formats</p></li>
+<li><p>PR #1404: Fix a hang in daemon callback</p></li>
+<li><p>PR #1402: Cleanup race condition in daemon reports</p></li>
+<li><dl class="simple">
+<dt>PR #1399: Multiple commits</dt><dd><ul>
+<li><p>Allow mapping in overload scenario if bind not specified</p></li>
+<li><p>Ensure rankfile and seq mappers computer local and app ranks</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #1394: Add forwarding of stdin to indirect example</p></li>
+<li><p>PR #1391: Change the default mapping for –bind-to none option to BYSLOT.</p></li>
+</ul>
+<p>Branch from <a class="reference external" href="https://github.com/openpmix/prrte/commit/f3d4089">master&#64;f3d4089</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="17. News" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="news-v2.x.html" class="btn btn-neutral float-right" title="17.2. PRRTE v2.x series" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

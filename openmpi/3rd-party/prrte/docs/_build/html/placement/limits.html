@@ -1,0 +1,296 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8.6. Overloading and Oversubscribing &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.7. Diagnostics" href="diagnostics.html" />
+    <link rel="prev" title="8.5. Fundamentals" href="fundamentals.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Process placement</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-slot">8.2. Definition of ‘slot’</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-processor-element">8.3. Definition of “processor element”</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">8.4. Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fundamentals.html">8.5. Fundamentals</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.6. Overloading and Oversubscribing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overloading-vs-oversubscription-package-example">8.6.1. Overloading vs. Oversubscription: Package Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#overloading-vs-oversubscription-hardware-threads-example">8.6.2. Overloading vs. Oversubscription: Hardware Threads Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="diagnostics.html">8.7. Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rankfiles.html">8.8. Rankfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecated.html">8.9. Deprecated options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">8. </span>Process placement</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8.6. </span>Overloading and Oversubscribing</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/placement/limits.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="overloading-and-oversubscribing">
+<h1><span class="section-number">8.6. </span>Overloading and Oversubscribing<a class="headerlink" href="#overloading-and-oversubscribing" title="Link to this heading"></a></h1>
+<p>This section explores the difference between the terms “overloading”
+and “oversubscribing”. Users are often confused by the difference
+between these two scenarios. As such, this section provides a number
+of scenarios to help illustrate the differences.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">:OVERSUBSCRIBE</span></code> allow more processes on a node than
+allocated</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">&lt;object&gt;:overload-allowed</span></code> allows for binding more than
+one process in relation to a CPU</p></li>
+</ul>
+<p>The important thing to remember with <em>oversubscribing</em> is that it can
+be defined separately from the actual number of CPUs on a node. This
+allows the mapper to place more or fewer processes per node than
+CPUs. By default, PRRTE uses cores to determine slots in the absence
+of such information provided in the hostfile or by the resource
+manager (except in the case of the <code class="docutils literal notranslate"><span class="pre">--host</span></code> as described in
+the section on that command line option.</p>
+<p>The important thing to remember with <em>overloading</em> is that it is
+defined as binding more processes than CPUs. By default, PRRTE uses
+cores as a means of counting the number of CPUs. However, the user can
+adjust this. For example when using the <code class="docutils literal notranslate"><span class="pre">:HWTCPUS</span></code> qualifier to the
+<code class="docutils literal notranslate"><span class="pre">--map-by</span></code> option PRRTE will use hardware threads as a means of
+counting the number of CPUs.</p>
+<p>For the following examples consider a node with:</p>
+<ul class="simple">
+<li><p>2 processor packages,</p></li>
+<li><p>10 cores per package, and</p></li>
+<li><p>8 hardware threads per core.</p></li>
+</ul>
+<p>Consider the node from above with the hostfile below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+node01 slots=32
+node02 slots=32
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">slots</span></code> token tells PRRTE that it can place up to 32 processes
+before <em>oversubscribing</em> the node.</p>
+<p>If we run the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">34</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">core</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">core</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>It will return an error at the binding time indicating an
+<em>overloading</em> scenario.</p>
+<p>The mapping mechanism assigns 32 processes to <code class="docutils literal notranslate"><span class="pre">node01</span></code> matching the
+<code class="docutils literal notranslate"><span class="pre">slots</span></code> specification in the hostfile. The binding mechanism will bind
+the first 20 processes to unique cores leaving it with 12 processes
+that it cannot bind without overloading one of the cores (putting more
+than one process on the core).</p>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">overload-allowed</span></code> qualifier to the <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">core</span></code>
+option tells PRRTE that it may assign more than one process to a core.</p>
+<p>If we run the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">34</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">core</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">core</span><span class="p">:</span><span class="n">overload</span><span class="o">-</span><span class="n">allowed</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>This will run correctly placing 32 processes on <code class="docutils literal notranslate"><span class="pre">node01</span></code>, and 2
+processes on <code class="docutils literal notranslate"><span class="pre">node02</span></code>. On <code class="docutils literal notranslate"><span class="pre">node01</span></code> two processes are bound to
+cores 0-11 accounting for the overloading of those cores.</p>
+<p>Alternatively, we could use hardware threads to give binding a lower
+level CPU to bind to without overloading.</p>
+<p>If we run the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">34</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">core</span><span class="p">:</span><span class="n">HWTCPUS</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">hwthread</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>This will run correctly placing 32 processes on <code class="docutils literal notranslate"><span class="pre">node01</span></code>, and 2
+processes on <code class="docutils literal notranslate"><span class="pre">node02</span></code>. On <code class="docutils literal notranslate"><span class="pre">node01</span></code> two processes are mapped to
+cores 0-11 but bound to different hardware threads on those cores (the
+logical first and second hardware thread). Thus no hardware threads
+are overloaded at binding time.</p>
+<p>In both of the examples above the node is not oversubscribed at
+mapping time because the hostfile set the oversubscription limit to
+<code class="docutils literal notranslate"><span class="pre">slots=32</span></code> for each node. It is only after we exceed that limit that
+PRRTE will throw an oversubscription error.</p>
+<p>Consider next if we ran the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">66</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">core</span><span class="p">:</span><span class="n">HWTCPUS</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">hwthread</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>This will return an error at mapping time indicating an
+oversubscription scenario. The mapping mechanism will assign all of
+the available slots (64 across 2 nodes) and be left two processes to
+map. The only way to map those processes is to exceed the number of
+available slots putting the job into an oversubscription scenario.</p>
+<p>You can force PRRTE to oversubscribe the nodes by using the
+<code class="docutils literal notranslate"><span class="pre">:OVERSUBSCRIBE</span></code> qualifier to the <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> option as seen in the
+example below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">66</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> \
+    <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">core</span><span class="p">:</span><span class="n">HWTCPUS</span><span class="p">:</span><span class="n">OVERSUBSCRIBE</span> <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">hwthread</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>This will run correctly placing 34 processes on <code class="docutils literal notranslate"><span class="pre">node01</span></code> and 32 on
+<code class="docutils literal notranslate"><span class="pre">node02</span></code>.  Each process is bound to a unique hardware thread.</p>
+<section id="overloading-vs-oversubscription-package-example">
+<h2><span class="section-number">8.6.1. </span>Overloading vs. Oversubscription: Package Example<a class="headerlink" href="#overloading-vs-oversubscription-package-example" title="Link to this heading"></a></h2>
+<p>Let’s extend these examples by considering the package level.
+Consider the same node as before, but with the hostfile below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+node01 slots=22
+node02 slots=22
+</pre></div>
+</div>
+<p>The lowest level CPUs are “cores” and we have 20 total (10 per
+package).</p>
+<p>If we run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">20</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">package</span> \
+    <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">package</span><span class="p">:</span><span class="n">REPORT</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>Then 10 processes are mapped to each package, and bound at the package
+level.  This is not overloading since we have 10 CPUs (cores)
+available in the package at the hardware level.</p>
+<p>However, if we run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">21</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">package</span> \
+    <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">package</span><span class="p">:</span><span class="n">REPORT</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>Then 11 processes are mapped to the first package and 10 to the second
+package.  At binding time we have an overloading scenario because
+there are only 10 CPUs (cores) available in the package at the
+hardware level. So the first package is overloaded.</p>
+</section>
+<section id="overloading-vs-oversubscription-hardware-threads-example">
+<h2><span class="section-number">8.6.2. </span>Overloading vs. Oversubscription: Hardware Threads Example<a class="headerlink" href="#overloading-vs-oversubscription-hardware-threads-example" title="Link to this heading"></a></h2>
+<p>Similarly, if we consider hardware threads.</p>
+<p>Consider the same node as before, but with the hostfile below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myhostfile
+node01 slots=165
+node02 slots=165
+</pre></div>
+</div>
+<p>The lowest level CPUs are “hwthreads” (because we are going to use the
+<code class="docutils literal notranslate"><span class="pre">:HWTCPUS</span></code> qualifier) and we have 160 total (80 per package).</p>
+<p>If we re-run (from the package example) and add the <code class="docutils literal notranslate"><span class="pre">:HWTCPUS</span></code>
+qualifier:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">21</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">package</span><span class="p">:</span><span class="n">HWTCPUS</span> \
+    <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">package</span><span class="p">:</span><span class="n">REPORT</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>Without the <code class="docutils literal notranslate"><span class="pre">:HWTCPUS</span></code> qualifier this would be overloading (as we
+saw previously). The mapper places 11 processes on the first package
+and 10 to the second package. The processes are still bound to the
+package level. However, with the <code class="docutils literal notranslate"><span class="pre">:HWTCPUS</span></code> qualifier, it is not
+overloading since we have 80 CPUs (hwthreads) available in the package
+at the hardware level.</p>
+<p>Alternatively, if we run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prun</span> <span class="o">--</span><span class="n">np</span> <span class="mi">161</span> <span class="o">--</span><span class="n">hostfile</span> <span class="n">myhostfile</span> <span class="o">--</span><span class="nb">map</span><span class="o">-</span><span class="n">by</span> <span class="n">package</span><span class="p">:</span><span class="n">HWTCPUS</span> \
+    <span class="o">--</span><span class="n">bind</span><span class="o">-</span><span class="n">to</span> <span class="n">package</span><span class="p">:</span><span class="n">REPORT</span> <span class="n">hostname</span>
+</pre></div>
+</div>
+<p>Then 81 processes are mapped to the first package and 80 to the second
+package.  At binding time we have an overloading scenario because
+there are only 80 CPUs (hwthreads) available in the package at the
+hardware level.  So the first package is overloaded.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="fundamentals.html" class="btn btn-neutral float-left" title="8.5. Fundamentals" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="diagnostics.html" class="btn btn-neutral float-right" title="8.7. Diagnostics" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

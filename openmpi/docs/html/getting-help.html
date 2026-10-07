@@ -1,0 +1,373 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2. Getting help &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="3. Release notes" href="release-notes/index.html" />
+    <link rel="prev" title="1. Quick start" href="quickstart.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. Getting help</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#where-to-send">2.1. Where to send?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#for-problems-building-or-installing-open-mpi">2.2. For problems building or installing Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#for-problems-launching-mpi-or-openshmem-applications">2.3. For problems launching MPI or OpenSHMEM applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#for-problems-running-mpi-or-openshmem-applications">2.4. For problems running MPI or OpenSHMEM applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">2. </span>Getting help</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting-help.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="getting-help">
+<h1><span class="section-number">2. </span>Getting help<a class="headerlink" href="#getting-help" title="Link to this heading"></a></h1>
+<p>If you have a problem or question, it is highly recommended that you
+execute the following steps <strong>in order</strong>.  Many people have similar
+problems with configuration and initial setup of Open MPI — it
+is possible that your question has already been answered.</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="validate.html"><span class="doc">Validate your Open MPI installation</span></a>.  This
+ensures that you have a nominally-correct Open MPI installation.</p></li>
+<li><p><a class="reference external" href="https://github.com/open-mpi/ompi/issues">Check prior GitHub issues</a> and see if others have
+asked the same question and had it answered.</p></li>
+<li><p><a class="reference external" href="https://www.open-mpi.org/community/lists/ompi.php">Check the mailing list archives</a> “search”
+features (or use Google) to check old posts and see if others have
+asked the same question and had it answered.</p></li>
+<li><p>If you do not find a solution to your problem in the above
+resources, proceed to the <a class="reference internal" href="#getting-help-where-to-send-label"><span class="std std-ref">Where to send?</span></a> section.</p></li>
+</ol>
+<section id="where-to-send">
+<span id="getting-help-where-to-send-label"></span><h2><span class="section-number">2.1. </span>Where to send?<a class="headerlink" href="#where-to-send" title="Link to this heading"></a></h2>
+<p>Different types of questions and problems should be sent to different
+places.  If you have:</p>
+<ol class="arabic">
+<li><p><strong>A general end-user question or problem:</strong> you should probably
+subscribe to the <a class="reference external" href="https://www.open-mpi.org/community/lists/ompi.php">Open MPI user’s mailing list</a> and post it
+there.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Because of spam, only subscribers to the mailing list are
+allowed to post to the mailing list.  Specifically: <strong>you must
+subscribe to the mailing list before posting.</strong></p>
+</div>
+<ul class="simple">
+<li><p>If you have a compile-time question or problem, see the <a class="reference internal" href="#getting-help-compile-time-label"><span class="std std-ref">For
+problems building or installing Open MPI</span></a> section below for the content
+of what to include in your email.</p></li>
+<li><p>If you have problems launching your MPI or OpenSHMEM application
+successfully, see the <a class="reference internal" href="#getting-help-launching-label"><span class="std std-ref">For problems launching MPI or
+OpenSHMEM applications</span></a> section
+below for the content of what to include in your email.</p></li>
+<li><p>If you have other questions or problems about running your MPI or
+OpenSHMEM application, see the <a class="reference internal" href="#getting-help-running-label"><span class="std std-ref">For problems running MPI or
+OpenSHMEM applications</span></a> section
+below for the content of what to include in your email.</p></li>
+</ul>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The more information you include in your report, the
+better.  E-mails/bug reports simply stating, “It doesn’t work!”
+are not helpful; we need to know as much information about your
+environment as possible in order to provide meaningful
+assistance.</p>
+</div>
+<p><strong>The best way to get help</strong> is to provide a “recipe” for
+reproducing the problem.  This will allow the Open MPI developers
+to see the error for themselves, and therefore be able to fix it.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Please <strong>use a descriptive “subject” line in your
+email!</strong> Some Open MPI question-answering people decide whether
+to read a mail based on its subject line (e.g., to see if it’s a
+question that they can answer).  So please <em>please</em> <strong>please</strong>
+use a good subject line that succinctly describes your problem.</p>
+</div>
+</li>
+<li><p><strong>A bug report:</strong> you should probably post it to <a class="reference external" href="https://github.com/open-mpi/ompi/issues">Open MPI’s Github
+issue tracker</a>.  Follow
+the template to submit all the requested information.</p></li>
+<li><p><strong>A patch, bug fix, or other code submission:</strong> please post a Github
+Pull Request to the <a class="reference external" href="https://github.com/open-mpi/ompi/pulls">Open MPI Github repository</a>.</p></li>
+<li><p><strong>A developer-level / internal question about Open MPI itself:</strong> you
+should probably subscribe to the <a class="reference external" href="https://www.open-mpi.org/community/lists/ompi.php">Open MPI developer’s mailing list</a> and post it
+there.</p></li>
+</ol>
+<p>If you’re unsure where to send your question, subscribe and send an
+email to the user’s mailing list (i.e., option #1, above).</p>
+</section>
+<section id="for-problems-building-or-installing-open-mpi">
+<span id="getting-help-compile-time-label"></span><h2><span class="section-number">2.2. </span>For problems building or installing Open MPI<a class="headerlink" href="#for-problems-building-or-installing-open-mpi" title="Link to this heading"></a></h2>
+<p>If you cannot successfully configure, build, or install Open MPI,
+please provide <em>all</em> of the following information:</p>
+<ol class="arabic simple">
+<li><p>The version of Open MPI that you’re using.</p></li>
+<li><p>The stdout and stderr from running <code class="docutils literal notranslate"><span class="pre">configure</span></code>.</p></li>
+<li><p>All <code class="docutils literal notranslate"><span class="pre">config.log</span></code> files from the Open MPI build tree.</p></li>
+<li><p>Output from when you ran <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">V=1</span> <span class="pre">all</span></code> to build Open MPI.</p></li>
+<li><p>Output from when you ran <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> to install Open MPI.</p></li>
+</ol>
+<p>The script below may be helpful to gather much of the above
+information (adjust as necessary for your specific environment):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+<span class="nb">set</span><span class="w"> </span>-euxo<span class="w"> </span>pipefail
+
+<span class="c1"># Make a directory for the output files</span>
+<span class="nv">dir</span><span class="o">=</span><span class="s2">"`pwd`/ompi-output"</span>
+mkdir<span class="w"> </span><span class="nv">$dir</span>
+
+<span class="c1"># Fill in the options you want to pass to configure here</span>
+<span class="nv">options</span><span class="o">=</span><span class="s2">""</span>
+./configure<span class="w"> </span><span class="nv">$options</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/config.out
+tar<span class="w"> </span>-cf<span class="w"> </span>-<span class="w"> </span><span class="sb">`</span>find<span class="w"> </span>.<span class="w"> </span>-name<span class="w"> </span>config.log<span class="sb">`</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tar<span class="w"> </span>-x<span class="w"> </span>-C<span class="w"> </span><span class="nv">$dir</span>
+
+<span class="c1"># Build and install Open MPI</span>
+make<span class="w"> </span><span class="nv">V</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>all<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">          </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/make.out
+make<span class="w"> </span>install<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">          </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/make-install.out
+
+<span class="c1"># Bundle up all of these files into a tarball</span>
+<span class="nv">filename</span><span class="o">=</span><span class="s2">"ompi-output.tar.bz2"</span>
+tar<span class="w"> </span>-jcf<span class="w"> </span><span class="nv">$filename</span><span class="w"> </span><span class="sb">`</span>basename<span class="w"> </span><span class="nv">$dir</span><span class="sb">`</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Tarball </span><span class="nv">$filename</span><span class="s2"> created"</span>
+</pre></div>
+</div>
+<p>Then attach the resulting <code class="docutils literal notranslate"><span class="pre">ompi-output.tar.bz2</span></code> file to your report.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The mailing lists have <strong>a 150 KB size limit on
+messages</strong> (this is a limitation of the mailing list web archives).
+If attaching the tarball makes your message larger than 150 KB, you
+may need to post the tarball elsewhere and include a link to that
+tarball in your mail to the list.</p>
+</div>
+</section>
+<section id="for-problems-launching-mpi-or-openshmem-applications">
+<span id="getting-help-launching-label"></span><h2><span class="section-number">2.3. </span>For problems launching MPI or OpenSHMEM applications<a class="headerlink" href="#for-problems-launching-mpi-or-openshmem-applications" title="Link to this heading"></a></h2>
+<p>If you cannot successfully launch simple applications across multiple
+nodes (e.g., the non-MPI <code class="docutils literal notranslate"><span class="pre">hostname</span></code> command, or the MPI “hello world”
+or “ring” sample applications in the <code class="docutils literal notranslate"><span class="pre">examples/</span></code> directory), please
+provide <em>all</em> of the information from the <a class="reference internal" href="#getting-help-compile-time-label"><span class="std std-ref">For problems building
+or installing Open MPI</span></a> section, and
+<em>all</em> of the following additional information:</p>
+<ol class="arabic simple">
+<li><p>The output of the <code class="docutils literal notranslate"><span class="pre">ompi_info</span> <span class="pre">--all</span></code> command from the node where
+you are invoking <a class="reference internal" href="man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a>.</p></li>
+<li><p>If you have questions or problems about process mapping or binding,
+send the output from running the <code class="docutils literal notranslate"><span class="pre">lstopo</span> <span class="pre">-v</span></code> and <code class="docutils literal notranslate"><span class="pre">lstopo</span> <span class="pre">--of</span>
+<span class="pre">xml</span></code> commands from a recent version of <a class="reference external" href="https://www.open-mpi.org/projects/hwloc/">Hwloc</a>.</p></li>
+<li><p>If running on more than one node, also include the output of the
+<code class="docutils literal notranslate"><span class="pre">ompi_info</span> <span class="pre">--version</span></code> command <strong>from each node on which you are
+trying to run</strong>.</p></li>
+<li><p>The output of running <code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--map-by</span> <span class="pre">ppr:1:node</span> <span class="pre">--prtemca</span>
+<span class="pre">plm_base_verbose</span> <span class="pre">100</span> <span class="pre">--prtemca</span> <span class="pre">rmaps_base_verbose</span> <span class="pre">100</span> <span class="pre">--display</span>
+<span class="pre">alloc</span> <span class="pre">hostname</span></code>.  Add in a <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code> argument if needed for
+your environment.</p></li>
+</ol>
+<p>The script below may be helpful to gather much of the above
+information (adjust as necessary for your specific environment).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is safe to run this script after running the script from
+the <a class="reference internal" href="#getting-help-compile-time-label"><span class="std std-ref">building and installing</span></a> section.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+
+<span class="nb">set</span><span class="w"> </span>-euxo<span class="w"> </span>pipefail
+
+<span class="c1"># Make a directory for the output files</span>
+<span class="nv">dir</span><span class="o">=</span><span class="s2">"`pwd`/ompi-output"</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$dir</span>
+
+<span class="c1"># Get installation and system information</span>
+ompi_info<span class="w"> </span>--all<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">       </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/ompi-info-all.out
+lstopo<span class="w"> </span>-v<span class="w">                  </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/lstopo-v.txt
+lstopo<span class="w"> </span>--of<span class="w"> </span>xml<span class="w">            </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/lstopo.xml
+
+<span class="c1"># Have a text file "my_hostfile.txt" containing the hostnames on</span>
+<span class="c1"># which you are trying to launch</span>
+<span class="k">for</span><span class="w"> </span>host<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="sb">`</span>cat<span class="w"> </span>my_hostfile.txt<span class="sb">`</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span>ssh<span class="w"> </span><span class="nv">$host</span><span class="w"> </span>ompi_info<span class="w"> </span>--version<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/ompi_info-version-<span class="nv">$host</span>.out
+<span class="w">    </span>ssh<span class="w"> </span><span class="nv">$host</span><span class="w"> </span>lstopo<span class="w"> </span>-v<span class="w">                </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/lstopo-v-<span class="nv">$host</span>.txt
+<span class="w">    </span>ssh<span class="w"> </span><span class="nv">$host</span><span class="w"> </span>lstopo<span class="w"> </span>--of<span class="w"> </span>xml<span class="w">          </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/lstopo-<span class="nv">$host</span>.xml
+<span class="k">done</span>
+
+<span class="c1"># Have a my_hostfile.txt file if needed for your environment, or</span>
+<span class="c1"># remove the --hostfile argument altogether if not needed.</span>
+<span class="nb">set</span><span class="w"> </span>+e
+mpirun<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--hostfile<span class="w"> </span>my_hostfile.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--map-by<span class="w"> </span>ppr:1:node<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--prtemca<span class="w"> </span>plm_base_verbose<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--prtemca<span class="w"> </span>rmaps_base_verbose<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>--display<span class="w"> </span>alloc<span class="w"> </span><span class="se">\</span>
+<span class="w">     </span>hostname<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w">                     </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="nv">$dir</span>/mpirun-hostname.out
+
+<span class="c1"># Bundle up all of these files into a tarball</span>
+<span class="nv">filename</span><span class="o">=</span><span class="s2">"ompi-output.tar.bz2"</span>
+tar<span class="w"> </span>-jcf<span class="w"> </span><span class="nv">$filename</span><span class="w"> </span><span class="sb">`</span>basename<span class="w"> </span><span class="nv">$dir</span><span class="sb">`</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"Tarball </span><span class="nv">$filename</span><span class="s2"> created"</span>
+</pre></div>
+</div>
+</section>
+<section id="for-problems-running-mpi-or-openshmem-applications">
+<span id="getting-help-running-label"></span><h2><span class="section-number">2.4. </span>For problems running MPI or OpenSHMEM applications<a class="headerlink" href="#for-problems-running-mpi-or-openshmem-applications" title="Link to this heading"></a></h2>
+<p>If you can successfully launch parallel MPI or OpenSHMEM applications,
+but the jobs fail during the run, please provide <em>all</em> of the
+information from the <a class="reference internal" href="#getting-help-compile-time-label"><span class="std std-ref">For problems building or installing Open
+MPI</span></a> section, <em>all</em> of the
+information from the <a class="reference internal" href="#getting-help-launching-label"><span class="std std-ref">For problems launching MPI or OpenSHMEM
+applications</span></a> section, and then <em>all</em>
+of the following additional information:</p>
+<ol class="arabic">
+<li><p>A <em>detailed</em> description of what is failing.  <em>The more details
+that you provide, the better.</em> Please include at least the
+following information:</p>
+<ul class="simple">
+<li><p>The exact command used to run your application.</p></li>
+<li><p>Any relevant MCA parameters that were set (or unset) when
+you ran (from either the command line, environment,
+parameter file, etc.).</p></li>
+<li><p>The value of the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code>
+environment variables (did you set them correctly to point
+to all relevant executables, the Open MPI libraries, and
+any required support libraries, such as libraries required
+for high-speed networks such as InfiniBand).</p></li>
+</ul>
+</li>
+<li><p>The source code of a short sample program (preferably in C or
+Fortran) that exhibits the problem.</p></li>
+<li><p>If you are experiencing networking problems, include detailed
+information about your network.</p>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO Update link to IB FAQ entry.</p>
+</div>
+<ol class="arabic">
+<li><p>For RoCE- or InfiniBand-based networks, include the information
+<a class="reference internal" href="tuning-apps/networking/ib-and-roce.html#faq-ib-troubleshoot-label"><span class="std std-ref">in this FAQ entry</span></a>.</p></li>
+<li><p>For Ethernet-based networks (including RoCE-based networks),
+include the output of the <code class="docutils literal notranslate"><span class="pre">ip</span> <span class="pre">addr</span></code> command (or the legacy
+<code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> command) on all relevant nodes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some Linux distributions do not put <code class="docutils literal notranslate"><span class="pre">ip</span></code> or
+<code class="docutils literal notranslate"><span class="pre">ifconfig</span></code> in the default <code class="docutils literal notranslate"><span class="pre">PATH</span></code> of normal users.
+Try looking for it in <code class="docutils literal notranslate"><span class="pre">/sbin</span></code> or <code class="docutils literal notranslate"><span class="pre">/usr/sbin</span></code>.</p>
+</div>
+</li>
+</ol>
+</li>
+</ol>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="1. Quick start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="release-notes/index.html" class="btn btn-neutral float-right" title="3. Release notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

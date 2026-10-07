@@ -1,0 +1,324 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.2.3. Shared Memory &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.2.4. InifiniBand / RoCE support" href="ib-and-roce.html" />
+    <link rel="prev" title="11.2.2. TCP" href="tcp.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">11.2. Networking support</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ofi.html">11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tcp.html">11.2.2. TCP</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">11.2.3. Shared Memory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#the-sm-btl">11.2.3.1. The sm BTL</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#specifying-the-use-of-sm-for-mpi-messages">11.2.3.2. Specifying the Use of sm for MPI Messages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tuning-parameters-to-improve-performance">11.2.3.3. Tuning Parameters to Improve Performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shared-memory-mechanisms">11.2.3.4. Shared Memory Mechanisms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shared-memory-mapping-on-the-filesystem">11.2.3.5. Shared Memory Mapping on the Filesystem</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ib-and-roce.html">11.2.4. InifiniBand / RoCE support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="iwarp.html">11.2.5. iWARP Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cuda.html">11.2.6. CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rocm.html">11.2.7. ROCm</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11.2. </span>Networking support</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.2.3. </span>Shared Memory</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tuning-apps/networking/shared-memory.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="shared-memory">
+<h1><span class="section-number">11.2.3. </span>Shared Memory<a class="headerlink" href="#shared-memory" title="Link to this heading"></a></h1>
+<section id="the-sm-btl">
+<h2><span class="section-number">11.2.3.1. </span>The sm BTL<a class="headerlink" href="#the-sm-btl" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">sm</span></code> BTL is a low-latency, high-bandwidth mechanism for
+transferring data between two processes via shared memory.  This BTL
+can only be used between processes executing on the same node.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Between Open MPI version 1.8.0 and 4.1.x, the shared memory
+BTL was named <code class="docutils literal notranslate"><span class="pre">vader</span></code>.  As of Open MPI version 5.0.0, the
+BTL has been renamed <code class="docutils literal notranslate"><span class="pre">sm</span></code>.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In Open MPI version 5.0.x, the name <code class="docutils literal notranslate"><span class="pre">vader</span></code> is simply
+an alias for the <code class="docutils literal notranslate"><span class="pre">sm</span></code> BTL.  Similarly, all
+<code class="docutils literal notranslate"><span class="pre">vader_</span></code>-prefixed MCA parameters are automatically
+aliased to their corresponding <code class="docutils literal notranslate"><span class="pre">sm_</span></code>-prefixed MCA
+parameter.</p>
+<p>This alias mechanism is a legacy transition device, and
+will likely disappear in a future release of Open MPI.</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="specifying-the-use-of-sm-for-mpi-messages">
+<h2><span class="section-number">11.2.3.2. </span>Specifying the Use of sm for MPI Messages<a class="headerlink" href="#specifying-the-use-of-sm-for-mpi-messages" title="Link to this heading"></a></h2>
+<p>Typically, it is unnecessary to do so;  OMPI will use the best BTL available
+for each communication.</p>
+<p>Nevertheless, you may use the MCA parameter <code class="docutils literal notranslate"><span class="pre">btl</span></code>.  You should also
+specify the <code class="docutils literal notranslate"><span class="pre">self</span></code> BTL for communications between a process and
+itself.  Furthermore, if not all processes in your job will run on the
+same, single node, then you also need to specify a BTL for internode
+communications.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>self,sm,tcp<span class="w"> </span>-n<span class="w"> </span><span class="m">16</span><span class="w"> </span>./a.out
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="tuning-parameters-to-improve-performance">
+<h2><span class="section-number">11.2.3.3. </span>Tuning Parameters to Improve Performance<a class="headerlink" href="#tuning-parameters-to-improve-performance" title="Link to this heading"></a></h2>
+<p>Mostly, the default values of the MCA parameters have already
+been chosen to give good performance.  To improve performance further
+is a little bit of an art.  Sometimes, it’s a matter of trading off
+performance for memory.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">btl_sm_eager_limit</span></code>: If message data plus header information fits
+within this limit, the message is sent “eagerly” — that is, a
+sender attempts to write its entire message to shared buffers
+without waiting for a receiver to be ready.  Above this size, a
+sender will only write the first part of a message, then wait for
+the receiver to acknowledge its readiness before continuing.  Eager
+sends <em>can</em> improve performance by decoupling senders from
+receivers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">btl_sm_max_send_size</span></code>: Large messages are sent in fragments of
+this size.  Larger segments <em>can</em> lead to greater efficiencies,
+though they could perhaps also inhibit pipelining between sender and
+receiver.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">btl_sm_free_list_num</span></code>: This is the initial number of fragments on
+each (eager and max) free list.  The free lists can grow in response
+to resource congestion, but you can increase this parameter to
+pre-reserve space for more fragments.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">btl_sm_backing_directory</span></code>: Directory to place backing files for
+shared memory communication. This directory should be on a local
+filesystem such as <code class="docutils literal notranslate"><span class="pre">/tmp</span></code> or <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code> (default: (linux) <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code>,
+(others) session directory)</p></li>
+</ul>
+</section>
+<hr class="docutils" />
+<section id="shared-memory-mechanisms">
+<h2><span class="section-number">11.2.3.4. </span>Shared Memory Mechanisms<a class="headerlink" href="#shared-memory-mechanisms" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">sm</span></code> BTL supports two modes of shared memory communication:</p>
+<ol class="arabic">
+<li><p><strong>Two-copy:</strong> Otherwise known as “copy-in / copy-out”, this mode is
+where the sender copies data into shared memory and the receiver
+copies the data out.</p>
+<p>This mechanism is always available.</p>
+</li>
+<li><p><strong>Single copy:</strong> In this mode, the sender or receiver makes a
+single copy of the message data from the source buffer in one
+process to the destination buffer in another process.  Open MPI
+supports three flavors of shared memory single-copy transfers:</p>
+<ul>
+<li><p><a class="reference external" href="https://knem.gitlabpages.inria.fr/">Linux KNEM</a>.  This is a
+standalone Linux kernel module, made specifically for HPC and MPI
+libraries to enable high-performance single-copy message
+transfers.</p>
+<p>Open MPI must be able to find the KNEM header files in order to
+build support for KNEM.</p>
+</li>
+<li><p><a class="reference external" href="https://github.com/hjelmn/xpmem">Linux XPMEM</a>.  Similar to
+KNEM, this is a standalone Linux kernel module, made specifically
+for HPC and MPI libraries to enable high-performance single-copy
+message transfers.  It is derived from the Cray XPMEM system.</p>
+<p>Open MPI must be able to find the XPMEM header files in order to
+build support for XPMEM.</p>
+</li>
+<li><p>Linux Cross-Memory Attach (CMA).  This mechanism is built-in to
+modern versions of the Linux kernel.  Although more performance
+than the two-copy shared memory transfer mechanism, CMA is the
+lowest performance of the single-copy mechanisms.  However, CMA
+is likely the most widely available because it is enabled by
+default in several modern Linux distributions.</p>
+<p>Open MPI must be built on a Linux system with a recent enough
+Glibc and kernel version in order to build support for Linux CMA.</p>
+</li>
+</ul>
+</li>
+</ol>
+<p>Which mechanism is used at run time depends both on how Open MPI was
+built and how your system is configured.  You can check to see which
+single-copy mechanisms Open MPI was built with via two mechanisms:</p>
+<ol class="arabic">
+<li><p>At the end of running <code class="docutils literal notranslate"><span class="pre">configure</span></code>, Open MPI emits a list of
+transports for which it found relevant header files and libraries
+such that it will be able to build support for them.  You might see
+lines like this, for example:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Shared memory/copy in+copy out: yes
+Shared memory/Linux CMA: yes
+Shared memory/Linux KNEM: no
+Shared memory/XPMEM: no
+</pre></div>
+</div>
+<p>The above output indicates that Open MPI will be built with 2-copy
+(as mentioned above, 2-copy is <em>always</em> available) and with Linux
+CMA support.  KNEM and XPMEM support will <em>not</em> be built.</p>
+</li>
+<li><p>After Open MPI is installed, the <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> command can show
+which <code class="docutils literal notranslate"><span class="pre">smsc</span></code> (shared memory single copy) components are
+available:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>shell$ ompi_info | grep smsc
+          MCA smsc: cma (MCA v2.1.0, API v1.0.0, Component v5.1.0)
+</pre></div>
+</div>
+<p>This Open MPI installation only supports the Linux CMA single-copy
+mechanism.</p>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As implied by the SMSC component names, none of them are
+supported on macOS.  macOS users will use the two-copy mechanism.</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="shared-memory-mapping-on-the-filesystem">
+<h2><span class="section-number">11.2.3.5. </span>Shared Memory Mapping on the Filesystem<a class="headerlink" href="#shared-memory-mapping-on-the-filesystem" title="Link to this heading"></a></h2>
+<p>The default location of the file is in the <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code> directory. If <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code>
+does not exist on the system, the default location will be the OMPI session
+directory. The path is typically something like:
+<code class="docutils literal notranslate"><span class="pre">/dev/shm/sm_segment.nodename.user_id.job_id.my_node_rank</span></code>.
+For example, the full path could be: <code class="docutils literal notranslate"><span class="pre">/dev/shm/sm_segment.x.1000.23c70000.0</span></code>.</p>
+<p>You can use the MCA parameter <code class="docutils literal notranslate"><span class="pre">btl_sm_backing_directory</span></code> to place the
+directory in a non-default location.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The session directory can be customized via
+PRRTE using <code class="docutils literal notranslate"><span class="pre">--prtemca</span> <span class="pre">prte_tmpdir_base</span> <span class="pre">/path/to/somewhere</span></code>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Even when using single-copy methods like CMA, a shared memory file is still
+created for managing connection metadata.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tcp.html" class="btn btn-neutral float-left" title="11.2.2. TCP" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ib-and-roce.html" class="btn btn-neutral float-right" title="11.2.4. InifiniBand / RoCE support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

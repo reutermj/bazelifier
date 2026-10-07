@@ -1,0 +1,237 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "OMPI_AFFINITY_STR" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fBOMPI_Affinity_str\fP \- Obtain prettyprint strings of processor affinity
+information for this process
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+#include <mpi\-ext.h>
+
+int OMPI_Affinity_str(ompi_affinity_fmt_type_t fmt_type,
+                      char ompi_bound[OMPI_AFFINITY_STRING_MAX],
+                      char current_binding[OMPI_AFFINITY_STRING_MAX],
+                      char exists[OMPI_AFFINITY_STRING_MAX])
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran Syntax
+.sp
+There is no Fortran binding for this function.
+.SS Fortran 2008 Syntax
+.sp
+There is no Fortran 2008 binding for this function.
+.SS C++ Syntax
+.sp
+There is no C++ binding for this function.
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBfmt_type\fP: An enum indicating how to format the returned ompi_bound and current_binding strings. OMPI_AFFINITY_RSRC_STRING_FMT returns the string as human\-readable resource names, such as “socket 0, core 0”.
+.IP \(bu 2
+\fBOMPI_AFFINITY_LAYOUT_FMT returns ASCII art representing where this MPI\fP: process is bound relative to the machine resource layout. For example “[. B][. .]” shows the process that called the routine is bound to socket 0, core 1 in a system with 2 sockets, each containing 2 cores.
+.IP \(bu 2
+\fBSee below for more output examples.\fP:
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBompi_bound\fP: A prettyprint string describing what processor(s) Open MPI bound this process to, or a string indicating that Open MPI did not bind this process.
+.IP \(bu 2
+\fBcurrent_binding\fP: A prettyprint string describing what processor(s) this process is currently bound to, or a string indicating that the process is bound to all available processors (and is therefore considered “unbound”).
+.IP \(bu 2
+\fBexists\fP: A prettyprint string describing the available sockets and sockets on this host.
+.UNINDENT
+.SH DESCRIPTION
+.sp
+Open MPI may bind a process to specific sockets and/or cores at process
+launch time. This non\-standard Open MPI function call returns
+prettyprint information about three things:
+.INDENT 0.0
+.TP
+.B Where Open MPI bound this process.
+The string returned in \fBompi_bound\fP will either indicate that Open
+MPI did not bind this process to anything, or it will contain a
+prettyprint description of the processor(s) to which Open MPI bound
+this process.
+.TP
+.B Where this process is currently bound.
+Regardless of whether Open MPI bound this process or not, another
+entity may have bound it. The string returned in \fBcurrent_binding\fP
+will indicate what the \fIcurrent\fP binding is of this process,
+regardless of what Open MPI may have done earlier. The string
+returned will either indicate that the process is unbound (meaning
+that it is bound to all available processors) or it will contain a
+prettyprint description of the sockets and cores to which the process
+is currently bound.
+.TP
+.B What processors exist.
+As a convenience to the user, the \fBexists\fP string will contain a
+prettyprint description of the sockets and cores that this process
+can see (which is \fIusually\fP all processors in the system).
+.UNINDENT
+.SS EXAMPLES
+.sp
+\fBExample 1:\fP Print out processes binding using resource string format.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+int rank;
+char ompi_bound[OMPI_AFFINITY_STRING_MAX];
+char current_binding[OMPI_AFFINITY_STRING_MAX];
+char exists[OMPI_AFFINITY_STRING_MAX];
+
+MPI_Init(&argc, &argv);
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+OMPI_Affinity_str(OMPI_AFFINITY_RSRC_STRING_FMT,
+                  ompi_bound, current_binding, exists);
+printf(\(dqrank %d: \en\(dq
+       \(dq       ompi_bound: %s\en\(dq
+       \(dq  current_binding: %s\en\(dq
+       \(dq           exists: %s\en\(dq,
+       rank, ompi_bound, current_binding, exists);
+\&...
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Output of \fBmpirun \-n 2 \-bind\-to\-core a.out\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+rank 0:
+       ompi_bound: socket 0[core 0]
+  current_binding: socket 0[core 0]
+           exists: socket 0 has 4 cores
+rank 1:
+       ompi_bound: socket 0[core 1]
+  current_binding: socket 0[core 1]
+           exists: socket 0 has 4 cores
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Output of \fBmpirun \-n 2 \-bind\-to\-socket a.out\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+rank 0:
+       ompi_bound: socket 0[core 0\-3]
+  current_binding: Not bound (or bound to all available processors)
+           exists: socket 0 has 4 cores
+rank 1:
+       ompi_bound: socket 0[core 0\-3]
+  current_binding: Not bound (or bound to all available processors)
+           exists: socket 0 has 4 cores
+.EE
+.UNINDENT
+.UNINDENT
+.nf
+
+\fBExample 2:\fP Print out processes binding using layout string format.
+.fi
+.sp
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+int rank;
+char ompi_bound[OMPI_AFFINITY_STRING_MAX];
+char current_binding[OMPI_AFFINITY_STRING_MAX];
+char exists[OMPI_AFFINITY_STRING_MAX];
+
+MPI_Init(&argc, &argv);
+MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+OMPI_Affinity_str(OMPI_AFFINITY_LAYOUT_FMT,
+                  ompi_bound, current_binding, exists);
+printf(\(dqrank %d: \en\(dq
+       \(dq       ompi_bound: %s\en\(dq
+       \(dq  current_binding: %s\en\(dq
+       \(dq           exists: %s\en\(dq,
+       rank, ompi_bound, current_binding, exists);
+\&...
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Output of \fBmpirun \-n 2 \-bind\-to\-core a.out\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+rank 0:
+       ompi_bound: [B . . .]
+  current_binding: [B . . .]
+           exists: [. . . .]
+rank 1:
+       ompi_bound: [. B . .]
+  current_binding: [. B . .]
+           exists: [. . . .]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Output of \fBmpirun \-n 2 \-bind\-to\-socket a.out\fP:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+rank 0:
+       ompi_bound: [B B B B]
+  current_binding: [B B B B]
+           exists: [. . . .]
+rank 1:
+       ompi_bound: [B B B B]
+  current_binding: [B B B B]
+           exists: [. . . .]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fI\%mpirun(1)\fP
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

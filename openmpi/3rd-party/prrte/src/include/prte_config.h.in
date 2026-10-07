@@ -1,0 +1,795 @@
+/* src/include/prte_config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* -*- c -*-
+ *
+ * Copyright (c) 2004-2005 The Trustees of Indiana University.
+ *                         All rights reserved.
+ * Copyright (c) 2004-2005 The Trustees of the University of Tennessee.
+ *                         All rights reserved.
+ * Copyright (c) 2004-2005 High Performance Computing Center Stuttgart,
+ *                         University of Stuttgart.  All rights reserved.
+ * Copyright (c) 2004-2005 The Regents of the University of California.
+ *                         All rights reserved.
+ * Copyright (c) 2014      Intel, Inc. All rights reserved.
+ * $COPYRIGHT$
+ *
+ * Additional copyrights may follow
+ *
+ * $HEADER$
+ *
+ * Function: - OS, CPU and compiler dependent configuration
+ */
+
+#ifndef PRTE_CONFIG_H
+#define PRTE_CONFIG_H
+
+#include "prte_config_top.h"
+
+
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
+
+/* The normal alignment of `bool', in bytes. */
+#undef ALIGNOF_BOOL
+
+/* The normal alignment of `double', in bytes. */
+#undef ALIGNOF_DOUBLE
+
+/* The normal alignment of `int', in bytes. */
+#undef ALIGNOF_INT
+
+/* The normal alignment of `int32_t', in bytes. */
+#undef ALIGNOF_INT32_T
+
+/* The normal alignment of `int64_t', in bytes. */
+#undef ALIGNOF_INT64_T
+
+/* The normal alignment of `long', in bytes. */
+#undef ALIGNOF_LONG
+
+/* The normal alignment of `long long', in bytes. */
+#undef ALIGNOF_LONG_LONG
+
+/* The normal alignment of `size_t', in bytes. */
+#undef ALIGNOF_SIZE_T
+
+/* Define to 1 if you have the <arpa/inet.h> header file. */
+#undef HAVE_ARPA_INET_H
+
+/* Define to 1 if you have the `asprintf' function. */
+#undef HAVE_ASPRINTF
+
+/* Define to 1 if you have the declaration of `AF_INET6', and to 0 if you
+   don't. */
+#undef HAVE_DECL_AF_INET6
+
+/* Define to 1 if you have the declaration of `AF_UNSPEC', and to 0 if you
+   don't. */
+#undef HAVE_DECL_AF_UNSPEC
+
+/* Define to 1 if you have the declaration of `ethtool_cmd_speed', and to 0 if
+   you don't. */
+#undef HAVE_DECL_ETHTOOL_CMD_SPEED
+
+/* Define to 1 if you have the declaration of `PF_INET6', and to 0 if you
+   don't. */
+#undef HAVE_DECL_PF_INET6
+
+/* Define to 1 if you have the declaration of `PF_UNSPEC', and to 0 if you
+   don't. */
+#undef HAVE_DECL_PF_UNSPEC
+
+/* Define to 1 if you have the declaration of `RLIMIT_AS', and to 0 if you
+   don't. */
+#undef HAVE_DECL_RLIMIT_AS
+
+/* Define to 1 if you have the declaration of `RLIMIT_CORE', and to 0 if you
+   don't. */
+#undef HAVE_DECL_RLIMIT_CORE
+
+/* Define to 1 if you have the declaration of `RLIMIT_FSIZE', and to 0 if you
+   don't. */
+#undef HAVE_DECL_RLIMIT_FSIZE
+
+/* Define to 1 if you have the declaration of `RLIMIT_MEMLOCK', and to 0 if
+   you don't. */
+#undef HAVE_DECL_RLIMIT_MEMLOCK
+
+/* Define to 1 if you have the declaration of `RLIMIT_NOFILE', and to 0 if you
+   don't. */
+#undef HAVE_DECL_RLIMIT_NOFILE
+
+/* Define to 1 if you have the declaration of `RLIMIT_NPROC', and to 0 if you
+   don't. */
+#undef HAVE_DECL_RLIMIT_NPROC
+
+/* Define to 1 if you have the declaration of `RLIMIT_STACK', and to 0 if you
+   don't. */
+#undef HAVE_DECL_RLIMIT_STACK
+
+/* Define to 1 if you have the declaration of `SIOCETHTOOL', and to 0 if you
+   don't. */
+#undef HAVE_DECL_SIOCETHTOOL
+
+/* Define to 1 if you have the declaration of `__func__', and to 0 if you
+   don't. */
+#undef HAVE_DECL___FUNC__
+
+/* Define to 1 if you have the <dirent.h> header file. */
+#undef HAVE_DIRENT_H
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
+/* Define to 1 if you have the <endian.h> header file. */
+#undef HAVE_ENDIAN_H
+
+/* Define to 1 if you have the <execinfo.h> header file. */
+#undef HAVE_EXECINFO_H
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#undef HAVE_FCNTL_H
+
+/* Define to 1 if you have the `fileno_unlocked' function. */
+#undef HAVE_FILENO_UNLOCKED
+
+/* Define to 1 if you have the `fork' function. */
+#undef HAVE_FORK
+
+/* Define to 1 if you have the <hostLib.h> header file. */
+#undef HAVE_HOSTLIB_H
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <ioLib.h> header file. */
+#undef HAVE_IOLIB_H
+
+/* Define to 1 if you have the <libutil.h> header file. */
+#undef HAVE_LIBUTIL_H
+
+/* Define to 1 if you have the <linux/ethtool.h> header file. */
+#undef HAVE_LINUX_ETHTOOL_H
+
+/* Define to 1 if you have the <linux/sockios.h> header file. */
+#undef HAVE_LINUX_SOCKIOS_H
+
+/* Define to 1 if you have the <malloc.h> header file. */
+#undef HAVE_MALLOC_H
+
+/* Define to 1 if you have the <minix/config.h> header file. */
+#undef HAVE_MINIX_CONFIG_H
+
+/* Define to 1 if you have the <netdb.h> header file. */
+#undef HAVE_NETDB_H
+
+/* Define to 1 if you have the <netinet/in.h> header file. */
+#undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <netinet/tcp.h> header file. */
+#undef HAVE_NETINET_TCP_H
+
+/* Define to 1 if you have the <net/if.h> header file. */
+#undef HAVE_NET_IF_H
+
+/* Define to 1 if you have the <net/uio.h> header file. */
+#undef HAVE_NET_UIO_H
+
+/* Define to 1 if you have the <paths.h> header file. */
+#undef HAVE_PATHS_H
+
+/* Define to 1 if you have the <poll.h> header file. */
+#undef HAVE_POLL_H
+
+/* Define to 1 if you have the `printstack' function. */
+#undef HAVE_PRINTSTACK
+
+/* Define to 1 if you have the `pthread_condattr_setpshared' function. */
+#undef HAVE_PTHREAD_CONDATTR_SETPSHARED
+
+/* Define to 1 if you have the `pthread_mutexattr_setpshared' function. */
+#undef HAVE_PTHREAD_MUTEXATTR_SETPSHARED
+
+/* Define to 1 if you have the <pthread_np.h> header file. */
+#undef HAVE_PTHREAD_NP_H
+
+/* Define to 1 if you have the `pthread_setaffinity_np' function. */
+#undef HAVE_PTHREAD_SETAFFINITY_NP
+
+/* Define to 1 if you have the <pty.h> header file. */
+#undef HAVE_PTY_H
+
+/* Define to 1 if you have the <pwd.h> header file. */
+#undef HAVE_PWD_H
+
+/* Define to 1 if you have the <sched.h> header file. */
+#undef HAVE_SCHED_H
+
+/* Define to 1 if you have the `setpgid' function. */
+#undef HAVE_SETPGID
+
+/* Define to 1 if you have the `setsid' function. */
+#undef HAVE_SETSID
+
+/* Define to 1 if `si_band' is a member of `siginfo_t'. */
+#undef HAVE_SIGINFO_T_SI_BAND
+
+/* Define to 1 if `si_fd' is a member of `siginfo_t'. */
+#undef HAVE_SIGINFO_T_SI_FD
+
+/* Define to 1 if you have the `snprintf' function. */
+#undef HAVE_SNPRINTF
+
+/* Define to 1 if the system has the type `socklen_t'. */
+#undef HAVE_SOCKLEN_T
+
+/* Define to 1 if you have the <sockLib.h> header file. */
+#undef HAVE_SOCKLIB_H
+
+/* Define to 1 if you have the <stdatomic.h> header file. */
+#undef HAVE_STDATOMIC_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strsignal' function. */
+#undef HAVE_STRSIGNAL
+
+/* Define to 1 if the system has the type `struct ethtool_cmd'. */
+#undef HAVE_STRUCT_ETHTOOL_CMD
+
+/* Define to 1 if `speed_hi' is a member of `struct ethtool_cmd'. */
+#undef HAVE_STRUCT_ETHTOOL_CMD_SPEED_HI
+
+/* Define to 1 if the system has the type `struct ifreq'. */
+#undef HAVE_STRUCT_IFREQ
+
+/* Define to 1 if the system has the type `struct sockaddr_in'. */
+#undef HAVE_STRUCT_SOCKADDR_IN
+
+/* Define to 1 if the system has the type `struct sockaddr_in6'. */
+#undef HAVE_STRUCT_SOCKADDR_IN6
+
+/* Define to 1 if the system has the type `struct sockaddr_storage'. */
+#undef HAVE_STRUCT_SOCKADDR_STORAGE
+
+/* Define to 1 if you have the `syslog' function. */
+#undef HAVE_SYSLOG
+
+/* Define to 1 if you have the <syslog.h> header file. */
+#undef HAVE_SYSLOG_H
+
+/* Define to 1 if you have the <sys/fcntl.h> header file. */
+#undef HAVE_SYS_FCNTL_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/param.h> header file. */
+#undef HAVE_SYS_PARAM_H
+
+/* Whether or not we have the ptrace header */
+#undef HAVE_SYS_PTRACE_H
+
+/* Define to 1 if you have the <sys/queue.h> header file. */
+#undef HAVE_SYS_QUEUE_H
+
+/* Define to 1 if you have the <sys/resource.h> header file. */
+#undef HAVE_SYS_RESOURCE_H
+
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#undef HAVE_SYS_SOCKET_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <sys/uio.h> header file. */
+#undef HAVE_SYS_UIO_H
+
+/* Define to 1 if you have the <sys/un.h> header file. */
+#undef HAVE_SYS_UN_H
+
+/* Define to 1 if you have the <sys/utsname.h> header file. */
+#undef HAVE_SYS_UTSNAME_H
+
+/* Define to 1 if you have the <sys/wait.h> header file. */
+#undef HAVE_SYS_WAIT_H
+
+/* Define to 1 if you have the <termios.h> header file. */
+#undef HAVE_TERMIOS_H
+
+/* Define to 1 if you have the <ucontext.h> header file. */
+#undef HAVE_UCONTEXT_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* whether unix byteswap routines -- htonl, htons, nothl, ntohs -- are
+   available */
+#undef HAVE_UNIX_BYTESWAP
+
+/* Define to 1 if you have the <util.h> header file. */
+#undef HAVE_UTIL_H
+
+/* Define to 1 if you have the `vasprintf' function. */
+#undef HAVE_VASPRINTF
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#undef HAVE_VSNPRINTF
+
+/* Define to 1 if you have the <wchar.h> header file. */
+#undef HAVE_WCHAR_H
+
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
+#undef LT_OBJDIR
+
+/* Whether or not we have apple */
+#undef OAC_HAVE_APPLE
+
+/* Whether or not we have solaris */
+#undef OAC_HAVE_SOLARIS
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* PRTE architecture string */
+#undef PRTE_ARCH
+
+/* Use C11 style atomics */
+#undef PRTE_ATOMIC_C11
+
+/* Use GCC builtin style atomics */
+#undef PRTE_ATOMIC_GCC_BUILTIN
+
+/* whether building on x86_64 platform */
+#undef PRTE_ATOMIC_X86_64
+
+/* The compiler $lower which OMPI was built with */
+#undef PRTE_BUILD_PLATFORM_COMPILER_FAMILYID
+
+/* The compiler $lower which OMPI was built with */
+#undef PRTE_BUILD_PLATFORM_COMPILER_VERSION
+
+/* PRRTE underlying C compiler */
+#undef PRTE_CC
+
+/* Use static const char[] strings for C files */
+#undef PRTE_CC_USE_CONST_CHAR_IDENT
+
+/* Use #ident strings for C files */
+#undef PRTE_CC_USE_IDENT
+
+/* Use #pragma comment for C files */
+#undef PRTE_CC_USE_PRAGMA_COMMENT
+
+/* Use #pragma ident strings for C files */
+#undef PRTE_CC_USE_PRAGMA_IDENT
+
+/* Capture the configure cmd line */
+#undef PRTE_CONFIGURE_CLI
+
+/* Date when PMIx was built */
+#undef PRTE_CONFIGURE_DATE
+
+/* Hostname where PMIx was built */
+#undef PRTE_CONFIGURE_HOST
+
+/* User who built PMIx */
+#undef PRTE_CONFIGURE_USER
+
+/* Whether C compiler supports atomic convenience variables in stdatomic.h */
+#undef PRTE_C_HAVE_ATOMIC_CONV_VAR
+
+/* Whether C compiler supports __builtin_clz */
+#undef PRTE_C_HAVE_BUILTIN_CLZ
+
+/* Whether C compiler supports __builtin_expect */
+#undef PRTE_C_HAVE_BUILTIN_EXPECT
+
+/* Whether C compiler supports __builtin_prefetch */
+#undef PRTE_C_HAVE_BUILTIN_PREFETCH
+
+/* Whether C compiler supports symbol visibility or not */
+#undef PRTE_C_HAVE_VISIBILITY
+
+/* Whether C compiler supports __Atomic keyword */
+#undef PRTE_C_HAVE__ATOMIC
+
+/* Whether C compiler supports __Generic keyword */
+#undef PRTE_C_HAVE__GENERIC
+
+/* Whether C compiler supports _Static_assert keyword */
+#undef PRTE_C_HAVE__STATIC_ASSERT
+
+/* Whether C compiler supports __Thread_local */
+#undef PRTE_C_HAVE__THREAD_LOCAL
+
+/* Whether C compiler supports __thread */
+#undef PRTE_C_HAVE___THREAD
+
+/* Command to detach from process being traced */
+#undef PRTE_DETACH
+
+/* Whether we have lt_dladvise or not */
+#undef PRTE_DL_LIBLTDL_HAVE_LT_DLADVISE
+
+/* Whether we want developer-level debugging code or not */
+#undef PRTE_ENABLE_DEBUG
+
+/* Whether we want to enable dlopen support */
+#undef PRTE_ENABLE_DLOPEN_SUPPORT
+
+/* Disable getpwuid support (default: enabled) */
+#undef PRTE_ENABLE_GETPWUID
+
+/* Enable IPv6 support, but only if the underlying system supports it */
+#undef PRTE_ENABLE_IPV6
+
+/* Whether user wants PTY support or not */
+#undef PRTE_ENABLE_PTY_SUPPORT
+
+/* If built from a git repo */
+#undef PRTE_GIT_REPO_BUILD
+
+/* Greek - alpha, beta, etc - release number of PMIx Reference Run-Time
+   Environment */
+#undef PRTE_GREEK_VERSION
+
+/* Whether your compiler has __attribute__ or not */
+#undef PRTE_HAVE_ATTRIBUTE
+
+/* Whether your compiler has __attribute__ aligned or not */
+#undef PRTE_HAVE_ATTRIBUTE_ALIGNED
+
+/* Whether your compiler has __attribute__ always_inline or not */
+#undef PRTE_HAVE_ATTRIBUTE_ALWAYS_INLINE
+
+/* Whether your compiler has __attribute__ cold or not */
+#undef PRTE_HAVE_ATTRIBUTE_COLD
+
+/* Whether your compiler has __attribute__ const or not */
+#undef PRTE_HAVE_ATTRIBUTE_CONST
+
+/* Whether your compiler has __attribute__ deprecated or not */
+#undef PRTE_HAVE_ATTRIBUTE_DEPRECATED
+
+/* Whether your compiler has __attribute__ deprecated with optional argument
+   */
+#undef PRTE_HAVE_ATTRIBUTE_DEPRECATED_ARGUMENT
+
+/* Whether your compiler has __attribute__ destructor or not */
+#undef PRTE_HAVE_ATTRIBUTE_DESTRUCTOR
+
+/* Whether your compiler has __attribute__ extension or not */
+#undef PRTE_HAVE_ATTRIBUTE_EXTENSION
+
+/* Whether your compiler has __attribute__ format or not */
+#undef PRTE_HAVE_ATTRIBUTE_FORMAT
+
+/* Whether your compiler has __attribute__ format and it works on function
+   pointers */
+#undef PRTE_HAVE_ATTRIBUTE_FORMAT_FUNCPTR
+
+/* Whether your compiler has __attribute__ hot or not */
+#undef PRTE_HAVE_ATTRIBUTE_HOT
+
+/* Whether your compiler has __attribute__ malloc or not */
+#undef PRTE_HAVE_ATTRIBUTE_MALLOC
+
+/* Whether your compiler has __attribute__ may_alias or not */
+#undef PRTE_HAVE_ATTRIBUTE_MAY_ALIAS
+
+/* Whether your compiler has __attribute__ noinline or not */
+#undef PRTE_HAVE_ATTRIBUTE_NOINLINE
+
+/* Whether your compiler has __attribute__ nonnull or not */
+#undef PRTE_HAVE_ATTRIBUTE_NONNULL
+
+/* Whether your compiler has __attribute__ noreturn or not */
+#undef PRTE_HAVE_ATTRIBUTE_NORETURN
+
+/* Whether your compiler has __attribute__ noreturn and it works on function
+   pointers */
+#undef PRTE_HAVE_ATTRIBUTE_NORETURN_FUNCPTR
+
+/* Whether your compiler has __attribute__ no_instrument_function or not */
+#undef PRTE_HAVE_ATTRIBUTE_NO_INSTRUMENT_FUNCTION
+
+/* Whether your compiler has __attribute__ optnone or not */
+#undef PRTE_HAVE_ATTRIBUTE_OPTNONE
+
+/* Whether your compiler has __attribute__ packed or not */
+#undef PRTE_HAVE_ATTRIBUTE_PACKED
+
+/* Whether your compiler has __attribute__ pure or not */
+#undef PRTE_HAVE_ATTRIBUTE_PURE
+
+/* Whether your compiler has __attribute__ sentinel or not */
+#undef PRTE_HAVE_ATTRIBUTE_SENTINEL
+
+/* Whether your compiler has __attribute__ unused or not */
+#undef PRTE_HAVE_ATTRIBUTE_UNUSED
+
+/* Whether your compiler has __attribute__ visibility or not */
+#undef PRTE_HAVE_ATTRIBUTE_VISIBILITY
+
+/* Whether your compiler has __attribute__ warn unused result or not */
+#undef PRTE_HAVE_ATTRIBUTE_WARN_UNUSED_RESULT
+
+/* Whether your compiler has __attribute__ weak alias or not */
+#undef PRTE_HAVE_ATTRIBUTE_WEAK_ALIAS
+
+/* whether backtrace_execinfo is found and available */
+#undef PRTE_HAVE_BACKTRACE_EXECINFO
+
+/* whether ceil is found and available */
+#undef PRTE_HAVE_CEIL
+
+/* Whether we have Clang __c11 atomic functions */
+#undef PRTE_HAVE_CLANG_BUILTIN_ATOMIC_C11_FUNC
+
+/* Whether the PRTE DL framework is functional or not */
+#undef PRTE_HAVE_DL_SUPPORT
+
+/* whether gethostbyname is found and available */
+#undef PRTE_HAVE_GETHOSTBYNAME
+
+/* Whether we are building against libev */
+#undef PRTE_HAVE_LIBEV
+
+/* Whether we are building against libevent */
+#undef PRTE_HAVE_LIBEVENT
+
+/* Does ptrace have the Linux signature */
+#undef PRTE_HAVE_LINUX_PTRACE
+
+/* If PTHREADS implementation supports PTHREAD_MUTEX_ERRORCHECK */
+#undef PRTE_HAVE_PTHREAD_MUTEX_ERRORCHECK
+
+/* If PTHREADS implementation supports PTHREAD_MUTEX_ERRORCHECK_NP */
+#undef PRTE_HAVE_PTHREAD_MUTEX_ERRORCHECK_NP
+
+/* whether shm_open_rt is found and available */
+#undef PRTE_HAVE_SHM_OPEN_RT
+
+/* whether socket is found and available */
+#undef PRTE_HAVE_SOCKET
+
+/* Whether or not we have stop-on-exec support */
+#undef PRTE_HAVE_STOP_ON_EXEC
+
+/* whether yp_all_nsl is found and available */
+#undef PRTE_HAVE_YP_ALL_NSL
+
+/* ident string for Open MPI */
+#undef PRTE_IDENT_STRING
+
+/* Major release number of PMIx Reference Run-Time Environment */
+#undef PRTE_MAJOR_VERSION
+
+/* Whether or not we are using memory sanitizers */
+#undef PRTE_MEMORY_SANITIZERS
+
+/* Minor release number of PMIx Reference Run-Time Environment */
+#undef PRTE_MINOR_VERSION
+
+/* package/branding string for Open MPI */
+#undef PRTE_PACKAGE_STRING
+
+/* Whether or not we are using picky compiler settings */
+#undef PRTE_PICKY_COMPILERS
+
+/* Minimum supported PMIx version */
+#undef PRTE_PMIX_MINIMUM_VERSION
+
+/* Bugreport string to be returned by prte when in proxy mode */
+#undef PRTE_PROXY_BUGREPORT
+
+/* Package name to be returned by prte when in proxy mode */
+#undef PRTE_PROXY_PACKAGE_NAME
+
+/* Version string to be returned by prte when in proxy mode */
+#undef PRTE_PROXY_VERSION_STRING
+
+/* Release date of PMIx Reference Run-Time Environment */
+#undef PRTE_RELEASE_DATE
+
+/* Release release number of PMIx Reference Run-Time Environment */
+#undef PRTE_RELEASE_VERSION
+
+/* The repository version PMIx Reference Run-Time Environment */
+#undef PRTE_REPO_REV
+
+/* Default value for mca_base_component_show_load_errors MCA variable */
+#undef PRTE_SHOW_LOAD_ERRORS_DEFAULT
+
+/* Tarball filename version string of PMIx Reference Run-Time Environment */
+#undef PRTE_TARBALL_VERSION
+
+/* Enable testbuild PLM launchers (default: disabled) */
+#undef PRTE_TESTBUILD_LAUNCHERS
+
+/* Command for declaring that process expects to be traced by parent */
+#undef PRTE_TRACEME
+
+/* Complete release number of PMIx Reference Run-Time Environment */
+#undef PRTE_VERSION
+
+/* Enable per-user config files */
+#undef PRTE_WANT_HOME_CONFIG_FILES
+
+/* if want pretty-print stack trace feature */
+#undef PRTE_WANT_PRETTY_PRINT_STACKTRACE
+
+/* Whether we want prte to effect "--prefix $prefix" by default */
+#undef PRTE_WANT_PRTE_PREFIX_BY_DEFAULT
+
+/* The size of `int', as computed by sizeof. */
+#undef SIZEOF_INT
+
+/* The size of `long', as computed by sizeof. */
+#undef SIZEOF_LONG
+
+/* The size of `long long', as computed by sizeof. */
+#undef SIZEOF_LONG_LONG
+
+/* The size of `size_t', as computed by sizeof. */
+#undef SIZEOF_SIZE_T
+
+/* The size of `void *', as computed by sizeof. */
+#undef SIZEOF_VOID_P
+
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
+#undef STDC_HEADERS
+
+/* Enable extensions on AIX 3, Interix.  */
+#ifndef _ALL_SOURCE
+# undef _ALL_SOURCE
+#endif
+/* Enable general extensions on macOS.  */
+#ifndef _DARWIN_C_SOURCE
+# undef _DARWIN_C_SOURCE
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# undef __EXTENSIONS__
+#endif
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# undef _GNU_SOURCE
+#endif
+/* Enable X/Open compliant socket functions that do not require linking
+   with -lxnet on HP-UX 11.11.  */
+#ifndef _HPUX_ALT_XOPEN_SOCKET_API
+# undef _HPUX_ALT_XOPEN_SOCKET_API
+#endif
+/* Identify the host operating system as Minix.
+   This macro does not affect the system headers' behavior.
+   A future release of Autoconf may stop defining this macro.  */
+#ifndef _MINIX
+# undef _MINIX
+#endif
+/* Enable general extensions on NetBSD.
+   Enable NetBSD compatibility extensions on Minix.  */
+#ifndef _NETBSD_SOURCE
+# undef _NETBSD_SOURCE
+#endif
+/* Enable OpenBSD compatibility extensions on NetBSD.
+   Oddly enough, this does nothing on OpenBSD.  */
+#ifndef _OPENBSD_SOURCE
+# undef _OPENBSD_SOURCE
+#endif
+/* Define to 1 if needed for POSIX-compatible behavior.  */
+#ifndef _POSIX_SOURCE
+# undef _POSIX_SOURCE
+#endif
+/* Define to 2 if needed for POSIX-compatible behavior.  */
+#ifndef _POSIX_1_SOURCE
+# undef _POSIX_1_SOURCE
+#endif
+/* Enable POSIX-compatible threading on Solaris.  */
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# undef _POSIX_PTHREAD_SEMANTICS
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-5:2014.  */
+#ifndef __STDC_WANT_IEC_60559_ATTRIBS_EXT__
+# undef __STDC_WANT_IEC_60559_ATTRIBS_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-1:2014.  */
+#ifndef __STDC_WANT_IEC_60559_BFP_EXT__
+# undef __STDC_WANT_IEC_60559_BFP_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-2:2015.  */
+#ifndef __STDC_WANT_IEC_60559_DFP_EXT__
+# undef __STDC_WANT_IEC_60559_DFP_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-4:2015.  */
+#ifndef __STDC_WANT_IEC_60559_FUNCS_EXT__
+# undef __STDC_WANT_IEC_60559_FUNCS_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TS 18661-3:2015.  */
+#ifndef __STDC_WANT_IEC_60559_TYPES_EXT__
+# undef __STDC_WANT_IEC_60559_TYPES_EXT__
+#endif
+/* Enable extensions specified by ISO/IEC TR 24731-2:2010.  */
+#ifndef __STDC_WANT_LIB_EXT2__
+# undef __STDC_WANT_LIB_EXT2__
+#endif
+/* Enable extensions specified by ISO/IEC 24747:2009.  */
+#ifndef __STDC_WANT_MATH_SPEC_FUNCS__
+# undef __STDC_WANT_MATH_SPEC_FUNCS__
+#endif
+/* Enable extensions on HP NonStop.  */
+#ifndef _TANDEM_SOURCE
+# undef _TANDEM_SOURCE
+#endif
+/* Enable X/Open extensions.  Define to 500 only if necessary
+   to make mbstate_t available.  */
+#ifndef _XOPEN_SOURCE
+# undef _XOPEN_SOURCE
+#endif
+
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
+
+/* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
+   `char[]'. */
+#undef YYTEXT_POINTER
+
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# undef _GNU_SOURCE
+#endif
+
+
+#include "prte_config_bottom.h"
+#endif /* PRTE_CONFIG_H */
+

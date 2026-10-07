@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10.1. Quick start: Launching MPI applications &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="10.2. Prerequisites" href="prerequisites.html" />
+    <link rel="prev" title="10. Launching MPI applications" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">10. Launching MPI applications</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">10.1. Quick start: Launching MPI applications</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-mpirun-to-launch-applications">10.1.1. Using <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> to launch applications</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#other-mpirun-options">10.1.1.1. Other <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> options</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#launching-on-a-single-host">10.1.2. Launching on a single host</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#launching-in-a-non-scheduled-environments-via-ssh">10.1.3. Launching in a non-scheduled environments (via <code class="docutils literal notranslate"><span class="pre">ssh</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#launching-in-scheduled-environments">10.1.4. Launching in scheduled environments</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#using-open-mpi-s-mpirun-1">10.1.4.1. Using Open MPI’s <span class="xref std std-ref">mpirun(1)</span></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-the-scheduler-to-direct-launch-without-mpirun-1">10.1.4.2. Using the scheduler to “direct launch” (without <span class="xref std std-ref">mpirun(1)</span>)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">10.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pmix-and-prrte.html">10.3. The role of PMIx and PRRTE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scheduling.html">10.4. Scheduling processes across hosts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="localhost.html">10.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ssh.html">10.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm.html">10.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsf.html">10.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tm.html">10.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gridengine.html">10.10. Launching with Grid Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unusual.html">10.11. Unusual jobs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html">10.12. Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">10. </span>Launching MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">10.1. </span>Quick start: Launching MPI applications</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/launching-apps/quickstart.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="quick-start-launching-mpi-applications">
+<span id="label-quickstart-launching-apps"></span><h1><span class="section-number">10.1. </span>Quick start: Launching MPI applications<a class="headerlink" href="#quick-start-launching-mpi-applications" title="Link to this heading"></a></h1>
+<p>Although this section skips many details, it offers examples that will
+probably work in many environments.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Note that this section is a “Quick start” — it does
+not attempt to be comprehensive or describe how to build Open MPI
+in all supported environments.  The examples below may therefore
+not work exactly as shown in your environment.</p>
+<p>Please consult the other sections in this chapter for more details,
+if necessary.</p>
+</div>
+<section id="using-mpirun-to-launch-applications">
+<h2><span class="section-number">10.1.1. </span>Using <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> to launch applications<a class="headerlink" href="#using-mpirun-to-launch-applications" title="Link to this heading"></a></h2>
+<p>Open MPI supports both <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> and
+<a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpiexec"><span class="std std-ref">mpiexec(1)</span></a> (they are exactly equivalent) to
+launch MPI applications.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>mpi-hello-world
+<span class="c1"># or</span>
+shell$<span class="w"> </span>mpiexec<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>mpi-hello-world
+<span class="c1"># or</span>
+shell$<span class="w"> </span>mpiexec<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>mpi-hello-world<span class="w"> </span>:<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>mpi-hello-world
+</pre></div>
+</div>
+<p>are all equivalent.  For simplicity, the rest of this documentation
+will simply refer to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.</p>
+<section id="other-mpirun-options">
+<h3><span class="section-number">10.1.1.1. </span>Other <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> options<a class="headerlink" href="#other-mpirun-options" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code> supports the <code class="docutils literal notranslate"><span class="pre">--help</span></code> option which provides a usage
+message and a summary of the options that it supports.  It should be
+considered the definitive list of what options are provided.</p>
+<p>Several notable options are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--hostfile</span></code>: Specify a hostfile for launchers (such as the
+<code class="docutils literal notranslate"><span class="pre">rsh</span></code> launcher) that need to be told on which hosts to start
+parallel applications.  Note that for compatibility with other MPI
+implementations, <em>–machinefile</em> is a synonym for <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--host</span></code>: Specify a host or list of hosts to run on (see
+<a class="reference internal" href="scheduling.html#running-scheduling-host-option-label"><span class="std std-ref">this FAQ entry for more details</span></a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-n</span></code>: Indicate the number of processes to start.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--mca</span></code>: Set MCA parameters (see <a class="reference internal" href="../mca.html#label-running-setting-mca-param-values"><span class="std std-ref">how to set MCA params</span></a> for more details).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--wdir</span> <span class="pre">DIRECTORY</span></code>: Set the working directory of the started
+applications.  If not supplied, the current working directory is
+assumed (or <code class="docutils literal notranslate"><span class="pre">$HOME</span></code>, if the current working directory does not
+exist on all nodes).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-x</span> <span class="pre">ENV_VARIABLE_NAME</span></code>: The name of an environment variable to
+export to the parallel application.  The <code class="docutils literal notranslate"><span class="pre">-x</span></code> option can be
+specified multiple times to export multiple environment variables to
+the parallel application.</p></li>
+</ul>
+<p>Note that the <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> command supports a
+<em>large</em> number of options.  Be sure to see the <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> man page for much more information.</p>
+</section>
+</section>
+<section id="launching-on-a-single-host">
+<h2><span class="section-number">10.1.2. </span>Launching on a single host<a class="headerlink" href="#launching-on-a-single-host" title="Link to this heading"></a></h2>
+<p>It is common to develop MPI applications on a single laptop or
+workstation.  In such simple “single program, multiple data (SPMD)” cases,
+use <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> and
+specify how many MPI processes you want to launch via the <code class="docutils literal notranslate"><span class="pre">-n</span></code>
+option:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">6</span><span class="w"> </span>mpi-hello-world
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>my-laptop<span class="o">))</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">1</span><span class="w"> </span>of<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>my-laptop<span class="o">)</span>
+...
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">5</span><span class="w"> </span>of<span class="w"> </span><span class="m">6</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>my-laptop<span class="o">)</span>
+</pre></div>
+</div>
+<p>This starts a six-process parallel application, running six copies
+of the executable named <code class="docutils literal notranslate"><span class="pre">mpi-hello-world</span></code>.</p>
+<p>If you do not specify the <code class="docutils literal notranslate"><span class="pre">-n</span></code> option, <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> will default to launching as many MPI processes as
+there are processor cores (not hyperthreads) on the machine.</p>
+</section>
+<section id="launching-in-a-non-scheduled-environments-via-ssh">
+<h2><span class="section-number">10.1.3. </span>Launching in a non-scheduled environments (via <code class="docutils literal notranslate"><span class="pre">ssh</span></code>)<a class="headerlink" href="#launching-in-a-non-scheduled-environments-via-ssh" title="Link to this heading"></a></h2>
+<p>In general, Open MPI requires the following to launch and run MPI
+applications:</p>
+<ol class="arabic simple">
+<li><p>You must be able to login to remote nodes non-interactively (e.g.,
+without entering a password or passphrase).</p></li>
+<li><p>Open MPI’s executables must be findable (e.g., in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>).</p></li>
+<li><p>Open MPI’s libraries must be findable (e.g., in your
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code>).</p></li>
+</ol>
+<p><a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> accepts a <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code> option (and its
+synonym, the <code class="docutils literal notranslate"><span class="pre">--machinefile</span></code> option) to specify a hostfile containing one
+hostname per line:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>my-hostfile.txt
+node1.example.com
+node2.example.com
+node3.example.com<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">2</span>
+node4.example.com<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">10</span>
+</pre></div>
+</div>
+<p>The optional <code class="docutils literal notranslate"><span class="pre">slots</span></code> attribute tells Open MPI the <em>maximum</em> number
+of processes that can be allocated to that node.  If <code class="docutils literal notranslate"><span class="pre">slots</span></code> is not
+provided, Open MPI — by default — uses the number of
+processor cores (not hyperthreads) on that node.</p>
+<p>Assuming that each of the 4 nodes in <cite>my-hostfile.txt</cite> have 16 cores:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>my-hostfile.txt<span class="w"> </span>mpi-hello-world
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node1.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">1</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node1.example.com<span class="o">)</span>
+...
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">15</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node1.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">16</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node2.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">17</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node2.example.com<span class="o">)</span>
+...
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">31</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node2.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">32</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node3.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">33</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node3.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">34</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node4.example.com<span class="o">)</span>
+...
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">43</span><span class="w"> </span>of<span class="w"> </span><span class="m">44</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node4.example.com<span class="o">)</span>
+</pre></div>
+</div>
+<p>You can see the breakdown of how many processes Open MPI launched on
+each node:</p>
+<ul class="simple">
+<li><p>node1: 16, because no <code class="docutils literal notranslate"><span class="pre">slots</span></code> was specified</p></li>
+<li><p>node2: 16, because no <code class="docutils literal notranslate"><span class="pre">slots</span></code> was specified</p></li>
+<li><p>node3: 2, because <code class="docutils literal notranslate"><span class="pre">slots=2</span></code> was specified</p></li>
+<li><p>node2: 10, because <code class="docutils literal notranslate"><span class="pre">slots=10</span></code> was specified</p></li>
+</ul>
+<p>Note, however, that not all environments require a hostfile.  For
+example, Open MPI will automatically detect when it is running in
+batch / scheduled environments (such as Slurm, PBS/Torque, SGE,
+LoadLeveler), and will use host information provided by those systems.</p>
+<p>Also note that if using a launcher that requires a hostfile and no
+hostfile is specified, all processes are launched on the local host.</p>
+</section>
+<section id="launching-in-scheduled-environments">
+<h2><span class="section-number">10.1.4. </span>Launching in scheduled environments<a class="headerlink" href="#launching-in-scheduled-environments" title="Link to this heading"></a></h2>
+<p>In scheduled environments (e.g., in a Slurm job, or PBS/Pro, or LSF,
+or any other schedule), the user tells the scheduler how many MPI
+processes to launch, and the scheduler decides which hosts to use.
+The scheduler then passes both pieces of information (the number of
+processes and the hosts to use) to Open MPI.</p>
+<p>There are two ways to launch in a scheduled environment.  Nominally,
+they both achieve the same thing: they launch MPI processes.  Them
+main user-observable difference between the two methods is that
+<a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> has many more features than scheduler
+direct launchers.</p>
+<section id="using-open-mpi-s-mpirun-1">
+<h3><span class="section-number">10.1.4.1. </span>Using Open MPI’s <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a><a class="headerlink" href="#using-open-mpi-s-mpirun-1" title="Link to this heading"></a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Technically, Open MPI’s <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> is a
+thin layer around the PRRTE <code class="docutils literal notranslate"><span class="pre">prun</span></code>.  Hence, most of the
+functionality described here is really about <code class="docutils literal notranslate"><span class="pre">prun</span></code>.  For
+simplicity, however, this documentation will describe
+everything in terms of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.</p>
+</div>
+<p>When using the full-featured <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> in a
+scheduled environment, there is no need to specify a hostfile or
+number of MPI processes to launch.  <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a>
+will receive this information directly from the scheduler.  Hence, if
+you want to launch an MPI job that completely “fills” your scheduled
+allocation (i.e., one MPI process for each slot in the scheduled
+allocation), you can simply:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Write a script that runs your MPI application</span>
+shell$<span class="w"> </span>cat<span class="w"> </span>my-slurm-script.sh
+<span class="c1">#!/bin/sh</span>
+<span class="c1"># There is no need to specify -n or --hostfile because that</span>
+<span class="c1"># information will automatically be provided by Slurm.</span>
+mpirun<span class="w"> </span>mpi-hello-world
+</pre></div>
+</div>
+<p>You then submit the <code class="docutils literal notranslate"><span class="pre">my-slurm-script.sh</span></code> script to Slurm for
+execution:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use -n to indicate how many MPI processes you want to run.</span>
+<span class="c1"># Slurm will pick the specific hosts which will be used.</span>
+shell$<span class="w"> </span>sbatch<span class="w"> </span>-n<span class="w"> </span><span class="m">40</span><span class="w"> </span>my-slurm-script.sh
+Submitted<span class="w"> </span>batch<span class="w"> </span>job<span class="w"> </span><span class="m">1234</span>
+shell$
+</pre></div>
+</div>
+<p>After Slurm job 1234 completes, you can look at the output file to see
+what happened:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>slurm-1234.out
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node37.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">1</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node37.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">2</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node37.example.com<span class="o">)</span>
+...
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">39</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node19.example.com<span class="o">)</span>
+</pre></div>
+</div>
+<p>Note that the Slurm scheduler picked the hosts on which the processes
+ran.</p>
+<p>The above example shows that simply invoking <code class="docutils literal notranslate"><span class="pre">mpirun</span>
+<span class="pre">mpi-hello-world</span></code> — with no other CLI options — obtains
+the number of processes to run and hosts to use from the scheduler.</p>
+<p><a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> has many more features not described in
+this Quick Start section.  For example, while uncommon in scheduled
+environments, you can use <code class="docutils literal notranslate"><span class="pre">-n</span></code> and/or <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code> to launch in
+subsets of the overall scheduler allocation.  See the <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> man page for more details.</p>
+</section>
+<section id="using-the-scheduler-to-direct-launch-without-mpirun-1">
+<h3><span class="section-number">10.1.4.2. </span>Using the scheduler to “direct launch” (without <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a>)<a class="headerlink" href="#using-the-scheduler-to-direct-launch-without-mpirun-1" title="Link to this heading"></a></h3>
+<p>Some schedulers (such as Slurm) have the ability to “direct launch”
+MPI processes without using Open MPI’s <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a>.
+For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>srun<span class="w"> </span>-n<span class="w"> </span><span class="m">40</span><span class="w"> </span>mpi-hello-world
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">0</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node14.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">1</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node14.example.com<span class="o">)</span>
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">2</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node14.example.com<span class="o">)</span>
+...
+Hello<span class="w"> </span>world,<span class="w"> </span>I<span class="w"> </span>am<span class="w"> </span><span class="m">39</span><span class="w"> </span>of<span class="w"> </span><span class="m">40</span><span class="w"> </span><span class="o">(</span>running<span class="w"> </span>on<span class="w"> </span>node203.example.com<span class="o">)</span>
+shell$
+</pre></div>
+</div>
+<p>Similar to the prior example, this example launches 40 copies of
+<code class="docutils literal notranslate"><span class="pre">mpi-hello-world</span></code>, but it does so via the Slurm <code class="docutils literal notranslate"><span class="pre">srun</span></code> command
+without using <a class="reference internal" href="../man-openmpi/man1/mpirun.1.html#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a>.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="10. Launching MPI applications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="prerequisites.html" class="btn btn-neutral float-right" title="10.2. Prerequisites" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

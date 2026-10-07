@@ -1,0 +1,197 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11. Session directory &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2efb4362"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="12. Developer’s guide" href="developers/index.html" />
+    <link rel="prev" title="10. Notifications" href="notifications.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">10. Notifications</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">11. Session directory</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#directory-location">11.1. Directory location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#directory-name">11.2. Directory name</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#tools">11.3. Tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11. </span>Session directory</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/session-directory.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="session-directory">
+<h1><span class="section-number">11. </span>Session directory<a class="headerlink" href="#session-directory" title="Link to this heading"></a></h1>
+<p>PRRTE establishes a “session directory” on the filesystem to serve as
+a top-level location for temporary files used by both the local PRRTE
+daemon and its child processes.</p>
+<p>This is done to enable quick and easy cleanup in the event that PRRTE
+is unable to fully cleanup after itself.</p>
+<p>More detail on session directories is provided in the How Things Work
+<a class="reference internal" href="how-things-work/session_dirs.html#session-dir-detail-label"><span class="std std-ref">session directory</span></a> section.</p>
+<section id="directory-location">
+<h2><span class="section-number">11.1. </span>Directory location<a class="headerlink" href="#directory-location" title="Link to this heading"></a></h2>
+<p>PRRTE decides where to located the root of the session directory by
+examining the following (in precedence order):</p>
+<ol class="arabic">
+<li><p>If the value of the <code class="docutils literal notranslate"><span class="pre">prte_top_session_dir</span></code> MCA parameter is not
+empty, use that (it defaults to empty).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>MCA parameters can be set via environment variables, on
+the command line, or in a parameter file.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If necessary, the value of the top session directory on
+the local node where the launcher (e.g., <code class="docutils literal notranslate"><span class="pre">prun</span></code>, <code class="docutils literal notranslate"><span class="pre">prterun</span></code>,
+or <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>) is executing can be set separately from
+the value to be used on compute nodes via the
+<code class="docutils literal notranslate"><span class="pre">prte_local_tmpdir_base</span></code> and <code class="docutils literal notranslate"><span class="pre">prte_remote_tmpdir_base</span></code>
+parameters.</p>
+</div>
+</li>
+<li><p>If the environment variable <code class="docutils literal notranslate"><span class="pre">TMPDIR</span></code> is not empty, use that.</p></li>
+<li><p>If the environment variable <code class="docutils literal notranslate"><span class="pre">TEMP</span></code> is not empty, use that.</p></li>
+<li><p>If the environment variable <code class="docutils literal notranslate"><span class="pre">TMP</span></code> is not empty, use that.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">/tmp</span></code></p></li>
+</ol>
+</section>
+<section id="directory-name">
+<h2><span class="section-number">11.2. </span>Directory name<a class="headerlink" href="#directory-name" title="Link to this heading"></a></h2>
+<p>By default, the session directory name is set to</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">tool</span><span class="o">&gt;.&lt;</span><span class="n">nodename</span><span class="o">&gt;.&lt;</span><span class="n">pid</span><span class="o">&gt;.&lt;</span><span class="n">uid</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>where <cite>tool</cite> is the argv[0] of the process setting up the
+session directory. In most cases, this will be either <cite>prte</cite>,
+<cite>prterun</cite>, or <cite>prted</cite> - though special tools such as <cite>psched</cite>
+may also create a session directory tree.</p>
+<p>The session directory name includes the PID
+of the daemon process to allow a user to have multiple
+instances of a tool concurrently executing on a node.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Each tool will generate its own session directory tree. This
+is done to avoid cleanup race conditions where one tool might
+cleanup the session directory, and thereby remove the contact
+information for a tool that is continuing to execute.</p>
+</div>
+</section>
+<section id="tools">
+<h2><span class="section-number">11.3. </span>Tools<a class="headerlink" href="#tools" title="Link to this heading"></a></h2>
+<p>In the case of tools, the rendezvous files containing connection
+information for a target server are located in the session directory
+tree. Thus, it may be necessary to point the tool at the location
+where those files can be found if that location is other than the
+expected default.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="notifications.html" class="btn btn-neutral float-left" title="10. Notifications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="developers/index.html" class="btn btn-neutral float-right" title="12. Developer’s guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

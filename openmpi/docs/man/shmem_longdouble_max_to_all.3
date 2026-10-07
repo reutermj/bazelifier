@@ -1,0 +1,303 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "SHMEM_LONGDOUBLE_MAX_TO_ALL" "3" "Sep 16, 2026" "" "Open MPI"
+.INDENT 0.0
+.INDENT 3.5
+.UNINDENT
+.UNINDENT
+.sp
+\fI\%shmem_double_max_to_all\fP(3), \fI\%shmem_float_max_to_all\fP(3),
+\fI\%shmem_int_max_to_all\fP(3), shmem_int4_max_to_all(3),
+shmem_int8_max_to_all(3), \fI\%shmem_long_max_to_all\fP(3),
+\fI\%shmem_longdouble_max_to_all\fP(3), \fI\%shmem_longlong_max_to_all\fP(3),
+shmem_real4_max_to_all(3), shmem_real8_max_to_all(3),
+shmem_real16_max_to_all(3), \fI\%shmem_short_max_to_all\fP(3) \- Performs
+a maximum function reduction across a set of processing elements (PEs).
+.SH SYNOPSIS
+.sp
+C or C++:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpp/shmem.h>
+
+void shmem_double_max_to_all(double *target, const double *source,
+  int nreduce, int PE_start, int logPE_stride, int PE_size,
+  double *pWrk, long *pSync)
+
+void shmem_float_max_to_all(float *target, const float *source,
+  int nreduce, int PE_start, int logPE_stride, int PE_size,
+  float *pWrk, long *pSync)
+
+void shmem_int_max_to_all(int *target, const int *source,
+  int nreduce, int PE_start, int logPE_stride, int PE_size,
+  int *pWrk, long *pSync)
+
+void shmem_long_max_to_all(long *target, const long *source,
+  int nreduce, int PE_start, int logPE_stride, int PE_size,
+  long *pWrk, long *pSync)
+
+void shmem_longdouble_max_to_all(long double *target,
+  const long double *source, int nreduce, int PE_start,
+  int logPE_stride, int PE_size, long double *pWrk, long *pSync)
+
+void shmem_longlong_max_to_all(long long *target,
+  const long long *source, int nreduce,  int PE_start,
+  int logPE_stride, int PE_size, long long *pWrk, long *pSync)
+
+ void shmem_short_max_to_all(short *target, const short *source,
+  int nreduce, int PE_start, int logPE_stride, int PE_size,
+  short *pWrk, long *pSync)
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Fortran:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+INCLUDE \(dqmpp/shmem.fh\(dq
+
+INTEGER pSync(SHMEM_REDUCE_SYNC_SIZE)
+
+INTEGER nreduce, PE_start, logPE_stride, PE_size
+
+CALL SHMEM_INT4_MAX_TO_ALL(target, source, nreduce,
+& PE_start, logPE_stride, PE_size, pWrk, pSync)
+
+CALL SHMEM_INT8_MAX_TO_ALL(target, source, nreduce,
+& PE_start, logPE_stride, PE_size, pWrk, pSync)
+
+CALL SHMEM_REAL4_MAX_TO_ALL(target, source, nreduce,
+& PE_start, logPE_stride, PE_size, pWrk, pSync)
+
+CALL SHMEM_REAL8_MAX_TO_ALL(target, source, nreduce,
+& PE_start, logPE_stride, PE_size, pWrk, pSync)
+
+CALL SHMEM_REAL16_MAX_TO_ALL(target, source, nreduce,
+& PE_start, logPE_stride, PE_size, pWrk, pSync)
+.EE
+.UNINDENT
+.UNINDENT
+.SH DESCRIPTION
+.sp
+The shared memory (SHMEM) reduction routines compute one or more
+reductions across symmetric arrays on multiple virtual PEs. A reduction
+performs an associative binary operation across a set of values. For a
+list of other SHMEM reduction routines, see \fIintro_shmem\fP(3).
+.sp
+As with all SHMEM collective routines, each of these routines assumes
+that only PEs in the active set call the routine. If a PE not in the
+active set calls a SHMEM collective routine, undefined behavior results.
+.sp
+The nreduce argument determines the number of separate reductions to
+perform. The source array on all PEs in the active set provides one
+element for each reduction. The results of the reductions are placed in
+the target array on all PEs in the active set. The active set is defined
+by the PE_start, logPE_stride, PE_size triplet.
+.sp
+The source and target arrays may be the same array, but they may not be
+overlapping arrays.
+.sp
+The arguments are as follows:
+.INDENT 0.0
+.TP
+.B target
+A symmetric array of length nreduce elements to receive the results
+of the reduction operations. The data type of target varies with the
+version of the reduction routine being called. When calling from C,
+refer to the SYNOPSIS section for data type information.
+.UNINDENT
+.sp
+When calling from Fortran, the target data types are as follows:
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.TP
+.B shmem_comp8_max_to_all: Complex, with an element size equal to two
+8\-byte real values.
+.UNINDENT
+.sp
+shmem_int4_max_to_all: Integer, with an element size of 4 bytes.
+.sp
+shmem_int8_max_to_all: Integer, with an element size of 8 bytes.
+.sp
+shmem_real4_max_to_all: Real, with an element size of 4 bytes.
+.sp
+shmem_real16_max_to_all: Real, with an element size of 16 bytes.
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+.TP
+.B source
+A symmetric array of length nreduce elements that contains one
+element for each separate reduction operation. The source argument
+must have the same data type as target.
+.TP
+.B nreduce
+The number of elements in the target and source arrays. nreduce must
+be of type integer. If you are using Fortran, it must be a default
+integer value.
+.TP
+.B PE_start
+The lowest virtual PE number of the active set of PEs. PE_start must
+be of type integer. If you are using Fortran, it must be a default
+integer value.
+.TP
+.B logPE_stride
+The log (base 2) of the stride between consecutive virtual PE numbers
+in the active set. logPE_stride must be of type integer. If you are
+using Fortran, it must be a default integer value.
+.TP
+.B PE_size
+The number of PEs in the active set. PE_size must be of type integer.
+If you are using Fortran, it must be a default integer value.
+.TP
+.B pWrk
+A symmetric work array. The pWrk argument must have the same data
+type as target. In C/C++, this contains max(nreduce/2 + 1,
+_SHMEM_REDUCE_MIN_WRKDATA_SIZE) elements. In Fortran, this contains
+max(nreduce/2 + 1, SHMEM_REDUCE_MIN_WRKDATA_SIZE) elements.
+.TP
+.B pSync
+A symmetric work array. In C/C++, pSync is of type long and size
+_SHMEM_REDUCE_SYNC_SIZE. In Fortran, pSync is of type integer and
+size SHMEM_REDUCE_SYNC_SIZE. If you are using Fortran, it must be a
+default integer value. Every element of this array must be
+initialized with the value _SHMEM_SYNC_VALUE (in C/C++) or
+SHMEM_SYNC_VALUE (in Fortran) before any of the PEs in the active set
+enter the reduction routine.
+.UNINDENT
+.sp
+The values of arguments nreduce, PE_start, logPE_stride, and PE_size
+must be equal on all PEs in the active set. The same target and source
+arrays, and the same pWrk and pSync work arrays, must be passed to all
+PEs in the active set.
+.sp
+Before any PE calls a reduction routine, you must ensure that the
+following conditions exist (synchronization via a barrier or some other
+method is often needed to ensure this): The pWrk and pSync arrays on all
+PEs in the active set are not still in use from a prior call to a
+collective SHMEM routine. The target array on all PEs in the active set
+is ready to accept the results of the reduction.
+.sp
+Upon return from a reduction routine, the following are true for the
+local PE: The target array is updated. The values in the pSync array are
+restored to the original values.
+.SH NOTES
+.sp
+The terms collective, symmetric, and cache aligned are defined in
+\fIintro_shmem\fP(3). All SHMEM reduction routines reset the values in
+pSync before they return, so a particular pSync buffer need only be
+initialized the first time it is used.
+.sp
+You must ensure that the pSync array is not being updated on any PE in
+the active set while any of the PEs participate in processing of a SHMEM
+reduction routine. Be careful of the following situations: If the pSync
+array is initialized at run time, some type of synchronization is needed
+to ensure that all PEs in the working set have initialized pSync before
+any of them enter a SHMEM routine called with the pSync synchronization
+array. A pSync or pWrk array can be reused in a subsequent reduction
+routine call only if none of the PEs in the active set are still
+processing a prior reduction routine call that used the same pSync or
+pWrk arrays.
+.sp
+In general, this can be assured only by doing some type of
+synchronization. However, in the special case of reduction routines
+being called with the same active set, you can allocate two pSync and
+pWrk arrays and alternate between them on successive calls.
+.SH EXAMPLES
+.sp
+\fBExample 1:\fP This Fortran example statically initializes the pSync
+array and finds the maximum value of real variable FOO across all even
+PEs.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+INCLUDE \(dqmpp/shmem.fh\(dq
+
+INTEGER PSYNC(SHMEM_REDUCE_SYNC_SIZE)
+DATA PSYNC /SHMEM_REDUCE_SYNC_SIZE*SHMEM_SYNC_VALUE/
+PARAMETER (NR=1)
+REAL FOO, FOOMAX, PWRK(MAX(NR/2+1,SHMEM_REDUCE_MIN_WRKDATA_SIZE))
+COMMON /COM/ FOO, FOOMAX, PWRK
+INTRINSIC MY_PE
+
+IF ( MOD(MY_PE(),2) .EQ. 0) THEN
+  CALL SHMEM_REAL8_MAX_TO_ALL(FOOMAX, FOO, NR, 0, 1, N$PES/2,
+  & PWRK, PSYNC)
+  PRINT *, \(aqResult on PE \(aq, MY_PE(), \(aq is \(aq, FOOMAX
+ENDIF
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+\fBExample 2:\fP Consider the following C/C++ call:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shmem_int_max_to_all( target, source, 3, 0, 0, 8, pwrk, psync );
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+The preceding call is more efficient, but semantically equivalent to,
+the combination of the following calls:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shmem_int_max_to_all(&(target[0]), &(source[0]), 1, 0, 0, 8,
+  pwrk1, psync1);
+shmem_int_max_to_all(&(target[1]), &(source[1]), 1, 0, 0, 8,
+  pwrk2, psync2);
+shmem_int_max_to_all(&(target[2]), &(source[2]), 1, 0, 0, 8,
+  pwrk1, psync1);
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Note that two sets of pWrk and pSync arrays are used alternately because
+no synchronization is done between calls.
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+\fIintro_shmem\fP(3)
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

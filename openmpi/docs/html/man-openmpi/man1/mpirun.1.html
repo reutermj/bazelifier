@@ -1,0 +1,1646 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17.1.2. mpirun / mpiexec &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="17.1.3. mpisync" href="mpisync.1.html" />
+    <link rel="prev" title="17.1.1. Open MPI Wrapper Compilers" href="ompi-wrapper-compiler.1.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">17. Open MPI manual pages</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">17.1. Commands (section 1)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ompi-wrapper-compiler.1.html">17.1.1. Open MPI Wrapper Compilers</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">17.1.2. mpirun / mpiexec</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#synopsis">17.1.2.1. SYNOPSIS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#quick-summary">17.1.2.2. QUICK SUMMARY</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-s-use-of-prrte">17.1.2.3. OPEN MPI’S USE OF PRRTE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#command-line-options">17.1.2.4. COMMAND LINE OPTIONS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#options-old-hard-coded-content-mdash-to-be-audited">17.1.2.5. OPTIONS (OLD / HARD-CODED CONTENT — TO BE AUDITED</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#description">17.1.2.6. DESCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples">17.1.2.7. EXAMPLES</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#return-value">17.1.2.8. RETURN VALUE</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="mpisync.1.html">17.1.3. mpisync</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ompi_info.1.html">17.1.4. ompi_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="opal_wrapper.1.html">17.1.5. opal_wrapper</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../man3/index.html">17.2. MPI API manual pages (section 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../man7/index.html">17.3. General information manual pages (section 7)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">17. </span>Open MPI manual pages</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">17.1. </span>Commands (section 1)</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">17.1.2. </span>mpirun / mpiexec</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/man-openmpi/man1/mpirun.1.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="mpirun-mpiexec">
+<span id="man1-mpiexec"></span><span id="man1-mpirun"></span><h1><span class="section-number">17.1.2. </span>mpirun / mpiexec<a class="headerlink" href="#mpirun-mpiexec" title="Link to this heading"></a></h1>
+<p>mpirun, mpiexec — Execute serial and parallel jobs in Open MPI.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code> and <code class="docutils literal notranslate"><span class="pre">mpiexec</span></code> are synonyms for each other.
+Indeed, they are symbolic links to the same executable.
+Using either of the names will produce the exact same
+behavior.</p>
+</div>
+<section id="synopsis">
+<h2><span class="section-number">17.1.2.1. </span>SYNOPSIS<a class="headerlink" href="#synopsis" title="Link to this heading"></a></h2>
+<p>Single Process Multiple Data (SPMD) Model:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>mpirun [ options ] &lt;program&gt; [ &lt;args&gt; ]
+</pre></div>
+</div>
+<p>Multiple Instruction Multiple Data (MIMD) Model:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>mpirun [ global_options ]
+       [ local_options1 ] &lt;program1&gt; [ &lt;args1&gt; ] :
+       [ local_options2 ] &lt;program2&gt; [ &lt;args2&gt; ] :
+       ... :
+       [ local_optionsN ] &lt;programN&gt; [ &lt;argsN&gt; ]
+</pre></div>
+</div>
+<p>Note that in both models, invoking <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> via an absolute path
+name is equivalent to specifying the <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> option with a
+<code class="docutils literal notranslate"><span class="pre">&lt;dir&gt;</span></code> value equivalent to the directory where <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> resides,
+minus its last subdirectory.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>/usr/local/bin/mpirun<span class="w"> </span>...
+</pre></div>
+</div>
+<p>is equivalent to</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--prefix<span class="w"> </span>/usr/local
+</pre></div>
+</div>
+</section>
+<section id="quick-summary">
+<h2><span class="section-number">17.1.2.2. </span>QUICK SUMMARY<a class="headerlink" href="#quick-summary" title="Link to this heading"></a></h2>
+<p>If you are simply looking for how to run an MPI application, you
+probably want to use a command line of the following form:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span>X<span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>--hostfile<span class="w"> </span>&lt;filename&gt;<span class="w"> </span><span class="o">]</span><span class="w">  </span>&lt;program&gt;
+</pre></div>
+</div>
+<p>This will run <code class="docutils literal notranslate"><span class="pre">X</span></code> copies of <code class="docutils literal notranslate"><span class="pre">&lt;program&gt;</span></code> in your current run-time
+environment (if running under a supported resource manager, Open MPI’s
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will usually automatically use the corresponding resource
+manager process starter, as opposed to <code class="docutils literal notranslate"><span class="pre">ssh</span></code> (for example), which
+require the use of a hostfile, or will default to running all <code class="docutils literal notranslate"><span class="pre">X</span></code>
+copies on the localhost), scheduling (by default) in a round-robin
+fashion by CPU slot.  See the rest of this documentation for more
+details.</p>
+<p>Please note that <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> automatically binds processes to hardware
+resources. Three binding patterns are used in the absence of any
+further directives (See <a class="reference internal" href="#man1-mpirun-map-rank-bind-defaults"><span class="std std-ref">map/rank/bind defaults</span></a> for more details):</p>
+<ul class="simple">
+<li><p><strong>Bind to core</strong>:     when the number of processes is &lt;= 2</p></li>
+<li><p><strong>Bind to package</strong>:  when the number of processes is &gt; 2</p></li>
+<li><p><strong>Bind to none</strong>:     when oversubscribed</p></li>
+</ul>
+<p>If your application uses threads, then you probably want to ensure
+that you are either not bound at all (by specifying <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">none</span></code>),
+or bound to multiple cores using an appropriate binding level or
+specific number of processing elements per application process.</p>
+</section>
+<section id="open-mpi-s-use-of-prrte">
+<h2><span class="section-number">17.1.2.3. </span>OPEN MPI’S USE OF PRRTE<a class="headerlink" href="#open-mpi-s-use-of-prrte" title="Link to this heading"></a></h2>
+<p>Open MPI uses the PMIx Reference Runtime Environment (PRRTE) as the
+main engine for launching, monitoring, and terminating MPI processes.</p>
+<p>Much of the documentation below is directly imported from PRRTE.  As
+such, it frequently refers to PRRTE concepts and command line options.
+Except where noted, these concepts and command line argument are all
+applicable to Open MPI as well.  Open MPI extends the available PRRTE
+command line options, and also slightly modifies the PRRTE’s default
+behaviors in a few cases.  These will be specifically described in the
+documentation below.</p>
+</section>
+<section id="command-line-options">
+<h2><span class="section-number">17.1.2.4. </span>COMMAND LINE OPTIONS<a class="headerlink" href="#command-line-options" title="Link to this heading"></a></h2>
+<p>The core of Open MPI’s <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> processing is performed via the
+<a class="reference external" href="https://docs.prrte.org/">PRRTE</a>.  Specifically: <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> is
+effectively a wrapper around <code class="docutils literal notranslate"><span class="pre">prterun</span></code>, but <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>’s CLI options
+are slightly different than PRRTE’s CLI commands.</p>
+<section id="no-content">
+<h3><span class="section-number">17.1.2.4.1. </span>No content<a class="headerlink" href="#no-content" title="Link to this heading"></a></h3>
+<p>There is no meaningful content in this file because Open MPI was either:</p>
+<ul class="simple">
+<li><p>Built without PRRTE support.</p></li>
+<li><p>Built with a PRRTE that was too old to include machine-readable
+documentation that could be incorporated into Open MPI’s
+documentation.</p></li>
+</ul>
+<p>If you build Open MPI with a newer version of PRRTE (and have the
+Sphinx tool available when you run Open MPI’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> command),
+you should get more meaningful documentation here.</p>
+<p>Hence, there is no documentation for this section.</p>
+<p>Sorry!</p>
+</section>
+</section>
+<section id="options-old-hard-coded-content-mdash-to-be-audited">
+<h2><span class="section-number">17.1.2.5. </span>OPTIONS (OLD / HARD-CODED CONTENT — TO BE AUDITED<a class="headerlink" href="#options-old-hard-coded-content-mdash-to-be-audited" title="Link to this heading"></a></h2>
+<div class="error admonition">
+<p class="admonition-title">This is old content</p>
+<p>This is the old section of manually hard-coded content.  It should
+probably be read / audited and see what we want to keep and what we
+want to discard.</p>
+<p>Feel free to refer to <a class="reference external" href="https://docs.prrte.org/">https://docs.prrte.org/</a> rather than
+replicating content here (e.g., for the definition of a slot and
+other things).</p>
+</div>
+<p>mpirun will send the name of the directory where it was invoked on the
+local node to each of the remote nodes, and attempt to change to that
+directory.  See the “Current Working Directory” section below for
+further details.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;program&gt;</span></code>: The program executable. This is identified as the
+first non-recognized argument to mpirun.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;args&gt;</span></code>: Pass these run-time arguments to every new process.
+These must always be the last arguments to mpirun. If an app context
+file is used, <code class="docutils literal notranslate"><span class="pre">&lt;args&gt;</span></code> will be ignored.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code>: Display help for this command</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-q</span></code>, <code class="docutils literal notranslate"><span class="pre">--quiet</span></code>: Suppress informative messages from orterun
+during application execution.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-v</span></code>, <code class="docutils literal notranslate"><span class="pre">--verbose</span></code>:` Be verbose</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-V</span></code>, <code class="docutils literal notranslate"><span class="pre">--version</span></code>: Print version number.  If no other arguments
+are given, this will also cause orterun to exit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-N</span> <span class="pre">&lt;num&gt;</span></code>: Launch num processes per node on all allocated nodes
+(synonym for <code class="docutils literal notranslate"><span class="pre">--npernode</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--display-map</span></code>: Display a table showing the mapped location of
+each process prior to launch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--display-allocation</span></code>: Display the detected resource allocation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--output-proctable</span></code>: Output the debugger proctable after launch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--dvm</span></code>: Create a persistent distributed virtual machine (DVM).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--max-vm-size</span> <span class="pre">&lt;size&gt;</span></code>: Number of daemons to start.</p></li>
+</ul>
+<p>Use one of the following options to specify which hosts (nodes) of the
+cluster to run on. Note that as of the start of the v1.8 release,
+mpirun will launch a daemon onto each host in the allocation (as
+modified by the following options) at the very beginning of execution,
+regardless of whether or not application processes will eventually be
+mapped to execute there. This is done to allow collection of hardware
+topology information from the remote nodes, thus allowing us to map
+processes against known topology. However, it is a change from the
+behavior in prior releases where daemons were only launched after
+mapping was complete, and thus only occurred on nodes where
+application processes would actually be executing.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-H</span></code>, <code class="docutils literal notranslate"><span class="pre">--host</span> <span class="pre">&lt;host1,host2,...,hostN&gt;</span></code>: list of hosts on which to
+invoke processes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--hostfile</span> <span class="pre">&lt;hostfile&gt;</span></code>: Provide a hostfile to use.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--default-hostfile</span> <span class="pre">&lt;hostfile&gt;</span></code>: Provide a default hostfile.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--machinefile</span> <span class="pre">&lt;machinefile&gt;</span></code>: Synonym for <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cpu-set</span> <span class="pre">&lt;list&gt;</span></code>: Restrict launched processes to the specified
+logical CPUs on each node (comma-separated list). Note that the
+binding options will still apply within the specified envelope
+— e.g., you can elect to bind each process to only one CPU
+within the specified CPU set.</p></li>
+</ul>
+<p>The following options specify the number of processes to launch. Note
+that none of the options imply a particular binding policy — e.g.,
+requesting N processes for each package does not imply that the
+processes will be bound to the package.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">-n</span></code>, <code class="docutils literal notranslate"><span class="pre">--n</span></code>, <code class="docutils literal notranslate"><span class="pre">-c</span></code>, <code class="docutils literal notranslate"><span class="pre">-np</span> <span class="pre">&lt;#&gt;</span></code>: Run this many copies of the
+program on the given nodes.  This option indicates that the
+specified file is an executable program and not an application
+context. If no value is provided for the number of copies to execute
+(i.e., neither the <code class="docutils literal notranslate"><span class="pre">-n</span></code> nor its synonyms are provided on the
+command line), Open MPI will automatically execute a copy of the
+program on each process slot (see PRRTE’s <a class="reference external" href="https://docs.prrte.org/en/latest/placement/overview.html#definition-of-slot">definition of “slot”</a>
+for description of a “process slot”). This feature, however, can
+only be used in the SPMD model and will return an error (without
+beginning execution of the application) otherwise.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">-n</span></code> option is the preferred option to be used to specify the
+number of copies of the program to be executed, but the alternate
+options are also accepted.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:N:&lt;object&gt;</span></code>: Launch N times the number of objects of
+the specified type on each node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--npersocket</span> <span class="pre">&lt;#persocket&gt;</span></code>: On each node, launch this many
+processes times the number of processor sockets on the node.
+The -npersocket option also turns on the <code class="docutils literal notranslate"><span class="pre">--bind-to-socket</span></code>
+option.  (deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:n:package</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--npernode</span> <span class="pre">&lt;#pernode&gt;</span></code>: On each node, launch this many processes.
+(deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:n:node</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--pernode</span></code>: On each node, launch one process — equivalent to
+<code class="docutils literal notranslate"><span class="pre">--npernode</span> <span class="pre">1</span></code>.  (deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:1:node</span></code>)</p></li>
+</ul>
+<p>To map processes:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">&lt;object&gt;</span></code>: Map to the specified object, defaults to
+<code class="docutils literal notranslate"><span class="pre">package</span></code>. Supported options include <code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">hwthread</span></code>, <code class="docutils literal notranslate"><span class="pre">core</span></code>,
+<code class="docutils literal notranslate"><span class="pre">L1cache</span></code>, <code class="docutils literal notranslate"><span class="pre">L2cache</span></code>, <code class="docutils literal notranslate"><span class="pre">L3cache</span></code>, <code class="docutils literal notranslate"><span class="pre">package</span></code>, <code class="docutils literal notranslate"><span class="pre">numa</span></code>,
+<code class="docutils literal notranslate"><span class="pre">node</span></code>, <code class="docutils literal notranslate"><span class="pre">seq</span></code>, <code class="docutils literal notranslate"><span class="pre">rankfile</span></code>, <code class="docutils literal notranslate"><span class="pre">pe-list=#</span></code>, and <code class="docutils literal notranslate"><span class="pre">ppr</span></code>.
+Any object can include modifiers by adding a <code class="docutils literal notranslate"><span class="pre">:</span></code> and any combination
+of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pe=n</span></code>: bind <code class="docutils literal notranslate"><span class="pre">n</span></code> processing elements to each proc</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">span</span></code>: load balance the processes across the allocation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">oversubscribe</span></code>: allow more processes on a node than processing elements</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nooversubscribe</span></code>: do <em>not</em> allow more processes on a node than processing elements (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nolocal</span></code>: do not place processes on the same host as the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> process</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hwtcpus</span></code>: use hardware threads as CPU slots for mapping</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">corecpus</span></code>: use processor cores as CPU slots for mapping (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file=filename</span></code>: used with <code class="docutils literal notranslate"><span class="pre">rankfile</span></code>; use <code class="docutils literal notranslate"><span class="pre">filename</span></code> to specify the file to use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ordered</span></code>: used with <code class="docutils literal notranslate"><span class="pre">pe-list</span></code> to bind each process to one of the specified processing elements</p></li>
+</ul>
+</div></blockquote>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">socket</span></code> is also accepted as an alias for <code class="docutils literal notranslate"><span class="pre">package</span></code>.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bycore</span></code>: Map processes by core (deprecated in favor of
+<code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">core</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--byslot</span></code>: Map and rank processes round-robin by slot (deprecated
+in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">slot</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--nolocal</span></code>: Do not run any copies of the launched application on
+the same node as orterun is running.  This option will override
+listing the localhost with <code class="docutils literal notranslate"><span class="pre">--host</span></code> or any other host-specifying
+mechanism. Alias for <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">:nolocal</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--nooversubscribe</span></code>: Do not oversubscribe any nodes; error
+(without starting any processes) if the requested number of
+processes would cause oversubscription.  This option implicitly sets
+“max_slots” equal to the “slots” value for each node. (Enabled by
+default). Alias for <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">:nooversubscribe</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--oversubscribe</span></code>: Nodes are allowed to be oversubscribed, even on
+a managed system, and overloading of processing elements.
+Alias for <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">:oversubscribe</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bynode</span></code>: Launch processes one per node, cycling by node in a
+round-robin fashion.  This spreads processes evenly among nodes and
+assigns <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> ranks in a round-robin, “by node” manner.
+(deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">node</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cpu-list</span> <span class="pre">&lt;cpus&gt;</span></code>: Comma-delimited list of processor IDs to
+which to bind processes [default=``NULL``].  Processor IDs are
+interpreted as hwloc logical core IDs.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can run Run the hwloc <code class="docutils literal notranslate"><span class="pre">lstopo(1)</span></code> command to see a
+list of available cores and their logical IDs.</p>
+</div>
+</li>
+</ul>
+<p>To order processes’ ranks in <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span> <span class="pre">&lt;mode&gt;</span></code>: Rank in round-robin fashion according to the
+specified mode, defaults to slot. Supported options include
+<code class="docutils literal notranslate"><span class="pre">slot</span></code>, <code class="docutils literal notranslate"><span class="pre">node</span></code>, <code class="docutils literal notranslate"><span class="pre">fill</span></code>, and <code class="docutils literal notranslate"><span class="pre">span</span></code>.</p></li>
+</ul>
+<p>For process binding:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">&lt;object&gt;</span></code>: Bind processes to the specified object,
+defaults to <code class="docutils literal notranslate"><span class="pre">core</span></code>.  Supported options include <code class="docutils literal notranslate"><span class="pre">slot</span></code>,
+<code class="docutils literal notranslate"><span class="pre">hwthread</span></code>, <code class="docutils literal notranslate"><span class="pre">core</span></code>, <code class="docutils literal notranslate"><span class="pre">l1cache</span></code>, <code class="docutils literal notranslate"><span class="pre">l2cache</span></code>, <code class="docutils literal notranslate"><span class="pre">l3cache</span></code>,
+<code class="docutils literal notranslate"><span class="pre">package</span></code>, <code class="docutils literal notranslate"><span class="pre">numa</span></code>, and <code class="docutils literal notranslate"><span class="pre">none</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cpus-per-proc</span> <span class="pre">&lt;#perproc&gt;</span></code>: Bind each process to the specified
+number of cpus.  (deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">&lt;obj&gt;:PE=n</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cpus-per-rank</span> <span class="pre">&lt;#perrank&gt;</span></code>: Alias for <code class="docutils literal notranslate"><span class="pre">--cpus-per-proc</span></code>.
+(deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">&lt;obj&gt;:PE=n</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to-core</span></code> Bind processes to cores (deprecated in favor of
+<code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">core</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to-socket</span></code>: Bind processes to processor sockets
+(deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">package</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--report-bindings</span></code>: Report any bindings for launched processes.</p></li>
+</ul>
+<p>For rankfiles:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--rankfile</span> <span class="pre">&lt;rankfile&gt;</span></code>: Provide a rankfile file.
+(deprecated in favor of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">rankfile:file=FILE</span></code>)</p></li>
+</ul>
+<p>To manage standard I/O:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--output-filename</span> <span class="pre">&lt;filename&gt;</span></code>: Redirect the stdout, stderr, and
+stddiag of all processes to a process-unique version of the
+specified filename. Any directories in the filename will
+automatically be created.  Each output file will consist of
+<code class="docutils literal notranslate"><span class="pre">filename.id</span></code>, where the <code class="docutils literal notranslate"><span class="pre">id</span></code> will be the processes’ rank in
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>, left-filled with zero’s for correct ordering in
+listings. A relative path value will be converted to an absolute
+path based on the cwd where mpirun is executed. Note that this will
+not work on environments where the file system on compute nodes
+differs from that where <a class="reference internal" href="#man1-mpirun"><span class="std std-ref">mpirun(1)</span></a> is
+executed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--stdin</span> <span class="pre">&lt;rank&gt;</span></code>: The <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank of the process that is
+to receive stdin.  The default is to forward stdin to <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>
+rank 0, but this option can be used to forward stdin to any
+process. It is also acceptable to specify none, indicating that no
+processes are to receive stdin.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--merge-stderr-to-stdout</span></code>: Merge stderr to stdout for each
+process.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--tag-output</span></code>: Tag each line of output to stdout, stderr, and
+stddiag with <code class="docutils literal notranslate"><span class="pre">[jobid,</span> <span class="pre">MCW_rank]&lt;stdxxx&gt;</span></code> indicating the process
+jobid and <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank of the process that generated the
+output, and the channel which generated it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--timestamp-output</span></code>: Timestamp each line of output to stdout,
+stderr, and stddiag.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--xml</span></code>: Provide all output to stdout, stderr, and stddiag in an
+XML format.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--xml-file</span> <span class="pre">&lt;filename&gt;</span></code> Provide all output in XML format to the
+specified file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--xterm</span> <span class="pre">&lt;ranks&gt;</span></code>: Display the output from the processes
+identified by their <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> ranks in separate xterm
+windows. The ranks are specified as a comma-separated list of
+ranges, with a <code class="docutils literal notranslate"><span class="pre">-1</span></code> indicating all. A separate window will be created
+for each specified process.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>xterm will normally terminate the window upon termination
+of the process running within it. However, by adding a
+<code class="docutils literal notranslate"><span class="pre">!</span></code> to the end of the list of specified ranks, the
+proper options will be provided to ensure that xterm keeps
+the window open after the process terminates, thus
+allowing you to see the process’ output.  Each xterm
+window will subsequently need to be manually closed.
+Note: In some environments, xterm may require that the
+executable be in the user’s path, or be specified in
+absolute or relative terms. Thus, it may be necessary to
+specify a local executable as <code class="docutils literal notranslate"><span class="pre">./my_mpi_app</span></code> instead of just
+<code class="docutils literal notranslate"><span class="pre">my_mpi_app</span></code>. If xterm fails to find the executable, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>
+will hang, but still respond correctly to a ctrl-C.  If
+this happens, please check that the executable is being
+specified correctly and try again.</p>
+</div>
+</li>
+</ul>
+<p>To manage files and runtime environment:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--path</span> <span class="pre">&lt;path&gt;</span></code>: <code class="docutils literal notranslate"><span class="pre">&lt;path&gt;</span></code> that will be used when attempting to
+locate the requested executables.  This is used prior to using the
+local <code class="docutils literal notranslate"><span class="pre">PATH</span></code> environment variable setting.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--prefix</span> <span class="pre">&lt;dir&gt;</span></code>: Prefix directory that will be used to set the
+<code class="docutils literal notranslate"><span class="pre">PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> on the remote node before invoking
+Open MPI or the target process.  See the <a class="reference internal" href="#man1-mpirun-remote-execution"><span class="std std-ref">Remote Execution</span></a> section, below.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--noprefix</span></code>: Disable the automatic <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> behavior</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--preload-binary</span></code>: Copy the specified executable(s) to remote
+machines prior to starting remote processes. The executables will be
+copied to the Open MPI session directory and will be deleted upon
+completion of the job.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--preload-files</span> <span class="pre">&lt;files&gt;</span></code>: Preload the comma-separated list of
+files to the current working directory of the remote machines where
+processes will be launched prior to starting those processes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--set-cwd-to-session-dir</span></code>: Set the working directory of the
+started processes to their session directory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--wd</span> <span class="pre">&lt;dir&gt;</span></code>: Synonym for <code class="docutils literal notranslate"><span class="pre">-wdir</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--wdir</span> <span class="pre">&lt;dir&gt;</span></code>: Change to the directory <code class="docutils literal notranslate"><span class="pre">&lt;dir&gt;</span></code> before the
+user’s program executes.  See the <a class="reference internal" href="#man1-mpirun-current-working-directory"><span class="std std-ref">Current Working Directory</span></a> section for notes on
+relative paths.  Note: If the <code class="docutils literal notranslate"><span class="pre">--wdir</span></code> option appears both on the
+command line and in an application context, the context will take
+precedence over the command line. Thus, if the path to the desired
+wdir is different on the backend nodes, then it must be specified as
+an absolute path that is correct for the backend node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-x</span> <span class="pre">&lt;env&gt;</span></code>: Export the specified environment variables to the
+remote nodes before executing the program.  Only one environment
+variable can be specified per <code class="docutils literal notranslate"><span class="pre">-x</span></code> option.  Existing environment
+variables can be specified or new variable names specified with
+corresponding values.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-x<span class="w"> </span>DISPLAY<span class="w"> </span>-x<span class="w"> </span><span class="nv">OFILE</span><span class="o">=</span>/tmp/out<span class="w"> </span>...
+</pre></div>
+</div>
+<p>The parser for the <code class="docutils literal notranslate"><span class="pre">-x</span></code> option is not very sophisticated; it does
+not even understand quoted values.  Users are advised to set
+variables in the environment, and then use <code class="docutils literal notranslate"><span class="pre">-x</span></code> to export (not
+define) them.</p>
+</li>
+</ul>
+<p>Setting MCA parameters:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--gmca</span> <span class="pre">&lt;key&gt;</span> <span class="pre">&lt;value&gt;</span></code>: Pass global MCA parameters that are
+applicable to all contexts.  <code class="docutils literal notranslate"><span class="pre">&lt;key&gt;</span></code> is the parameter name;
+<code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> is the parameter value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">&lt;key&gt;</span> <span class="pre">&lt;value&gt;</span></code>: Send arguments to various MCA modules.  See
+the <a class="reference internal" href="#man1-mpirun-setting-mca-parameters"><span class="std std-ref">Setting MCA Parameters</span></a> section for more details.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Open MPI will attempt to discern PMIx and PRRTE MCA
+parameters passed via <code class="docutils literal notranslate"><span class="pre">--mca</span></code> and handle them
+appropriately, but it may not always guess correctly.  It
+is best to use <code class="docutils literal notranslate"><span class="pre">--pmixmca</span></code> and <code class="docutils literal notranslate"><span class="pre">--prtemca</span></code> when
+passing MCA parameters to PMIx and PRRTE, respectively.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--pmixmca</span> <span class="pre">&lt;key&gt;</span> <span class="pre">&lt;value&gt;</span></code>: Send arguments to MCA modules in the
+PMIx subsystem.  See the <a class="reference internal" href="#man1-mpirun-setting-mca-parameters"><span class="std std-ref">Setting MCA Parameters</span></a> section for more details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--prtemca</span> <span class="pre">&lt;key&gt;</span> <span class="pre">&lt;value&gt;</span></code>: Send arguments to MCA modules in the
+PMIx Reference Runtime Environment (PRRTE) subsystem.  See the
+<a class="reference internal" href="#man1-mpirun-setting-mca-parameters"><span class="std std-ref">Setting MCA Parameters</span></a>
+section for more details.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--tune</span> <span class="pre">&lt;tune_file&gt;</span></code>: Specify a tune file to set arguments for
+various MCA modules and environment variables.  See the :ref:`
+Setting MCA parameters and environment variables from file
+&lt;man1-mpirun-setting-mca-params-from-file&gt;`. <code class="docutils literal notranslate"><span class="pre">--am</span> <span class="pre">&lt;arg&gt;</span></code> is an alias for <code class="docutils literal notranslate"><span class="pre">--tune</span> <span class="pre">&lt;arg&gt;</span></code>.</p></li>
+</ul>
+<p>For debugging:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--get-stack-traces</span></code>: When paired with the <code class="docutils literal notranslate"><span class="pre">--timeout</span></code> option,
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will obtain and print out stack traces from all launched
+processes that are still alive when the timeout expires.  Note that
+obtaining stack traces can take a little time and produce a lot of
+output, especially for large process-count jobs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--timeout</span> <span class="pre">&lt;seconds&gt;</span></code>: The maximum number of seconds that
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will run.  After this many seconds, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort
+the launched job and exit with a non-zero exit status.  Using
+<code class="docutils literal notranslate"><span class="pre">--timeout</span></code> can be also useful when combined with the
+<code class="docutils literal notranslate"><span class="pre">--get-stack-traces</span></code> option.</p></li>
+</ul>
+<p>There are also other options:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--allow-run-as-root</span></code>: Allow <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> to run when executed by
+the root user (<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> defaults to aborting when launched as the
+root user).  Be sure to see the <a class="reference internal" href="#man1-mpirun-running-as-root"><span class="std std-ref">Running as root</span></a> section for more detail.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--app</span> <span class="pre">&lt;appfile&gt;</span></code>: Provide an appfile, ignoring all other command
+line options.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--continuous</span></code>: Job is to run until explicitly terminated.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-recovery</span></code>: Disable recovery (resets all recovery
+options to off).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--do-not-launch</span></code>: Perform all necessary operations to prepare to
+launch the application, but do not actually launch it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-recovery</span></code>: Enable recovery from process failure (default:
+disabled)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--leave-session-attached</span></code>: Do not detach back-end daemons used by
+this application. This allows error messages from the daemons as
+well as the underlying environment (e.g., when failing to launch a
+daemon) to be output.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--max-restarts</span> <span class="pre">&lt;num&gt;</span></code>: Max number of times to restart a failed
+process.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--personality</span> <span class="pre">&lt;list&gt;</span></code>: Comma-separated list of programming model,
+languages, and containers being used (default=``ompi``).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ppr</span> <span class="pre">&lt;list&gt;</span></code>: Comma-separated list of number of processes on a
+given resource type (default: none). Alias for <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:N:OBJ</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--report-child-jobs-separately</span></code>: Return the exit status of the
+primary job only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--report-events</span> <span class="pre">&lt;URI&gt;</span></code>: Report events to a tool listening at the
+specified URI.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--report-pid</span> <span class="pre">&lt;channel&gt;</span></code>: Print out <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>’s PID during
+startup. The channel must be either a <code class="docutils literal notranslate"><span class="pre">-</span></code> to indicate that the PID
+is to be output to stdout, a <code class="docutils literal notranslate"><span class="pre">+</span></code> to indicate that the PID is to be
+output to stderr, or a filename to which the PID is to be written.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--report-uri</span> <span class="pre">&lt;channel&gt;</span></code>: Print out <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>’s URI during
+startup. The channel must be either a <code class="docutils literal notranslate"><span class="pre">-</span></code> to indicate that the URI
+is to be output to stdout, a <code class="docutils literal notranslate"><span class="pre">+</span></code> to indicate that the URI is to be
+output to stderr, or a filename to which the URI is to be written.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--show-progress</span></code>: Output a brief periodic report on launch
+progress.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--terminate</span></code>: Terminate the DVM.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--use-hwthread-cpus</span></code>: Use hardware threads as independent CPUs.</p>
+<p>Note that if a number of slots is not provided to Open MPI (e.g.,
+via the <code class="docutils literal notranslate"><span class="pre">slots</span></code> keyword in a hostfile or from a resource manager
+such as Slurm), the use of this option changes the default
+calculation of number of slots on a node.  See the PRRTE’s
+<a class="reference external" href="https://docs.prrte.org/en/latest/placement/overview.html#definition-of-slot">definition of “slot”</a>
+for more details.</p>
+<p>Also note that the use of this option changes the Open MPI’s
+definition of a “processor element” from a processor core to a
+hardware thread.  See
+PRRTE’s <a class="reference external" href="https://docs.prrte.org/en/latest/placement/overview.html#definition-of-pe">definition of a “processor element”</a>
+for more details.</p>
+</li>
+</ul>
+<p>The following options are useful for developers; they are not
+generally useful to most Open MPI users:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--debug-daemons</span></code>: Enable debugging of the run-time daemons used
+by this application.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--debug-daemons-file</span></code>: Enable debugging of the run-time daemons
+used by this application, storing output in files.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--display-devel-map</span></code>: Display a more detailed table showing the
+mapped location of each process prior to launch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--display-topo</span></code>: Display the topology as part of the process map
+just before launch.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--launch-agent</span></code>: Name of the executable that is to be used to
+start processes on the remote nodes. The default is <code class="docutils literal notranslate"><span class="pre">prted</span></code>. This
+option can be used to test new daemon concepts, or to pass options
+back to the daemons without having mpirun itself see them. For
+example, specifying a launch agent of <code class="docutils literal notranslate"><span class="pre">prted</span> <span class="pre">--prtemca</span> <span class="pre">odls_base_verbose</span>
+<span class="pre">5</span></code> allows the developer to ask the <code class="docutils literal notranslate"><span class="pre">prted</span></code> for debugging output
+without clutter from <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> itself.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--report-state-on-timeout</span></code>: When paired with the <code class="docutils literal notranslate"><span class="pre">--timeout</span></code>
+command line option, report the run-time subsystem state of each
+process when the timeout expires.</p></li>
+</ul>
+<p>There may be other options listed with <code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--help</span></code>.</p>
+<section id="environment-variables">
+<h3><span class="section-number">17.1.2.5.1. </span>Environment Variables<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIEXEC_TIMEOUT</span></code>: Synonym for the <code class="docutils literal notranslate"><span class="pre">--timeout</span></code> command line option.</p></li>
+</ul>
+</section>
+</section>
+<section id="description">
+<h2><span class="section-number">17.1.2.6. </span>DESCRIPTION<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>One invocation of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> starts an MPI application running under Open
+MPI. If the application is single process multiple data (SPMD), the
+application can be specified on the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command line.</p>
+<p>If the application is multiple instruction multiple data (MIMD),
+comprising of multiple programs, the set of programs and argument can
+be specified in one of two ways: Extended Command Line Arguments, and
+Application Context.</p>
+<p>An application context describes the MIMD program set including all
+arguments in a separate file.  This file essentially contains multiple
+mpirun command lines, less the command name itself.  The ability to
+specify different options for different instantiations of a program is
+another reason to use an application context.</p>
+<p>Extended command line arguments allow for the description of the
+application layout on the command line using colons (<code class="docutils literal notranslate"><span class="pre">:</span></code>) to
+separate the specification of programs and arguments. Some options are
+globally set across all specified programs (e.g., <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code>),
+while others are specific to a single program (e.g., <code class="docutils literal notranslate"><span class="pre">-n</span></code>).</p>
+<section id="specifying-host-nodes">
+<h3><span class="section-number">17.1.2.6.1. </span>Specifying Host Nodes<a class="headerlink" href="#specifying-host-nodes" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>Host nodes can be identified on the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command line with the
+<code class="docutils literal notranslate"><span class="pre">--host</span></code> option or in a hostfile.</p>
+<p>For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-H<span class="w"> </span>aa,aa,bb<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>Launches two processes on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and one on <code class="docutils literal notranslate"><span class="pre">bb</span></code>.</p>
+<p>Or, consider the hostfile:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>myhostfile
+aa<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">2</span>
+bb<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">2</span>
+cc<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">2</span>
+</pre></div>
+</div>
+<p>Here, we list both the host names (<code class="docutils literal notranslate"><span class="pre">aa</span></code>, <code class="docutils literal notranslate"><span class="pre">bb</span></code>, and <code class="docutils literal notranslate"><span class="pre">cc</span></code>) but
+also how many slots there are for each.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>myhostfile<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>will launch two processes on each of the three nodes.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>myhostfile<span class="w"> </span>--host<span class="w"> </span>aa<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>will launch two processes, both on node <code class="docutils literal notranslate"><span class="pre">aa</span></code>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>myhostfile<span class="w"> </span>--host<span class="w"> </span>dd<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>will find no hosts to run on and will abort with an error.  That is,
+the specified host <code class="docutils literal notranslate"><span class="pre">dd</span></code> is not in the specified hostfile.</p>
+<p>When running under resource managers (e.g., Slurm, Torque, etc.), Open
+MPI will obtain both the hostnames and the number of slots directly
+from the resource manager.</p>
+</section>
+<section id="specifying-number-of-processes">
+<h3><span class="section-number">17.1.2.6.2. </span>Specifying Number of Processes<a class="headerlink" href="#specifying-number-of-processes" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>As we have just seen, the number of processes to run can be set using the
+hostfile.  Other mechanisms exist.</p>
+<p>The number of processes launched can be specified as a multiple of the
+number of nodes or processor packages available.  For example,</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-H<span class="w"> </span>aa,bb<span class="w"> </span>--map-by<span class="w"> </span>ppr:2:package<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>launches processes 0-3 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and process 4-7 on node <code class="docutils literal notranslate"><span class="pre">bb</span></code>
+(assuming <code class="docutils literal notranslate"><span class="pre">aa</span></code> and <code class="docutils literal notranslate"><span class="pre">bb</span></code> both contain 4 slots each).</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-H<span class="w"> </span>aa,bb<span class="w"> </span>--map-by<span class="w"> </span>ppr:2:node<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>launches processes 0-1 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and processes 2-3 on node <code class="docutils literal notranslate"><span class="pre">bb</span></code>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-H<span class="w"> </span>aa,bb<span class="w"> </span>--map-by<span class="w"> </span>ppr:1:node<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>launches one process per host node.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mpirun<span class="w"> </span>-H<span class="w"> </span>aa,bb<span class="w"> </span>--pernode<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>is the same as <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">ppr:1:node</span></code> and <code class="docutils literal notranslate"><span class="pre">--npernode</span> <span class="pre">1</span></code>.</p>
+<p>Another alternative is to specify the number of processes with the <code class="docutils literal notranslate"><span class="pre">-n</span></code>
+option.  Consider now the hostfile:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>myhostfile
+aa<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">4</span>
+bb<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">4</span>
+cc<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">4</span>
+</pre></div>
+</div>
+<p>Now run with <code class="docutils literal notranslate"><span class="pre">myhostfile</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>myhostfile<span class="w"> </span>-n<span class="w"> </span><span class="m">6</span><span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>will launch processes 0-3 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and processes 4-5 on node
+<code class="docutils literal notranslate"><span class="pre">bb</span></code>.  The remaining slots in the hostfile will not be used since
+the <code class="docutils literal notranslate"><span class="pre">-n</span></code> option indicated that only 6 processes should be launched.</p>
+</section>
+<section id="mapping-processes-to-nodes-using-policies">
+<h3><span class="section-number">17.1.2.6.3. </span>Mapping Processes to Nodes: Using Policies<a class="headerlink" href="#mapping-processes-to-nodes-using-policies" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>The examples above illustrate the default mapping of process processes
+to nodes.  This mapping can also be controlled with various <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>
+options that describe mapping policies.</p>
+<p>Consider the same hostfile as above, again with <code class="docutils literal notranslate"><span class="pre">-n</span> <span class="pre">6</span></code>.  The table
+below lists a few <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> variations, and shows which
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> ranks end up on which node:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Command</p></th>
+<th class="head"><p>Node <code class="docutils literal notranslate"><span class="pre">aa</span></code></p></th>
+<th class="head"><p>Node <code class="docutils literal notranslate"><span class="pre">bb</span></code></p></th>
+<th class="head"><p>Node <code class="docutils literal notranslate"><span class="pre">cc</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code></p></td>
+<td><p>0 1 2 3</p></td>
+<td><p>4 5</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--map-by</span> <span class="pre">node</span></code></p></td>
+<td><p>0 3</p></td>
+<td><p>1 4</p></td>
+<td><p>2 5</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--nolocal</span></code></p></td>
+<td></td>
+<td><p>0 1 2 3</p></td>
+<td><p>4 5</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">node</span></code> option will load balance the processes across the
+available nodes, numbering each process in a round-robin fashion.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--nolocal</span></code> option prevents any processes from being mapped onto
+the local host (in this case node <code class="docutils literal notranslate"><span class="pre">aa</span></code>).  While <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> typically
+consumes few system resources, <code class="docutils literal notranslate"><span class="pre">--nolocal</span></code> can be helpful for
+launching very large jobs where mpirun may actually need to use
+noticeable amounts of memory and/or processing time.</p>
+<p>Just as <code class="docutils literal notranslate"><span class="pre">-n</span></code> can specify fewer processes than there are slots, it
+can also oversubscribe the slots.  For example, with the same
+hostfile:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>myhostfile<span class="w"> </span>-n<span class="w"> </span><span class="m">14</span><span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>will launch processes 0-3 on node <code class="docutils literal notranslate"><span class="pre">aa</span></code>, 4-7 on <code class="docutils literal notranslate"><span class="pre">bb</span></code>, and 8-11 on
+<code class="docutils literal notranslate"><span class="pre">cc</span></code>.  It will then add the remaining two processes to whichever
+nodes it chooses.</p>
+<p>One can also specify limits to oversubscription.  For example, with the
+same hostfile:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>myhostfile<span class="w"> </span>-n<span class="w"> </span><span class="m">14</span><span class="w"> </span>--nooversubscribe<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>will produce an error since <code class="docutils literal notranslate"><span class="pre">--nooversubscribe</span></code> prevents
+oversubscription.</p>
+<p>Limits to oversubscription can also be specified in the hostfile
+itself:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>myhostfile
+aa<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">4</span><span class="w"> </span><span class="nv">max_slots</span><span class="o">=</span><span class="m">4</span>
+bb<span class="w">         </span><span class="nv">max_slots</span><span class="o">=</span><span class="m">4</span>
+cc<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">4</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">max_slots</span></code> field specifies such a limit.  When it does, the slots
+value defaults to the limit.  Now:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>myhostfile<span class="w"> </span>-n<span class="w"> </span><span class="m">14</span><span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>causes the first 12 processes to be launched as before, but the
+remaining two processes will be forced onto node <code class="docutils literal notranslate"><span class="pre">cc</span></code>.  The other
+two nodes are protected by the hostfile against oversubscription by
+this job.</p>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">--nooversubscribe</span></code> option can be helpful since Open MPI
+currently does not get <code class="docutils literal notranslate"><span class="pre">max_slots</span></code> values from the resource manager.</p>
+<p>Of course, <code class="docutils literal notranslate"><span class="pre">-n</span></code> can also be used with the <code class="docutils literal notranslate"><span class="pre">-H</span></code> or <code class="docutils literal notranslate"><span class="pre">-host</span></code>
+option.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-H<span class="w"> </span>aa,bb<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span><span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>launches 8 processes.  Since only two hosts are specified, after the
+first two processes are mapped, one to <code class="docutils literal notranslate"><span class="pre">aa</span></code> and one to <code class="docutils literal notranslate"><span class="pre">bb</span></code>, the
+remaining processes oversubscribe the specified hosts.</p>
+<p>And here is a MIMD example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-H<span class="w"> </span>aa<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>hostname<span class="w"> </span>:<span class="w"> </span>-H<span class="w"> </span>bb,cc<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>uptime
+</pre></div>
+</div>
+<p>will launch process 0 running hostname on node <code class="docutils literal notranslate"><span class="pre">aa</span></code> and processes 1
+and 2 each running uptime on nodes <code class="docutils literal notranslate"><span class="pre">bb</span></code> and <code class="docutils literal notranslate"><span class="pre">cc</span></code>, respectively.</p>
+</section>
+<section id="mapping-ranking-and-binding-oh-my">
+<span id="man1-mpirun-map-rank-bind"></span><h3><span class="section-number">17.1.2.6.4. </span>Mapping, Ranking, and Binding: Oh My!<a class="headerlink" href="#mapping-ranking-and-binding-oh-my" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>Open MPI employs a three-phase procedure for assigning process locations
+and ranks:</p>
+<ol class="arabic simple">
+<li><p><strong>Mapping</strong>: Assigns a default location to each process</p></li>
+<li><p><strong>Ranking</strong>: Assigns an <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank value to each process</p></li>
+<li><p><strong>Binding</strong>: Constrains each process to run on specific processors</p></li>
+</ol>
+<p>The mapping step is used to assign a default location to each process
+based on the mapper being employed. Mapping by slot, node, and
+sequentially results in the assignment of the processes to the node
+level. In contrast, mapping by object, allows the mapper to assign the
+process to an actual object on each node.</p>
+<p>Note that the location assigned to the process is independent of where
+it will be bound — the assignment is used solely as input to the
+binding algorithm.</p>
+<p>The mapping of process processes to nodes can be defined not just with
+general policies but also, if necessary, using arbitrary mappings that
+cannot be described by a simple policy.  One can use the “sequential
+mapper,” which reads the hostfile line by line, assigning processes to
+nodes in whatever order the hostfile specifies.  Use the <code class="docutils literal notranslate"><span class="pre">---map-by</span> <span class="pre">seq</span></code> option.  For example, using the same hostfile as before:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-hostfile<span class="w"> </span>myhostfile<span class="w"> </span>--map-by<span class="w"> </span>seq<span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p>will launch three processes, one on each of nodes <code class="docutils literal notranslate"><span class="pre">aa</span></code>, <code class="docutils literal notranslate"><span class="pre">bb</span></code>, and <code class="docutils literal notranslate"><span class="pre">cc</span></code>,
+respectively.  The slot counts don’t matter; one process is launched
+per line on whatever node is listed on the line.</p>
+<p>Another way to specify arbitrary mappings is with a rankfile, which
+gives you detailed control over process binding as well.  Rankfiles
+are discussed <a class="reference internal" href="#man1-mpirun-rankfiles"><span class="std std-ref">below</span></a>.</p>
+<p>The second phase focuses on the ranking of the process within the
+job’s <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>.  Open MPI separates this from the mapping
+procedure to allow more flexibility in the relative placement of MPI
+processes. This is best illustrated by considering the following
+cases where we used the <code class="docutils literal notranslate"><span class="pre">--np</span> <span class="pre">8</span> <span class="pre">--map-by</span> <span class="pre">ppr:2:package</span> <span class="pre">--host</span> <span class="pre">aa:4,bb:4</span></code> option:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Node <code class="docutils literal notranslate"><span class="pre">aa</span></code></p></th>
+<th class="head"><p>Node <code class="docutils literal notranslate"><span class="pre">bb</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span> <span class="pre">fill</span></code> (i.e., dense packing) Default</p></td>
+<td><p>0 1 | 2 3</p></td>
+<td><p>4 5 | 6 7</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span> <span class="pre">span</span></code> (i.e., sparse or load balanced packing)</p></td>
+<td><p>0 4 | 1 5</p></td>
+<td><p>2 6 | 3 7</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span> <span class="pre">node</span></code></p></td>
+<td><p>0 2 | 4 6</p></td>
+<td><p>1 3 | 5 7</p></td>
+</tr>
+</tbody>
+</table>
+<p>Ranking by <code class="docutils literal notranslate"><span class="pre">fill</span></code> assigns MCW ranks in a simple progression across each
+node. Ranking by <code class="docutils literal notranslate"><span class="pre">span</span></code> and by <code class="docutils literal notranslate"><span class="pre">slot</span></code> provide the identical
+result — a round-robin progression of the packages across all nodes
+before returning to the first package on the first node. Ranking by
+<code class="docutils literal notranslate"><span class="pre">node</span></code> assigns MCW ranks iterating first across nodes then by package.</p>
+<p>The binding phase actually binds each process to a given set of
+processors. This can improve performance if the operating system is
+placing processes suboptimally.  For example, it might oversubscribe
+some multi-core processor packages, leaving other packages idle; this
+can lead processes to contend unnecessarily for common resources.  Or,
+it might spread processes out too widely; this can be suboptimal if
+application performance is sensitive to interprocess communication
+costs.  Binding can also keep the operating system from migrating
+processes excessively, regardless of how optimally those processes
+were placed to begin with.</p>
+<p>The processors to be used for binding can be identified in terms of
+topological groupings — e.g., binding to an <code class="docutils literal notranslate"><span class="pre">l3cache</span></code> will
+bind each process to all processors within the scope of a single L3
+cache within their assigned location. Thus, if a process is assigned
+by the mapper to a certain package, then a <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">l3cache</span></code>
+directive will cause the process to be bound to the processors that
+share a single L3 cache within that package.</p>
+<p>Alternatively, processes can be mapped and bound to specified cores using
+the <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">pe-list=</span></code> option. For example, <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">pe-list=0,2,5</span></code>
+will map three processes all three of which will be bound to logical cores
+<code class="docutils literal notranslate"><span class="pre">0,2,5</span></code>. If you intend to bind each of the three processes to different
+cores then the <code class="docutils literal notranslate"><span class="pre">:ordered</span></code> qualifier can be used like
+<code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">pe-list=0,2,5:ordered</span></code>. In this example, the first process
+on a node will be bound to CPU 0, the second process on the node will
+be bound to CPU 2, and the third process on the node will be bound to
+CPU 5.</p>
+<p>Finally, <code class="docutils literal notranslate"><span class="pre">--report-bindings</span></code> can be used to report bindings.</p>
+<p>As an example, consider a node with two processor packages, each
+comprised of four cores, and each of those cores contains one hardware
+thread.  The <code class="docutils literal notranslate"><span class="pre">--report-bindings</span></code> option shows the binding of each process in a
+descriptive manner. Below are some examples.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --report-bindings --map-by core --bind-to core
+[...] Rank 0 bound to package[0][core:0]
+[...] Rank 1 bound to package[0][core:1]
+[...] Rank 2 bound to package[0][core:2]
+[...] Rank 3 bound to package[0][core:3]
+</pre></div>
+</div>
+<p>In the above case, the processes bind to successive cores.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --report-bindings --map-by package --bind-to package
+[...] Rank 0 bound to package[0][core:0-3]
+[...] Rank 1 bound to package[0][core:0-3]
+[...] Rank 2 bound to package[1][core:4-7]
+[...] Rank 3 bound to package[1][core:4-7]
+</pre></div>
+</div>
+<p>In the above case, processes bind to all cores on successive packages.
+The processes cycle through the processor packages in a
+round-robin fashion as many times as are needed. By default, the processes
+are ranked in a <code class="docutils literal notranslate"><span class="pre">fill</span></code> manner.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --report-bindings --map-by package --bind-to package --rank-by span
+[...] Rank 0 bound to package[0][core:0-3]
+[...] Rank 1 bound to package[1][core:4-7]
+[...] Rank 2 bound to package[0][core:0-3]
+[...] Rank 3 bound to package[1][core:4-7]
+</pre></div>
+</div>
+<p>The above case demonstrates the difference
+in ranking when the <code class="docutils literal notranslate"><span class="pre">span</span></code> qualifier is used instead of the default.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --report-bindings --map-by slot:PE=2 --bind-to core
+[...] Rank 0 bound to package[0][core:0-1]
+[...] Rank 1 bound to package[0][core:2-3]
+[...] Rank 2 bound to package[0][core:4-5]
+[...] Rank 3 bound to package[0][core:6-7]
+</pre></div>
+</div>
+<p>In the above case, the output shows us that 2 cores have been bound per
+process.  Specifically, the mapping by <code class="docutils literal notranslate"><span class="pre">slot</span></code> with the <code class="docutils literal notranslate"><span class="pre">PE=2</span></code> qualifier
+indicated that each slot (i.e., process) should consume two processor
+elements.  By default, Open MPI defines “processor element” as “core”,
+and therefore the <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">core</span></code> caused each process to be bound to
+both of the cores to which it was mapped.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --report-bindings --map-by slot:PE=2 --use-hwthread-cpus
+[...]] Rank 0 bound to package[0][hwt:0-1]
+[...]] Rank 1 bound to package[0][hwt:2-3]
+[...]] Rank 2 bound to package[0][hwt:4-5]
+[...]] Rank 3 bound to package[0][hwt:6-7]
+</pre></div>
+</div>
+<p>In the above case, we replace the <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">core</span></code> with
+<code class="docutils literal notranslate"><span class="pre">--use-hwthread-cpus</span></code>. The <code class="docutils literal notranslate"><span class="pre">--use-hwthread-cpus</span></code> is converted into
+<code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">hwthread</span></code> and tells the <code class="docutils literal notranslate"><span class="pre">--report-bindings</span></code> output to show the
+hardware threads to which a process is bound. In this case, processes are
+bound to 2 hardware threads per process.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --report-bindings --bind-to none
+[...] Rank 0 is not bound (or bound to all available processors)
+[...] Rank 1 is not bound (or bound to all available processors)
+[...] Rank 2 is not bound (or bound to all available processors)
+[...] Rank 3 is not bound (or bound to all available processors)
+</pre></div>
+</div>
+<p>In the above case, binding is turned off and are reported as such.</p>
+<p>Open MPI’s support for process binding depends on the underlying
+operating system.  Therefore, certain process binding options may not
+be available on every system.</p>
+<p>Process binding can also be set with MCA parameters.  Their usage is
+less convenient than that of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> options.  On the other hand,
+MCA parameters can be set not only on the mpirun command line, but
+alternatively in a system or user <code class="docutils literal notranslate"><span class="pre">mca-params.conf</span></code> file or as
+environment variables, as described in the <a class="reference internal" href="#man1-mpirun-setting-mca-parameters"><span class="std std-ref">Setting MCA
+Parameters</span></a>. These are MCA parameters for
+the PRRTE runtime so the command line argument <code class="docutils literal notranslate"><span class="pre">--prtemca</span></code>
+(yes, <code class="docutils literal notranslate"><span class="pre">prte</span></code> with a single <code class="docutils literal notranslate"><span class="pre">r</span></code>, not two <code class="docutils literal notranslate"><span class="pre">r</span></code>’s) must be used to
+pass the MCA parameter key/value pair. Alternatively, the MCA parameter
+key/value pair may be specific on the command line by prefixing the key with
+<code class="docutils literal notranslate"><span class="pre">PRTE_MCA_</span></code> (again, that is not a typo: <code class="docutils literal notranslate"><span class="pre">PRTE</span></code> not <code class="docutils literal notranslate"><span class="pre">PRRTE</span></code>).
+Some examples include:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>PRRTE MCA parameter key</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">core</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">package</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span> <span class="pre">fill</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rmaps_default_ranking_policy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">fill</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">core</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_default_binding_policy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_default_binding_policy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">package</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">none</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">hwloc_default_binding_policy</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">none</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="defaults-for-mapping-ranking-and-binding">
+<span id="man1-mpirun-map-rank-bind-defaults"></span><h3><span class="section-number">17.1.2.6.5. </span>Defaults for Mapping, Ranking, and Binding<a class="headerlink" href="#defaults-for-mapping-ranking-and-binding" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>If the user does not specify each of <code class="docutils literal notranslate"><span class="pre">--map-by</span></code>, <code class="docutils literal notranslate"><span class="pre">--rank-by</span></code>, and <code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> option then the default values are as follows:</p>
+<ul>
+<li><p>If no options are specified then</p>
+<blockquote>
+<div><ul>
+<li><p>If the number of processes is less than or equal to 2, then:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span></code> is <code class="docutils literal notranslate"><span class="pre">core</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> is <code class="docutils literal notranslate"><span class="pre">core</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span></code> is <code class="docutils literal notranslate"><span class="pre">span</span></code></p></li>
+<li><p>Result: <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">core</span> <span class="pre">--bind-to</span> <span class="pre">core</span> <span class="pre">--rank-by</span> <span class="pre">span</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Otherwise:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span></code> is <code class="docutils literal notranslate"><span class="pre">package</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> is <code class="docutils literal notranslate"><span class="pre">package</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span></code> is <code class="docutils literal notranslate"><span class="pre">fill</span></code></p></li>
+<li><p>Result: <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">package</span> <span class="pre">--bind-to</span> <span class="pre">package</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>If only <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">OBJ</span></code> (where <code class="docutils literal notranslate"><span class="pre">OBJ</span></code> is something like <code class="docutils literal notranslate"><span class="pre">core</span></code>) is specified, then:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span></code> specified <code class="docutils literal notranslate"><span class="pre">OBJ</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> uses the same <code class="docutils literal notranslate"><span class="pre">OBJ</span></code> as <code class="docutils literal notranslate"><span class="pre">--map-by</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">fill</span></code></p></li>
+<li><p>Result: <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">OBJ</span> <span class="pre">--bind-to</span> <span class="pre">OBJ</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>If only <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">OBJ</span></code> (where <code class="docutils literal notranslate"><span class="pre">OBJ</span></code> is something like <code class="docutils literal notranslate"><span class="pre">core</span></code>) is specified, then:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span></code> is either <code class="docutils literal notranslate"><span class="pre">core</span></code> or <code class="docutils literal notranslate"><span class="pre">package</span></code> depending on the number of processes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> specified <code class="docutils literal notranslate"><span class="pre">OBJ</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">fill</span></code></p></li>
+<li><p>Result: <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">OBJ</span> <span class="pre">--bind-to</span> <span class="pre">OBJ</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">OBJ1</span> <span class="pre">--bind-to</span> <span class="pre">OBJ2</span></code>, then:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--map-by</span></code> specified <code class="docutils literal notranslate"><span class="pre">OBJ1</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> specified <code class="docutils literal notranslate"><span class="pre">OBJ2</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--rank-by</span></code> defaults to <code class="docutils literal notranslate"><span class="pre">fill</span></code></p></li>
+<li><p>Result: <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">OBJ2</span> <span class="pre">--bind-to</span> <span class="pre">OBJ2</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code></p></li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p>Consider 2 identical hosts (<code class="docutils literal notranslate"><span class="pre">hostA</span></code> and <code class="docutils literal notranslate"><span class="pre">hostB</span></code>) with 2 packages (denoted by <code class="docutils literal notranslate"><span class="pre">[]</span></code>) each with 8 cores (denoted by <code class="docutils literal notranslate"><span class="pre">/../</span></code>) and 2 hardware threads per core (denoted by a <code class="docutils literal notranslate"><span class="pre">.</span></code>).</p>
+<p>Default of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">core</span> <span class="pre">--bind-to</span> <span class="pre">core</span> <span class="pre">--rank-by</span> <span class="pre">span</span></code> when the number of processes is less than or equal to 2.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 2 --host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/../../../../../../..][../../../../../../../..]
+R1  hostA  [../BB/../../../../../..][../../../../../../../..]
+</pre></div>
+</div>
+<p>Default of <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">package</span> <span class="pre">--bind-to</span> <span class="pre">package</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code> when the number of processes is greater than 2.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/BB/BB/BB/BB/BB/BB/BB][../../../../../../../..]
+R1  hostA  [BB/BB/BB/BB/BB/BB/BB/BB][../../../../../../../..]
+R2  hostA  [../../../../../../../..][BB/BB/BB/BB/BB/BB/BB/BB]
+R3  hostA  [../../../../../../../..][BB/BB/BB/BB/BB/BB/BB/BB]
+</pre></div>
+</div>
+<p>If only <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">OBJ</span></code> is specified, then it implies <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">OBJ</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code>. The example below results in <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">hwthread</span> <span class="pre">--bind-to</span> <span class="pre">hwthread</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --map-by hwthread --host hostA:4,hostB:2 ./a.out
+R0  hostA  [B./../../../../../../..][../../../../../../../..]
+R1  hostA  [.B/../../../../../../..][../../../../../../../..]
+R0  hostA  [../B./../../../../../..][../../../../../../../..]
+R1  hostA  [../.B/../../../../../..][../../../../../../../..]
+</pre></div>
+</div>
+<p>If only <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">OBJ</span></code> is specified, then <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> is determined by the number of processes and <code class="docutils literal notranslate"><span class="pre">--rank-by</span> <span class="pre">fill</span></code>. The example below results in <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">package</span> <span class="pre">--bind-to</span> <span class="pre">core</span> <span class="pre">--rank-by</span> <span class="pre">fill</span></code></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --bind-to core --host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/../../../../../../..][../../../../../../../..]
+R1  hostA  [../BB/../../../../../..][../../../../../../../..]
+R2  hostA  [../../../../../../../..][BB/../../../../../../..]
+R3  hostA  [../../../../../../../..][../BB/../../../../../..]
+</pre></div>
+</div>
+<p>The mapping pattern might be better seen if we change the default <code class="docutils literal notranslate"><span class="pre">--rank-by</span></code> from <code class="docutils literal notranslate"><span class="pre">fill</span></code> to <code class="docutils literal notranslate"><span class="pre">span</span></code>. First, the processes are mapped by package iterating between the two marking a core at a time. Next, the processes are ranked in a spanning manner that load balances them across the object they were mapped against. Finally, the processes are bound to the core that they were mapped against.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --np 4 --bind-to core --rank-by span --host hostA:4,hostB:2 ./a.out
+R0  hostA  [BB/../../../../../../..][../../../../../../../..]
+R1  hostA  [../../../../../../../..][BB/../../../../../../..]
+R2  hostA  [../BB/../../../../../..][../../../../../../../..]
+R3  hostA  [../../../../../../../..][../BB/../../../../../..]
+</pre></div>
+</div>
+</section>
+<section id="rankfiles">
+<span id="man1-mpirun-rankfiles"></span><h3><span class="section-number">17.1.2.6.6. </span>Rankfiles<a class="headerlink" href="#rankfiles" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>Rankfiles are text files that specify detailed information about how
+individual processes should be mapped to nodes, and to which
+processor(s) they should be bound.  Each line of a rankfile specifies
+the location of one process (for MPI jobs, the process’ “rank” refers
+to its rank in <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code>).  The general form of each line in the
+rankfile is:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>rank &lt;N&gt;=&lt;hostname&gt; slot=&lt;slot list&gt;
+</pre></div>
+</div>
+<p>For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat myrankfile
+rank 0=aa slot=1:0-2
+rank 1=bb slot=0:0,1
+rank 2=cc slot=2-3
+shell$ mpirun -H aa,bb,cc,dd --map-by rankfile:file=myrankfile ./a.out
+</pre></div>
+</div>
+<p>Means that:</p>
+<ul class="simple">
+<li><p>Rank 0 runs on node aa, bound to logical package 1, cores 0-2.</p></li>
+<li><p>Rank 1 runs on node bb, bound to logical package 0, cores 0 and 1.</p></li>
+<li><p>Rank 2 runs on node cc, bound to logical cores 2 and 3.</p></li>
+</ul>
+<p>Note that only logical processor locations are supported. By default, the values specified are assumed to be cores. If you intend to specify specific hardware threads then you must add the <code class="docutils literal notranslate"><span class="pre">:hwtcpus</span></code> qualifier to the <code class="docutils literal notranslate"><span class="pre">--map-by</span></code> command line option (e.g., <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">rankfile:file=myrankfile:hwtcpus</span></code>).</p>
+<p>If the binding specification overlaps between any two ranks then an error occurs. If you intend to allow processes to share the same logical processing unit then you must pass the <code class="docutils literal notranslate"><span class="pre">--bind-to</span> <span class="pre">:overload-allowed</span></code> command line option to tell the runtime to ignore this check.</p>
+<p>The hostnames listed above are “absolute,” meaning that actual
+resolvable hostnames are specified.  However, hostnames can also be
+specified as “relative,” meaning that they are specified in relation
+to an externally-specified list of hostnames (e.g., by <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">--host</span></code> argument, a hostfile, or a job scheduler).</p>
+<p>The “relative” specification is of the form <code class="docutils literal notranslate"><span class="pre">+n&lt;X&gt;</span></code>, where X is an
+integer specifying the Xth hostname in the set of all available
+hostnames, indexed from 0.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat myrankfile
+rank 0=+n0 slot=1:0-2
+rank 1=+n1 slot=0:0,1
+rank 2=+n2 slot=2-3
+shell$ mpirun -H aa,bb,cc,dd --map-by rankfile:file=myrankfile ./a.out
+</pre></div>
+</div>
+<p>All package/core slot locations are specified as logical indexes.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Open MPI v1.6 series used physical indexes. Starting in Open MPI v5.0 only logical indexes are supported and the <code class="docutils literal notranslate"><span class="pre">rmaps_rank_file_physical</span></code> MCA parameter is no longer recognized.</p>
+</div>
+<p>You can use tools such as Hwloc’s <cite>lstopo(1)</cite> to find the logical
+indexes of package and cores.</p>
+</section>
+<section id="application-context-or-executable-program">
+<h3><span class="section-number">17.1.2.6.7. </span>Application Context or Executable Program?<a class="headerlink" href="#application-context-or-executable-program" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>To distinguish the two different forms, mpirun looks on the command
+line for <code class="docutils literal notranslate"><span class="pre">--app</span></code> option.  If it is specified, then the file named on
+the command line is assumed to be an application context.  If it is
+not specified, then the file is assumed to be an executable program.</p>
+</section>
+<section id="locating-files">
+<h3><span class="section-number">17.1.2.6.8. </span>Locating Files<a class="headerlink" href="#locating-files" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>If no relative or absolute path is specified for a file, Open MPI will
+first look for files by searching the directories specified by the
+<code class="docutils literal notranslate"><span class="pre">--path</span></code> option.  If there is no <code class="docutils literal notranslate"><span class="pre">--path</span></code> option set or if the
+file is not found at the <code class="docutils literal notranslate"><span class="pre">--path</span></code> location, then Open MPI will
+search the user’s <code class="docutils literal notranslate"><span class="pre">PATH</span></code> environment variable as defined on the
+source node(s).</p>
+<p>If a relative directory is specified, it must be relative to the
+initial working directory determined by the specific starter used. For
+example when using the ssh starter, the initial directory is <code class="docutils literal notranslate"><span class="pre">$HOME</span></code>
+by default.  Other starters may set the initial directory to the
+current working directory from the invocation of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.</p>
+</section>
+<section id="current-working-directory">
+<span id="man1-mpirun-current-working-directory"></span><h3><span class="section-number">17.1.2.6.9. </span>Current Working Directory<a class="headerlink" href="#current-working-directory" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--wdir</span></code> <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> option (and its synonym, <code class="docutils literal notranslate"><span class="pre">--wd</span></code>) allows
+the user to change to an arbitrary directory before the program is
+invoked.  It can also be used in application context files to specify
+working directories on specific nodes and/or for specific
+applications.</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">--wdir</span></code> option appears both in a context file and on the
+command line, the context file directory will override the command
+line value.</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">-wdir</span></code> option is specified, Open MPI will attempt to change
+to the specified directory on all of the remote nodes. If this fails,
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort.</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">-wdir</span></code> option is not specified, Open MPI will send the
+directory name where <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> was invoked to each of the remote
+nodes.  The remote nodes will try to change to that directory.  If
+they are unable (e.g., if the directory does not exist on that node),
+then Open MPI will use the default directory determined by the
+starter.</p>
+<p>All directory changing occurs before the user’s program is invoked; it
+does not wait until <a class="reference internal" href="../man3/MPI_Init.3.html#mpi-init"><span class="std std-ref">MPI_INIT(3)</span></a> is called.</p>
+</section>
+<section id="standard-i-o">
+<h3><span class="section-number">17.1.2.6.10. </span>Standard I/O<a class="headerlink" href="#standard-i-o" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>Open MPI directs UNIX standard input to <code class="docutils literal notranslate"><span class="pre">/dev/null</span></code> on all processes
+except the <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank 0 process. The <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank 0
+process inherits standard input from <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The node that invoked <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> need not be the same as the
+node where the <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank 0 process resides. Open
+MPI handles the redirection of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>’s standard input
+to the rank 0 process.</p>
+</div>
+<p>Open MPI directs UNIX standard output and error from remote nodes to
+the node that invoked <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> and prints it on the standard
+output/error of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.  Local processes inherit the standard
+output/error of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> and transfer to it directly.</p>
+<p>Thus it is possible to redirect standard I/O for Open MPI applications
+by using the typical shell redirection procedure on <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.  For
+example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>my_app<span class="w"> </span>&lt;<span class="w"> </span>my_input<span class="w"> </span>&gt;<span class="w"> </span>my_output
+</pre></div>
+</div>
+<p>Note that in this example only the <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank 0 process will
+receive the stream from <code class="docutils literal notranslate"><span class="pre">my_input</span></code> on stdin.  The stdin on all the other
+nodes will be tied to <code class="docutils literal notranslate"><span class="pre">/dev/null</span></code>.  However, the stdout from all nodes
+will be collected into the <code class="docutils literal notranslate"><span class="pre">my_output</span></code> file.</p>
+</section>
+<section id="signal-propagation">
+<h3><span class="section-number">17.1.2.6.11. </span>Signal Propagation<a class="headerlink" href="#signal-propagation" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>When <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> receives a SIGTERM and SIGINT, it will attempt to kill
+the entire job by sending all processes in the job a SIGTERM, waiting
+a small number of seconds, then sending all processes in the job a
+SIGKILL.</p>
+<p>SIGUSR1 and SIGUSR2 signals received by <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> are propagated to all
+processes in the job.</p>
+<p>A SIGTSTOP signal to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will cause a SIGSTOP signal to be sent
+to all of the programs started by <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> and likewise a SIGCONT
+signal to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will cause a SIGCONT sent.</p>
+<p>Other signals are not currently propagated by <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.</p>
+</section>
+<section id="process-termination-signal-handling">
+<h3><span class="section-number">17.1.2.6.12. </span>Process Termination / Signal Handling<a class="headerlink" href="#process-termination-signal-handling" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>During the run of an MPI application, if any process dies abnormally
+(either exiting before invoking <a class="reference internal" href="../man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_FINALIZE(3)</span></a>,
+or dying as the result of a signal), <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will print out an
+error message and kill the rest of the MPI application.</p>
+<p>User signal handlers should probably avoid trying to cleanup MPI state
+(Open MPI is currently not async-signal-safe; see
+<a class="reference internal" href="../man3/MPI_Init_thread.3.html#mpi-init-thread"><span class="std std-ref">MPI_INIT_THREAD(3)</span></a> for details about
+MPI_THREAD_MULTIPLE and thread safety).  For example, if a
+segmentation fault occurs in <a class="reference internal" href="../man3/MPI_Send.3.html#mpi-send"><span class="std std-ref">MPI_SEND(3)</span></a> (perhaps
+because a bad buffer was passed in) and a user signal handler is
+invoked, if this user handler attempts to invoke <a class="reference internal" href="../man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_FINALIZE(3)</span></a>, Bad Things could happen since Open MPI was already
+“in” MPI when the error occurred.  Since <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will notice that the
+process died due to a signal, it is probably not necessary (and
+safest) for the user to only clean up non-MPI state.</p>
+</section>
+<section id="process-environment">
+<h3><span class="section-number">17.1.2.6.13. </span>Process Environment<a class="headerlink" href="#process-environment" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>Processes in the MPI application inherit their environment from the
+PRRTE daemon upon the node on which they are running.  The
+environment is typically inherited from the user’s shell.  On remote
+nodes, the exact environment is determined by the boot MCA module
+used.  The rsh launch module, for example, uses either rsh/ssh to
+launch the PRRTE daemon on remote nodes, and typically executes one
+or more of the user’s shell-setup files before launching the PRRTE
+daemon.  When running dynamically linked applications which require
+the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment variable to be set, care must be
+taken to ensure that it is correctly set when booting Open MPI.</p>
+<p>See the <a class="reference internal" href="#man1-mpirun-remote-execution"><span class="std std-ref">Remote Execution</span></a> section
+for more details.</p>
+</section>
+<section id="remote-execution">
+<span id="man1-mpirun-remote-execution"></span><h3><span class="section-number">17.1.2.6.14. </span>Remote Execution<a class="headerlink" href="#remote-execution" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>Open MPI requires that the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> environment variable be set to
+find executables on remote nodes (this is typically only necessary in
+rsh- or ssh-based environments — batch/scheduled environments
+typically copy the current environment to the execution of remote
+jobs, so if the current environment has <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and/or
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> set properly, the remote nodes will also have it
+set properly).  If Open MPI was compiled with shared library support,
+it may also be necessary to have the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment
+variable set on remote nodes as well (especially to find the shared
+libraries required to run user MPI applications).</p>
+<p>However, it is not always desirable or possible to edit shell startup
+files to set <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and/or <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code>.  The <code class="docutils literal notranslate"><span class="pre">--prefix</span></code>
+option is provided for some simple configurations where this is not
+possible.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> option takes a single argument: the base directory on
+the remote node where Open MPI is installed.  Open MPI will use this
+directory to set the remote <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> before
+executing any Open MPI or user applications.  This allows running Open
+MPI jobs without having pre-configured the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> on the remote nodes.</p>
+<p>Open MPI adds the basename of the current node’s <code class="docutils literal notranslate"><span class="pre">$bindir</span></code> (the
+directory where Open MPI’s executables were installed) to the prefix
+and uses that to set the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> on the remote node.  Similarly, Open
+MPI adds the basename of the current node’s <code class="docutils literal notranslate"><span class="pre">$libdir</span></code> (the directory
+where Open MPI’s libraries were installed) to the prefix and uses that
+to set the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> on the remote node.  For example:</p>
+<ul class="simple">
+<li><p>Local bindir: <code class="docutils literal notranslate"><span class="pre">/local/node/directory/bin</span></code></p></li>
+<li><p>Local libdir: <code class="docutils literal notranslate"><span class="pre">/local/node/directory/lib64</span></code></p></li>
+</ul>
+<p>If the following command line is used:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--prefix<span class="w"> </span>/remote/node/directory
+</pre></div>
+</div>
+<p>Open MPI will add <code class="docutils literal notranslate"><span class="pre">/remote/node/directory/bin</span></code> to the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and
+<code class="docutils literal notranslate"><span class="pre">/remote/node/directory/lib64</span></code> to the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> on the
+remote node before attempting to execute anything.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> option is not sufficient if the installation paths on
+the remote node are different than the local node (e.g., if <code class="docutils literal notranslate"><span class="pre">/lib</span></code>
+is used on the local node, but <code class="docutils literal notranslate"><span class="pre">/lib64</span></code> is used on the remote node),
+or if the installation paths are something other than a subdirectory
+under a common prefix.</p>
+<p>Note that executing <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> via an absolute pathname is equivalent
+to specifying <code class="docutils literal notranslate"><span class="pre">--prefix</span></code> without the last subdirectory in the
+absolute pathname to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>/usr/local/bin/mpirun<span class="w"> </span>...
+</pre></div>
+</div>
+<p>is equivalent to</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--prefix<span class="w"> </span>/usr/local
+</pre></div>
+</div>
+</section>
+<section id="exported-environment-variables">
+<h3><span class="section-number">17.1.2.6.15. </span>Exported Environment Variables<a class="headerlink" href="#exported-environment-variables" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>All environment variables that are named in the form <code class="docutils literal notranslate"><span class="pre">OMPI_*</span></code> will
+automatically be exported to new processes on the local and remote
+nodes.  Environmental parameters can also be set/forwarded to the new
+processes using the MCA parameter <code class="docutils literal notranslate"><span class="pre">mca_base_env_list</span></code>. The <code class="docutils literal notranslate"><span class="pre">-x</span></code>
+option to mpirun has been deprecated, but the syntax of the MCA param
+follows that prior example. While the syntax of the <code class="docutils literal notranslate"><span class="pre">-x</span></code> option and
+MCA param allows the definition of new variables, note that the parser
+for these options are currently not very sophisticated — it does
+not even understand quoted values.  Users are advised to set variables
+in the environment and use the option to export them; not to define
+them.</p>
+</section>
+<section id="setting-mca-parameters">
+<span id="man1-mpirun-setting-mca-parameters"></span><h3><span class="section-number">17.1.2.6.16. </span>Setting MCA Parameters<a class="headerlink" href="#setting-mca-parameters" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--mca</span></code> switch allows the passing of parameters to various MCA
+(Modular Component Architecture) modules.  MCA modules have direct
+impact on MPI programs because they allow tunable parameters to be set
+at run time (such as which BTL communication device driver to use,
+what parameters to pass to that BTL, etc.).</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--mca</span></code> switch takes two arguments: <code class="docutils literal notranslate"><span class="pre">&lt;key&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code>.
+The <code class="docutils literal notranslate"><span class="pre">&lt;key&gt;</span></code> argument generally specifies which MCA module will
+receive the value.  For example, the <code class="docutils literal notranslate"><span class="pre">&lt;key&gt;</span></code> <code class="docutils literal notranslate"><span class="pre">btl</span></code> is used to
+select which BTL to be used for transporting MPI messages.  The
+<code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> argument is the value that is passed.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>tcp,self<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>my_mpi_app
+</pre></div>
+</div>
+<p>This tells Open MPI to use the <code class="docutils literal notranslate"><span class="pre">tcp</span></code> and <code class="docutils literal notranslate"><span class="pre">self</span></code> BTLs, and to run a
+single copy of <code class="docutils literal notranslate"><span class="pre">my_mpi_app</span></code> an allocated node.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>self<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>my_mpi_app
+</pre></div>
+</div>
+<p>Tells Open MPI to use the <code class="docutils literal notranslate"><span class="pre">self</span></code> BTL, and to run a single copy of
+<code class="docutils literal notranslate"><span class="pre">my_mpi_app</span></code> an allocated node.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">--mca</span></code> switch can be used multiple times to specify different
+&lt;key&gt; and/or <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> arguments.  If the same <code class="docutils literal notranslate"><span class="pre">&lt;key&gt;</span></code> is
+specified more than once, the <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;``s</span> <span class="pre">are</span> <span class="pre">concatenated</span> <span class="pre">with</span> <span class="pre">a</span>
+<span class="pre">comma</span> <span class="pre">(</span></code>,``) separating them.</p>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">--mca</span></code> switch is simply a shortcut for setting
+environment variables.  The same effect may be accomplished by setting
+corresponding environment variables before running <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.  The form
+of the environment variables that Open MPI sets is:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>OMPI_MCA_&lt;key&gt;<span class="o">=</span>&lt;value&gt;
+</pre></div>
+</div>
+<p>Thus, the <code class="docutils literal notranslate"><span class="pre">--mca</span></code> switch overrides any previously set environment
+variables.  The <code class="docutils literal notranslate"><span class="pre">--mca</span></code> settings similarly override MCA parameters
+set in the <code class="docutils literal notranslate"><span class="pre">$OPAL_PREFIX/etc/openmpi-mca-params.conf</span></code> or
+<code class="docutils literal notranslate"><span class="pre">$HOME/.openmpi/mca-params.conf</span></code> file.</p>
+<p>Unknown <code class="docutils literal notranslate"><span class="pre">&lt;key&gt;</span></code> arguments are still set as environment variable —
+they are not checked (by mpirun) for correctness.  Illegal or
+incorrect <code class="docutils literal notranslate"><span class="pre">&lt;value&gt;</span></code> arguments may or may not be reported — it
+depends on the specific MCA module.</p>
+<p>To find the available component types under the MCA architecture, or
+to find the available parameters for a specific component, use the
+ompi_info command.  See the <a class="reference internal" href="ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a> man
+page for detailed information on this command.</p>
+</section>
+<section id="setting-mca-parameters-and-environment-variables-from-file">
+<span id="man1-mpirun-setting-mca-params-from-file"></span><h3><span class="section-number">17.1.2.6.17. </span>Setting MCA parameters and environment variables from file<a class="headerlink" href="#setting-mca-parameters-and-environment-variables-from-file" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--tune</span></code> command line option and its synonym <code class="docutils literal notranslate"><span class="pre">--mca</span></code>
+<code class="docutils literal notranslate"><span class="pre">mca_base_envar_file_prefix</span></code> allows a user to set MCA parameters and
+environment variables with the syntax described below.  This option
+requires a single file or list of files separated by “,” to follow.</p>
+<p>A valid line in the file may contain zero or more <code class="docutils literal notranslate"><span class="pre">-x</span></code> or
+<code class="docutils literal notranslate"><span class="pre">--mca</span></code>. The following patterns are supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">var</span> <span class="pre">val</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">var</span> <span class="pre">&quot;val&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-x</span> <span class="pre">var=val</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-x</span> <span class="pre">var</span></code></p></li>
+</ul>
+<p>If any argument is duplicated in the file, the last value read will be
+used.</p>
+<p>MCA parameters and environment specified on the command line
+have higher precedence than variables specified in the file.</p>
+</section>
+<section id="running-as-root">
+<span id="man1-mpirun-running-as-root"></span><h3><span class="section-number">17.1.2.6.18. </span>Running as root<a class="headerlink" href="#running-as-root" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The Open MPI team <strong>strongly</strong> advises against executing
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> as the root user.  MPI applications should be
+run as regular (non-root) users.</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will refuse to run as root by default.</p>
+<p>To override this default, you can add the <code class="docutils literal notranslate"><span class="pre">--allow-run-as-root</span></code>
+option to the mpirun command line, or you can set the environmental
+parameters <code class="docutils literal notranslate"><span class="pre">OMPI_ALLOW_RUN_AS_ROOT=1</span></code> and
+<code class="docutils literal notranslate"><span class="pre">OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1</span></code>.  Note that it takes setting two
+environment variables to effect the same behavior as
+<code class="docutils literal notranslate"><span class="pre">--allow-run-as-root</span></code> in order to stress the Open MPI team’s strong
+advice against running as the root user.</p>
+<p>After extended discussions with communities who use containers (where
+running as the root user is the default), there was a persistent
+desire to be able to enable root execution of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> via an
+environmental control (vs. the existing <code class="docutils literal notranslate"><span class="pre">--allow-run-as-root</span></code>
+command line parameter).  The compromise of using two environment
+variables was reached: it allows root execution via an environmental
+control, but it conveys the Open MPI team’s strong recommendation
+against this behavior.</p>
+</section>
+<section id="exit-status">
+<h3><span class="section-number">17.1.2.6.19. </span>Exit status<a class="headerlink" href="#exit-status" title="Link to this heading"></a></h3>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>There is no standard definition for what <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> should return as
+an exit status. After considerable discussion, we settled on the
+following method for assigning the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> exit status (note: in
+the following description, the “primary” job is the initial
+application started by mpirun — all jobs that are spawned by
+that job are designated “secondary” jobs):</p>
+<ul class="simple">
+<li><p>If all processes in the primary job normally terminate with exit
+status 0, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> returns 0.</p></li>
+<li><p>If one or more processes in the primary job normally terminate with
+non-zero exit status, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> returns the exit status of the
+process with the lowest <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank to have a non-zero
+status.</p></li>
+<li><p>If all processes in the primary job normally terminate with exit
+status 0, and one or more processes in a secondary job normally
+terminate with non-zero exit status, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>:</p>
+<ol class="arabic simple">
+<li><p>Returns the exit status of the process with the lowest
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank in the lowest jobid to have a non-zero
+status, and</p></li>
+<li><p>Outputs a message summarizing the exit status of the primary and
+all secondary jobs.</p></li>
+</ol>
+</li>
+<li><p>If the command line option <code class="docutils literal notranslate"><span class="pre">--report-child-jobs-separately</span></code> is
+set, we will return <em>only</em> the exit status of the primary job. Any
+non-zero exit status in secondary jobs will be reported solely in a
+summary print statement.</p></li>
+</ul>
+<p>By default, the job will abort when any process terminates with
+non-zero status. The MCA parameter <code class="docutils literal notranslate"><span class="pre">--prtemca</span> <span class="pre">state_base_error_non_zero_exit</span></code>
+can be set to “false” (or “0”) to cause Open MPI to not abort a job if
+one or more processes return a non-zero status. In that situation the
+Open MPI records and notes that processes exited with non-zero
+termination status to report the appropriate exit status of <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> (per
+bullet points above).</p>
+</section>
+</section>
+<section id="examples">
+<h2><span class="section-number">17.1.2.7. </span>EXAMPLES<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p>Be sure also to see the examples throughout the sections above.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span>tcp,sm,self<span class="w"> </span>prog1
+</pre></div>
+</div>
+<p>Run 4 copies of <code class="docutils literal notranslate"><span class="pre">prog1</span></code> using the <code class="docutils literal notranslate"><span class="pre">tcp</span></code>, <code class="docutils literal notranslate"><span class="pre">sm</span></code> (shared memory),
+and <code class="docutils literal notranslate"><span class="pre">self</span></code> (process loopback) BTL’s for the transport of MPI
+messages.</p>
+</section>
+<section id="return-value">
+<h2><span class="section-number">17.1.2.8. </span>RETURN VALUE<a class="headerlink" href="#return-value" title="Link to this heading"></a></h2>
+<div class="error admonition">
+<p class="admonition-title">This is old, hard-coded content</p>
+<p>Is this content still current / accurate?  Should it be updated and
+retained, or removed?</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">mpirun</span></code> returns 0 if all processes started by mpirun exit after
+calling <a class="reference internal" href="../man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_FINALIZE(3)</span></a>.  A non-zero value is
+returned if an internal error occurred in mpirun, or one or more
+processes exited before calling <a class="reference internal" href="../man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_FINALIZE(3)</span></a>.
+If an internal error occurred in mpirun, the corresponding error code
+is returned.  In the event that one or more processes exit before
+calling <a class="reference internal" href="../man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_FINALIZE(3)</span></a>, the return value of
+the <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> rank of the process that mpirun first notices died
+before calling <a class="reference internal" href="../man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_FINALIZE(3)</span></a> will be
+returned.  Note that, in general, this will be the first process that
+died but is not guaranteed to be so.</p>
+<p>If the <code class="docutils literal notranslate"><span class="pre">--timeout</span></code> command line option is used and the timeout
+expires before the job completes (thereby forcing mpirun to kill the
+job) mpirun will return an exit status equivalent to the value of
+ETIMEDOUT (which is typically 110 on Linux and OS X systems).</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../man3/MPI_Init.3.html#mpi-init"><span class="std std-ref">MPI_INIT(3)</span></a>,
+<a class="reference internal" href="../man3/MPI_Init_thread.3.html#mpi-init-thread"><span class="std std-ref">MPI_INIT_THREAD(3)</span></a>,
+<a class="reference internal" href="../man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_FINALIZE(3)</span></a>,
+<a class="reference internal" href="ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a></p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ompi-wrapper-compiler.1.html" class="btn btn-neutral float-left" title="17.1.1. Open MPI Wrapper Compilers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mpisync.1.html" class="btn btn-neutral float-right" title="17.1.3. mpisync" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

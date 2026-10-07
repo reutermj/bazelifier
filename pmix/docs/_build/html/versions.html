@@ -1,0 +1,262 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9. Version Numbers and Binary Compatibility &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="10. The Modular Component Architecture (MCA)" href="mca.html" />
+    <link rel="prev" title="8. History" href="history.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">8. History</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">9. Version Numbers and Binary Compatibility</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#software-version-number">9.1. Software Version Number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#shared-library-version-number">9.2. Shared Library Version Number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#application-binary-interface-abi-compatibility">9.3. Application Binary Interface (ABI) Compatibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cross-version-compatibility">9.4. Cross-Version Compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9. </span>Version Numbers and Binary Compatibility</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/versions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="version-numbers-and-binary-compatibility">
+<span id="label-version-numbers"></span><h1><span class="section-number">9. </span>Version Numbers and Binary Compatibility<a class="headerlink" href="#version-numbers-and-binary-compatibility" title="Link to this heading"></a></h1>
+<p>OpenPMIx has two sets of version numbers that are likely of interest
+to end users / system administrator:</p>
+<ul class="simple">
+<li><p>Software version number</p></li>
+<li><p>Shared library version numbers</p></li>
+</ul>
+<p>Both are described below, followed by a discussion of application
+binary interface (ABI) compatibility implications.</p>
+<section id="software-version-number">
+<h2><span class="section-number">9.1. </span>Software Version Number<a class="headerlink" href="#software-version-number" title="Link to this heading"></a></h2>
+<p>OpenPMIx’s version numbers are the union of several different values:
+major, minor, release, and an optional quantifier.</p>
+<ul class="simple">
+<li><p>Major: The major number is the first integer in the version string
+(e.g., v1.2.3). Changes in the major number typically indicate a
+significant change in the code base and/or end-user
+functionality. The major number is always included in the version
+number.</p></li>
+<li><p>Minor: The minor number is the second integer in the version
+string (e.g., v1.2.3). Changes in the minor number typically
+indicate a incremental change in the code base and/or end-user
+functionality. The minor number is always included in the version
+number:</p></li>
+<li><p>Release: The release number is the third integer in the version
+string (e.g., v1.2.3). Changes in the release number typically
+indicate a bug fix in the code base and/or end-user
+functionality.</p></li>
+<li><p>Quantifier: OpenPMIx version numbers sometimes have an arbitrary
+string affixed to the end of the version number. Common strings
+include:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">aX</span></code>: Indicates an alpha release. X is an integer indicating
+the number of the alpha release (e.g., v1.2.3a5 indicates the
+5th alpha release of version 1.2.3).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bX</span></code>: Indicates a beta release. X is an integer indicating
+the number of the beta release (e.g., v1.2.3b3 indicates the 3rd
+beta release of version 1.2.3).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rcX</span></code>: Indicates a release candidate. X is an integer
+indicating the number of the release candidate (e.g., v1.2.3rc4
+indicates the 4th release candidate of version 1.2.3).</p></li>
+</ul>
+</li>
+</ul>
+<p>Although the major, minor, and release values (and optional
+quantifiers) are reported in OpenPMIx nightly snapshot tarballs, the
+filenames of these snapshot tarballs follow a slightly different
+convention.</p>
+<p>Specifically, the snapshot tarball filename contains three distinct
+values:</p>
+<ul class="simple">
+<li><p>Most recent Git tag name on the branch from which the tarball was
+created.</p></li>
+<li><p>An integer indicating how many Git commits have occurred since
+that Git tag.</p></li>
+<li><p>The Git hash of the tip of the branch.</p></li>
+</ul>
+<p>For example, a snapshot tarball filename of
+<code class="docutils literal notranslate"><span class="pre">pmix-v1.0.2-57-gb9f1fd9.tar.bz2</span></code> indicates that this tarball was
+created from the v1.0 branch, 57 Git commits after the <code class="docutils literal notranslate"><span class="pre">v1.0.2</span></code> tag,
+specifically at Git hash gb9f1fd9.</p>
+<p>OpenPMIx’s Git master branch contains a single <code class="docutils literal notranslate"><span class="pre">dev</span></code> tag.  For example,
+<code class="docutils literal notranslate"><span class="pre">pmix-dev-8-gf21c349.tar.bz2</span></code> represents a snapshot tarball created
+from the master branch, 8 Git commits after the “dev” tag,
+specifically at Git hash gf21c349.</p>
+<p>The exact value of the “number of Git commits past a tag” integer is
+fairly meaningless; its sole purpose is to provide an easy,
+human-recognizable ordering for snapshot tarballs.</p>
+</section>
+<section id="shared-library-version-number">
+<h2><span class="section-number">9.2. </span>Shared Library Version Number<a class="headerlink" href="#shared-library-version-number" title="Link to this heading"></a></h2>
+<p>OpenPMIx uses the GNU Libtool shared library versioning scheme.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Only official releases of OpenPMIx adhere to this versioning
+scheme. “Beta” releases, release candidates, and nightly
+tarballs, developer snapshots, and Git snapshot tarballs
+likely will all have arbitrary/meaningless shared library
+version numbers.</p>
+</div>
+<p>The GNU Libtool official documentation details how the versioning
+scheme works.  The quick version is that the shared library versions
+are a triple of integers: (current,revision,age), or <code class="docutils literal notranslate"><span class="pre">c:r:a</span></code>.  This
+triple is not related to the PMIx software version number.  There
+are six simple rules for updating the values (taken almost verbatim
+from the Libtool docs):</p>
+<ol class="arabic simple">
+<li><p>Start with version information of <code class="docutils literal notranslate"><span class="pre">0:0:0</span></code> for each shared library.</p></li>
+<li><p>Update the version information only immediately before a public
+release of your software. More frequent updates are unnecessary,
+and only guarantee that the current interface number gets larger
+faster.</p></li>
+<li><p>If the library source code has changed at all since the last
+update, then increment revision (<code class="docutils literal notranslate"><span class="pre">c:r:a</span></code> becomes <code class="docutils literal notranslate"><span class="pre">c:r+1:a</span></code>).</p></li>
+<li><p>If any interfaces have been added, removed, or changed since the
+last update, increment current, and set revision to 0.</p></li>
+<li><p>If any interfaces have been added since the last public release,
+then increment age.</p></li>
+<li><p>If any interfaces have been removed since the last public release,
+then set age to 0.</p></li>
+</ol>
+</section>
+<section id="application-binary-interface-abi-compatibility">
+<h2><span class="section-number">9.3. </span>Application Binary Interface (ABI) Compatibility<a class="headerlink" href="#application-binary-interface-abi-compatibility" title="Link to this heading"></a></h2>
+<p>OpenPMIx provides forward ABI compatibility in all versions of a given
+feature release series and its corresponding
+super stable series.  For example, on a single platform, a PMIx
+application linked against OpenPMIx v1.3.2 shared libraries can be
+updated to point to the shared libraries in any successive v1.3.x or
+v1.4 release and still work properly (e.g., via the <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code>
+environment variable or other operating system mechanism).</p>
+<p>OpenPMIx reserves the right to break ABI compatibility at new feature
+release series.  For example, the same PMIx application from above
+(linked against PMIx v1.3.2 shared libraries) will <em>not</em> work with
+PMIx v1.5 shared libraries.</p>
+</section>
+<section id="cross-version-compatibility">
+<h2><span class="section-number">9.4. </span>Cross-Version Compatibility<a class="headerlink" href="#cross-version-compatibility" title="Link to this heading"></a></h2>
+<p>As PMIx adoption has grown, the problem of managing application-SMS interactions between different PMIx library versions has increased in visibility. It soon became clear that use of a common library version by both SMS and application could not be guaranteed, especially in the container-based application use-case. Thus, cross-version compatibility arose as a problem.</p>
+<p>PMIx has addressed this by utilizing a plugin-based architecture that allows both the client and server to select from a range of supported protocol levels. The resulting coordination is based on a client-driven handshake – i.e., the client selects the protocol to be used, and the server adapts to support it. The client’s selection is based on a combination of environmental parameters passed to it at launch by the server, filtered against the protocols available to that particular client. For example, a PMIx v1.2 client only has the <code class="docutils literal notranslate"><span class="pre">usock</span></code> messaging transport available to it, and so would select that transport even when a PMIx v3 server offered <code class="docutils literal notranslate"><span class="pre">usock</span></code> and <code class="docutils literal notranslate"><span class="pre">tcp</span></code> options. Note that if the PMIx v3 server had not been instructed to support <code class="docutils literal notranslate"><span class="pre">usock</span></code>, then the v1.2 client would have failed <code class="docutils literal notranslate"><span class="pre">PMIx_Init</span></code> with an error indicating the server was unreachable.</p>
+<p>Although the PMIx community is committed to supporting the cross-version use-case, early releases did not fully provide the necessary capabilities. Each release branch has since been updated to include the required translation logic for communicating to other versions, but full compatibility could not be provided due to the level of changes it would introduce to what would otherwise be considered a <code class="docutils literal notranslate"><span class="pre">stable</span></code> release series. Thus, the following chart shows the available compatibility:</p>
+<img alt="_images/compatibility.png" src="_images/compatibility.png" />
+<p>Starting with v2.1.1, all versions are fully cross-compatible – i.e., the client and server versions can be any combination of release level. Thus, a v2.1.1 client can connect to a v3.0.0 server, and vice versa.</p>
+<p>PMIx v1.2.5 servers can only serve v1.2.x clients, but v1.2.5 clients can connect to v2.0.3, and v2.1.1 or higher servers. Similarly, v2.0.3 servers can only serve v2.0.x and v1.2.5 clients, but v2.0.3 clients can connect to v2.1.1 or higher servers.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The cross-version guarantee only means that users of two different versions will be able to communicate requests and their responses. It does not guarantee that both sides will completely support the requests. It is possible, for example, for a server to not include support for an operation that was introduced in a newer version being used by a client. Likewise, it is possible that a bug existed in an earlier version that precludes correct completion of the request.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="history.html" class="btn btn-neutral float-left" title="8. History" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mca.html" class="btn btn-neutral float-right" title="10. The Modular Component Architecture (MCA)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

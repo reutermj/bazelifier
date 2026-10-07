@@ -1,0 +1,351 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17.1.1. Open MPI Wrapper Compilers &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="17.1.2. mpirun / mpiexec" href="mpirun.1.html" />
+    <link rel="prev" title="17.1. Commands (section 1)" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">17. Open MPI manual pages</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">17.1. Commands (section 1)</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">17.1.1. Open MPI Wrapper Compilers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#syntax">17.1.1.1. SYNTAX</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#options">17.1.1.2. OPTIONS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#description">17.1.1.3. DESCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#background">17.1.1.4. Background</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fortran-notes">17.1.1.5. Fortran Notes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#overview">17.1.1.6. Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#notes">17.1.1.7. NOTES</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#files">17.1.1.8. FILES</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#environment-variables">17.1.1.9. ENVIRONMENT VARIABLES</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="mpirun.1.html">17.1.2. mpirun / mpiexec</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mpisync.1.html">17.1.3. mpisync</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ompi_info.1.html">17.1.4. ompi_info</a></li>
+<li class="toctree-l3"><a class="reference internal" href="opal_wrapper.1.html">17.1.5. opal_wrapper</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../man3/index.html">17.2. MPI API manual pages (section 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../man7/index.html">17.3. General information manual pages (section 7)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">17. </span>Open MPI manual pages</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">17.1. </span>Commands (section 1)</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">17.1.1. </span>Open MPI Wrapper Compilers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/man-openmpi/man1/ompi-wrapper-compiler.1.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="open-mpi-wrapper-compilers">
+<span id="man1-mpijavac"></span><span id="man1-mpifort"></span><span id="man1-mpicxx"></span><span id="man1-mpic"></span><span id="man1-mpicc"></span><h1><span class="section-number">17.1.1. </span>Open MPI Wrapper Compilers<a class="headerlink" href="#open-mpi-wrapper-compilers" title="Link to this heading"></a></h1>
+<p>mpicc, mpic++, mpicxx, mpifort, mpijavac — Open MPI wrapper compilers</p>
+<section id="syntax">
+<h2><span class="section-number">17.1.1.1. </span>SYNTAX<a class="headerlink" href="#syntax" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">mpicc</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">mpic++</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">mpicxx</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">mpifort</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">mpijavac</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+<p>The following deprecated commands are also available — but
+<code class="docutils literal notranslate"><span class="pre">mpifort</span></code> should be used instead:</p>
+<p><code class="docutils literal notranslate"><span class="pre">mpif77</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">mpif90</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+<p>On case-sensitive filesystems, the following command will also be
+available:</p>
+<p><code class="docutils literal notranslate"><span class="pre">mpiCC</span> <span class="pre">[--showme</span> <span class="pre">|</span> <span class="pre">--showme:compile</span> <span class="pre">|</span> <span class="pre">--showme:link]</span> <span class="pre">...</span></code></p>
+</section>
+<section id="options">
+<h2><span class="section-number">17.1.1.2. </span>OPTIONS<a class="headerlink" href="#options" title="Link to this heading"></a></h2>
+<p>The options below apply to all of the wrapper compilers:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme</span></code>: This option comes in several different variants (see
+below). None of the variants invokes the underlying compiler; they
+all provide information on how the underlying compiler would have
+been invoked had <code class="docutils literal notranslate"><span class="pre">--showme</span></code> not been used. The basic <code class="docutils literal notranslate"><span class="pre">--showme</span></code>
+option outputs the command line that would be executed to compile
+the program.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If a non-filename argument is passed on the command line,
+the <code class="docutils literal notranslate"><span class="pre">--showme</span></code> option will <em>not</em> display any additional
+flags. For example, both <code class="docutils literal notranslate"><span class="pre">&quot;mpicc</span> <span class="pre">--showme</span></code> and
+<code class="docutils literal notranslate"><span class="pre">mpicc</span> <span class="pre">--showme</span> <span class="pre">my_source.c</span></code> will show all the
+wrapper-supplied flags. But <code class="docutils literal notranslate"><span class="pre">mpicc</span>
+<span class="pre">--showme</span> <span class="pre">-v</span></code> will only show the underlying compiler name
+and <code class="docutils literal notranslate"><span class="pre">-v</span></code>.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:compile</span></code>: Output the compiler flags that would have been
+supplied to the underlying compiler.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:link</span></code>: Output the linker flags that would have been
+supplied to the underlying compiler.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:command</span></code>: Outputs the underlying compiler
+command (which may be one or more tokens).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:incdirs</span></code>: Outputs a space-delimited (but otherwise
+undecorated) list of directories that the wrapper compiler would
+have provided to the underlying compiler to indicate
+where relevant header files are located.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:libdirs</span></code>: Outputs a space-delimited (but otherwise
+undecorated) list of directories that the wrapper compiler would
+have provided to the underlying linker to indicate where relevant
+libraries are located.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:libs</span></code> Outputs a space-delimited (but otherwise
+undecorated) list of library names that the wrapper compiler would
+have used to link an application. For example: <code class="docutils literal notranslate"><span class="pre">mpi</span> <span class="pre">open-pal</span>
+<span class="pre">util</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:version</span></code>: Outputs the version number of Open MPI.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--showme:help</span></code>: Output a brief usage help message.</p></li>
+</ul>
+<p>See the man page for your underlying compiler for other options that
+can be passed through mpicc.</p>
+</section>
+<section id="description">
+<h2><span class="section-number">17.1.1.3. </span>DESCRIPTION<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<p>Conceptually, the role of these commands is quite simple:
+transparently add relevant compiler and linker flags to the user’s
+command line that are necessary to compile / link Open MPI programs,
+and then invoke the underlying compiler to actually perform the
+command.</p>
+<p>As such, these commands are frequently referred to as “wrapper”
+compilers because they do not actually compile or link applications
+themselves; they only add in command line flags and invoke the
+back-end compiler.</p>
+</section>
+<section id="background">
+<h2><span class="section-number">17.1.1.4. </span>Background<a class="headerlink" href="#background" title="Link to this heading"></a></h2>
+<p>Open MPI provides wrapper compilers for several languages:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpicc</span></code>: C</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpic++</span></code>, <code class="docutils literal notranslate"><span class="pre">mpicxx</span></code> (and on systems with case-sensitive file
+systems, <code class="docutils literal notranslate"><span class="pre">mpiCC</span></code>): C++</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">mpic++</span></code>, <code class="docutils literal notranslate"><span class="pre">mpicxx</span></code>, and <code class="docutils literal notranslate"><span class="pre">mpiCC</span></code> all invoke the same
+underlying C++ compiler with the same options. All are
+provided as compatibility with other MPI implementations.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpifort</span></code> (and its legacy/deprecated aliases <code class="docutils literal notranslate"><span class="pre">mpif77</span></code> and
+<code class="docutils literal notranslate"><span class="pre">mpif90</span></code>): Fortran</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpijavac</span></code>: Java</p></li>
+</ul>
+<p>The wrapper compilers for each of the languages are identical; they
+can be use interchangeably.  The different names are provided solely
+for backwards compatibility.</p>
+</section>
+<section id="fortran-notes">
+<h2><span class="section-number">17.1.1.5. </span>Fortran Notes<a class="headerlink" href="#fortran-notes" title="Link to this heading"></a></h2>
+<p>The Fortran wrapper compiler for MPI (<code class="docutils literal notranslate"><span class="pre">mpifort</span></code>, and its
+legacy/deprecated names <code class="docutils literal notranslate"><span class="pre">mpif77</span></code> and <code class="docutils literal notranslate"><span class="pre">mpif90</span></code>) can compile and
+link MPI applications that use any/all of the MPI Fortran bindings:
+<code class="docutils literal notranslate"><span class="pre">mpif.h</span></code>, the <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module, and the <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module (assuming
+Open MPI was installed with support for each of these Fortran
+bindings). Specifically: it is no longer necessary to use different
+wrapper compilers for applications that use <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code>
+vs. applications that use the <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module — just use <code class="docutils literal notranslate"><span class="pre">mpifort</span></code>
+for all Fortran MPI applications.</p>
+<p>Note, however, that the Fortran compiler may require additional
+command-line options to enforce a specific Fortran dialect. For
+example, in some versions of the IBM XLF compiler, if <code class="docutils literal notranslate"><span class="pre">xlf90</span></code> is the
+underlying Fortran compiler, <code class="docutils literal notranslate"><span class="pre">-qfixed</span></code> may be necessary to compile
+fixed-format Fortran source files.</p>
+<p>Finally, note that <code class="docutils literal notranslate"><span class="pre">mpifort</span></code> will be inoperative and will return an
+error on use if Fortran support was not built into the MPI layer.</p>
+</section>
+<section id="overview">
+<h2><span class="section-number">17.1.1.6. </span>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">mpicc</span></code> is a convenience wrappers for the underlying C compiler.
+Translation of an Open MPI program requires the linkage of the Open
+MPI-specific libraries which may not reside in one of the standard
+search directories of <code class="docutils literal notranslate"><span class="pre">ld(1)</span></code>. It also often requires the inclusion
+of header files what may also not be found in a standard location.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mpicc</span></code> passes its arguments to the underlying C compiler along with
+the <code class="docutils literal notranslate"><span class="pre">-I</span></code>, <code class="docutils literal notranslate"><span class="pre">-L</span></code> and <code class="docutils literal notranslate"><span class="pre">-l</span></code> options required by Open MPI programs.</p>
+<p>The same is true for all the other language wrapper compilers.</p>
+<p>The Open MPI Team <em>strongly</em> encourages using the wrapper compilers
+instead of attempting to link to the Open MPI libraries manually. This
+allows the specific implementation of Open MPI to change without
+forcing changes to linker directives in users’ Makefiles. Indeed, the
+specific set of flags and libraries used by the wrapper compilers
+depends on how Open MPI was configured and built; the values can change
+between different installations of the same version of Open MPI.</p>
+<p>Indeed, since the wrappers are simply thin shells on top of an
+underlying compiler, there are very, very few compelling reasons <em>not</em>
+to use Open MPI’s wrapper compilers. When it is not possible to use
+the wrappers directly, the <code class="docutils literal notranslate"><span class="pre">--showme:compile</span></code> and <code class="docutils literal notranslate"><span class="pre">--showme:link</span></code>
+options should be used to determine what flags the wrappers would have
+used. For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cc<span class="w"> </span>-c<span class="w"> </span>file1.c<span class="w"> </span><span class="sb">`</span>mpicc<span class="w"> </span>--showme:compile<span class="sb">`</span>
+
+shell$<span class="w"> </span>cc<span class="w"> </span>-c<span class="w"> </span>file2.c<span class="w"> </span><span class="sb">`</span>mpicc<span class="w"> </span>--showme:compile<span class="sb">`</span>
+
+shell$<span class="w"> </span>cc<span class="w"> </span>file1.o<span class="w"> </span>file2.o<span class="w"> </span><span class="sb">`</span>mpicc<span class="w"> </span>--showme:link<span class="sb">`</span><span class="w"> </span>-o<span class="w"> </span>my_mpi_program
+</pre></div>
+</div>
+</section>
+<section id="notes">
+<h2><span class="section-number">17.1.1.7. </span>NOTES<a class="headerlink" href="#notes" title="Link to this heading"></a></h2>
+<p>It is possible to make the wrapper compilers multi-lib aware. That is,
+the libraries and includes specified may differ based on the compiler
+flags specified (for example, with the GNU compilers on Linux, a
+different library path may be used if <code class="docutils literal notranslate"><span class="pre">-m32</span></code> is seen versus <code class="docutils literal notranslate"><span class="pre">-m64</span></code>
+being seen). This is not the default behavior in a standard build, but
+can be activated (for example, in a binary package providing both 32
+and 64 bit support). <a class="reference external" href="https://github.com/open-mpi/ompi/wiki/compilerwrapper3264">More information can be found here</a>.</p>
+</section>
+<section id="files">
+<span id="man1-ompi-wrapper-compiler-files"></span><h2><span class="section-number">17.1.1.8. </span>FILES<a class="headerlink" href="#files" title="Link to this heading"></a></h2>
+<p>The strings that the wrapper compilers insert into the command line
+before invoking the underlying compiler are stored in a text file
+created by Open MPI and installed to
+<code class="docutils literal notranslate"><span class="pre">$pkgdata/NAME-wrapper-data.txt</span></code>, where:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">$pkgdata</span></code> is typically <code class="docutils literal notranslate"><span class="pre">$prefix/share/openmpi</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$prefix</span></code> is the top installation directory of Open MPI</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NAME</span></code> is the name of the wrapper compiler (e.g.,
+<code class="docutils literal notranslate"><span class="pre">$pkgdata/mpicc-wrapper-data.txt</span></code>)</p></li>
+</ul>
+<p>It is rarely necessary to edit these files, but they can be examined to
+gain insight into what flags the wrappers are placing on the command
+line.</p>
+</section>
+<section id="environment-variables">
+<h2><span class="section-number">17.1.1.9. </span>ENVIRONMENT VARIABLES<a class="headerlink" href="#environment-variables" title="Link to this heading"></a></h2>
+<p>By default, the wrappers use the compilers that were selected when
+Open MPI was configured. These compilers were either found
+automatically by Open MPI’s “configure” script, or were selected by
+the user in the <code class="docutils literal notranslate"><span class="pre">CC</span></code>, <code class="docutils literal notranslate"><span class="pre">CXX</span></code>, and/or <code class="docutils literal notranslate"><span class="pre">FC</span></code> environment variables
+before <code class="docutils literal notranslate"><span class="pre">configure</span></code> was invoked. Additionally, other arguments specific
+to the compiler may have been selected by configure.</p>
+<p>These values can be selectively overridden by either editing the text
+files containing this configuration information (see the <a class="reference internal" href="#man1-ompi-wrapper-compiler-files"><span class="std std-ref">FILES</span></a> section), or by setting selected
+environment variables of the form <code class="docutils literal notranslate"><span class="pre">ompi_value</span></code>.</p>
+<p>Valid value names are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CPPFLAGS</span></code>: Flags added when invoking the preprocessor (C or C++)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LDFLAGS</span></code>: Flags added when invoking the linker (C, C++, or
+Fortran)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LIBS</span></code>: Libraries added when invoking the linker (C, C++, or
+Fortran)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CC</span></code>: C compiler</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CFLAGS</span></code>: C compiler flags</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CXX</span></code>: C++ compiler</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CXXFLAGS</span></code>: C++ compiler flags</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FC</span></code>: Fortran compiler</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FCFLAGS</span></code>: Fortran compiler flags</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="17.1. Commands (section 1)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mpirun.1.html" class="btn btn-neutral float-right" title="17.1.2. mpirun / mpiexec" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

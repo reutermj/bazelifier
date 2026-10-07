@@ -1,0 +1,250 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4.9.6. MPI functionality &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="4.9.7. OpenSHMEM functionality" href="oshmem.html" />
+    <link rel="prev" title="4.9.5. CLI Options for required support libraries" href="required-support-libraries.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">4. Building and installing Open MPI</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html">4.1. Quick start: Installing Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../downloading.html">4.2. Downloading Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../supported-systems.html">4.3. Supported Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../definitions.html">4.4. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filesystem-requirements.html">4.5. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../vpath-builds.html">4.6. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../compilers-and-flags.html">4.7. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../required-support-libraries.html">4.8. Required support libraries</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">4.9. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="conventions.html">4.9.1. <code class="docutils literal notranslate"><span class="pre">configure</span></code> CLI option conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html">4.9.2. Installation options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="networking.html">4.9.3. Networking support / options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="runtime.html">4.9.4. Run-time system support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="required-support-libraries.html">4.9.5. CLI Options for required support libraries</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">4.9.6. MPI functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="oshmem.html">4.9.7. OpenSHMEM functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="misc.html">4.9.8. Miscellaneous functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rpath-and-runpath.html">4.9.9. Linker “rpath” and “runpath” functionality</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../configure-output-summary.html">4.10. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../make-targets.html">4.11. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation-location.html">4.12. Installation location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../custom-components.html">4.13. Installing custom components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../updating.html">4.14. Updating or upgrading an Open MPI installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../packagers.html">4.15. Advice for packagers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmins.html">4.16. Advice for System Administrators</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">4. </span>Building and installing Open MPI</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">4.9. </span><code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4.9.6. </span>MPI functionality</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/installing-open-mpi/configure-cli-options/mpi.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="mpi-functionality">
+<h1><span class="section-number">4.9.6. </span>MPI functionality<a class="headerlink" href="#mpi-functionality" title="Link to this heading"></a></h1>
+<p>The following are command line options to set the default for various
+MPI API behaviors that can be used with <code class="docutils literal notranslate"><span class="pre">configure</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-mpi-param-check[=VALUE]</span></code>:
+Whether or not to check MPI function parameters for errors at
+runtime.  The following <code class="docutils literal notranslate"><span class="pre">VALUE</span></code>s are permitted:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">always</span></code>: MPI function parameters are always checked for errors</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">never</span></code>: MPI function parameters are never checked for errors</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runtime</span></code>: Whether MPI function parameters are checked depends on
+the value of the MCA parameter <code class="docutils literal notranslate"><span class="pre">mpi_param_check</span></code> (default: yes).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">yes</span></code>: Synonym for “always” (same as <code class="docutils literal notranslate"><span class="pre">--with-mpi-param-check</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">no</span></code>: Synonym for “never” (same as <code class="docutils literal notranslate"><span class="pre">--without-mpi-param-check</span></code>).</p></li>
+</ul>
+<p>If <code class="docutils literal notranslate"><span class="pre">--with-mpi-param</span></code> is not specified, <code class="docutils literal notranslate"><span class="pre">runtime</span></code> is the default.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-mpi-thread-multiple</span></code>:
+Disable the MPI thread level <code class="docutils literal notranslate"><span class="pre">MPI_THREAD_MULTIPLE</span></code> (it is enabled by
+default).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-ft</span></code>:
+Disable the User-Level Fault Mitigation (ULFM) support in Open MPI
+(it is enabled by default).</p>
+<p><a class="reference internal" href="../../features/ulfm.html#ulfm-label"><span class="std std-ref">See the ULFM section</span></a> for more information.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-mpi-java</span></code>:
+Enable building of an <strong>EXPERIMENTAL</strong> Java MPI interface (disabled
+by default).  You may also need to specify <code class="docutils literal notranslate"><span class="pre">--with-jdk-dir</span></code>,
+<code class="docutils literal notranslate"><span class="pre">--with-jdk-bindir</span></code>, and/or <code class="docutils literal notranslate"><span class="pre">--with-jdk-headers</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Note that this Java interface is <strong>INCOMPLETE</strong>
+(meaning: it does not support all MPI functionality) and <strong>LIKELY
+TO CHANGE</strong>.  The Open MPI developers would very much like to
+hear your feedback about this interface.</p>
+</div>
+<p><a class="reference internal" href="../../features/java.html#open-mpi-java-label"><span class="std std-ref">See the Java section</span></a> for many more
+details.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-mpi-fortran[=VALUE]</span></code>:
+By default, Open MPI will attempt to build all 3 Fortran bindings:
+<code class="docutils literal notranslate"><span class="pre">mpif.h</span></code>, the <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module, and the <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code> module.  The following
+<code class="docutils literal notranslate"><span class="pre">VALUE</span></code>s are permitted:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">all</span></code>: Synonym for <code class="docutils literal notranslate"><span class="pre">yes</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">yes</span></code>: Attempt to build all 3 Fortran bindings; skip
+any binding that cannot be built (same as
+<code class="docutils literal notranslate"><span class="pre">--enable-mpi-fortran</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpifh</span></code>: Only build <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code> support.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usempi</span></code>: Only build <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code> and <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module support.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usempif08</span></code>:  Build <code class="docutils literal notranslate"><span class="pre">mpif.h</span></code>, <code class="docutils literal notranslate"><span class="pre">mpi</span></code> module, and <code class="docutils literal notranslate"><span class="pre">mpi_f08</span></code>
+module support.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">none</span></code>: Synonym for <code class="docutils literal notranslate"><span class="pre">no</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">no</span></code>: Do not build any MPI Fortran support (same as
+<code class="docutils literal notranslate"><span class="pre">--disable-mpi-fortran</span></code>).  This is mutually exclusive
+with building the OpenSHMEM Fortran interface.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-mpi-moduledir=DIR</span></code>:
+Specify a specific <code class="docutils literal notranslate"><span class="pre">DIR</span></code> directory where to install the MPI
+Fortran bindings modulefiles.  By default, Open MPI will install
+Fortran modulefiles into <code class="docutils literal notranslate"><span class="pre">$libdir</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-mpi-ext[=LIST]</span></code>:
+Enable Open MPI’s non-portable API extensions.  <code class="docutils literal notranslate"><span class="pre">LIST</span></code> is a
+comma-delimited list of extensions.  If no <code class="docutils literal notranslate"><span class="pre">LIST</span></code> is specified, all
+of the extensions are enabled.</p>
+<p>See the “Open MPI API Extensions” section for more details.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-mpi-io</span></code>:
+Disable built-in support for MPI-2 I/O, likely because an
+externally-provided MPI I/O package will be used. Default is to use
+the internal framework system that uses the ompio component and a
+specially modified version of ROMIO that fits inside the romio
+component</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-io-romio</span></code>:
+Disable the <a class="reference internal" href="../../tuning-apps/mpi-io/romio.html#label-romio-reference"><span class="std std-ref">ROMIO MPI-IO</span></a> component
+from being compiled. This is a deprecated mechanism; it is effectively
+the same as adding <code class="docutils literal notranslate"><span class="pre">io-romio341</span></code> to the list of items passed to
+<code class="docutils literal notranslate"><span class="pre">--enable-mca-no-build</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-io-romio-flags=FLAGS</span></code>:
+Pass <code class="docutils literal notranslate"><span class="pre">FLAGS</span></code> to the ROMIO distribution configuration script.  This
+option is usually only necessary to pass
+parallel-filesystem-specific preprocessor/compiler/linker flags back
+to the ROMIO system.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--disable-io-ompio</span></code>:
+Disable the ompio MPI-IO component</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--enable-sparse-groups</span></code>:
+Enable the usage of sparse groups. This would save memory
+significantly especially if you are creating large
+communicators. (Disabled by default)</p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="required-support-libraries.html" class="btn btn-neutral float-left" title="4.9.5. CLI Options for required support libraries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="oshmem.html" class="btn btn-neutral float-right" title="4.9.7. OpenSHMEM functionality" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

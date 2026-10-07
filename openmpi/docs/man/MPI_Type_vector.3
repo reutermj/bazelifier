@@ -1,0 +1,237 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_TYPE_VECTOR" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fI\%MPI_Type_vector\fP — Creates a vector (strided) datatype.
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_Type_vector(int count, int blocklength, int stride,
+     MPI_Datatype oldtype, MPI_Datatype *newtype)
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE MPI
+! or the older form: INCLUDE \(aqmpif.h\(aq
+MPI_TYPE_VECTOR(COUNT, BLOCKLENGTH, STRIDE, OLDTYPE, NEWTYPE,
+             IERROR)
+     INTEGER COUNT, BLOCKLENGTH, STRIDE, OLDTYPE
+     INTEGER NEWTYPE, IERROR
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran 2008 Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE mpi_f08
+MPI_Type_vector(count, blocklength, stride, oldtype, newtype, ierror)
+     INTEGER, INTENT(IN) :: count, blocklength, stride
+     TYPE(MPI_Datatype), INTENT(IN) :: oldtype
+     TYPE(MPI_Datatype), INTENT(OUT) :: newtype
+     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBcount\fP: Number of blocks (nonnegative integer).
+.IP \(bu 2
+\fBblocklength\fP: Number of elements in each block (nonnegative integer).
+.IP \(bu 2
+\fBstride\fP: Number of elements between start of each block (integer).
+.IP \(bu 2
+\fBoldtype\fP: Old datatype (handle).
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBnewtype\fP: New datatype (handle).
+.IP \(bu 2
+\fBierror\fP: Fortran only: Error status (integer).
+.UNINDENT
+.SH DESCRIPTION
+.sp
+The function \fI\%MPI_Type_vector\fP is a general constructor that allows
+replication of a datatype into locations that consist of equally spaced
+blocks. Each block is obtained by concatenating the same number of
+copies of the old datatype. The spacing between blocks is a multiple of
+the extent of the old datatype.
+.sp
+\fBExample 1:\fP Assume, again, that oldtype has type map {(double, 0),
+(char, 8)}, with extent 16. A call to MPI_Type_vector(2, 3, 4, oldtype,
+newtype) will create the datatype with type map
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+{(double, 0), (char, 8), (double, 16), (char, 24),
+(double, 32), (char, 40),
+(double, 64), (char, 72),
+(double, 80), (char, 88), (double, 96), (char, 104)}
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+That is, two blocks with three copies each of the old type, with a
+stride of 4 elements (4 x 16 bytes) between the blocks.
+.sp
+\fBExample 2:\fP A call to MPI_Type_vector(3, 1, \-2, oldtype, newtype)
+will create the datatype
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+{(double, 0), (char, 8), (double, \-32), (char, \-24),
+(double, \-64), (char, \-56)}
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+In general, assume that oldtype has type map
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+{(type(0), disp(0)), ..., (type(n\-1), disp(n\-1))},
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+with extent ex. Let bl be the blocklength. The newly created datatype
+has a type map with count x bl x n entries:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+{(type(0), disp(0)), ..., (type(n\-1), disp(n\-1)),
+(type(0), disp(0) + ex), ..., (type(n\-1), disp(n\-1) + ex), ...,
+(type(0), disp(0) + (bl \-1) * ex),...,
+(type(n\-1), disp(n\-1) + (bl \-1)* ex),
+(type(0), disp(0) + stride * ex),..., (type(n\-1),
+disp(n\-1) + stride * ex), ...,
+(type(0), disp(0) + (stride + bl \- 1) * ex), ...,
+(type(n\-1), disp(n\-1) + (stride + bl \-1) * ex), ...,
+(type(0), disp(0) + stride * (count \-1) * ex), ...,
+(type(n\-1), disp(n\-1) + stride * (count \-1) * ex), ...,
+(type(0), disp(0) + (stride * (count \-1) + bl \-1) * ex), ...,
+(type(n\-1), disp(n\-1) + (stride * (count \-1) + bl \-1) * ex)}
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+A call to MPI_Type_contiguous(count, oldtype, newtype) is equivalent to
+a call to MPI_Type_vector(count, 1, 1, oldtype, newtype), or to a call
+to MPI_Type_vector(1, count, n, oldtype, newtype), n arbitrary.
+.SH ERRORS
+.sp
+Almost all MPI routines return an error value; C routines as the return result
+of the function and Fortran routines in the last argument.
+.sp
+Before the error value is returned, the current MPI error handler associated
+with the communication object (e.g., communicator, window, file) is called.
+If no communication object is associated with the MPI call, then the call is
+considered attached to MPI_COMM_SELF and will call the associated MPI error
+handler. When MPI_COMM_SELF is not initialized (i.e., before
+\fI\%MPI_Init\fP/\fI\%MPI_Init_thread\fP, after \fI\%MPI_Finalize\fP, or when using the Sessions
+Model exclusively) the error raises the initial error handler. The initial
+error handler can be changed by calling \fI\%MPI_Comm_set_errhandler\fP on
+MPI_COMM_SELF when using the World model, or the mpi_initial_errhandler CLI
+argument to mpiexec or info key to \fI\%MPI_Comm_spawn\fP/\fI\%MPI_Comm_spawn_multiple\fP\&.
+If no other appropriate error handler has been set, then the MPI_ERRORS_RETURN
+error handler is called for MPI I/O functions and the MPI_ERRORS_ABORT error
+handler is called for all other MPI functions.
+.sp
+Open MPI includes three predefined error handlers that can be used:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_ERRORS_ARE_FATAL\fP
+Causes the program to abort all connected MPI processes.
+.IP \(bu 2
+\fBMPI_ERRORS_ABORT\fP
+An error handler that can be invoked on a communicator,
+window, file, or session. When called on a communicator, it
+acts as if \fI\%MPI_Abort\fP was called on that communicator. If
+called on a window or file, acts as if \fI\%MPI_Abort\fP was called
+on a communicator containing the group of processes in the
+corresponding window or file. If called on a session,
+aborts only the local process.
+.IP \(bu 2
+\fBMPI_ERRORS_RETURN\fP
+Returns an error code to the application.
+.UNINDENT
+.sp
+MPI applications can also implement their own error handlers by calling:
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Comm_create_errhandler\fP then \fI\%MPI_Comm_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_File_create_errhandler\fP then \fI\%MPI_File_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_Session_create_errhandler\fP then \fI\%MPI_Session_set_errhandler\fP or at \fI\%MPI_Session_init\fP
+.IP \(bu 2
+\fI\%MPI_Win_create_errhandler\fP then \fI\%MPI_Win_set_errhandler\fP
+.UNINDENT
+.sp
+Note that MPI does not guarantee that an MPI program can continue past
+an error.
+.sp
+See the \fI\%MPI man page\fP for a full list of \fI\%MPI error codes\fP\&.
+.sp
+See the Error Handling section of the MPI\-3.1 standard for
+more information.
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Type_create_hvector\fP
+.IP \(bu 2
+\fI\%MPI_Type_hvector\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

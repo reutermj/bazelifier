@@ -2,7 +2,8 @@
 
 The Bazel build files of bazelifier's real corpus projects AFTER the agent
 stage resolved every `needs_attention/` item — what the converted modules
-look like when they are green. Not the fixtures; not the projects' sources.
+look like when they are green, with the sources they build from. Not the
+fixtures.
 
 Generated from `main` at `5af0cd5` (translator at `716d419`): each project
 converted by the translator, then resolved by its scripts in
@@ -18,11 +19,19 @@ all five were measured green:
 | prrte    | 5/5 (1 omitted)         | 4/4          |
 | openmpi  | 13/13 (3 omitted)       | 68/68        |
 
-Per project: `BUILD.bazel` and `MODULE.bazel` as resolved, `TARGETS` (the
-manifest, including the `omitted` records), and the test runner scripts the
-BUILD file references. The modules also need their sources and the
-`cc_config` module (`--override_module=cc_config=<bazelifier>/cc_config`) to
-build; this branch is for reading, diffing and review.
+Each directory is the whole converted module as resolved: `BUILD.bazel`,
+`MODULE.bazel`, `TARGETS` (the manifest, including the `omitted` records),
+the test runner scripts, generated headers, `project_notes/`, and the
+project's own sources as the translator copied them in. Left out:
+`ground_truth/`, the binaries the project's own build produced for the
+runtime comparisons (machine-specific, and regenerated on every conversion).
+Sources the module does not compile are still here (Open MPI's `docs/`, its
+bundled tarballs) — the translator copies the project tree, and this is that
+tree.
+
+To build one, put it beside its dependencies and supply `cc_config`
+(`--override_module=cc_config=<bazelifier>/cc_config`); the runtime
+comparisons need `ground_truth/`, which only a fresh conversion produces.
 
 Only these five: their resolutions are kept as scripts and can be
 regenerated. The other corpus projects (xz, expat, jansson, libmicrohttpd,

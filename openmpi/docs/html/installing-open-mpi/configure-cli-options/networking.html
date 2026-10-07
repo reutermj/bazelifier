@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>4.9.3. Networking support / options &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="4.9.4. Run-time system support" href="runtime.html" />
+    <link rel="prev" title="4.9.2. Installation options" href="installation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">4. Building and installing Open MPI</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html">4.1. Quick start: Installing Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../downloading.html">4.2. Downloading Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../supported-systems.html">4.3. Supported Systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../definitions.html">4.4. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filesystem-requirements.html">4.5. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../vpath-builds.html">4.6. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../compilers-and-flags.html">4.7. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../required-support-libraries.html">4.8. Required support libraries</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">4.9. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="conventions.html">4.9.1. <code class="docutils literal notranslate"><span class="pre">configure</span></code> CLI option conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html">4.9.2. Installation options</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">4.9.3. Networking support / options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="runtime.html">4.9.4. Run-time system support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="required-support-libraries.html">4.9.5. CLI Options for required support libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mpi.html">4.9.6. MPI functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="oshmem.html">4.9.7. OpenSHMEM functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="misc.html">4.9.8. Miscellaneous functionality</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rpath-and-runpath.html">4.9.9. Linker “rpath” and “runpath” functionality</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../configure-output-summary.html">4.10. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../make-targets.html">4.11. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation-location.html">4.12. Installation location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../custom-components.html">4.13. Installing custom components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../updating.html">4.14. Updating or upgrading an Open MPI installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../packagers.html">4.15. Advice for packagers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../sysadmins.html">4.16. Advice for System Administrators</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">4. </span>Building and installing Open MPI</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">4.9. </span><code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">4.9.3. </span>Networking support / options</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/installing-open-mpi/configure-cli-options/networking.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="networking-support-options">
+<span id="install-network-support-label"></span><h1><span class="section-number">4.9.3. </span>Networking support / options<a class="headerlink" href="#networking-support-options" title="Link to this heading"></a></h1>
+<p>The following are command line options for various network types that
+can be used with <code class="docutils literal notranslate"><span class="pre">configure</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-fca=DIR</span></code>:
+Specify the directory where the Mellanox FCA library and
+header files are located.</p>
+<p>FCA is the support library for Mellanox switches and HCAs.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-hcoll=DIR</span></code>:
+Specify the directory where the Mellanox hcoll library and header
+files are located.  This option is generally only necessary if the
+hcoll headers and libraries are not in default compiler/linker
+search paths.</p>
+<p>hcoll is the support library for MPI collective operation offload on
+Mellanox ConnectX-3 HCAs (and later).</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-knem=DIR</span></code>:
+Specify the directory where the knem libraries and header files are
+located.  This option is generally only necessary if the knem headers
+and libraries are not in default compiler/linker search paths.</p>
+<p>knem is a Linux kernel module that allows direct process-to-process
+memory copies (optionally using hardware offload), potentially
+increasing bandwidth for large messages sent between messages on the
+same server.  See <a class="reference external" href="https://knem.gitlabpages.inria.fr/">the Knem web site</a> for details.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-libfabric=DIR</span></code>:
+Specify the directory where the OpenFabrics Interfaces <code class="docutils literal notranslate"><span class="pre">libfabric</span></code>
+library and header files are located.  This option is generally only
+necessary if the libfabric headers and libraries are not in default
+compiler/linker search paths.</p>
+<p>Libfabric is the support library for OpenFabrics Interfaces-based
+network adapters, such as Cisco usNIC, Intel True Scale PSM, Cray
+uGNI, etc.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-libfabric-libdir=DIR</span></code>:
+Look in directory for the libfabric libraries.  By default, Open MPI
+will look in <code class="docutils literal notranslate"><span class="pre">DIR/lib</span></code> and <code class="docutils literal notranslate"><span class="pre">DIR/lib64</span></code>, which covers most cases.
+This option is only needed for special configurations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-portals4=DIR</span></code>:
+Specify the directory where the Portals4 libraries and header files
+are located.  This option is generally only necessary if the Portals4
+headers and libraries are not in default compiler/linker search
+paths.</p>
+<p>Portals is a low-level network API for high-performance networking
+on high-performance computing systems developed by Sandia National
+Laboratories, Intel Corporation, and the University of New Mexico.
+The Portals 4 Reference Implementation is a complete implementation
+of Portals 4, with transport over InfiniBand verbs and UDP.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-portals4-libdir=DIR</span></code>:
+Location of libraries to link with for Portals4 support.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-portals4-max-md-size=SIZE</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--with-portals4-max-va-size=SIZE</span></code>:
+Set configuration values for Portals 4</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-psm=&lt;directory&gt;</span></code>:
+Specify the directory where the QLogic InfiniPath / Intel True Scale
+PSM library and header files are located.  This option is generally
+only necessary if the PSM headers and libraries are not in default
+compiler/linker search paths.</p>
+<p>PSM is the support library for QLogic InfiniPath and Intel True Scale
+network adapters.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-psm-libdir=DIR</span></code>:
+Look in directory for the PSM libraries.  By default, Open MPI will
+look in <code class="docutils literal notranslate"><span class="pre">DIR/lib</span></code> and <code class="docutils literal notranslate"><span class="pre">DIR/lib64</span></code>, which covers most cases.  This
+option is only needed for special configurations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-psm2=DIR</span></code>:
+Specify the directory where the Intel Omni-Path PSM2 library and
+header files are located.  This option is generally only necessary
+if the PSM2 headers and libraries are not in default compiler/linker
+search paths.</p>
+<p>PSM is the support library for Intel Omni-Path network adapters.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-psm2-libdir=DIR</span></code>:
+Look in directory for the PSM2 libraries.  By default, Open MPI will
+look in <code class="docutils literal notranslate"><span class="pre">DIR/lib</span></code> and <code class="docutils literal notranslate"><span class="pre">DIR/lib64</span></code>, which covers most cases.  This
+option is only needed for special configurations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-ucx=DIR</span></code>:
+Specify the directory where the UCX libraries and header files are
+located.  This option is generally only necessary if the UCX headers
+and libraries are not in default compiler/linker search paths.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-ucx-libdir=DIR</span></code>:
+Look in directory for the UCX libraries.  By default, Open MPI will
+look in <code class="docutils literal notranslate"><span class="pre">DIR/lib</span></code> and <code class="docutils literal notranslate"><span class="pre">DIR/lib64</span></code>, which covers most cases.  This
+option is only needed for special configurations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with-usnic</span></code>:
+Abort configure if Cisco usNIC support cannot be built.</p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation.html" class="btn btn-neutral float-left" title="4.9.2. Installation options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="runtime.html" class="btn btn-neutral float-right" title="4.9.4. Run-time system support" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

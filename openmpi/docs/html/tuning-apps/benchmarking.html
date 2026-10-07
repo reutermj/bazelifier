@@ -1,0 +1,244 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.11. Benchmarking Open MPI applications &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11.12. Building heterogeneous MPI applications" href="heterogeneity.html" />
+    <link rel="prev" title="11.10. Tuning Collectives" href="coll-tuned.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="networking/index.html">11.2. Networking support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.11. </span>Benchmarking Open MPI applications</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/tuning-apps/benchmarking.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="benchmarking-open-mpi-applications">
+<h1><span class="section-number">11.11. </span>Benchmarking Open MPI applications<a class="headerlink" href="#benchmarking-open-mpi-applications" title="Link to this heading"></a></h1>
+<p>Running benchmarks is an extremely difficult task to do correctly.
+There are many, many factors to take into account; it is <em>not</em> as
+simple as just compiling and running a stock benchmark application.
+This documentation is by no means a definitive guide, but it does try
+to offer some suggestions for generating accurate, meaningful
+benchmarks.</p>
+<ol class="arabic">
+<li><p>Decide <em>exactly</em> what you are benchmarking and set up your system
+accordingly.  For example, if you are trying to benchmark maximum
+performance, then many of the suggestions listed below are
+extremely relevant (be the only user on the systems and network in
+question, be the only software running, use processor affinity,
+etc.).  If you’re trying to benchmark average performance, some of
+the suggestions below may be less relevant.  Regardless, it is
+critical to <em>know</em> exactly what you’re trying to benchmark, and
+<em>know</em> (not guess) both your system and the benchmark application
+itself well enough to understand what the results mean.</p>
+<p>To be specific, many benchmark applications are not well understood
+for exactly what they are testing.  There have been many cases
+where users run a given benchmark application and wrongfully
+conclude that their system’s performance is bad — solely on
+the basis of a single benchmark that they did not understand.  Read
+the documentation of the benchmark carefully, and possibly even
+look into the code itself to see exactly what it is testing.</p>
+<p>Case in point: not all ping-pong benchmarks are created equal.
+Most users assume that a ping-pong benchmark is a ping-pong
+benchmark is a ping-pong benchmark.  But this is not true; the
+common ping-pong benchmarks tend to test subtly different things
+(e.g., NetPIPE, TCP bench, IMB, OSU, etc.).  <em>Make sure you
+understand what your benchmark is actually testing.</em></p>
+</li>
+<li><p>Make sure that you are the <em>only</em> user on the systems where you are
+running the benchmark to eliminate contention from other
+processes.</p></li>
+<li><p>Make sure that you are the <em>only</em> user on the entire network /
+interconnect to eliminate network traffic contention from other
+processes.  This is usually somewhat difficult to do, especially in
+larger, shared systems.  But your most accurate, repeatable results
+will be achieved when you are the only user on the entire network.</p></li>
+<li><p>Disable all services and daemons that are not being used.  Even
+“harmless” daemons consume system resources (such as RAM) and cause
+“jitter” by occasionally waking up, consuming CPU cycles, reading
+or writing to disk, etc.  The optimum benchmark system has an
+absolute minimum number of system services running.</p></li>
+<li><p>Ensure that processor and memory affinity are properly utilized to
+disallow the operating system from swapping MPI processes between
+processors (and causing unnecessary cache thrashing, for example).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>On NUMA architectures, having the processes getting
+bumped from one socket to another is more expensive in
+terms of cache locality (with all of the cache
+coherency overhead that comes with the lack of it)
+than in terms of memory transfer routing (see below).</p>
+</div>
+</li>
+<li><p>Be sure to understand your system’s architecture, particularly with
+respect to the memory, disk, and network characteristics, and test
+accordingly.  For example, on NUMA architectures, memory accesses
+may be routed through a memory interconnect; remote device and/or
+memory accesses will be noticeably slower than local device and/or
+memory accesses.</p></li>
+<li><p>Compile your benchmark with the appropriate compiler optimization
+flags.  With some MPI implementations, the compiler wrappers (like
+<code class="docutils literal notranslate"><span class="pre">mpicc</span></code>, <code class="docutils literal notranslate"><span class="pre">mpifort</span></code>, etc.) add optimization flags
+automatically.  Open MPI does not.  Add <code class="docutils literal notranslate"><span class="pre">-O</span></code> or other flags
+explicitly.</p></li>
+<li><p>Make sure your benchmark runs for a sufficient amount of time.
+Short-running benchmarks are generally less accurate because they
+take fewer samples; longer-running jobs tend to take more samples.</p></li>
+<li><p>If your benchmark is trying to benchmark extremely short events
+(such as the time required for a single ping-pong of messages):</p>
+<ul class="simple">
+<li><p>Perform some “warmup” events first.  Many MPI implementations
+(including Open MPI) — and other subsystems upon which the
+MPI uses — may use “lazy” semantics to set up and maintain
+streams of communications.  Hence, the first event (or first few
+events) may well take significantly longer than subsequent
+events.</p></li>
+<li><p>Use a high-resolution timer if possible —
+<code class="docutils literal notranslate"><span class="pre">gettimeofday()</span></code> only returns millisecond precision (sometimes
+on the order of several microseconds).</p></li>
+<li><p>Run the event many, many times (hundreds or thousands, depending
+on the event and the time it takes).  Not only does this provide
+more samples, it may also be necessary, especially when the
+precision of the timer you’re using may be several orders of
+magnitude less precise than the event you’re trying to
+benchmark.</p></li>
+</ul>
+</li>
+<li><p>Decide whether you are reporting minimum, average, or maximum
+numbers, and have good reasons why.</p></li>
+<li><p>Accurately label and report all results.  Reproducibility is a
+major goal of benchmarking; benchmark results are effectively
+useless if they are not precisely labeled as to exactly what they
+are reporting.  Keep a log and detailed notes about the ‘’exact’’
+system configuration that you are benchmarking.  Note, for example,
+all hardware and software characteristics (to include hardware,
+firmware, and software versions as appropriate).</p></li>
+</ol>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="coll-tuned.html" class="btn btn-neutral float-left" title="11.10. Tuning Collectives" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="heterogeneity.html" class="btn btn-neutral float-right" title="11.12. Building heterogeneous MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

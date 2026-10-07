@@ -1,0 +1,282 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.2.2. TCP" href="tcp.html" />
+    <link rel="prev" title="11.2. Networking support" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">11.2. Networking support</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">11.2.1. OpenFabrics Interfaces (OFI) / Libfabric support</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#what-is-ofi-libfabric">11.2.1.1. What is OFI / Libfabric?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-are-the-libfabric-ofi-components-in-open-mpi">11.2.1.2. What are the Libfabric (OFI) components in Open MPI?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#omni-path-how-can-the-multi-rail-settings-be-adjusted-if-multiple-hfi-host-fabric-interface-cards-are-installed-on-the-system">11.2.1.3. Omni-Path: How can the multi-rail settings be adjusted if multiple HFI (Host Fabric Interface) cards are installed on the system?</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#omni-path-what-is-multi-hfi-support-in-psm2-and-how-does-it-differ-from-multi-rail">11.2.1.4. Omni-Path: What is Multi-HFI support in PSM2 and how does it differ from multi-rail?</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="tcp.html">11.2.2. TCP</a></li>
+<li class="toctree-l3"><a class="reference internal" href="shared-memory.html">11.2.3. Shared Memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ib-and-roce.html">11.2.4. InifiniBand / RoCE support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="iwarp.html">11.2.5. iWARP Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cuda.html">11.2.6. CUDA</a></li>
+<li class="toctree-l3"><a class="reference internal" href="rocm.html">11.2.7. ROCm</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mpi-io/index.html">11.9. MPI-IO tuning options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11.2. </span>Networking support</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.2.1. </span>OpenFabrics Interfaces (OFI) / Libfabric support</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tuning-apps/networking/ofi.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="openfabrics-interfaces-ofi-libfabric-support">
+<h1><span class="section-number">11.2.1. </span>OpenFabrics Interfaces (OFI) / Libfabric support<a class="headerlink" href="#openfabrics-interfaces-ofi-libfabric-support" title="Link to this heading"></a></h1>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>TODO This section needs to be converted from FAQ Q&amp;A style
+to regular documentation style.</p>
+</div>
+<section id="what-is-ofi-libfabric">
+<h2><span class="section-number">11.2.1.1. </span>What is OFI / Libfabric?<a class="headerlink" href="#what-is-ofi-libfabric" title="Link to this heading"></a></h2>
+<p>“OFI” stands for the <a class="reference external" href="https://libfabric.org/">OpenFabrics Interfaces</a>, which are implemented in the <code class="docutils literal notranslate"><span class="pre">libfabric</span></code>
+library.  These two terms are typically used interchangeably.</p>
+<p>Open MPI supports many different underlying networks via Libfabric,
+including (but not limited to):</p>
+<ul class="simple">
+<li><p>AWS EFA</p></li>
+<li><p>Cisco usNIC</p></li>
+<li><p>Cray uGNI</p></li>
+<li><p>Cornelis Networks Omni-Path</p></li>
+<li><p>HPE Slingshot 11</p></li>
+</ul>
+<p>In general, the OFI-based components in Open MPI will auto-select
+themselves as appropriate at run time.</p>
+<p>That being said, additional questions are available in this FAQ
+section to provide more information about specific OFI-based network
+types and support.</p>
+</section>
+<hr class="docutils" />
+<section id="what-are-the-libfabric-ofi-components-in-open-mpi">
+<h2><span class="section-number">11.2.1.2. </span>What are the Libfabric (OFI) components in Open MPI?<a class="headerlink" href="#what-are-the-libfabric-ofi-components-in-open-mpi" title="Link to this heading"></a></h2>
+<p>Open MPI has three main components for Libfabric (a.k.a., OFI)
+communications:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ofi</span></code> MTL: Available since Open MPI v1.10, this component is used
+with the <code class="docutils literal notranslate"><span class="pre">cm</span></code> PML and is used for two-sided MPI communication
+(e.g., <code class="docutils literal notranslate"><span class="pre">MPI_SEND</span></code> and <code class="docutils literal notranslate"><span class="pre">MPI_RECV</span></code>).</p></li>
+</ol>
+<blockquote>
+<div><p>The <code class="docutils literal notranslate"><span class="pre">ofi</span></code> MTL requires that the Libfabric provider support
+reliable datagrams with ordered tagged messaging (specifically:
+<code class="docutils literal notranslate"><span class="pre">FI_EP_RDM</span></code> endpoints, <code class="docutils literal notranslate"><span class="pre">FI_TAGGED</span></code> capabilities, and
+<code class="docutils literal notranslate"><span class="pre">FI_ORDER_SAS</span></code> ordering).</p>
+</div></blockquote>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ofi</span></code> BTL: Available since Open MPI v4.0.0, this component is primarily
+intended for one-sided MPI communications (e.g., <code class="docutils literal notranslate"><span class="pre">MPI_PUT</span></code>). It
+can also support BTL send/recv operations.
+<code class="docutils literal notranslate"><span class="pre">ofi</span></code> BTL requires that the Libfabric provider support reliable
+datagrams, RMA and atomic operations, and remote atomic completion
+notifications (specifically: <code class="docutils literal notranslate"><span class="pre">FI_EP_RDM</span></code> endpoints, <code class="docutils literal notranslate"><span class="pre">FI_RMA</span></code>
+and <code class="docutils literal notranslate"><span class="pre">FI_ATOMIC</span></code> capabilities, and <code class="docutils literal notranslate"><span class="pre">FI_DELIVERY_COMPLETE</span></code> op
+flags).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usnic</span></code> BTL: This BTL is used exclusively with Cisco usNIC-based
+networks.  It will auto-select itself over the other OFI-based
+components when run with Cisco usNIC-based networks.</p></li>
+</ol>
+<p>See each Lifabric provider man page (e.g., fi_sockets(7)) to understand which
+provider will work for each of the above-listed Open MPI components. Some
+providers may require use with one of the Libfabric utility providers;
+for example, the verbs provider needs to be paired with utility provider
+<code class="docutils literal notranslate"><span class="pre">ofi_rxm</span></code> to provide reliable datagram endpoint support (<code class="docutils literal notranslate"><span class="pre">verbs;ofi_rxm</span></code>).</p>
+<p>Both components have MCA parameters to specify the Libfabric provider(s) that
+will be included/excluded in the selection process. For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --mca pml cm --mca mtl ofi --mca mtl_ofi_provider_include psm2 mpi_hello
+</pre></div>
+</div>
+<p>In addition, each component has specific parameters for each one; see
+<code class="docutils literal notranslate"><span class="pre">ompi_info</span> <span class="pre">--param</span> <span class="pre">&lt;framework&gt;</span> <span class="pre">&lt;component&gt;</span> <span class="pre">-level</span> <span class="pre">9</span></code> for a full
+list. For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ompi_info --param mtl ofi --level 9
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>When using the HPE CXI provider and <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> as the job launcher,
+it is recommended that the PRTE <code class="docutils literal notranslate"><span class="pre">ras_base_launch_orted_on_hn</span></code> MCA parameter be set to 1.
+This can be done by adding <code class="docutils literal notranslate"><span class="pre">--prtemca</span> <span class="pre">ras_base_launch_orted_on_hn</span> <span class="pre">1</span></code> to the job launch
+command line.  This ensures that MPI processes launched on the first node of
+an allocation are able to use the CXI provider.</p>
+</div>
+<p>For more information refer to the <a class="reference external" href="https://libfabric.org/">Libfabric web site</a>.</p>
+</section>
+<hr class="docutils" />
+<section id="omni-path-how-can-the-multi-rail-settings-be-adjusted-if-multiple-hfi-host-fabric-interface-cards-are-installed-on-the-system">
+<h2><span class="section-number">11.2.1.3. </span>Omni-Path: How can the multi-rail settings be adjusted if multiple HFI (Host Fabric Interface) cards are installed on the system?<a class="headerlink" href="#omni-path-how-can-the-multi-rail-settings-be-adjusted-if-multiple-hfi-host-fabric-interface-cards-are-installed-on-the-system" title="Link to this heading"></a></h2>
+<p>Multi-Rail feature allows a process to use multiple HFIs to transfer a message
+to improve message bandwidth. The PSM2 library handles the support for multi-rail
+which is off by default. The multi-rail settings can be modified using the
+following environment variables:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PSM2_MULTIRAIL=[0,1,2]</span> <span class="pre">]</span></code>: 0=Disabled, 1=Enable across all HFIs in the
+system, 2=Enable multi-rail within a NUMA node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PSM2_MULTIRAIL_MAP=unit:port,unit:port...</span></code></p></li>
+</ul>
+<p>The variables above may be included in the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command line or in
+the environment. For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -mca mtl [psm2|ofi] -x PSM2_MULTIRAIL=1 -n 2 -H host1,host2 ./a.out
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using the OFI MTL, please ensure that the PSM2 OFI
+provider is used for communication with OPA devices.</p>
+</div>
+</section>
+<hr class="docutils" />
+<section id="omni-path-what-is-multi-hfi-support-in-psm2-and-how-does-it-differ-from-multi-rail">
+<h2><span class="section-number">11.2.1.4. </span>Omni-Path: What is Multi-HFI support in PSM2 and how does it differ from multi-rail?<a class="headerlink" href="#omni-path-what-is-multi-hfi-support-in-psm2-and-how-does-it-differ-from-multi-rail" title="Link to this heading"></a></h2>
+<p>Multi-HFI support is intended to describe the use of multiple HFIs in
+a system among MPI ranks local to a node in order to load-balance the
+hardware resources. It differs from the Multi-Rail feature, which is
+intended to allow a single process to use all HFIs in the system. For
+an MPI job with multiple processes on a single node, the default PSM2
+behavior depends on the affinity settings of the MPI process. The PSM2
+library defaults to using the HFI (Host Fabric Interface) that is in
+the same NUMA node as that of the MPI process.</p>
+<p>Users can restrict access to a single HFI using the environment variable:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">HFI_UNIT=N</span></code>: valid values of N are 0,1,2 and 3</p></li>
+</ul>
+<p>More details can be found on the PSM2 Programmer’s Guide and the Omni-Path
+Fabric Performance Tuning Guide.</p>
+<p>Please see the <a class="reference external" href="https://customercenter.cornelisnetworks.com/">Cornelis Networks Customer Center</a>
+for more details.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="11.2. Networking support" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tcp.html" class="btn btn-neutral float-right" title="11.2.2. TCP" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

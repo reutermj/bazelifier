@@ -1,0 +1,633 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10.4. Scheduling processes across hosts &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="10.5. Launching only on the local node" href="localhost.html" />
+    <link rel="prev" title="10.3. The role of PMIx and PRRTE" href="pmix-and-prrte.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">10. Launching MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">10.1. Quick start: Launching MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">10.2. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="pmix-and-prrte.html">10.3. The role of PMIx and PRRTE</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">10.4. Scheduling processes across hosts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#scheduling-overview">10.4.1. Scheduling overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scheduling-with-the-hostfile-option">10.4.2. Scheduling with the –hostfile option</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scheduling-with-the-host-option">10.4.3. Scheduling with the –host option</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#process-slots">10.4.4. Process Slots</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#calculating-the-number-of-slots">10.4.4.1. Calculating the number of slots</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#oversubscribing-nodes">10.4.5. Oversubscribing nodes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#forcing-aggressive-or-degraded-performance-mode">10.4.6. Forcing aggressive or degraded performance mode</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="localhost.html">10.5. Launching only on the local node</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ssh.html">10.6. Launching with SSH</a></li>
+<li class="toctree-l2"><a class="reference internal" href="slurm.html">10.7. Launching with Slurm</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lsf.html">10.8. Launching with LSF</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tm.html">10.9. Launching with PBS / Torque</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gridengine.html">10.10. Launching with Grid Engine</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unusual.html">10.11. Unusual jobs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html">10.12. Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">10. </span>Launching MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">10.4. </span>Scheduling processes across hosts</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/launching-apps/scheduling.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="scheduling-processes-across-hosts">
+<h1><span class="section-number">10.4. </span>Scheduling processes across hosts<a class="headerlink" href="#scheduling-processes-across-hosts" title="Link to this heading"></a></h1>
+<p>Open MPI provides many options for scheduling application processes across
+hosts, including oversubscribing processes to processors.  This section
+describes how to define that mapping.</p>
+<section id="scheduling-overview">
+<h2><span class="section-number">10.4.1. </span>Scheduling overview<a class="headerlink" href="#scheduling-overview" title="Link to this heading"></a></h2>
+<p>If you are not oversubscribing your hosts
+(i.e., trying to run more processes than slots available on that
+host), scheduling is pretty simple and occurs either on a by-slot or
+by-node round robin schedule.  If you’re oversubscribing, the issue
+gets much more complicated — keep reading.</p>
+<p>The more complete answer is: Open MPI schedules processes to nodes by
+asking two questions from each application on the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command
+line:</p>
+<ol class="arabic simple">
+<li><p><em>How many</em> processes should be launched?</p></li>
+<li><p><em>Where</em> should those processes be launched?</p></li>
+</ol>
+<p>The “how many” question is directly answered with the <code class="docutils literal notranslate"><span class="pre">-n</span></code> switch
+to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>.  If <code class="docutils literal notranslate"><span class="pre">-n</span></code> is not specified on the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> command
+line, its value is the sum of the slots on all the nodes.</p>
+<p>The “where” question is a little more complicated, and depends on
+three factors:</p>
+<ol class="arabic simple">
+<li><p>The final node list (e.g., after <code class="docutils literal notranslate"><span class="pre">-hostname</span></code> / <code class="docutils literal notranslate"><span class="pre">--host</span></code>
+exclusionary or inclusionary processing)</p></li>
+<li><p>The scheduling policy (which applies to all applications in a
+single job)</p></li>
+<li><p>The default and maximum number of slots on each host</p></li>
+</ol>
+<p>Open MPI currently supports two scheduling policies: by slot and by
+node:</p>
+<ol class="arabic">
+<li><p><em>By slot:</em> This is the default scheduling policy, but can also be
+explicitly requested by using either the <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">slot</span></code> option
+to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> or by setting the MCA parameter
+<code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code> to the string <code class="docutils literal notranslate"><span class="pre">slot</span></code>.</p>
+<p>In this mode, Open MPI will schedule processes on a node until all
+of its default slots are exhausted before proceeding to the next
+node.  In MPI terms, this means that Open MPI tries to maximize the
+number of adjacent ranks in <code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> on the same host
+without oversubscribing that host.</p>
+<p>For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat my-hosts
+node0 slots=2 max_slots=20
+node1 slots=2 max_slots=20
+shell$ mpirun --hostfile my-hosts -n 8 --map-by slot hello | sort
+Hello World I am rank 0 of 8 running on node0
+Hello World I am rank 1 of 8 running on node0
+Hello World I am rank 2 of 8 running on node1
+Hello World I am rank 3 of 8 running on node1
+Hello World I am rank 4 of 8 running on node0
+Hello World I am rank 5 of 8 running on node0
+Hello World I am rank 6 of 8 running on node1
+Hello World I am rank 7 of 8 running on node1
+</pre></div>
+</div>
+</li>
+<li><p><em>By node:</em> This policy can be requested either by using the
+<code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">node</span></code> option to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> or by setting the MCA parameter
+<code class="docutils literal notranslate"><span class="pre">rmaps_default_mapping_policy</span></code> to the string “node”.</p>
+<p>In this mode, Open MPI will schedule a single process on each node
+in a round-robin fashion (looping back to the beginning of the node
+list as necessary) until all processes have been scheduled.  Nodes
+are skipped once their default slot counts are exhausted.</p>
+<p>For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat my-hosts
+node0 slots=2 max_slots=20
+node1 slots=2 max_slots=20
+shell$ mpirun --hostname my-hosts -n 8 --map-by node hello | sort
+Hello World I am rank 0 of 8 running on node0
+Hello World I am rank 1 of 8 running on node1
+Hello World I am rank 2 of 8 running on node0
+Hello World I am rank 3 of 8 running on node1
+Hello World I am rank 4 of 8 running on node0
+Hello World I am rank 5 of 8 running on node1
+Hello World I am rank 6 of 8 running on node0
+Hello World I am rank 7 of 8 running on node1
+</pre></div>
+</div>
+</li>
+</ol>
+<p>In both policies, if the default slot count is exhausted on all nodes
+while there are still processes to be scheduled, Open MPI will trigger
+an oversubscription condition.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">:OVERSUBSCRIBE</span></code> is added as a modifier to the <code class="docutils literal notranslate"><span class="pre">--map-by</span></code>
+option (e.g., <code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--map-by</span> <span class="pre">node:OVERSUBSCRIBE</span> <span class="pre">...</span></code> — <a class="reference internal" href="#running-mpi-apps-oversubscribing-label"><span class="std std-ref">see
+this section</span></a> for more
+details), Open MPI will continue to loop through the list of nodes
+again and try to schedule one more process to each node until all
+processes are scheduled.  Nodes are skipped in this process if their
+maximum slot count is exhausted.  If the maximum slot count is
+exhausted on all nodes while there are still processes to be
+scheduled, Open MPI will abort without launching any processes.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">:OVERSUBSCRIBE</span></code> is <em>not</em> specified and an oversubscription
+condition occurs, Open MPI will abort without launching any processes.</p>
+</section>
+<section id="scheduling-with-the-hostfile-option">
+<span id="running-scheduling-hostfile-option-label"></span><h2><span class="section-number">10.4.2. </span>Scheduling with the –hostfile option<a class="headerlink" href="#scheduling-with-the-hostfile-option" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code> option to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> takes a filename that lists
+hosts on which to launch MPI processes.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The hosts listed in a hostfile have <em>nothing</em> to do
+with which network interfaces are used for MPI
+communication.  They are <em>only</em> used to specify on
+which hosts to launch MPI processes.</p>
+</div>
+<p>Hostfiles are simple text files with hosts specified, one per line.
+Each host can also specify a default and maximum number of <em>slots</em> to
+be used on that host (i.e., the maximum number of processes that will
+be launched on that node).  Comments are also supported, and blank
+lines are ignored.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span># This is an example hostfile.  Comments begin with #.
+#
+# Since no slots are specified, the number of slots defaults to the
+# number of processor cores available on the machine.
+foo.example.com
+
+# We want to allow launching a maximum of 2 processes on this host
+# (e.g., potentially because it has two processor cores):
+bar.example.com slots=2
+</pre></div>
+</div>
+<p>Slots are discussed in much more detail <a class="reference internal" href="#running-scheduling-slots-label"><span class="std std-ref">in this section</span></a>.</p>
+<p>Hostfiles works in two different ways:</p>
+<ol class="arabic">
+<li><p><em>Exclusionary:</em> If a list of hosts to run on has been provided by
+another source (e.g., by a hostfile or a batch scheduler such as
+Slurm, PBS/Torque, SGE, etc.), the hosts provided by the hostfile
+must be in the already-provided host list.  If the
+hostfile-specified nodes are <em>not</em> in the already-provided host
+list, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort without launching anything.</p>
+<p>In this case, hostfiles act like an exclusionary filter —
+they limit the scope of where processes will be scheduled from the
+original list of hosts to produce a final list of hosts.</p>
+<p>For example, say that a scheduler job contains hosts <code class="docutils literal notranslate"><span class="pre">node01</span></code>
+through <code class="docutils literal notranslate"><span class="pre">node04</span></code>.  If you run:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat my_hosts
+node03
+shell$ mpirun -n 1 --hostfile my_hosts hostname
+</pre></div>
+</div>
+<p>This will run a single copy of <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on the host <code class="docutils literal notranslate"><span class="pre">node03</span></code>.</p>
+<p>However, presuming your job was allocated only to <code class="docutils literal notranslate"><span class="pre">node03</span></code> and
+you run the following:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat my_hosts
+node17
+shell$ mpirun -n 1 --hostfile my_hosts hostname
+</pre></div>
+</div>
+<p>This is an error (because <code class="docutils literal notranslate"><span class="pre">node17</span></code> is not allocated to your job),
+and <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort.</p>
+<p>Finally, note that in exclusionary mode, processes will <em>only</em> be
+executed on the hostfile-specified hosts, If this ends up causing
+an oversubscription situation, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort by default.</p>
+</li>
+<li><p><em>Inclusionary:</em> If a list of hosts has <em>not</em> been provided by
+another source, then the hosts provided by the <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code>
+option will be used as the original and final host list.</p>
+<p>In this case, <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code> acts as an inclusionary agent; all
+<code class="docutils literal notranslate"><span class="pre">--hostfile</span></code>-supplied hosts become available for scheduling
+processes.  For example (assume that you are <em>not</em> in a scheduling
+environment where a list of nodes is being transparently supplied):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat my_hosts
+node01.example.com slots=1
+node02.example.com slots=1
+node03.example.com slots=1
+shell$ mpirun -n 3 --hostfile my_hosts hostname
+</pre></div>
+</div>
+<p>This will launch a single copy of <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on the hosts
+<code class="docutils literal notranslate"><span class="pre">node01.example.com</span></code>, <code class="docutils literal notranslate"><span class="pre">node02.example.com</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">node03.example.com</span></code>.</p>
+</li>
+</ol>
+<p>Note, too, that <code class="docutils literal notranslate"><span class="pre">--hostfile</span></code> is essentially a per-application switch.
+Hence, if you specify multiple applications (as in an MPMD job),
+<code class="docutils literal notranslate"><span class="pre">--hostfile</span></code> can be specified multiple times:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat hostfile_1
+node01.example.com
+shell$ cat hostfile_2
+node02.example.com
+shell$ mpirun -n 1 --hostfile hostfile_1 hostname : -n 1 --hostfile hostfile_2 uptime
+node01.example.com
+ 06:11:45 up 1 day,  2:32,  0 users,  load average: 21.65, 20.85, 19.84
+</pre></div>
+</div>
+<p>Notice that <code class="docutils literal notranslate"><span class="pre">hostname</span></code> was launched on <code class="docutils literal notranslate"><span class="pre">node01.example.com</span></code> and
+<code class="docutils literal notranslate"><span class="pre">uptime</span></code> was launched on <code class="docutils literal notranslate"><span class="pre">node02.example.com</span></code>.</p>
+</section>
+<section id="scheduling-with-the-host-option">
+<span id="running-scheduling-host-option-label"></span><h2><span class="section-number">10.4.3. </span>Scheduling with the –host option<a class="headerlink" href="#scheduling-with-the-host-option" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">--host</span></code> option to <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> takes a comma-delimited list of
+hosts on which to run.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -n 3 --host a,b,c hostname
+</pre></div>
+</div>
+<p>Will launch <em>one</em> copy of <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on each of hosts <code class="docutils literal notranslate"><span class="pre">a</span></code>, <code class="docutils literal notranslate"><span class="pre">b</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">c</span></code>.  Specifically: each host defaults to 1 slot, unless
+specified by the <code class="docutils literal notranslate"><span class="pre">:N</span></code> suffix.  For example:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --host a,b:2,c:3 hostname
+</pre></div>
+</div>
+<p>Will launch one copy of <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on <code class="docutils literal notranslate"><span class="pre">a</span></code>, two copies of
+<code class="docutils literal notranslate"><span class="pre">hostname</span></code> on <code class="docutils literal notranslate"><span class="pre">b</span></code>, and three copies of <code class="docutils literal notranslate"><span class="pre">hostname</span></code> and <code class="docutils literal notranslate"><span class="pre">c</span></code>.</p>
+<p>Slots are discussed in much more detail <a class="reference internal" href="#running-scheduling-slots-label"><span class="std std-ref">in this section</span></a>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The hosts specified by the <code class="docutils literal notranslate"><span class="pre">--host</span></code> option have
+<em>nothing</em> to do with which network interfaces are used
+for MPI communication.  They are <em>only</em> used to specify
+on which hosts to launch MPI processes.</p>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">--host</span></code> works in two different ways:</p>
+<ol class="arabic">
+<li><p><em>Exclusionary:</em> If a list of hosts to run on has been provided by
+another source (e.g., by a hostfile or a batch scheduler such as
+Slurm, PBS/Torque, SGE, etc.), the hosts provided by the <code class="docutils literal notranslate"><span class="pre">--host</span></code>
+option must be in the already-provided host list.  If the
+<code class="docutils literal notranslate"><span class="pre">--host</span></code>-specified nodes are <em>not</em> in the already-provided host
+list, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort without launching anything.</p>
+<p>In this case, the <code class="docutils literal notranslate"><span class="pre">--host</span></code> option acts like an exclusionary
+filter — it limits the scope of where processes will be
+scheduled from the original list of hosts to produce a final list
+of hosts.</p>
+<p>For example, say that the hostfile <code class="docutils literal notranslate"><span class="pre">my_hosts</span></code> contains the hosts
+<code class="docutils literal notranslate"><span class="pre">node1</span></code> through <code class="docutils literal notranslate"><span class="pre">node4</span></code>.  If you run:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -n 1 --hostfile my_hosts --host node3 hostname
+</pre></div>
+</div>
+<p>This will run a single copy of <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on the host <code class="docutils literal notranslate"><span class="pre">node3</span></code>.
+However, if you run:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -n 1 --hostfile my_hosts --host node17 hostname
+</pre></div>
+</div>
+<p>This is an error (because <code class="docutils literal notranslate"><span class="pre">node17</span></code> is not listed in
+<code class="docutils literal notranslate"><span class="pre">my_hosts</span></code>); <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort.</p>
+<p>Finally, note that in exclusionary mode, processes will <em>only</em> be
+executed on the <code class="docutils literal notranslate"><span class="pre">--host</span></code>-specified hosts.  If this ends up
+causing an oversubscription situation, <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> will abort by
+default.</p>
+</li>
+<li><p><em>Inclusionary:</em> If a list of hosts has <em>not</em> been provided by
+another source, then the hosts provided by the <code class="docutils literal notranslate"><span class="pre">--host</span></code> option
+will be used as the original and final host list.</p>
+<p>In this case, <code class="docutils literal notranslate"><span class="pre">--host</span></code> acts as an inclusionary agent; all
+<code class="docutils literal notranslate"><span class="pre">--host</span></code>-supplied hosts become available for scheduling
+processes.  For example (assume that you are <em>not</em> in a scheduling
+environment where a list of nodes is being transparently supplied):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -n 3 --host a,b,c hostname
+</pre></div>
+</div>
+<p>This will launch a single copy of <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on the hosts <code class="docutils literal notranslate"><span class="pre">a</span></code>,
+<code class="docutils literal notranslate"><span class="pre">b</span></code>, and <code class="docutils literal notranslate"><span class="pre">c</span></code>.</p>
+</li>
+</ol>
+<p>Note, too, that <code class="docutils literal notranslate"><span class="pre">--host</span></code> is essentially a per-application switch.
+Hence, if you specify multiple applications (as in an MPMD job),
+<code class="docutils literal notranslate"><span class="pre">--host</span></code> can be specified multiple times:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun -n 1 --host a hostname : -n 1 --host b uptime
+</pre></div>
+</div>
+<p>This will launch <code class="docutils literal notranslate"><span class="pre">hostname</span></code> on host <code class="docutils literal notranslate"><span class="pre">a</span></code> and <code class="docutils literal notranslate"><span class="pre">uptime</span></code> on host <code class="docutils literal notranslate"><span class="pre">b</span></code>.</p>
+</section>
+<section id="process-slots">
+<span id="running-scheduling-slots-label"></span><h2><span class="section-number">10.4.4. </span>Process Slots<a class="headerlink" href="#process-slots" title="Link to this heading"></a></h2>
+<p><em>Slots</em> are Open MPI’s representation of how many processes can be
+launched on a given host.</p>
+<p>Open MPI maintains the number of slots for each host in a given
+parallel job, and — by default — will not let you launch
+more processes on a host than it has slots.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>It is common to set the number of slots on a host to be
+less than or equal to the number of processor cores on
+that host.</p>
+<p><strong>But it is important to realize that Open MPI’s concept
+of slots is actually unrelated to the number of
+physical processor cores on a host.</strong></p>
+<p>Specifically: the number of slots on a host can be less
+than, equal to, or more than the number of processor
+cores on a host.</p>
+</div>
+<p>If you wish to run more processes on a host than it has slots,
+<a class="reference internal" href="#running-mpi-apps-oversubscribing-label"><span class="std std-ref">see the section on oversubscription</span></a>.</p>
+<section id="calculating-the-number-of-slots">
+<h3><span class="section-number">10.4.4.1. </span>Calculating the number of slots<a class="headerlink" href="#calculating-the-number-of-slots" title="Link to this heading"></a></h3>
+<p>The number of slots on a host depends on a few factors:</p>
+<ol class="arabic simple">
+<li><p>If the host is specified by a job scheduler (e.g., Slurm,
+PBS/Torque, etc.), the job scheduler specifies the number of slots
+for that host.</p></li>
+<li><p>If the host is specified in a hostfile:</p>
+<ol class="arabic simple">
+<li><p>If the <code class="docutils literal notranslate"><span class="pre">slots</span></code> parameter is specified, that value is used for
+the number of slots on that host.</p></li>
+<li><p>Otherwise:</p>
+<ol class="arabic simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">:HWTCPUS</span></code> was specified, the number of slots
+defaults to the number of hardware threads on that host.</p></li>
+<li><p>Otherwise, the number of slots defaults to the number of
+processor cores on that host.</p></li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>If the host is specified via the <code class="docutils literal notranslate"><span class="pre">--host</span></code> command line option:</p>
+<ol class="arabic simple">
+<li><p>If the <code class="docutils literal notranslate"><span class="pre">:N</span></code> suffix is specified, <code class="docutils literal notranslate"><span class="pre">N</span></code> is used for the number
+of slots on that host.</p></li>
+<li><p>Otherwise, the number of slots defaults to 1.</p></li>
+<li><p>If the same host name is specified multiple times, the slots
+value for that host is increased by <code class="docutils literal notranslate"><span class="pre">N</span></code> if <code class="docutils literal notranslate"><span class="pre">:N</span></code> is
+specified, or increased by 1 if <code class="docutils literal notranslate"><span class="pre">:N</span></code> is not specified.</p></li>
+</ol>
+</li>
+</ol>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The exact scheme used to determine the number of slots
+has varied between different major versions of Open MPI.
+The scheme described above is relevant for Open MPI
+v5.0.x.</p>
+</div>
+<p>Max slot counts, however, are rarely specified by schedulers.  The max
+slot count for each node will default to “infinite” if it is not
+provided (meaning that Open MPI will oversubscribe the node if you ask
+it to — see more on oversubscribing in <a class="reference internal" href="#running-mpi-apps-oversubscribing-label"><span class="std std-ref">this section</span></a>).</p>
+<p>Here are some examples, all from unscheduled environments:</p>
+<ol class="arabic">
+<li><p>Use a hostfile and specify the <code class="docutils literal notranslate"><span class="pre">slots</span></code> parameter.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>my-hostfile
+node01.example.come<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">4</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>my-hostfile<span class="w"> </span>hostname
+node01
+node01
+node01
+node01
+</pre></div>
+</div>
+<p>This launched 4 processes because <code class="docutils literal notranslate"><span class="pre">slots=4</span></code> was specified in the
+hostfile.</p>
+</li>
+<li><p>Use a hostfile and do <em>not</em> specify the <code class="docutils literal notranslate"><span class="pre">slots</span></code> parameter (assume
+that <code class="docutils literal notranslate"><span class="pre">node01.example.com</span></code> has 2 processor cores):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>my-hostfile
+node01.example.come
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--hostfile<span class="w"> </span>my-hostfile<span class="w"> </span>hostname
+node01
+node01
+</pre></div>
+</div>
+<p>This launched 2 processes because <code class="docutils literal notranslate"><span class="pre">slots</span></code> was not specified, and
+<code class="docutils literal notranslate"><span class="pre">node02</span></code> has 2 processor cores.</p>
+</li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--host</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--host<span class="w"> </span>node01.example.com<span class="w"> </span>hostname
+node01
+</pre></div>
+</div>
+<p>This launched 1 processes because <code class="docutils literal notranslate"><span class="pre">--host</span></code> with no <code class="docutils literal notranslate"><span class="pre">:N</span></code> suffix
+increments the slot count for that host by 1.</p>
+</li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--host</span></code> with a <code class="docutils literal notranslate"><span class="pre">:N</span></code> suffix:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--host<span class="w"> </span>node01.example.com:2<span class="w"> </span>hostname
+node01
+node01
+</pre></div>
+</div>
+<p>This launched 2 processes because <code class="docutils literal notranslate"><span class="pre">:2</span></code> was specified on the
+command line.</p>
+</li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">--host</span></code> with a <code class="docutils literal notranslate"><span class="pre">:N</span></code> suffix, and mention the host multiple times:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--host<span class="w"> </span>node01.example.com:2,node01.example.com<span class="w"> </span>hostname
+node01
+node01
+node01
+</pre></div>
+</div>
+<p>This launched 3 processes because <code class="docutils literal notranslate"><span class="pre">:2</span></code> was specified on the
+command line, and then <code class="docutils literal notranslate"><span class="pre">node01.example.com</span></code> was specified an
+additional time, incrementing the slot count for that host to 3.</p>
+</li>
+</ol>
+</section>
+</section>
+<section id="oversubscribing-nodes">
+<span id="running-mpi-apps-oversubscribing-label"></span><h2><span class="section-number">10.4.5. </span>Oversubscribing nodes<a class="headerlink" href="#oversubscribing-nodes" title="Link to this heading"></a></h2>
+<p>Running more MPI processes than processors are available on a node is called
+<em>oversubscribing</em> the node.   Open MPI can oversubscribe nodes,
+but it very much matters <em>how</em> you do it.</p>
+<p>Specifically: it is critical that Open MPI <em>knows</em> that you are
+oversubscribing the node, or <strong>severe</strong> performance degradation can
+result.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Here is a good general rule to follow: <strong>never specify
+a number of slots that is more than the available
+number of processors.</strong></p>
+</div>
+<p>For example, if you want to run 4 processes on a host with 2 processor
+cores, then indicate that you only have 2 slots but want to run 4
+processes.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># In a hostfile, the number of slots will default to the number of</span>
+<span class="c1"># processor cores on the host</span>
+shell$<span class="w"> </span>cat<span class="w"> </span>my-hostfile
+localhost
+shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>--hostfile<span class="w"> </span>my-hostfile<span class="w"> </span>a.out
+</pre></div>
+</div>
+<p>Specifically: we strongly suggest that you do <strong>NOT</strong> have a hostfile
+that contains <code class="docutils literal notranslate"><span class="pre">slots=4</span></code> (because there are only two available
+processor cores).</p>
+<p>That being said, the above command will fail, because you are trying
+to run 4 processes but there are only 2 slots available.  You must
+specifically tell Open MPI that it is ok to oversubscribe via
+<code class="docutils literal notranslate"><span class="pre">--map-by</span> <span class="pre">:OVERSUBSCRIBE</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>cat<span class="w"> </span>my-hostfile
+<span class="c1"># For the purposes of this example, explicitly tell Open MPI</span>
+<span class="c1"># that we have 2 slots on the host.</span>
+localhost<span class="w"> </span><span class="nv">slots</span><span class="o">=</span><span class="m">2</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>-n<span class="w"> </span><span class="m">4</span><span class="w"> </span>--hostfile<span class="w"> </span>my-hostfile<span class="w"> </span>--map-by<span class="w"> </span>:OVERSUBSCRIBE<span class="w"> </span>a.out
+</pre></div>
+</div>
+<p>The reason you should tell Open MPI whether you’re oversubscribing or
+not (i.e., never specify a <code class="docutils literal notranslate"><span class="pre">slots</span></code> value more than the number of
+processor cores available) is because Open MPI basically runs its
+message passing progression engine in two modes: <em>aggressive</em> and
+<em>degraded</em>.</p>
+<ol class="arabic">
+<li><p><em>Degraded:</em> When Open MPI thinks that it is in an oversubscribed
+mode (i.e., more processes are running than there are processor
+cores available), MPI processes will automatically run in
+<em>degraded</em> mode and frequently yield the processor to its peers,
+thereby allowing all processes to make progress.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Be sure to see <a class="reference internal" href="../tuning-apps/affinity.html#tuning-using-paffinity-label"><span class="std std-ref">this FAQ entry</span></a> that describes how
+degraded mode affects processor and memory
+affinity.</p>
+</div>
+</li>
+<li><p><em>Aggressive:</em> When Open MPI thinks that it is in an exactly- or
+under-subscribed mode (i.e., the number of running processes is
+equal to or less than the number of available processor cores), MPI
+processes will automatically run in <em>aggressive</em> mode, meaning that
+they will never voluntarily give up the processor to other
+processes.  With some network transports, this means that Open MPI
+will spin in tight loops attempting to make message passing
+progress, effectively causing other processes to not get any CPU
+cycles (and therefore never make any progress).</p></li>
+</ol>
+<p>For example, on a node with a two processor cores:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ cat my-hostfile
+localhost slots=4
+shell$ mpirun -n 4 --hostfile my-hostfile a.out
+</pre></div>
+</div>
+<p>This would cause all 4 MPI processes to run in <em>aggressive</em> mode
+because Open MPI thinks that there are 4 available processor cores to
+use.  This is actually a lie (there are only 2 processor core —
+not 4), and can cause extremely bad performance.</p>
+</section>
+<section id="forcing-aggressive-or-degraded-performance-mode">
+<h2><span class="section-number">10.4.6. </span>Forcing aggressive or degraded performance mode<a class="headerlink" href="#forcing-aggressive-or-degraded-performance-mode" title="Link to this heading"></a></h2>
+<p>The MCA parameter <code class="docutils literal notranslate"><span class="pre">mpi_yield_when_idle</span></code> controls whether an MPI
+process runs in Aggressive or Degraded performance mode.  Setting it
+to 0 forces Aggressive mode; setting it to 1 forces Degraded mode (see
+<a class="reference internal" href="../mca.html#label-running-setting-mca-param-values"><span class="std std-ref">this FAQ entry</span></a> to see how
+to set MCA parameters).</p>
+<p>Note that this value <em>only</em> affects the behavior of MPI processes when
+they are blocking in MPI library calls.  It does not affect behavior
+of non-MPI processes, nor does it affect the behavior of a process
+that is not inside an MPI library call.</p>
+<p>Open MPI normally sets this parameter automatically and
+users are cautioned against setting this parameter unless you are
+really, absolutely, positively sure of what you are doing.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pmix-and-prrte.html" class="btn btn-neutral float-left" title="10.3. The role of PMIx and PRRTE" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="localhost.html" class="btn btn-neutral float-right" title="10.5. Launching only on the local node" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

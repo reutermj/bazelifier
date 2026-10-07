@@ -1,0 +1,241 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>6.1. Session Directories &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7. Host specification" href="../hosts/index.html" />
+    <link rel="prev" title="6. How Things Work" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">6. How Things Work</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">6.1. Session Directories</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#client-session-directories">6.1.1. Client Session Directories</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tool-and-server-session-directories">6.1.2. Tool and Server Session Directories</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">6. </span>How Things Work</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">6.1. </span>Session Directories</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/how-things-work/session_dirs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="session-directories">
+<span id="session-dir-detail-label"></span><h1><span class="section-number">6.1. </span>Session Directories<a class="headerlink" href="#session-directories" title="Link to this heading"></a></h1>
+<p>In general, servers, tools, and application processes all have access to their own <code class="docutils literal notranslate"><span class="pre">session</span> <span class="pre">directory</span></code> - a location where scratch files can be safely placed with a reasonable guarantee of automatic cleanup upon termination. Session directories provide a safe location (i.e., in a temporary file system and guaranteed not to conflict with other sessions/jobs/applications) for executables to use when creating scratch files such as shared memory backing files and rendezvous files. PMIx and PRRTE also provide a reasonable guarantee that any files and/or subdirectories created under the specified location will be automatically cleaned up at finalize and/or termination. In this case, <code class="docutils literal notranslate"><span class="pre">reasonable</span></code> means that we will do our best to remove all files and subdirectories, but cannot fully guarantee removal in situations outside of our control (e.g., being forcibly terminated via <cite>SIGKILL</cite>).</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In general, the host (e.g., PRRTE) is responsible for creating session
+directories. In some cases, PMIx creates a limited set of session
+directories if the host does not provide them - e.g., in the case of a
+self-launched tool - for storing contact information. This is outlined
+below.</p>
+</div>
+</div></blockquote>
+<p>The following attributes can be used to pass session directory information to the PMIx library:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_SYSTEM_TMPDIR</span></code>: temporary directory for this system (typically <code class="docutils literal notranslate"><span class="pre">/tmp</span></code> for Linux systems).
+The PMIx server will place tool rendezvous points and contact info in this location. In the
+absence of this attribute during <code class="docutils literal notranslate"><span class="pre">PMIx_Init</span></code> (or the server/tool version), the PMIx library
+will first look for the <code class="docutils literal notranslate"><span class="pre">TMPDIR</span></code> envar, then <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, and finally <code class="docutils literal notranslate"><span class="pre">TMP</span></code> - if none of
+those are found, the library will default to the <code class="docutils literal notranslate"><span class="pre">/tmp</span></code> location.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_TMPDIR</span></code>: session directory where the PMIx server will place client rendezvous
+points and contact info. If not provided, the library will first look for the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_TMPDIR</span></code>
+envar, then <code class="docutils literal notranslate"><span class="pre">TMPDIR</span></code>, <code class="docutils literal notranslate"><span class="pre">TEMP</span></code>, and finally <code class="docutils literal notranslate"><span class="pre">TMP</span></code> - if none of those are found, the
+library will default to the <code class="docutils literal notranslate"><span class="pre">/tmp</span></code> location.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_TMPDIR</span></code>: top-level temporary directory assigned to a session. Often equated to
+<code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_TMPDIR</span></code> by host environments.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_NSDIR</span></code>: session directory assigned to a namespace. Usually placed underneath the
+<code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_TMPDIR</span></code> and given a name based on the namespace itself.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PROCDIR</span></code>: session directory assigned to an individual process. Usually placed underneath
+the <code class="docutils literal notranslate"><span class="pre">PMIX_NSDIR</span></code> assigned to the namespace of the process, and given a string name equivalent
+to the rank of the process.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_LAUNCHER_RENDEZVOUS_FILE</span></code>: the full path name of a file wherein a tool shall output its
+connection information - e.g., a launcher to store contact information so that a debugger
+can attach to it.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_TDIR_RMCLEAN</span></code>: the host environment (often known as the “resource manager” or “RM”) will
+cleanup the session directories. In the absence of this attribute, the PMIx library will
+remove all files in any session directory it created and then remove the directory itself.</p></li>
+</ul>
+<p>These same attributes can be used in calls to <code class="docutils literal notranslate"><span class="pre">PMIx_Get</span></code> by application processes to retrieve
+the session directory locations for their own use.</p>
+<section id="client-session-directories">
+<h2><span class="section-number">6.1.1. </span>Client Session Directories<a class="headerlink" href="#client-session-directories" title="Link to this heading"></a></h2>
+<p>The PMIx client library does not create its own session directories as it does not publish
+contact information.  Host daemons often create one or more session directory levels for use
+by client application processes (e.g., for storing shared memory backing files) - the location
+of those directories is passed to clients using the above attributes.</p>
+<p>As the client library never creates session directories, it does not perform any cleanup of
+the session directory tree.</p>
+</section>
+<section id="tool-and-server-session-directories">
+<h2><span class="section-number">6.1.2. </span>Tool and Server Session Directories<a class="headerlink" href="#tool-and-server-session-directories" title="Link to this heading"></a></h2>
+<p>The PMIx library utilizes appropriate session directory locations to store one or more
+“rendezvous files” - i.e., files containing connection information. Note that the library does not
+always create all levels of the session directory tree, although the process
+itself can of course create directories as it sees fit. Only the directories that (a) are required
+for generating the particular rendezvous file, and (b) do not already exist are created. Only
+directories actually created by the library are cleaned up and removed upon finalization.</p>
+<p>The following rendezvous files are provided:</p>
+<ul>
+<li><p>if <code class="docutils literal notranslate"><span class="pre">PMIX_LAUNCHER_RENDEZVOUS_FILE</span></code> is given (either via an attribute to an “init” function
+or as an envar), then the specified file (including any required path elements) will be created.</p></li>
+<li><p>if the server is designated as a “system” server (i.e., the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_SYSTEM_SUPPORT</span></code> attribute
+was provided to <code class="docutils literal notranslate"><span class="pre">PMIx_server_init</span></code>), then a rendezvous file named “pmix.sys.&lt;hostname&gt;” will be
+created in the <code class="docutils literal notranslate"><span class="pre">PMIX_SYSTEM_TMPDIR</span></code> location.</p></li>
+<li><p>if the server is designated as a “session” server (i.e., the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_SESSION_SUPPORT</span></code> attribute
+was provided to <code class="docutils literal notranslate"><span class="pre">PMIx_server_init</span></code>), then a rendezvous file named “pmix.sys.&lt;hostname&gt;” will be
+created in the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_TMPDIR</span></code> location.</p></li>
+<li><p>if the server declares that it will support tool connections (i.e., the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_TOOL_SUPPORT</span></code>
+attribute was provided to <code class="docutils literal notranslate"><span class="pre">PMIx_server_init</span></code>), then the following rendezvous files will be created
+under the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_TMPDIR</span></code> location:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>a PID file: “pmix.&lt;hostname&gt;.&lt;pid&gt;”</p></li>
+<li><p>a namespace file using the nspace of the server: “pmix.&lt;hostname&gt;.&lt;nspace&gt;”</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>if the server is designated as a “scheduler” (i.e., the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_SCHEDULER</span></code> attribute
+was provided to <code class="docutils literal notranslate"><span class="pre">PMIx_server_init</span></code>), then a rendezvous file named “pmix.sched.&lt;hostname&gt;” will be
+created in the <code class="docutils literal notranslate"><span class="pre">PMIX_SYSTEM_TMPDIR</span></code> location.</p></li>
+<li><p>if the server is designated as a “system controller” (i.e., the <code class="docutils literal notranslate"><span class="pre">PMIX_SERVER_SYS_CONTROLLER</span></code> attribute
+was provided to <code class="docutils literal notranslate"><span class="pre">PMIx_server_init</span></code>), then a rendezvous file named “pmix.sysctrlr.&lt;hostname&gt;” will be
+created in the <code class="docutils literal notranslate"><span class="pre">PMIX_SYSTEM_TMPDIR</span></code> location.</p>
+<blockquote>
+<div><div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The above rendezvous files are additive - i.e., generating any one of the files has
+no bearing on whether another file will be output. Thus, a single server could
+generate anywhere from one to five (or more) rendezvous files spanning several
+directory levels.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>There is a potential conflict in rendezvous file names - e.g., if multiple processes
+declare themselves to be a “session” server on the same node. The format of the
+names used by PMIx are intended to support tool connection in the absence of specific
+connection directives - i.e., they provide a means by which PMIx can search for and
+find the rendezvous file for a particular type of process without requiring the user
+to manually identify it. Thus, a tool can request connection to the “system controller”
+without necessarily knowing the PID of that process and PMIx can facilitate the
+connection. As a result, only one system server can be operating on a node at a time.
+This is also (independently) true for schedulers and system controllers.</p>
+</div>
+</div></blockquote>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="6. How Things Work" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../hosts/index.html" class="btn btn-neutral float-right" title="7. Host specification" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

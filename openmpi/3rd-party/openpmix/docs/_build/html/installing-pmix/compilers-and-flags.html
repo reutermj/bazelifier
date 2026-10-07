@@ -1,0 +1,209 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.5. Specifying compilers and flags &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="5.6. Required support libraries" href="required-support-libraries.html" />
+    <link rel="prev" title="5.4. VPATH builds" href="vpath-builds.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">5. Building and installing PMIx</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">5.1. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="definitions.html">5.2. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filesystem-requirements.html">5.3. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vpath-builds.html">5.4. VPATH builds</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">5.5. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="required-support-libraries.html">5.6. Required support libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configure-cli-options/index.html">5.7. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configure-output-summary.html">5.8. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="make-targets.html">5.9. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation-location.html">5.10. Installation location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packagers.html">5.11. Advice for packagers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">5. </span>Building and installing PMIx</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.5. </span>Specifying compilers and flags</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/installing-pmix/compilers-and-flags.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="specifying-compilers-and-flags">
+<span id="install-configure-compilers-and-flags-label"></span><h1><span class="section-number">5.5. </span>Specifying compilers and flags<a class="headerlink" href="#specifying-compilers-and-flags" title="Link to this heading"></a></h1>
+<p>Changing the compilers that PMIx uses to build itself uses the
+standard GNU Autoconf mechanism of setting special environment variables
+either before invoking <code class="docutils literal notranslate"><span class="pre">configure</span></code> or on the <code class="docutils literal notranslate"><span class="pre">configure</span></code> command
+line itself.</p>
+<p>The following environment variables are recognized by <code class="docutils literal notranslate"><span class="pre">configure</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CC</span></code>: C compiler to use</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CFLAGS</span></code>: Compile flags to pass to the C compiler</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CPPFLAGS</span></code>: Preprocessor flags to pass to the C compiler</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LDFLAGS</span></code>: Linker flags to pass to all compilers</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LIBS</span></code>: Libraries to pass to all compilers (it is rarely
+necessary for users to need to specify additional <code class="docutils literal notranslate"><span class="pre">LIBS</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PKG_CONFIG</span></code>: Path to the <code class="docutils literal notranslate"><span class="pre">pkg-config</span></code> utility</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>PMIx v5.0.11rc1 does not contain any C++ code. However,
+you can use a C++ compiler to build PMIx if you so choose.</p>
+</div>
+<p>For example, to build with a specific instance of <code class="docutils literal notranslate"><span class="pre">gcc</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">CC</span><span class="o">=</span>/opt/gcc-a.b.c/bin/gcc<span class="w"> </span><span class="nv">CFLAGS</span><span class="o">=</span>-m64<span class="w"> </span>...
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The PMIx community generally suggests using the above
+command line form for setting different compilers (vs. setting
+environment variables and then invoking <code class="docutils literal notranslate"><span class="pre">./configure</span></code>).  The
+above form will save all variables and values in the <code class="docutils literal notranslate"><span class="pre">config.log</span></code>
+file, which makes post-mortem analysis easier if problems occur.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Note that setting <code class="docutils literal notranslate"><span class="pre">CFLAGS</span></code> (etc.) does <em>not</em> affect the
+flags used by the <a class="reference internal" href="../building-apps/quickstart.html#label-quickstart-building-apps"><span class="std std-ref">wrapper compiler</span></a>.  In the above, example, you may
+also need to add <code class="docutils literal notranslate"><span class="pre">-m64</span></code> to the <code class="docutils literal notranslate"><span class="pre">--with-wrapper-cflags</span></code>
+option:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ ./configure CFLAGS=-m64 \
+     --with-wrapper-cflags=-m64 ...
+</pre></div>
+</div>
+<p>Failure to do this will result in PMIx-based applications
+failing to compile / link properly.</p>
+<p>See the <a class="reference internal" href="../building-apps/customizing-wrappers.html#label-customizing-wrapper-compiler"><span class="std std-ref">Customizing wrapper compiler behavior</span></a> section for more
+details.</p>
+</div>
+<p>Note that if you intend to compile PMIx with a <code class="docutils literal notranslate"><span class="pre">make</span></code> other than
+the default one in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>, then you must either set the <code class="docutils literal notranslate"><span class="pre">$MAKE</span></code>
+environment variable before invoking PMIx’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script, or
+pass <code class="docutils literal notranslate"><span class="pre">MAKE=your_make_prog</span></code> to configure.  For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span><span class="nv">MAKE</span><span class="o">=</span>/path/to/my/make<span class="w"> </span>...
+</pre></div>
+</div>
+<p>This could be the case, for instance, if you have a shell alias for
+<code class="docutils literal notranslate"><span class="pre">make</span></code>, or you always type <code class="docutils literal notranslate"><span class="pre">gmake</span></code> out of habit.  Failure to tell
+<code class="docutils literal notranslate"><span class="pre">configure</span></code> which non-default <code class="docutils literal notranslate"><span class="pre">make</span></code> you will use to compile PMIx
+can result in undefined behavior (meaning: don’t do that).</p>
+<p>Note that you may also want to ensure that the value of
+<code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> is set appropriately (or not at all) for your build
+(or whatever environment variable is relevant for your operating
+system).  For example, some users have been tripped up by setting to
+use a non-default C compiler via the <code class="docutils literal notranslate"><span class="pre">CC</span></code> environment variable,
+but then failing to set <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> to include the directory
+containing that non-default C compiler’s support libraries.
+This causes PMIx’s <code class="docutils literal notranslate"><span class="pre">configure</span></code> script to fail when it tries to
+compile / link / run simple C programs.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="vpath-builds.html" class="btn btn-neutral float-left" title="5.4. VPATH builds" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="required-support-libraries.html" class="btn btn-neutral float-right" title="5.6. Required support libraries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

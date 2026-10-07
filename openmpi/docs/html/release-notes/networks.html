@@ -1,0 +1,267 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3.10. Network Support &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="3.11. Open MPI Extensions" href="extensions.html" />
+    <link rel="prev" title="3.9. OpenSHMEM Collectives" href="openshmem-collectives.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">3. Release notes</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="changelog/index.html">3.1. Changelog</a></li>
+<li class="toctree-l2"><a class="reference internal" href="general.html">3.2. General notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="platform.html">3.3. Platform Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compilers.html">3.4. Compiler Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run-time.html">3.5. General Run-Time Support Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi.html">3.6. MPI Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="openshmem.html">3.7. OpenSHMEM Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpi-collectives.html">3.8. MPI Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="openshmem-collectives.html">3.9. OpenSHMEM Collectives</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">3.10. Network Support</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#main-network-support-models">3.10.1. Main network support models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#miscellaneous-network-notes">3.10.2. Miscellaneous network notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="extensions.html">3.11. Open MPI Extensions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">3. </span>Release notes</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">3.10. </span>Network Support</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/release-notes/networks.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="network-support">
+<h1><span class="section-number">3.10. </span>Network Support<a class="headerlink" href="#network-support" title="Link to this heading"></a></h1>
+<section id="main-network-support-models">
+<h2><span class="section-number">3.10.1. </span>Main network support models<a class="headerlink" href="#main-network-support-models" title="Link to this heading"></a></h2>
+<p>There are multiple MPI network models available in this release:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ob1</span></code> supports a variety of networks using BTL (“Byte Transfer
+Layer”) plugins that can be used in
+combination with each other:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">self</span></code>: Loopback (send-to-self)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sm</span></code>: Shared memory, including single-copy technologies:
+XPMEM, Linux CMA, as Linux KNEM, as well as traditional
+copy-in/copy-out shared memory.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tcp</span></code>: TCP</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">smcuda</span></code>: CUDA-enabled shared memory</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">usnic</span></code>: Cisco usNIC</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ugni</span></code>: uGNI (Cray Gemini, Aries)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cm</span></code> supports a smaller number of networks (and they cannot be
+used together), but may provide better overall MPI performance by
+utilizing MTL (“Matching Transport Layer”) plugins:</p>
+<ul class="simple">
+<li><p>OpenFabrics Interfaces (“libfabric” tag matching)</p></li>
+<li><p>Intel Omni-Path PSM2 (version 11.2.173 or later)</p></li>
+<li><p>Intel True Scale PSM (QLogic InfiniPath)</p></li>
+<li><p>Portals 4</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ucx</span></code> uses the <a class="reference external" href="https://www.openucx.org/">Unified Communication X (UCX) communication
+library</a>.  This is an open-source
+project developed in collaboration between industry, laboratories,
+and academia to create an open-source production grade
+communication framework for data centric and high-performance
+applications.  The UCX library can be downloaded from repositories
+(e.g., Fedora/RedHat yum repositories).  The UCX library is also
+part of Mellanox OFED and Mellanox HPC-X binary distributions.</p>
+<p>UCX currently supports:</p>
+<ul class="simple">
+<li><p>OpenFabrics Verbs (including InfiniBand and RoCE)</p></li>
+<li><p>Cray’s uGNI</p></li>
+<li><p>TCP</p></li>
+<li><p>Shared memory</p></li>
+<li><p>NVIDIA CUDA drivers</p></li>
+</ul>
+</li>
+</ul>
+<p>While users can manually select any of the above transports at run
+time, Open MPI will select a default transport as follows:</p>
+<ol class="arabic simple">
+<li><p>If InfiniBand devices are available, use the UCX PML.</p></li>
+<li><p>If PSM, PSM2, or other tag-matching-supporting Libfabric
+transport devices are available (e.g., Cray uGNI), use the <code class="docutils literal notranslate"><span class="pre">cm</span></code>
+PML and a single appropriate corresponding <code class="docutils literal notranslate"><span class="pre">mtl</span></code> module.</p></li>
+<li><p>Otherwise, use the <code class="docutils literal notranslate"><span class="pre">ob1</span></code> PML and one or more appropriate <code class="docutils literal notranslate"><span class="pre">btl</span></code>
+modules.</p></li>
+</ol>
+<p>Users can override Open MPI’s default selection algorithms and force
+the use of a specific transport if desired by setting the <code class="docutils literal notranslate"><span class="pre">pml</span></code> MCA
+parameter (and potentially the <code class="docutils literal notranslate"><span class="pre">btl</span></code> and/or <code class="docutils literal notranslate"><span class="pre">mtl</span></code> MCA parameters) at
+run-time:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>pml<span class="w"> </span>ob1<span class="w"> </span>--mca<span class="w"> </span>btl<span class="w"> </span><span class="o">[</span>comma-delimited-BTLs<span class="o">]</span><span class="w"> </span>...
+<span class="c1"># or</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>pml<span class="w"> </span>cm<span class="w"> </span>--mca<span class="w"> </span>mtl<span class="w"> </span><span class="o">[</span>MTL<span class="o">]</span><span class="w"> </span>...
+<span class="c1"># or</span>
+shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>pml<span class="w"> </span>ucx<span class="w"> </span>...
+</pre></div>
+</div>
+<p>There is a known issue when using UCX with very old Mellanox
+Infiniband HCAs, in particular HCAs preceding the introduction of
+the ConnectX product line, which can result in Open MPI crashing in
+MPI_Finalize.  This issue is addressed by UCX release 1.9.0 and
+newer.</p>
+</section>
+<section id="miscellaneous-network-notes">
+<h2><span class="section-number">3.10.2. </span>Miscellaneous network notes<a class="headerlink" href="#miscellaneous-network-notes" title="Link to this heading"></a></h2>
+<ul>
+<li><p>The main OpenSHMEM network model is <code class="docutils literal notranslate"><span class="pre">ucx</span></code>; it interfaces directly
+with UCX.</p></li>
+<li><p>In prior versions of Open MPI, InfiniBand and RoCE support was
+provided through the <code class="docutils literal notranslate"><span class="pre">openib</span></code> BTL and <code class="docutils literal notranslate"><span class="pre">ob1</span></code> PML plugins.  Starting
+with Open MPI 4.0.0, InfiniBand support through the <code class="docutils literal notranslate"><span class="pre">openib</span></code> plugin
+is both deprecated and superseded by the <code class="docutils literal notranslate"><span class="pre">ucx</span></code> PML component.  The
+<code class="docutils literal notranslate"><span class="pre">openib</span></code> BTL was removed in Open MPI v5.0.0.</p>
+<p>While the <code class="docutils literal notranslate"><span class="pre">openib</span></code> BTL depended on <code class="docutils literal notranslate"><span class="pre">libibverbs</span></code>, the UCX PML depends
+on the UCX library.</p>
+<p>Once installed, Open MPI can be built with UCX support by adding
+<code class="docutils literal notranslate"><span class="pre">--with-ucx</span></code> to the Open MPI configure command. Once Open MPI is
+configured to use UCX, the runtime will automatically select the
+<code class="docutils literal notranslate"><span class="pre">ucx</span></code> PML if one of the supported networks is detected (e.g.,
+InfiniBand).  It’s possible to force using UCX in the <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> or
+<code class="docutils literal notranslate"><span class="pre">oshrun</span></code> command lines by specifying any or all of the following mca
+parameters: <code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">pml</span> <span class="pre">ucx</span></code> for MPI point-to-point operations,
+<code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">spml</span> <span class="pre">ucx</span></code> for OpenSHMEM support, and <code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">osc</span> <span class="pre">ucx</span></code> for MPI
+RMA (one-sided) operations.</p>
+</li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">usnic</span></code> BTL is support for Cisco’s usNIC device (“userspace NIC”)
+on Cisco UCS servers with the Virtualized Interface Card (VIC).
+Although the usNIC is accessed via the OpenFabrics Libfabric API
+stack, this BTL is specific to Cisco usNIC devices.</p></li>
+<li><p>uGNI is a Cray library for communicating over the Gemini and Aries
+interconnects.</p></li>
+<li><p>Linux <code class="docutils literal notranslate"><span class="pre">knem</span></code> support is used when the <code class="docutils literal notranslate"><span class="pre">sm</span></code> (shared memory) BTL is
+compiled with knem support (see the <code class="docutils literal notranslate"><span class="pre">--with-knem</span></code> configure option)
+and the <code class="docutils literal notranslate"><span class="pre">knem</span></code> Linux module is loaded in the running kernel.  If the
+<code class="docutils literal notranslate"><span class="pre">knem</span></code> Linux kernel module is not loaded, the <code class="docutils literal notranslate"><span class="pre">knem</span></code> support is (by
+default) silently deactivated during Open MPI jobs.</p>
+<p>See <a class="reference external" href="https://knem.gitlabpages.inria.fr/">https://knem.gitlabpages.inria.fr/</a> for details on Knem.</p>
+</li>
+<li><p>Linux Cross-Memory Attach (CMA) or XPMEM is used by the <code class="docutils literal notranslate"><span class="pre">sm</span></code> shared
+memory BTL when the CMA/XPMEM libraries are installed,
+respectively.  Linux CMA and XPMEM are similar (but different)
+mechanisms for Open MPI to utilize single-copy semantics for shared
+memory.</p></li>
+<li><p>The OFI MTL does not support sending messages larger than the active
+Libfabric provider’s <code class="docutils literal notranslate"><span class="pre">max_msg_size</span></code>.  If you receive an error
+message about sending too large of a message when using the OFI MTL,
+please reach out to your networking vendor to ask them to support a
+larger <code class="docutils literal notranslate"><span class="pre">max_msg_size</span></code> for tagged messages.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="openshmem-collectives.html" class="btn btn-neutral float-left" title="3.9. OpenSHMEM Collectives" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="extensions.html" class="btn btn-neutral float-right" title="3.11. Open MPI Extensions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,200 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>16. History of Open MPI &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=839faa02"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="17. Open MPI manual pages" href="man-openmpi/index.html" />
+    <link rel="prev" title="15. License" href="license/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license/index.html">15. License</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">16. History of Open MPI</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#goals-of-the-open-mpi-project">16.1. Goals of the Open MPI Project</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#community">16.2. Community</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">16. </span>History of Open MPI</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/history.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="history-of-open-mpi">
+<h1><span class="section-number">16. </span>History of Open MPI<a class="headerlink" href="#history-of-open-mpi" title="Link to this heading"></a></h1>
+<p>Open MPI represents the merger of three prior MPI implementations:</p>
+<ol class="arabic simple">
+<li><p>LAM/MPI: originally from the Ohio State University supercomputing
+center and later migrated to the University of Notre Dame.</p></li>
+<li><p>LA-MPI: from the US Department of Energy Los Alamos National
+Laboratory.</p></li>
+<li><p>FT-MPI: from the University of Tennessee at Knoxville.  One of the
+UTK developers moved back to the University of Stuttgart in late
+2004, which effectively added their team into the project.</p></li>
+</ol>
+<p>The lead developers of these projects kept bumping into each other at
+various HPC conferences in 2003.  At each conference, our
+lunch/dinner-table conversations got more and more technically
+involved when it finally dawned on us that we are doing a <em>lot</em> of the
+same things in each of our respective implementations.  Although each
+MPI implementation focused on different areas of excellence, we all
+shared the same common core values:</p>
+<ul class="simple">
+<li><p>A full MPI implementation</p></li>
+<li><p>Production quality code — it has to “just work”</p></li>
+<li><p>A desire to explore lots of things that an MPI implementation can do
+that we’ve never had the time/resources to investigate because we
+are bound to bug fixing, etc.</p></li>
+</ul>
+<p>Hence, we decided to collaborate and pool our resources.  At SC2003,
+we decided to start an entire new code base — leaving all the cruft
+and legacy code of our prior implementations behind.  Take the best,
+leave the rest.  The source tree’s first commit was on November 22,
+2003; development work started in earnest on January 5, 2004.  Since
+then, we have met together as a group once a month (for at least a
+week) to meet our goal of a world-class MPI implementation, bar none.</p>
+<section id="goals-of-the-open-mpi-project">
+<h2><span class="section-number">16.1. </span>Goals of the Open MPI Project<a class="headerlink" href="#goals-of-the-open-mpi-project" title="Link to this heading"></a></h2>
+<p>We have several top-level goals:</p>
+<ol class="arabic simple">
+<li><p>Create a free, open source, peer-reviewed, production-quality
+complete MPI implementation.</p></li>
+<li><p>Provide extremely high, competitive performance (latency,
+bandwidth, …pick your favorite metric).</p></li>
+<li><p>Directly involve the HPC community with external development
+and feedback (vendors, 3rd party researchers, users, etc.).</p></li>
+<li><p>Provide a stable platform for 3rd party research and commercial
+development.</p></li>
+<li><p>Support a wide variety of HPC platforms and environments.</p></li>
+</ol>
+<p>In short, we want to work <em>with</em> and <em>for</em> the HPC community to make a
+world-class MPI implementation that can be used on a huge number and
+kind of systems.</p>
+</section>
+<section id="community">
+<h2><span class="section-number">16.2. </span>Community<a class="headerlink" href="#community" title="Link to this heading"></a></h2>
+<p>Bringing together smart researchers and developers to work on a common
+product is not only a good idea, it’s the open source model.  The Open
+MPI project started by multiple MPI implementation teams, and that
+proved to work <em>extremely</em> well; extending this concept to the HPC
+open source community is the next logical step.</p>
+<p>The component architecture upon which Open MPI is founded is designed
+to foster 3rd party collaboration by enabling independent developers
+to use Open MPI as a production quality research platform.  Although
+Open MPI is a relatively large code base, it is not necessary to learn
+the entirety of it; it may be sufficient to learn the interfaces for
+the component type which you are implementing and some of the
+surrounding infrastructure.  Specifically, the component architecture
+was designed to allow small, discrete implementations of major
+portions of MPI functionality (e.g., point-to-point messaging,
+collective communications, run-time environment support, etc.).</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="license/index.html" class="btn btn-neutral float-left" title="15. License" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="man-openmpi/index.html" class="btn btn-neutral float-right" title="17. Open MPI manual pages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

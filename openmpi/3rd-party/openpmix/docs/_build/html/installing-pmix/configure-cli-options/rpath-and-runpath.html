@@ -1,0 +1,199 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.7.5. Linker “rpath” and “runpath” functionality &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="5.8. configure output summary" href="../configure-output-summary.html" />
+    <link rel="prev" title="5.7.4. CLI Options for required support libraries" href="required-support-libraries.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">5. Building and installing PMIx</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../quickstart.html">5.1. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../definitions.html">5.2. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../filesystem-requirements.html">5.3. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../vpath-builds.html">5.4. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../compilers-and-flags.html">5.5. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../required-support-libraries.html">5.6. Required support libraries</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">5.7. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="conventions.html">5.7.1. <code class="docutils literal notranslate"><span class="pre">configure</span></code> CLI option conventions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="installation.html">5.7.2. Installation options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="runtime.html">5.7.3. Run-time system support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="required-support-libraries.html">5.7.4. CLI Options for required support libraries</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">5.7.5. Linker “rpath” and “runpath” functionality</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../configure-output-summary.html">5.8. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../make-targets.html">5.9. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../installation-location.html">5.10. Installation location</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../packagers.html">5.11. Advice for packagers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">5. </span>Building and installing PMIx</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">5.7. </span><code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.7.5. </span>Linker “rpath” and “runpath” functionality</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/installing-pmix/configure-cli-options/rpath-and-runpath.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="linker-rpath-and-runpath-functionality">
+<span id="building-pmix-cli-options-rpath-and-runpath-label"></span><h1><span class="section-number">5.7.5. </span>Linker “rpath” and “runpath” functionality<a class="headerlink" href="#linker-rpath-and-runpath-functionality" title="Link to this heading"></a></h1>
+<p>PMIx v5.0.11rc1 is composed of multiple
+libraries that depend on each other.</p>
+<p>When built from official distribution tarballs,
+PMIx is built with the following versions of the
+GNU Autotools:</p>
+<ul class="simple">
+<li><p>Autoconf 2.69.0</p></li>
+<li><p>Automake 1.13.4</p></li>
+<li><p>Libtool 2.4.2</p></li>
+</ul>
+<p>This set of GNU Autotools invokes the <code class="docutils literal notranslate"><span class="pre">libtool</span></code> executable to build
+PMIx’s libraries and executables with the <a class="reference external" href="https://www.gnu.org/software/libtool/manual/html_node/Link-mode.html#Link-mode">-rpath CLI option</a>.</p>
+<p>The behavior of <code class="docutils literal notranslate"><span class="pre">libtool</span> <span class="pre">-rpath</span> <span class="pre">...</span></code> is, unfortunately, highly
+system-dependent.  In conjunction with compiler-, linker-, and other
+system-level settings, the end result may be to effect “rpath”
+behavior, “runpath” behavior, or possibly even neither behavior.</p>
+<p>Although the specific behavior of <code class="docutils literal notranslate"><span class="pre">libtool</span> <span class="pre">-rpath</span> <span class="pre">..</span></code> is outside the
+scope of this documentation, you can run commands such as <code class="docutils literal notranslate"><span class="pre">readelf</span> <span class="pre">-d</span>
+<span class="pre">...</span></code> to find out with which behavior your PMIx was built.</p>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --prefix=/opt/pmix/ ...
+...
+shell$ make -j 32 all &amp;&amp; make install
+...
+shell$ readelf -d /opt/pmix/lib/libmpi.so | egrep -i 'rpath|runpath'
+ 0x000000000000001d (RUNPATH)            Library runpath: [/opt/pmix/lib]
+</pre></div>
+</div>
+<p>The above output indicates that <code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code> was built with “runpath”
+support, whereas output like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ readelf -d /opt/pmix/lib/libpmix.so | egrep -i 'rpath|runpath'
+ 0x000000000000000f (RPATH)              Library rpath: [/opt/pmix/lib]
+</pre></div>
+</div>
+<p>indicates that <code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code> was built with “rpath” support.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you want to utilize additional compiler or linker flags
+(such as runpath flags) when building PMIx,
+you can <a class="reference internal" href="../compilers-and-flags.html#install-configure-compilers-and-flags-label"><span class="std std-ref">specify these flags on the configure command
+line</span></a>.</p>
+<p>For example, if invoking <code class="docutils literal notranslate"><span class="pre">libtool</span> <span class="pre">-rpath</span> <span class="pre">...</span></code> on your
+system actually effects “rpath” behavior, and you wish to
+effect “runpath” behavior, you could set <code class="docutils literal notranslate"><span class="pre">LDFLAGS</span></code> when
+invoking <code class="docutils literal notranslate"><span class="pre">configure</span></code>, like this:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>./configure<span class="w"> </span><span class="nv">LDFLAGS</span><span class="o">=</span>-Wl,--enable-new-dtags<span class="w"> </span>...
+</pre></div>
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="required-support-libraries.html" class="btn btn-neutral float-left" title="5.7.4. CLI Options for required support libraries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../configure-output-summary.html" class="btn btn-neutral float-right" title="5.8. configure output summary" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

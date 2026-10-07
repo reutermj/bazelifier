@@ -1,0 +1,471 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.3. Manually installing the GNU Autootools &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.4. Installing and running Sphinx (building the PRRTE docs)" href="sphinx.html" />
+    <link rel="prev" title="12.2. GitHub, Git, and related topics" href="git-github.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.3. Manually installing the GNU Autootools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#use-a-package-manager">12.3.1. Use a package manager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#autotools-versions">12.3.2. Autotools versions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#checking-your-versions">12.3.3. Checking your versions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installing-the-gnu-autotools-from-source">12.3.4. Installing the GNU Autotools from source</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-and-install-ordering">12.3.5. Build and install ordering</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.4. Installing and running Sphinx (building the PRRTE docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.5. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.3. </span>Manually installing the GNU Autootools</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/gnu-autotools.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="manually-installing-the-gnu-autootools">
+<span id="developers-installing-autotools-label"></span><h1><span class="section-number">12.3. </span>Manually installing the GNU Autootools<a class="headerlink" href="#manually-installing-the-gnu-autootools" title="Link to this heading"></a></h1>
+<p>There is enough detail in building the GNU Autotools that it warrants
+its own section.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As noted above, you only need to read/care about this
+section if you are building PRRTE from a Git clone.  End
+users installing an PRRTE distribution tarball do <em>not</em>
+need to have the GNU Autotools installed.</p>
+</div>
+<section id="use-a-package-manager">
+<h2><span class="section-number">12.3.1. </span>Use a package manager<a class="headerlink" href="#use-a-package-manager" title="Link to this heading"></a></h2>
+<p>It is recommended that you use your Linux distribution’s package
+manager, or Homebrew or MacPorts on macOS to install recent versions
+of GNU Autoconf, Automake, and Libtool.</p>
+<p>If you cannot, keep reading in this section to see how to build and
+install these applications manually (i.e., download the source from
+the internet and build/install it yourself).</p>
+</section>
+<section id="autotools-versions">
+<h2><span class="section-number">12.3.2. </span>Autotools versions<a class="headerlink" href="#autotools-versions" title="Link to this heading"></a></h2>
+<p>The following tools are required for developers to compile PRRTE
+from its repository sources (users who download PRRTE tarballs do
+not need these tools - they are only required for developers working
+on the internals of PRRTE itself):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Software package</p></th>
+<th class="head"><p>Notes</p></th>
+<th class="head"><p>URL</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>GNU m4</p></td>
+<td><p>See version chart below</p></td>
+<td><p><a class="reference external" href="https://ftp.gnu.org/gnu/m4/">https://ftp.gnu.org/gnu/m4/</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>GNU Autoconf</p></td>
+<td><p>See version chart below</p></td>
+<td><p><a class="reference external" href="https://ftp.gnu.org/gnu/autoconf/">https://ftp.gnu.org/gnu/autoconf/</a></p></td>
+</tr>
+<tr class="row-even"><td><p>GNU Automake</p></td>
+<td><p>See version chart below</p></td>
+<td><p><a class="reference external" href="https://ftp.gnu.org/gnu/automake/">https://ftp.gnu.org/gnu/automake/</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>GNU Libtool</p></td>
+<td><p>See version chart below</p></td>
+<td><p><a class="reference external" href="https://ftp.gnu.org/gnu/libtool/">https://ftp.gnu.org/gnu/libtool/</a></p></td>
+</tr>
+</tbody>
+</table>
+<p>The table below lists the versions that are used to make nightly
+snapshot and official release PRRTE tarballs. Other versions of the
+tools <em>may</em> work for some (but almost certainly not all) platforms;
+the ones listed below are the versions that we know work across an
+extremely wide variety of platforms and environments.</p>
+<p>To strengthen the above point: the core PRRTE developers typically
+use very, very recent versions of the GNU tools.  There are known bugs
+in older versions of the GNU tools that PRRTE no longer compensates
+for (it seemed senseless to indefinitely support patches for ancient
+versions of Autoconf, for example).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>You <strong>will</strong> have problems if you do not use recent
+versions of the GNU Autotools.</p>
+</div>
+<p>That being said, <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code> and <code class="docutils literal notranslate"><span class="pre">configure.ac</span></code> scripts tend to
+be a bit lenient and enforce slightly older minimum versions than the
+ones listed below. This is because such older versions still make
+usable PRRTE builds on many platforms - especially Linux on x86_64
+with GNU compilers - and are convenient for developers whose Linux
+distribution may not have as recent as the versions listed below (but are
+recent enough to produce a working version for their platform).</p>
+<p>To be clear: the versions listed below are required to support a wide
+variety of platforms and environments, and are used to make nightly
+and official release tarballs. When building PRRTE, YMMV when using
+versions older than those listed below — especially if you are
+not building on Linux x86_64 with the GNU compilers.</p>
+<p>Using older versions is unsupported. If you run into problems, upgrade
+to at least the versions listed below.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You may need to scroll right in the following table.</p>
+</div>
+<div class="error admonition">
+<p class="admonition-title">PRRTE Docs TODO</p>
+<p>The table below is almost certainly wrong; it has all the values
+from Open MPI.  Need to update the table below with the appropriate
+values for PRRTE.</p>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>PRRTE</p></th>
+<th class="head"><p>M4</p></th>
+<th class="head"><p>Autoconf</p></th>
+<th class="head"><p>Automake</p></th>
+<th class="head"><p>Libtool</p></th>
+<th class="head"><p>Flex</p></th>
+<th class="head"><p>Sphinx</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>v1.0.x</p></td>
+<td><p>NA</p></td>
+<td><p>2.58 - 2.59</p></td>
+<td><p>1.7 - 1.9.6</p></td>
+<td><p>1.5.16 - 1.5.22</p></td>
+<td><p>2.5.4</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-odd"><td><p>v1.1.x</p></td>
+<td><p>NA</p></td>
+<td><p>2.59</p></td>
+<td><p>1.9.6</p></td>
+<td><p>1.5.16 - 1.5.22</p></td>
+<td><p>2.5.4</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-even"><td><p>v1.2.x</p></td>
+<td><p>NA</p></td>
+<td><p>2.59</p></td>
+<td><p>1.9.6</p></td>
+<td><p>1.5.22 - 2.1a</p></td>
+<td><p>2.5.4</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-odd"><td><p>v1.3.x</p></td>
+<td><p>1.4.11</p></td>
+<td><p>2.63</p></td>
+<td><p>1.10.1</p></td>
+<td><p>2.2.6b</p></td>
+<td><p>2.5.4</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-even"><td><p>v1.4.x</p></td>
+<td><p>1.4.11</p></td>
+<td><p>2.63</p></td>
+<td><p>1.10.3</p></td>
+<td><p>2.2.6b</p></td>
+<td><p>2.5.4</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-odd"><td><p>v1.5.x for x=0-4</p></td>
+<td><p>1.4.13</p></td>
+<td><p>2.65</p></td>
+<td><p>1.11.1</p></td>
+<td><p>2.2.6b</p></td>
+<td><p>2.5.4</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-even"><td><p>v1.5.x for x&gt;=5</p></td>
+<td><p>1.4.16</p></td>
+<td><p>2.68</p></td>
+<td><p>1.11.3</p></td>
+<td><p>2.4.2</p></td>
+<td><p>2.5.35</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-odd"><td><p>v1.6.x</p></td>
+<td><p>1.4.16</p></td>
+<td><p>2.68</p></td>
+<td><p>1.11.3</p></td>
+<td><p>2.4.2</p></td>
+<td><p>2.5.35</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-even"><td><p>v1.7.x</p></td>
+<td><p>1.4.16</p></td>
+<td><p>2.69</p></td>
+<td><p>1.12.2</p></td>
+<td><p>2.4.2</p></td>
+<td><p>2.5.35</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-odd"><td><p>v1.8.x</p></td>
+<td><p>1.4.16</p></td>
+<td><p>2.69</p></td>
+<td><p>1.12.2</p></td>
+<td><p>2.4.2</p></td>
+<td><p>2.5.35</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-even"><td><p>v1.10.x</p></td>
+<td><p>1.4.16</p></td>
+<td><p>2.69</p></td>
+<td><p>1.12.2</p></td>
+<td><p>2.4.2</p></td>
+<td><p>2.5.35</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-odd"><td><p>v2.0.x through v4.y</p></td>
+<td><p>1.4.17</p></td>
+<td><p>2.69</p></td>
+<td><p>1.15</p></td>
+<td><p>2.4.6</p></td>
+<td><p>2.5.35</p></td>
+<td><p>NA</p></td>
+</tr>
+<tr class="row-even"><td><p>v5.0.x</p></td>
+<td><p>1.4.17</p></td>
+<td><p>2.69</p></td>
+<td><p>1.15</p></td>
+<td><p>2.4.6</p></td>
+<td><p>2.5.35</p></td>
+<td><p>4.2.0</p></td>
+</tr>
+<tr class="row-odd"><td><p>Git main</p></td>
+<td><p>1.4.17</p></td>
+<td><p>2.69</p></td>
+<td><p>1.15</p></td>
+<td><p>2.4.6</p></td>
+<td><p>2.5.35</p></td>
+<td><p>4.2.0</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="checking-your-versions">
+<h2><span class="section-number">12.3.3. </span>Checking your versions<a class="headerlink" href="#checking-your-versions" title="Link to this heading"></a></h2>
+<p>You can check what versions of the Autotools you have installed with
+the following:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>m4<span class="w"> </span>--version
+shell$<span class="w"> </span>autoconf<span class="w"> </span>--version
+shell$<span class="w"> </span>automake<span class="w"> </span>--version
+shell$<span class="w"> </span>libtoolize<span class="w"> </span>--version
+</pre></div>
+</div>
+</section>
+<section id="installing-the-gnu-autotools-from-source">
+<h2><span class="section-number">12.3.4. </span>Installing the GNU Autotools from source<a class="headerlink" href="#installing-the-gnu-autotools-from-source" title="Link to this heading"></a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Most operating system packaging systems (to include Homebrew
+and MacPorts on MacOS) install recent-enough versions of the
+GNU Autotools.  You should generally only install the GNU
+Autotools manually if you can’t use your operating system
+packaging system to install them for you.</p>
+</div>
+<p>The GNU Autotools sources can be can be downloaded from:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://ftp.gnu.org/gnu/autoconf/">https://ftp.gnu.org/gnu/autoconf/</a></p></li>
+<li><p><a class="reference external" href="https://ftp.gnu.org/gnu/automake/">https://ftp.gnu.org/gnu/automake/</a></p></li>
+<li><p><a class="reference external" href="https://ftp.gnu.org/gnu/libtool/">https://ftp.gnu.org/gnu/libtool/</a></p></li>
+<li><p>And if you need it: <a class="reference external" href="https://ftp.gnu.org/gnu/m4/">https://ftp.gnu.org/gnu/m4/</a></p></li>
+</ul>
+<p>It is certainly easiest to download/build/install all four of these
+tools together.  But note that PRRTE has no specific m4
+requirements; it is only listed here because Autoconf requires minimum
+versions of GNU m4.  Hence, you may or may not <em>need</em> to actually
+install a new version of GNU m4.  That being said, if you are confused
+or don’t know, just install the latest GNU m4 with the rest of the GNU
+Autotools and everything will work out fine.</p>
+</section>
+<section id="build-and-install-ordering">
+<h2><span class="section-number">12.3.5. </span>Build and install ordering<a class="headerlink" href="#build-and-install-ordering" title="Link to this heading"></a></h2>
+<p>You must build and install the GNU Autotools in the following order:</p>
+<ol class="arabic simple">
+<li><p>m4</p></li>
+<li><p>Autoconf</p></li>
+<li><p>Automake</p></li>
+<li><p>Libtool</p></li>
+</ol>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You <em>must</em> install the last three tools (Autoconf,
+Automake, Libtool) into the same prefix directory.
+These three tools are somewhat inter-related, and if
+they’re going to be used together, they <em>must</em> share a
+common installation prefix.</p>
+</div>
+<p>You can install m4 anywhere as long as it can be found in the path;
+it may be convenient to install it in the same prefix as the other
+three.  Or you can use any recent-enough m4 that is in your path.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is <em>strongly</em> encouraged that you do <strong>not</strong> install
+your new versions over the OS-installed versions.  This could cause
+other things on your system to break.  Instead, install into
+<code class="docutils literal notranslate"><span class="pre">$HOME/local</span></code>, or <code class="docutils literal notranslate"><span class="pre">/usr/local</span></code>, or wherever else you tend to
+install “local” kinds of software.</p>
+<p>In doing so, be sure to prefix your <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> with the directory
+where they are installed.  For example, if you install into
+<code class="docutils literal notranslate"><span class="pre">$HOME/local</span></code>, you may want to edit your shell startup file
+(<code class="docutils literal notranslate"><span class="pre">.bashrc</span></code>, <code class="docutils literal notranslate"><span class="pre">.cshrc</span></code>, <code class="docutils literal notranslate"><span class="pre">.tcshrc</span></code>, etc.) to have something
+like</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># For bash/sh:</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="nv">$HOME</span>/local/bin:<span class="nv">$PATH</span>
+<span class="c1"># For csh/tcsh:</span>
+<span class="nb">set</span><span class="w"> </span><span class="nv">path</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">(</span><span class="nv">$HOME</span>/local/bin<span class="w"> </span><span class="nv">$path</span><span class="o">)</span>
+</pre></div>
+</div>
+<p>Ensure to set your <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> <em>before</em> you configure/build/install
+the four packages.</p>
+</div>
+<p>All four packages require two simple commands to build and
+install:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>M4_DIRECTORY
+shell$<span class="w"> </span>./configure<span class="w"> </span>--prefix<span class="o">=</span>PREFIX
+shell$<span class="w"> </span>make<span class="w"> </span>all<span class="w"> </span>install
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>If you are using a shell that does not automatically
+re-index the <code class="docutils literal notranslate"><span class="pre">$PATH</span></code> (e.g., the <code class="docutils literal notranslate"><span class="pre">csh</span></code> or <code class="docutils literal notranslate"><span class="pre">tcsh</span></code>
+shells), be sure to run the <code class="docutils literal notranslate"><span class="pre">rehash</span></code> command before
+you install the next package so that the executables
+that were just installed can be found by the next
+package.</p>
+</div>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make $PATH be re-indexed if necessary, e.g., via "rehash"</span>
+shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>AUTOCONF_DIRECTORY
+shell$<span class="w"> </span>./configure<span class="w"> </span>--prefix<span class="o">=</span>PREFIX
+shell$<span class="w"> </span>make<span class="w"> </span>all<span class="w"> </span>install
+</pre></div>
+</div>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make $PATH be re-indexed if necessary, e.g., via "rehash"</span>
+shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>AUTOMAKE_DIRECTORY
+shell$<span class="w"> </span>./configure<span class="w"> </span>--prefix<span class="o">=</span>PREFIX
+shell$<span class="w"> </span>make<span class="w"> </span>all<span class="w"> </span>install
+</pre></div>
+</div>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Make $PATH be re-indexed if necessary, e.g., via "rehash"</span>
+shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>LIBTOOL_DIRECTORY
+shell$<span class="w"> </span>./configure<span class="w"> </span>--prefix<span class="o">=</span>PREFIX
+shell$<span class="w"> </span>make<span class="w"> </span>all<span class="w"> </span>install
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="git-github.html" class="btn btn-neutral float-left" title="12.2. GitHub, Git, and related topics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="sphinx.html" class="btn btn-neutral float-right" title="12.4. Installing and running Sphinx (building the PRRTE docs)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

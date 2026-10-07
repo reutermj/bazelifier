@@ -1,0 +1,231 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.3. Extracting flags from the wrapper compilers &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="11.4. Deprecated Definitions" href="deprecation-warnings.html" />
+    <link rel="prev" title="11.2. Customizing wrapper compiler behavior" href="customizing-wrappers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">11. Building PMIx applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">11.1. Quick start: Building PMIx-based applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="customizing-wrappers.html">11.2. Customizing wrapper compiler behavior</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">11.3. Extracting flags from the wrapper compilers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#using-the-showme-option">11.3.1. Using the <code class="docutils literal notranslate"><span class="pre">--showme</span></code> option</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-pkg-config">11.3.2. Using <code class="docutils literal notranslate"><span class="pre">pkg-config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-pmix-info">11.3.3. Using <code class="docutils literal notranslate"><span class="pre">pmix_info</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="deprecation-warnings.html">11.4. Deprecated Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-static-apps.html">11.5. Building fully-static PMIx applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11. </span>Building PMIx applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.3. </span>Extracting flags from the wrapper compilers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/building-apps/extracting-wrapper-flags.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="extracting-flags-from-the-wrapper-compilers">
+<h1><span class="section-number">11.3. </span>Extracting flags from the wrapper compilers<a class="headerlink" href="#extracting-flags-from-the-wrapper-compilers" title="Link to this heading"></a></h1>
+<p>If you cannot use the wrapper compiler for some reason, there are
+multiple supported ways to extract the compiler/linker flags that you
+will need.</p>
+<section id="using-the-showme-option">
+<h2><span class="section-number">11.3.1. </span>Using the <code class="docutils literal notranslate"><span class="pre">--showme</span></code> option<a class="headerlink" href="#using-the-showme-option" title="Link to this heading"></a></h2>
+<p>The wrapper compiler supports a <code class="docutils literal notranslate"><span class="pre">--showme</span></code> command line option
+that will show what commands would have been invoked.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you pass <code class="docutils literal notranslate"><span class="pre">--showme</span></code> <em>and additional command line
+parameters</em> to the wrapper compiler, be sure to <em>also</em> pass in a
+filename.  Otherwise, the <code class="docutils literal notranslate"><span class="pre">--showme</span></code> functionality will not
+display output as expected.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>It is almost never a good idea to hard-code these results
+in a <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> (or other build system).  It is almost always
+best to run (for example) <code class="docutils literal notranslate"><span class="pre">pmixcc</span> <span class="pre">--showme:compile</span></code> in a dynamic
+fashion to find out what you need.  For example, GNU Make allows
+running commands and assigning their results to variables:</p>
+<div class="highlight-make notranslate"><div class="highlight"><pre><span></span><span class="nv">PMIX_COMPILE_FLAGS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">$(</span>shell<span class="w"> </span>pmixcc<span class="w"> </span>--showme:compile<span class="k">)</span>
+<span class="nv">PMIX_LINK_FLAGS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">$(</span>shell<span class="w"> </span>pmixcc<span class="w"> </span>--showme:link<span class="k">)</span>
+
+<span class="nf">my_app</span><span class="o">:</span><span class="w"> </span><span class="n">my_app</span>.<span class="n">c</span>
+<span class="w">        </span><span class="k">$(</span>CC<span class="k">)</span><span class="w"> </span><span class="k">$(</span>PMIX_COMPILE_FLAGS<span class="k">)</span><span class="w"> </span>my_app.c<span class="w"> </span><span class="k">$(</span>PMIX_LINK_FLAGS<span class="k">)</span><span class="w"> </span>-o<span class="w"> </span>my_app
+</pre></div>
+</div>
+</div>
+</section>
+<section id="using-pkg-config">
+<h2><span class="section-number">11.3.2. </span>Using <code class="docutils literal notranslate"><span class="pre">pkg-config</span></code><a class="headerlink" href="#using-pkg-config" title="Link to this heading"></a></h2>
+<p>Alternatively, PMIx also installs <code class="docutils literal notranslate"><span class="pre">pkg-config(1)</span></code> configuration
+files under <code class="docutils literal notranslate"><span class="pre">$libdir/pkgconfig</span></code>.  If <code class="docutils literal notranslate"><span class="pre">pkg-config</span></code> is configured to
+find these files (e.g., if you add <code class="docutils literal notranslate"><span class="pre">$libdir/pkgconfig</span></code> — which
+is usually <code class="docutils literal notranslate"><span class="pre">$prefix/lib/pkgconfig</span></code> — to the
+<code class="docutils literal notranslate"><span class="pre">PKG_CONFIG_PATH</span></code> environment variable), then compiling / linking
+PMIx programs can be performed like this:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="nv">PKG_CONFIG_PATH</span><span class="o">=</span>/opt/pmix/lib/pkgconfig
+shell$<span class="w"> </span>gcc<span class="w"> </span>hello_world.c<span class="w"> </span>-o<span class="w"> </span>hello_world<span class="w"> </span>-g<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span><span class="sb">`</span>pkg-config<span class="w"> </span>pmix<span class="w"> </span>--cflags<span class="w"> </span>--libs<span class="sb">`</span>
+shell$
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>PMIx’s <code class="docutils literal notranslate"><span class="pre">pkg-config</span></code> file <em>works properly</em>, but it
+probably isn’t <em>technically correct</em>.</p>
+<p>Specifically: PMIx will list all of its dependent
+libraries that are necessary to link PMIx-based application,
+even if a given dependency has a <code class="docutils literal notranslate"><span class="pre">.pc</span></code> file and should
+therefore be listed as a <code class="docutils literal notranslate"><span class="pre">Requires</span></code> and/or
+<code class="docutils literal notranslate"><span class="pre">Requires.private</span></code> in PMIx’s <code class="docutils literal notranslate"><span class="pre">.pc</span></code> files.</p>
+<p>For example, PMIx lists <code class="docutils literal notranslate"><span class="pre">-lhwloc</span></code> in both <code class="docutils literal notranslate"><span class="pre">Libs</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Libs.private</span></code>.  But since HWLOC provides its own
+<code class="docutils literal notranslate"><span class="pre">pmix.pc</span></code> file, it would be more correct for PMIx to
+<em>not</em> list <code class="docutils literal notranslate"><span class="pre">-lhwloc</span></code> in <code class="docutils literal notranslate"><span class="pre">Libs</span></code> / <code class="docutils literal notranslate"><span class="pre">Libs.private</span></code>, and
+instead include:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Requires</span><span class="p">:</span> <span class="n">hwloc</span>
+<span class="n">Requires</span><span class="o">.</span><span class="n">private</span><span class="p">:</span> <span class="n">hwloc</span>
+</pre></div>
+</div>
+<p>The end result is likely immaterial, but we document this
+just in case it ever becomes an issue someday.</p>
+</div>
+</section>
+<section id="using-pmix-info">
+<h2><span class="section-number">11.3.3. </span>Using <code class="docutils literal notranslate"><span class="pre">pmix_info</span></code><a class="headerlink" href="#using-pmix-info" title="Link to this heading"></a></h2>
+<p>This method is not directly suitable for getting all the compiler /
+linker flags needed to compile PMIx-based applications because it does not
+include the relevant flags to find PMIx’s headers and libraries.
+But it does show a breakdown of all other flags.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ pmix_info --all | grep Build
+         Build CFLAGS:
+        Build LDFLAGS:
+           Build LIBS: -ldl -levent_core -levent_pthreads -lhwloc
+</pre></div>
+</div>
+<p>This installation is <em>only</em> adding options in the <code class="docutils literal notranslate"><span class="pre">xLIBS</span></code> areas of the
+wrapper compilers; all other values are blank (remember: the <code class="docutils literal notranslate"><span class="pre">-I</span></code>’s
+and <code class="docutils literal notranslate"><span class="pre">-L</span></code>’s are implicit).</p>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">--parsable</span></code> option can be used to obtain
+machine-parsable versions of this output.  For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ ompi_info --all --parsable | grep option:build
+     option:build:cflags:
+     option:build:ldflags:
+     option:build:libs:-ldl -levent_core -levent_pthreads -lhwloc
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="customizing-wrappers.html" class="btn btn-neutral float-left" title="11.2. Customizing wrapper compiler behavior" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deprecation-warnings.html" class="btn btn-neutral float-right" title="11.4. Deprecated Definitions" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

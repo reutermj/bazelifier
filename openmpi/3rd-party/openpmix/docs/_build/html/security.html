@@ -1,0 +1,180 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>15. OpenPMIx Security Policy &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=786a2b67"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="16. News" href="news/index.html" />
+    <link rel="prev" title="14. License" href="license.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">15. OpenPMIx Security Policy</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#vulnerability-disclosure-process">15.1. Vulnerability Disclosure Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#software-authenticity-and-integrity">15.2. Software Authenticity and Integrity</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">15. </span>OpenPMIx Security Policy</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/security.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="openpmix-security-policy">
+<h1><span class="section-number">15. </span>OpenPMIx Security Policy<a class="headerlink" href="#openpmix-security-policy" title="Link to this heading"></a></h1>
+<p>Historically, PMIx has operated as a library at the user level in relatively controlled environments (i.e., the typical high-performance computing cluster embedded in a protected network, and thus not exposed to the general Internet). This situation has changed, however, as system management stack packages and other software operating at privileged levels have begun to operate PMIx servers. Increasingly, the PMIx library finds itself in situations where its communications are between entities at different privilege levels (e.g., between root and user) and operating on head nodes with direct connection to more exposed networks.</p>
+<p>The PMIx community takes security associated with use of its library seriously, recognizing that our ability to respond to concerns is bound by our limited access to volunteer resources. We deeply appreciate coordinated efforts done in partnership with our reporters as these have the highest probability for a successful and satisfactory resolution. Reports that simply state something is wrong while providing no assistance in triaging the problem or developing the solution will be treated seriously, but with correspondingly longer response times.</p>
+<p>PMIx does not have formal, contractual relationships with its users. Instead, we have informal relationships with downstream packagers (e.g., Debian, Fedora, SUSE), resource managers (e.g., Slurm, PBS, PALS), and libraries (e.g., Open MPI, MPICH, OpenSHMEM, PGAS). This quite frequently takes the form of individuals as opposed to organizational contacts. Thus, it isn’t possible for the PMIx community to offer any guarantees as to the breadth or immediacy of notification for security issues. We can only do our best to alert the people we know about, and hope that they spread the word as required.</p>
+<p>Our vulnerability disclosure process reflects this situation. While we strongly encourage discoverers to report potential security issues to us and follow our process, we will respect their wishes and work with them in cases where their preferred process may vary.</p>
+<p>NOTE: any potential security issue should be reported immediately to us at <a class="reference external" href="mailto:security&#37;&#52;&#48;pmix&#46;org">security<span>&#64;</span>pmix<span>&#46;</span>org</a></p>
+<section id="vulnerability-disclosure-process">
+<h2><span class="section-number">15.1. </span>Vulnerability Disclosure Process<a class="headerlink" href="#vulnerability-disclosure-process" title="Link to this heading"></a></h2>
+<p>This process covers security issues pertaining to the PMIx library itself. Issues with closely related components — such as libevent, HWLOC, MUNGE or third-party plugins — may be raised with us and we will work with the reporter to identify the appropriate contacts and coordinate disclosure.</p>
+<p>The PMIx Vulnerability Disclosure Process consists of several distinct, but possibly overlapping steps:</p>
+<ol class="arabic">
+<li><dl class="simple">
+<dt>Problem identification and initial triage.</dt><dd><p>The problem is reported to the community and a first-level triage performed. Primary focus here is on scoping the extent of the issue so it can properly be communicated (both in terms of severity and complexity to address) to the rest of the community.</p>
+</dd>
+</dl>
+</li>
+<li><dl>
+<dt>Notification and embargo</dt><dd><p>Once the problem has been triaged, it will be communicated to the known consumers of the PMIx library (as noted above). This will be done in a private manner and all informed will be asked to maintain that privacy during the embargo period. The purpose of this step is to ensure the timely notification of the problem without alerting potential bad players as to the vulnerability, thus giving the community time to respond to the problem. The community will use this period to assemble a team to address the problem.</p>
+<p>The embargo period is expected to continue during the entire time work is being performed towards a resolution of the problem. The PMIx community, of course, has no control over the actions of its members or users, and therefore cannot guarantee confidentiality throughout the resolution process. However, the community will request best efforts from all involved due to the shared interest.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Private release</dt><dd><p>Once a solution to the problem has been devised, a new release of the library will be made that includes the fix. This will first be made available to the known consumers of the library, as well as the initial reporter if not a member of that list. A reasonable amount of time will be provided (as defined by general discussion across the involved parties) for rollout to occur through the participants. The embargo on public discussion will be maintained throughout this step.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>General release</dt><dd><p>At this point, the embargo will be lifted and a general announcement (including email to the PMIx mailing lists) of the problem and availability of the solution will be made. All users will be urged to update as quickly as possible. All vulnerable releases will be removed from the GitHub release pages, though the tags corresponding to those releases will be retained for historical purposes.</p>
+</dd>
+</dl>
+</li>
+</ol>
+</section>
+<section id="software-authenticity-and-integrity">
+<h2><span class="section-number">15.2. </span>Software Authenticity and Integrity<a class="headerlink" href="#software-authenticity-and-integrity" title="Link to this heading"></a></h2>
+<p>Authenticity and integrity of PMIx software should always be confirmed by computing the checksum of the archive and comparing it with the value listed on the GitHub release page. Assuming you downloaded the file pmix-4.2.2.tar.bz2, you can run the <code class="docutils literal notranslate"><span class="pre">sha1sum</span></code> command like this:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>sha1sum<span class="w"> </span>pmix-4.2.2.tar.bz2
+</pre></div>
+</div>
+<p>Check that the output matches what is printed in the release announcement, which may look like this:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>b4e1cb79dfd94c1b9db8eaba02f725c07ef9df2b<span class="w">  </span>pmix-4.2.2.tar.bz2
+</pre></div>
+</div>
+<p>To avoid having to manually compare the string, you may use the <code class="docutils literal notranslate"><span class="pre">sha1sum</span> <span class="pre">-c</span> <span class="pre">parameter</span></code> as follows:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="s1">'b4e1cb79dfd94c1b9db8eaba02f725c07ef9df2b  pmix-4.2.2.tar.bz2'</span><span class="p">|</span>sha1sum<span class="w"> </span>-c
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="license.html" class="btn btn-neutral float-left" title="14. License" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="news/index.html" class="btn btn-neutral float-right" title="16. News" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

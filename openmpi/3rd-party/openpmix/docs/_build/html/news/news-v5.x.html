@@ -1,0 +1,875 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>16.1. PMIx v5.x series &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="16.2. PMIx v4.x series" href="news-v4.x.html" />
+    <link rel="prev" title="16. News" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">16. News</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">16.1. PMIx v5.x series</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#jun-2026">16.1.1. 5.0.11 – 23 Jun 2026</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jan-2026">16.1.2. 5.0.10 – 23 Jan 2026</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sept-2025">16.1.3. 5.0.9 – 9 Sept 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#may-2025">16.1.4. 5.0.8 – 10 May 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mar-2025">16.1.5. 5.0.7 – 19 Mar 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jan-2025">16.1.6. 5.0.6 – 06 Jan 2025</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dec-2024">16.1.7. 5.0.5 – 15 Dec 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nov-2024">16.1.8. 5.0.4 – 13 Nov 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jul-2024">16.1.9. 5.0.3 – 8 Jul 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mar-2024">16.1.10. 5.0.2 – 21 Mar 2024</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sep-2023">16.1.11. 5.0.1 – 9 Sep 2023</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aug-2023">16.1.12. 5.0.0 – 7 Aug 2023</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="news-v4.x.html">16.2. PMIx v4.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v3.x.html">16.3. PMIx v3.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v2.x.html">16.4. PMIx v2.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v1.x.html">16.5. PMIx v1.x series</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">16. </span>News</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">16.1. </span>PMIx v5.x series</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/news/news-v5.x.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="pmix-v5-x-series">
+<h1><span class="section-number">16.1. </span>PMIx v5.x series<a class="headerlink" href="#pmix-v5-x-series" title="Link to this heading"></a></h1>
+<p>This file contains all the NEWS updates for the PMIx v5.x
+series, in reverse chronological order.</p>
+<section id="jun-2026">
+<h2><span class="section-number">16.1.1. </span>5.0.11 – 23 Jun 2026<a class="headerlink" href="#jun-2026" title="Link to this heading"></a></h2>
+<p>:: important:: This release contains the following important changes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>restoration/repair of the OmniPath support component</p></li>
+<li><p>Repair support of OMPI default MCA params</p></li>
+</ul>
+</div></blockquote>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>PR #3869: Multiple commits</dt><dd><ul>
+<li><p>Update NEWS and VERSION</p></li>
+<li><p>pmdl/ompi: use the right type to enumerate myenvars</p></li>
+<li><p>fix var group lookup in component repository release</p></li>
+<li><p>Prepend I/O residuals to correct redirected streams</p></li>
+<li><p>Restore pnet/opa component</p></li>
+<li><p>Don’t pass zero-byte stdin to host</p></li>
+<li><p>Correct the wrapper compiler man page</p></li>
+<li><p>Default output to file to nocopy</p></li>
+<li><p>Properly handle qualified values in client get</p></li>
+<li><p>Do not double-process IOF formats</p></li>
+<li><p>Correct cflags used for check_compiler_version.m4</p></li>
+<li><p>Fully support return of static values</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="jan-2026">
+<h2><span class="section-number">16.1.2. </span>5.0.10 – 23 Jan 2026<a class="headerlink" href="#jan-2026" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release includes two critical changes:</p>
+<ul class="simple">
+<li><p>a fix for a bug that apparently went undetected
+for a long time. The bug prevented selection of
+the loopback interface on a node for use by the PMIx
+messaging system, even when no remote connections
+were allowed. This prevented PMIx from working
+in an environment where only loopback devices
+were available.</p></li>
+<li><p>re-enabling of the compression support. An undetected
+typo caused PMIx to disable compression even when
+the supporting libz (or libzng) libraries were present</p></li>
+<li><p>repair of the indirect debugger connection procedure.
+Hardening of the authentication procedure inadvertently
+prevented tools fork’d by PMIx itself from connecting
+back to the server.</p></li>
+</ul>
+</div>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>PR #3781: Multiple commits</dt><dd><ul>
+<li><p>Update NEWS and VERSION for release</p></li>
+<li><p>Improve description of PMIx_Compute_distances API</p></li>
+<li><p>Silence valgrind issues</p></li>
+<li><p>update-my-copyright.py: properly support git workspaces</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3762: Update PMIx_Fence to fully conform to Standard</p></li>
+<li><p>PR #3757: Update NEWS and VERSION for rc3</p></li>
+<li><dl class="simple">
+<dt>PR #3756: Multiple commits</dt><dd><ul>
+<li><p>printf.c: fix off-by-one + underflow errors</p></li>
+<li><p>Workflow does not contain permissions</p></li>
+<li><p>Potentially overflowing call to snprintf (alert 11)</p></li>
+<li><p>Potential double free and use after free (alerts 13,14)</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3745: Update NEWS important note</p></li>
+<li><dl class="simple">
+<dt>PR #3744: Multiple commits</dt><dd><ul>
+<li><p>Extend debugger CI tests</p></li>
+<li><p>Update VERSION and NEWS</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3742: Fix indirect debugger launch</p></li>
+<li><dl class="simple">
+<dt>PR #3740: Multiple commits</dt><dd><ul>
+<li><p>Add refresh test</p></li>
+<li><p>Fix refresh cache request</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3737: Multiple commits</dt><dd><ul>
+<li><p>Fix cmd line option checker</p></li>
+<li><p>Fix bitmap mask literal size</p></li>
+<li><p>Cleanup ready-for-debug announcement</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3730: Multiple commits</dt><dd><ul>
+<li><p>Protect against equal signs in option check</p></li>
+<li><p>Check if we fork’d the tool ourselves</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3723: Roll rc1</p></li>
+<li><dl class="simple">
+<dt>PR #3720: Multiple commits</dt><dd><ul>
+<li><p>Fix compression components</p></li>
+<li><p>Use the correct value for the number of info to unpack</p></li>
+<li><p>Remove stale/unused tests</p></li>
+<li><p>bitmap num_set boundary condition bugfix</p></li>
+<li><p>preg/compress parsing bugfix</p></li>
+<li><p>Port bug fixes to zlibng component</p></li>
+<li><p>Flush namespace sinks’ residuals before destroying them</p></li>
+<li><p>Put the sink cleanup in the sink destructor</p></li>
+<li><p>Replace sprintf with snprintf</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3719: Enable use of loopback interface</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="sept-2025">
+<h2><span class="section-number">16.1.3. </span>5.0.9 – 9 Sept 2025<a class="headerlink" href="#sept-2025" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>PR #3679: Final update of NEWS for release</p></li>
+<li><dl class="simple">
+<dt>PR #3677: Multiple commits</dt><dd><ul>
+<li><p>Update NEWS for release</p></li>
+<li><p>Silence a few Coverity complaints</p></li>
+<li><p>define default MAXPATHLEN if not defined by system</p></li>
+<li><p>Improve selection of interfaces</p></li>
+<li><p>Avoid duplicate namespace entries</p></li>
+<li><p>Cleanup a bit on connection handling</p></li>
+<li><p>Allow foreign tools by default</p></li>
+<li><p>Do not remove nspace from global list on rejected connection</p></li>
+<li><p>Correctly check length in pmix_bitmap_num_set_bits</p></li>
+<li><p>Fix the abort server upcall</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3668: Multiple commits</dt><dd><ul>
+<li><p>Provide better FQDN support</p></li>
+<li><p>Pass the uid/gid for client connections</p></li>
+<li><p>Prevent memory overrun in regx calculation</p></li>
+<li><p>Pass the client’s pid as well</p></li>
+<li><p>Provide more info on connections</p></li>
+<li><p>Extend authentication support</p></li>
+<li><p>Update listener thread setting of permissions on connection files.</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3653: Multiple commits</dt><dd><ul>
+<li><p>github: add python-version checks for bindings</p></li>
+<li><p>bindings: fix Python 3.x error for ‘long’ integer</p></li>
+<li><p>Properly trigger the “keepalive failed” event</p></li>
+<li><p>Ensure cleanup of allocated pmix_info_t</p></li>
+<li><p>Change default show-load-errors to “none”</p></li>
+<li><p>Only report bad prefix if verbose requested</p></li>
+<li><p>Correct client notify of ready for debugger</p></li>
+<li><p>Check return code for notify ready-for-debug</p></li>
+<li><p>Parameterize client finalize timeout</p></li>
+<li><p>IOF output file bugfix</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3623: Update OAC submodule</p></li>
+<li><dl class="simple">
+<dt>PR #3621: Multiple commits</dt><dd><ul>
+<li><p>Check for pthread_np.h header</p></li>
+<li><p>Update VERSION and NEWS</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3604: Update xversion CI</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="may-2025">
+<h2><span class="section-number">16.1.4. </span>5.0.8 – 10 May 2025<a class="headerlink" href="#may-2025" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>PR #3596: Update NEWS for release</p></li>
+<li><dl class="simple">
+<dt>PR #3595: Multiple commits</dt><dd><ul>
+<li><p>Remove stale solaris components</p></li>
+<li><p>Correct client4 error output</p></li>
+<li><p>Provide callback function for client_connected2</p></li>
+<li><p>docs: Add a “Last updated on:” HTML footer</p></li>
+<li><p>Eliminate stale pnet/opa component</p></li>
+<li><p>Use stdout instead of stderr for help output</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3582: Multiple commits</dt><dd><ul>
+<li><p>Extend cmd line processor to deal with envar ops</p></li>
+<li><p>Roll version to v5.0.8</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3581: Add a new client example</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="mar-2025">
+<h2><span class="section-number">16.1.5. </span>5.0.7 – 19 Mar 2025<a class="headerlink" href="#mar-2025" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release contains significant rewrite of
+the PMIx_Query_info and PMIx_Resolve_xxx
+functions to provide better, more complete
+answers.</p>
+</div>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>PR #3573: Update NEWS for release</p></li>
+<li><dl class="simple">
+<dt>PR #3572: Multiple commits</dt><dd><ul>
+<li><p>Fix segfault on error in shmem2</p></li>
+<li><p>Update NEWS</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3567: Multiple commits</dt><dd><ul>
+<li><p>Add new pub-lookup stress example</p></li>
+<li><p>Just ignore any lto settings</p></li>
+<li><p>Have show_help output all directories tried</p></li>
+<li><p>Extend the pubstress test and add it to CI</p></li>
+<li><p>Cleanup spawn and clarify attribute comment</p></li>
+<li><p>Properly handle OPAL_PREFIX</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3562: Update OAC submodule</p></li>
+<li><dl class="simple">
+<dt>PR #3556: Multiple commits</dt><dd><ul>
+<li><p>Do not block in query upcall</p></li>
+<li><p>Further cleanup of “resolve” functions</p></li>
+<li><p>Silence error output when running as singleton - PR #3547: Update NEWS and headers for release</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3545: Multiple commits</dt><dd><ul>
+<li><p>Exit with correct status after displaying help or version</p></li>
+<li><p>Revamp the query implementation</p></li>
+<li><p>Update CI workflows</p></li>
+<li><p>Silence warnings exposed by updated CI</p></li>
+<li><p>Fix format of fetch response for peer’s version</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3538: Multiple commits</dt><dd><ul>
+<li><p>Correct the fetch procedure</p></li>
+<li><p>Propagate shmem fix and add new example plus test</p></li>
+<li><p>Silence Coverity warning in fd support</p></li>
+<li><p>Silence Coverity warnings</p></li>
+<li><p>Silence unnecessary error log</p></li>
+<li><p>Silence some more Coverity nits</p></li>
+<li><p>Cleanup the “resolve” functions</p></li>
+<li><p>Add resolve doc and minor cleanups</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3523: Enable fetch of job-level data for another nspace</p></li>
+<li><p>PR #3520: Allow arbitrary keys to use data arrays</p></li>
+<li><p>PR #3518: v5.0: Add OPAL_* in the list of default envars</p></li>
+<li><p>PR #3512: Provide a better error message to user</p></li>
+<li><dl class="simple">
+<dt>PR #3509: Multiple commits</dt><dd><ul>
+<li><p>Delete stale markdown and update README</p></li>
+<li><p>Update issue templates</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3506: Add missing lock construct</p></li>
+<li><p>PR #3501: Transfer the query response for partial complete</p></li>
+<li><p>PR #3491: Add missing function</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="jan-2025">
+<h2><span class="section-number">16.1.6. </span>5.0.6 – 06 Jan 2025<a class="headerlink" href="#jan-2025" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This release contains a patch required for all
+servers that enable tool connections. Minus
+the patch, PMIx may over-aggressively cleanup
+files from the temporary directory that it did
+not create. The precise timing of the bug’s
+introduction to the release series is unclear.
+Thus, all users are advised to update to this
+version as soon as possible.</p>
+</div>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>PR #3479: Multiple commits</dt><dd><ul>
+<li><p>Cleanup a segfault when the host refuses group construct support</p></li>
+<li><p>Update PRRTE CI to point at PRRTE v3.0 branch</p></li>
+<li><p>Add a –nogreek option to make tarball</p></li>
+<li><p>Repair the file removal code</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="dec-2024">
+<h2><span class="section-number">16.1.7. </span>5.0.5 – 15 Dec 2024<a class="headerlink" href="#dec-2024" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>PR #3469: Final update for release</p></li>
+<li><p>PR #3468: Remove remnants of unsupported capability</p></li>
+<li><p>PR #3467: Remove stale configure.m4 scripts</p></li>
+<li><p>PR #3465: Update NEWS and VERSION</p></li>
+<li><p>PR #3463: Remove prm framework as not currently implemented</p></li>
+<li><p>PR #3462: Remove unused components from various frameworks</p></li>
+<li><p>PR #3461: Remove pgpu framework</p></li>
+<li><p>PR #3460: Remove pstrg framework</p></li>
+<li><p>PR #3452: .gitignore: add configure~</p></li>
+<li><dl class="simple">
+<dt>PR #3449: Multiple commits</dt><dd><ul>
+<li><p>Retry fetch with wildcard rank</p></li>
+<li><p>Fix typo in shmem2 fetch</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="nov-2024">
+<h2><span class="section-number">16.1.8. </span>5.0.4 – 13 Nov 2024<a class="headerlink" href="#nov-2024" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release represents the expected end of
+the v5.0 series. Any follow-on bug fixes will
+be committed to the release branch, but are
+unlikely to generate an official release
+tarball.</p>
+</div>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>PR #3441: Update NEWS and VERSION for final release</p></li>
+<li><p>PR #3440: Minor cleanups plus resolve peers example</p></li>
+<li><p>PR #3434: Collapse the pfexec framework</p></li>
+<li><p>PR #3432: Update VERSION for release</p></li>
+<li><dl class="simple">
+<dt>PR #3430: Multiple commits</dt><dd><ul>
+<li><p>Update NEWS to include v5.0 branch</p></li>
+<li><p>Drop the sphinx required level to match PRRTE</p></li>
+<li><p>Ensure IOF respects formatting requests</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3419: Add some missing attributes</p></li>
+<li><dl class="simple">
+<dt>PR #3417: Multiple commits</dt><dd><ul>
+<li><p>Fix typo in equality check</p></li>
+<li><p>Fix delayed get</p></li>
+<li><p>avoid warn-as-error for variable init</p></li>
+<li><p>Add support for libz-ng</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3408: Update pmix_portable_platform_real.h from upstream gasnet</p></li>
+<li><p>PR #3404: Path must start with “src”</p></li>
+<li><p>PR #3402: Remove unused yaml</p></li>
+<li><p>PR #3400: add contrib/construct_event_strings.py to the dist tarball</p></li>
+<li><dl class="simple">
+<dt>PR #3397: Multiple commits</dt><dd><ul>
+<li><p>Add missing files</p></li>
+<li><p>mca/pif: fix pmix_found_linux typo</p></li>
+<li><p>Add cross-version compatibility to docs</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3393: Multiple commits</dt><dd><ul>
+<li><p>Add python directive</p></li>
+<li><p>Cleanup pfexec spawn operations</p></li>
+<li><p>Add missing function call</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3387: Update OAC to latest HEAD</p></li>
+<li><p>PR #3385: Correctly check MCA params</p></li>
+<li><p>PR #3383: Protect against LTO optimizer</p></li>
+<li><p>PR #3381: Read The Docs updates</p></li>
+<li><dl class="simple">
+<dt>PR #3379: Multiple commits</dt><dd><ul>
+<li><p>Revert Sphinx requirements</p></li>
+<li><p>Warn against building tarball on MacOSX</p></li>
+<li><p>configure: fix regression that caused python to be mandatory to build</p></li>
+<li><p>configure: fix broken bashisms resulting in logic failure</p></li>
+<li><p>Update the requirements for Sphinx</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3372: Multiple commits</dt><dd><ul>
+<li><p>Update MLNX CI</p></li>
+<li><p>Apply prefix to copied version of the app array</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="jul-2024">
+<h2><span class="section-number">16.1.9. </span>5.0.3 – 8 Jul 2024<a class="headerlink" href="#jul-2024" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>PR #3369: Update NEWS and VERSION for release</p></li>
+<li><p>PR #3366: Transfer results from partial success of lookup</p></li>
+<li><dl class="simple">
+<dt>PR #3363: Multiple commits</dt><dd><ul>
+<li><p>Fix singletons</p></li>
+<li><p>Protect against NULL fields</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3361: Remove unused function in shmem2</p></li>
+<li><p>PR #3357: Github action: bring back MacOS builds</p></li>
+<li><dl class="simple">
+<dt>PR #3354: Multiple commits</dt><dd><ul>
+<li><p>Don’t strip quotes from cmd line entries</p></li>
+<li><p>Handle single character filenames</p></li>
+<li><p>Update tar format to tar-pax</p></li>
+<li><p>Perform some cleanup</p></li>
+<li><p>Include devel-check status in configure summary</p></li>
+<li><p>Turn off MacOS CI</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3334: Fix function declaration</p></li>
+<li><p>PR #3332: Fixes for PR3329</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="mar-2024">
+<h2><span class="section-number">16.1.10. </span>5.0.2 – 21 Mar 2024<a class="headerlink" href="#mar-2024" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Cross-version incompatibility
+The known issue of cross-version operability between
+members of the PMIx v5.0 release series has been
+resolved in this release. Thus, v5.0.2 and all subsequent
+releases can operate across versions, including the
+v5.0.1 and v5.0.0 releases.</p>
+</div>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>PR #3330: Do not include PMIX_PREFIX in spawn upcall</p></li>
+<li><dl class="simple">
+<dt>PR #3325: Multiple commits</dt><dd><ul>
+<li><p>Correctly set the app cmd and argv0 fields</p></li>
+<li><p>Don’t overwrite user’s args</p></li>
+<li><p>Correct error in retrieval of node and app info</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3319: Toughen the submodule checks in autogen.pl</p></li>
+<li><p>PR #3317 Correct group modex storage to avoid duplication</p></li>
+<li><p>PR #3314 Fix memory leak in storing of modex data</p></li>
+<li><p>PR #3311 More cleanup of group operations and local client array</p></li>
+<li><p>PR #3307 Include notes about submodules in docs</p></li>
+<li><dl class="simple">
+<dt>PR #3299 Multiple commits</dt><dd><ul>
+<li><p>gds/shmem2: provide a useful error message on memory allocation failure</p></li>
+<li><p>Add “close stale issues” actions</p></li>
+<li><p>oac: strengthen Sphinx check</p></li>
+<li><p>Remove stat call when destroying a dirpath</p></li>
+<li><p>Do not remove the system tmpdir during cleanup</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3293 Multiple commits</dt><dd><ul>
+<li><p>gds/shmem: fix build</p></li>
+<li><p>Update how PMIx attributes are looked up.</p></li>
+<li><p>Improve PMIx attribute lookup efficiency.</p></li>
+<li><p>gds/shmem: improve cross-version capabilities</p></li>
+<li><p>Revert “Disable gds/shmem at runtime”</p></li>
+<li><p>Revert “gds/shmem: fix build.”</p></li>
+<li><p>Rename the gds/shmem component to gds/shmem2</p></li>
+<li><p>Protect output files during cleanup</p></li>
+<li><p>Begin to add man pages for PMIx commands</p></li>
+<li><p>Restore support for HWLOC truly ancient</p></li>
+<li><p>Continue work on tool man pages</p></li>
+<li><p>Fix the dictionary transfer in shmem2</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3280 Multiple commits</dt><dd><ul>
+<li><p>Implement attribute to specify connection order and process MCA params</p></li>
+<li><p>Error out of attempts for 32-bit builds</p></li>
+<li><p>hash: Add internal APIs that specify target key index.</p></li>
+<li><p>hash: Update pmix_hash functions to accept a pmix_keyindex_t*</p></li>
+<li><p>gds/shmem: Improve error message in tma_realloc()</p></li>
+<li><p>Remove static version of global function</p></li>
+<li><p>Fix handling of “–” in cmd lines</p></li>
+<li><p>Update the doubleget test</p></li>
+<li><p>Fully implement refresh cache support</p></li>
+<li><p>Adjust preg component priorities</p></li>
+<li><p>Remove unused function</p></li>
+<li><p>gds/shmem: Implement first cut of tma_realloc()</p></li>
+<li><p>Begin work on removing use of “stat”</p></li>
+<li><p>Fix typo</p></li>
+<li><p>avoid loopback in resolve_nspace_requests</p></li>
+<li><p>Refactor the prm framework</p></li>
+<li><p>Assign NULL to free’d pointer</p></li>
+<li><p>Cleanup some “unused params” errors</p></li>
+<li><p>Protect a variable</p></li>
+<li><p>Check for stdatomic.h</p></li>
+<li><p>Remove pmix_osd_dirpath_access</p></li>
+<li><p>Remove use of stat from pmix_getcwd</p></li>
+<li><p>Remove use of stat</p></li>
+<li><p>Remove use of stat in pmix_globals</p></li>
+<li><p>Remove use of stat to check file existence</p></li>
+<li><p>Test open a dir instead of using stat</p></li>
+<li><p>Minor cleanups for unused params</p></li>
+<li><p>pmix.h: Add capability flags</p></li>
+<li><p>Cleanup comments and prep for commit</p></li>
+<li><p>Do not remove the system tmpdir during cleanup</p></li>
+<li><p>Cleanup palloc and prun connections</p></li>
+<li><p>Cleanup a few typos and remove debug output</p></li>
+<li><p>Cast a few parameters when translating macros to functions</p></li>
+<li><p>Resolve problem of stack variables and realloc</p></li>
+<li><p>Restore support for detecting shared file systems</p></li>
+<li><p>Properly handle directories during cleanup</p></li>
+<li><p>gds/shmem: revert tma_free() strategy</p></li>
+<li><p>gds/shmem: fix potentially confusing error output</p></li>
+<li><p>Touchup the dirpath_destroy code</p></li>
+<li><p>Fix broken link in README</p></li>
+<li><p>Add a query attribute for number of available slots</p></li>
+<li><p>Do not add no-unused-parameter for non-devel-check builds</p></li>
+<li><p>Better support global keys</p></li>
+<li><p>PMIx_Query_info: removed duplicated PMIX_RELEASE</p></li>
+<li><p>Provide an explanation of session directories</p></li>
+<li><p>Fix –enable-devel-check builds</p></li>
+<li><p>Restore default to enable-devel-check in Git repos</p></li>
+<li><p>Protect against empty envar definition for mca_base_param_files</p></li>
+<li><p>Fix test builds with picky compiler options</p></li>
+<li><p>Protect against NULL hash table labels in debug output</p></li>
+<li><p>Update the Python regex for doc build</p></li>
+<li><p>Disable gds/shmem at runtime</p></li>
+<li><p>Cleanup update</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3182 Multiple commits</dt><dd><ul>
+<li><p>Remove debug print</p></li>
+<li><p>Make checking min versions consistent</p></li>
+<li><p>Add an action to test older HWLOC version</p></li>
+<li><p>Touchup the OMPI integration</p></li>
+<li><p>Fix couple of bugs in cmd line parser</p></li>
+<li><p>Fix typo in cmd line processor</p></li>
+<li><p>Add a new attribute to specify connection order</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><p>PR #3166: Blacklist the HWLOC GL component to avoid deadlock</p></li>
+<li><p>PR #3162: Add a new Github Action</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="sep-2023">
+<h2><span class="section-number">16.1.11. </span>5.0.1 – 9 Sep 2023<a class="headerlink" href="#sep-2023" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>CVE-2023-41915</p>
+<p>A security issue was reported by François Diakhate (CEA)
+which is addressed in the PMIx v4.2.6 and v5.0.1 releases.
+(Older PMIx versions may be vulnerable, but are no longer
+supported.)</p>
+<p>A filesystem race condition could permit a malicious user
+to obtain ownership of an arbitrary file on the filesystem
+when parts of the PMIx library are called by a process
+running as uid 0. This may happen under the default
+configuration of certain workload managers, including Slurm.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Cross-version incompatibility</p>
+<p>There is a known issue when operating between
+PMIx versions v5.0.1 and v5.0.0. This occurs due
+to a difference in the key-to-index conversion
+between the two versions. Users are advised
+to set the PMIX_MCA_gds=hash parameter
+in their environment when using these two
+versions.</p>
+</div>
+<dl class="simple">
+<dt>Detailed changes include:</dt><dd><ul class="simple">
+<li><p>Update news and version for release</p></li>
+<li><dl class="simple">
+<dt>PR #3149 Multiple commits</dt><dd><ul>
+<li><p>Do not follow links when doing “chown”</p></li>
+<li><p>Cleanup a little debug in new pctrl tool</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3145 Multiple commits</dt><dd><ul>
+<li><p>Retrieve pset names upon PMIx_Get request</p></li>
+<li><p>Add a new “pctrl” tool for requesting job control ops</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3144 Multiple commits</dt><dd><ul>
+<li><p>Properly support the “log” example</p></li>
+<li><p>show_help: strip leading/trailing blank lines</p></li>
+<li><p>docs: fix some leftover “Open MPI” references</p></li>
+<li><p>docs: fix HTML word wapping in table cells</p></li>
+<li><p>Improve error handling in setup_topology</p></li>
+<li><p>Define a new server type and connection flags</p></li>
+<li><p>Minor cleanups for disable-dlopen</p></li>
+<li><p>Fix Python bindings</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>PR #3131 Multiple commits</dt><dd><ul>
+<li><p>Switch to using event lib for connections</p></li>
+<li><p>Roll to version 5.0.1</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="aug-2023">
+<h2><span class="section-number">16.1.12. </span>5.0.0 – 7 Aug 2023<a class="headerlink" href="#aug-2023" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This is the first release in the v5 family
+and includes some significant changes, both internal
+and user-facing. A partial list includes:</p>
+<ul class="simple">
+<li><p>initial attribute and API definitions in support of
+scheduler integration to both applications and
+resource managers/runtime environments.</p></li>
+<li><p>a new shared memory implementation that removes the need
+for special “workaround” logic due to limitations in the
+prior method</p></li>
+<li><p>support for “qualified” values whereby an application
+can post multiple values to the same key, each with one
+or more qualifiers - and then retrieve the desired one
+by specifying the appropriate qualifier.</p></li>
+<li><p>availability of both function and macro equivalents
+for all support operations (e.g., PMIX_ARGV_APPEND and
+PMIx_Argv_append). Note that the macro versions have
+been deprecated by the PMIx Standard, but remain highly
+recommended for use by those compiling against the
+library (as opposed to dlopen’ing it)</p></li>
+</ul>
+</div>
+<p>A full list of individual changes will not be provided here,
+but will commence with the v5.0.1 release.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="16. News" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="news-v4.x.html" class="btn btn-neutral float-right" title="16.2. PMIx v4.x series" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

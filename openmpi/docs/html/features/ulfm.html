@@ -1,0 +1,776 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.3. User-Level Fault Mitigation (ULFM) &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="5.4. Open MPI Java bindings" href="java.html" />
+    <link rel="prev" title="5.2. Open MPI extensions" href="extensions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">5. Open MPI-specific features</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="profiling.html">5.1. Open MPI profiling interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extensions.html">5.2. Open MPI extensions</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">5.3. User-Level Fault Mitigation (ULFM)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#quick-start">5.3.1. Quick Start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#features">5.3.2. Features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#supported-systems">5.3.3. Supported Systems</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ulfm-web-site">5.3.4. ULFM web site</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#bibliographic-references">5.3.5. Bibliographic References</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#building-ulfm-support-in-open-mpi">5.3.6. Building ULFM support in Open MPI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#running-ulfm-open-mpi">5.3.7. Running ULFM Open MPI</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#building-your-application">5.3.7.1. Building your application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#running-your-application">5.3.7.2. Running your application</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#running-under-a-batch-scheduler">5.3.7.3. Running under a batch scheduler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#run-time-tuning-knobs">5.3.7.4. Run-time tuning knobs</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#known-limitations-in-ulfm">5.3.8. Known Limitations in ULFM</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#modified-untested-and-disabled-components">5.3.9. Modified, Untested and Disabled Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#changelog">5.3.10. Changelog</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ulfm-integrated-in-open-mpi">5.3.10.1. ULFM Integrated in Open MPI</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ulfm-standalone-release-4-0-2u1">5.3.10.2. ULFM Standalone Release 4.0.2u1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ulfm-standalone-release-4-0-1u1">5.3.10.3. ULFM Standalone Release 4.0.1u1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ulfm-standalone-release-2-1">5.3.10.4. ULFM Standalone Release 2.1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ulfm-standalone-release-2-0">5.3.10.5. ULFM Standalone Release 2.0</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ulfm-standalone-release-1-1">5.3.10.6. ULFM Standalone Release 1.1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ulfm-standalone-release-1-0">5.3.10.7. ULFM Standalone Release 1.0</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#binary-compatibility">5.3.10.8. Binary Compatibility</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#contacting-the-authors">5.3.11. Contacting the Authors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ulfm-copyright">5.3.12. ULFM Copyright</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="java.html">5.4. Open MPI Java bindings</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">5. </span>Open MPI-specific features</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.3. </span>User-Level Fault Mitigation (ULFM)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/features/ulfm.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="user-level-fault-mitigation-ulfm">
+<span id="ulfm-label"></span><h1><span class="section-number">5.3. </span>User-Level Fault Mitigation (ULFM)<a class="headerlink" href="#user-level-fault-mitigation-ulfm" title="Link to this heading"></a></h1>
+<p>This chapter documents the features and options specific to the <strong>User
+Level Failure Mitigation (ULFM)</strong> Open MPI implementation.</p>
+<section id="quick-start">
+<h2><span class="section-number">5.3.1. </span>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<p>This is an extremely terse summary of how to use ULFM:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ ./configure --with-ft=ulfm [...options...]
+shell$ make [-j N] all install
+shell$ mpicc my-ft-program.c -o my-ft-program
+shell$ mpirun -n 4 --with-ft ulfm my-ft-program
+</pre></div>
+</div>
+</section>
+<section id="features">
+<h2><span class="section-number">5.3.2. </span>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
+<p>This implementation conforms to the User Level Failure Mitigation
+(ULFM) MPI Standard draft proposal. The ULFM proposal is developed by
+the MPI Forum’s Fault Tolerance Working Group to support the continued
+operation of MPI programs after any type of failures, hard or soft,
+have impacted the execution. The key principle is that no MPI call
+(point-to-point, collective, RMA, IO, …) can block indefinitely
+after a failure, but must either succeed or raise an MPI
+error. Accordingly, the errors are not all fatal, the MPI
+implementations will do a best-effort approach to maintain the
+execution environment up and running.</p>
+<p>This implementation produces the three supplementary error codes and
+five supplementary interfaces defined in the communicator section of
+the <a class="reference external" href="https://fault-tolerance.org/wp-content/uploads/2012/10/20170221-ft.pdf">ULFM chapter</a>
+standard draft document.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_ERR_PROC_FAILED</span></code> when a process failure prevents the
+completion of an MPI operation (error code).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_ERR_PROC_FAILED_PENDING</span></code> when a potential sender matching a
+non-blocking wildcard source receive has failed (error code).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_ERR_REVOKED</span></code> when the communicator is revoked (error
+code).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_Comm_revoke(MPI_Comm</span> <span class="pre">comm)</span></code> Interrupts any communication
+pending on the communicator at all ranks (API). See <a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_revoke.3.html#mpix-comm-revoke"><span class="std std-ref">MPIX_Comm_revoke</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_Comm_is_revoked(MPI_Comm</span> <span class="pre">comm,</span> <span class="pre">int</span> <span class="pre">*flag)</span></code> Test if a Communicator
+is currently revoked (API). See <a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_is_revoked.3.html#mpix-comm-is-revoked"><span class="std std-ref">MPIX_Comm_is_revoked</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_Comm_shrink(MPI_Comm</span> <span class="pre">comm,</span> <span class="pre">MPI_Comm*</span> <span class="pre">newcomm)</span></code> creates a new
+communicator where dead processes in comm were removed, and the
+remaining processes are renamed to cover all the gaps in the naming
+from the original communicator (API). See <a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_shrink.3.html#mpix-comm-shrink"><span class="std std-ref">MPIX_Comm_shrink</span></a>,
+<a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_ishrink.3.html#mpix-comm-ishrink"><span class="std std-ref">MPIX_Comm_ishrink</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_Comm_agree(MPI_Comm</span> <span class="pre">comm,</span> <span class="pre">int</span> <span class="pre">*flag)</span></code> performs a consensus
+(i.e. fault tolerant allreduce operation) on flag (with the
+operation bitwise AND) (API).  Absorbs all new failures, and
+propagate the knowledge about failures among the participants. see
+<a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_agree.3.html#mpix-comm-agree"><span class="std std-ref">MPIX_Comm_agree</span></a>, <a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_iagree.3.html#mpix-comm-iagree"><span class="std std-ref">MPIX_Comm_iagree</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_Comm_get_failed(MPI_Comm</span> <span class="pre">comm,</span> <span class="pre">MPI_Group*</span> <span class="pre">failedgrp)</span></code> obtains the
+group of currently failed processes (API). See <a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_get_failed.3.html#mpix-comm-get-failed"><span class="std std-ref">MPIX_Comm_get_failed</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPIX_Comm_ack_failed(MPI_Comm</span> <span class="pre">comm,</span> <span class="pre">int</span> <span class="pre">num_to_ack,</span> <span class="pre">int*</span> <span class="pre">num_acked)</span></code>
+acknowledges that the application intends to ignore the effect of currently
+known failures on wildcard receive completions and agreement return values
+(API). See <a class="reference internal" href="../man-openmpi/man3/MPIX_Comm_ack_failed.3.html#mpix-comm-ack-failed"><span class="std std-ref">MPIX_Comm_ack_failed</span></a>.</p></li>
+</ul>
+</section>
+<section id="supported-systems">
+<h2><span class="section-number">5.3.3. </span>Supported Systems<a class="headerlink" href="#supported-systems" title="Link to this heading"></a></h2>
+<p>There are several MPI communication engines available in Open MPI,
+notably:</p>
+<ul class="simple">
+<li><p>PML: <code class="docutils literal notranslate"><span class="pre">ob1</span></code>, <code class="docutils literal notranslate"><span class="pre">cm</span></code>, <code class="docutils literal notranslate"><span class="pre">ucx</span></code></p></li>
+<li><p>MTL: <code class="docutils literal notranslate"><span class="pre">ofi</span></code>, <code class="docutils literal notranslate"><span class="pre">portals4</span></code>, <code class="docutils literal notranslate"><span class="pre">psm2</span></code></p></li>
+</ul>
+<p>However, in Open MPI v5.0.11, only <code class="docutils literal notranslate"><span class="pre">ob1</span></code> is fully adapted to support
+fault tolerance. The UCX PML has been successfully tested in some setups,
+but at this point we cannot confirm that all UCT devices are fully capable
+to provide the necessary features.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ob1</span></code> uses BTL (“Byte Transfer Layer”) components for each supported
+network. <code class="docutils literal notranslate"><span class="pre">ob1</span></code> supports a variety of networks that can be used in
+combination with each other. Collective operations (blocking and
+non-blocking) use an optimized implementation on top of  <code class="docutils literal notranslate"><span class="pre">ob1</span></code>.</p>
+<ul class="simple">
+<li><p>Loopback (send-to-self)</p></li>
+<li><p>TCP</p></li>
+<li><p>UCT (InfiniBand)</p></li>
+<li><p>uGNI (Cray Gemini, Aries)</p></li>
+<li><p>Shared Memory (FT supported with CMA and XPMEM; KNEM is untested)</p></li>
+<li><p>Tuned and non-blocking collective communications</p></li>
+</ul>
+<p>A full list of supported, untested and disabled components is provided
+later in this document.</p>
+</section>
+<section id="ulfm-web-site">
+<h2><span class="section-number">5.3.4. </span>ULFM web site<a class="headerlink" href="#ulfm-web-site" title="Link to this heading"></a></h2>
+<p>More information (tutorials, examples, build instructions for leading
+top500 systems) is also available in the Fault Tolerance Research
+Hub website: <a class="reference external" href="https://fault-tolerance.org">https://fault-tolerance.org</a></p>
+</section>
+<section id="bibliographic-references">
+<h2><span class="section-number">5.3.5. </span>Bibliographic References<a class="headerlink" href="#bibliographic-references" title="Link to this heading"></a></h2>
+<p>If you are looking for, or want to cite a general reference for ULFM,
+please use:</p>
+<blockquote>
+<div><p><em>Wesley Bland, Aurelien Bouteiller, Thomas Herault, George Bosilca, Jack
+J. Dongarra: Post-failure recovery of MPI communication
+capability: Design and rationale. IJHPCA 27(3): 244-254 (2013).</em></p>
+</div></blockquote>
+<p>Available from DOI <a class="extlink-doi reference external" href="https://doi.org/10.1177/1094342013488238">10.1177/1094342013488238</a>.</p>
+</section>
+<section id="building-ulfm-support-in-open-mpi">
+<h2><span class="section-number">5.3.6. </span>Building ULFM support in Open MPI<a class="headerlink" href="#building-ulfm-support-in-open-mpi" title="Link to this heading"></a></h2>
+<p>In Open MPI v5.0.11, ULFM support is <strong>built-in by default</strong> —
+that is, when you build Open MPI, unless you specify <code class="docutils literal notranslate"><span class="pre">--without-ft</span></code>, ULFM
+support is automatically available (but is inactive unless enabled at
+runtime).</p>
+<p>Optionally, you can specify <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code> to ensure that ULFM support
+is definitely built.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>ULFM Fault Tolerance does not apply to OpenSHMEM.  It is recommended
+that if you are going to use ULFM, you should disable building OpenSHMEM
+with <code class="docutils literal notranslate"><span class="pre">--disable-oshmem</span></code>.</p>
+</div>
+</section>
+<section id="running-ulfm-open-mpi">
+<h2><span class="section-number">5.3.7. </span>Running ULFM Open MPI<a class="headerlink" href="#running-ulfm-open-mpi" title="Link to this heading"></a></h2>
+<section id="building-your-application">
+<h3><span class="section-number">5.3.7.1. </span>Building your application<a class="headerlink" href="#building-your-application" title="Link to this heading"></a></h3>
+<p>As ULFM is still an extension to the MPI standard, you will need to
+<code class="docutils literal notranslate"><span class="pre">#include</span> <span class="pre">&lt;mpi-ext.h&gt;</span></code> in C, or <code class="docutils literal notranslate"><span class="pre">use</span> <span class="pre">mpi_ext</span></code> in Fortran to access
+the supplementary error codes and functions.</p>
+<p>Compile your application as usual, using the provided <code class="docutils literal notranslate"><span class="pre">mpicc</span></code> or
+<code class="docutils literal notranslate"><span class="pre">mpifort</span></code> wrappers.</p>
+</section>
+<section id="running-your-application">
+<h3><span class="section-number">5.3.7.2. </span>Running your application<a class="headerlink" href="#running-your-application" title="Link to this heading"></a></h3>
+<p>You can launch your application with fault tolerance by simply using
+the normal Open MPI <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> launcher, with the
+<code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code> CLI option (or its synonym <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">mpi</span></code>):</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>shell$ mpirun --with-ft ulfm ...
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>By default, fault tolerance is not active at run time.
+It must be enabled via <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code>.</p>
+</div>
+</section>
+<section id="running-under-a-batch-scheduler">
+<h3><span class="section-number">5.3.7.3. </span>Running under a batch scheduler<a class="headerlink" href="#running-under-a-batch-scheduler" title="Link to this heading"></a></h3>
+<p>ULFM can operate under a job/batch scheduler, and is tested routinely
+with ALPS, PBS, and Slurm. One difficulty comes from the fact that
+many job schedulers handle failures by triggering an immediate “cleanup”
+of the application as soon as any process fails. In addition, failure
+detection subsystems integrated into PRTE are not active in direct launch
+scenarios and may not have a launcher specific alternative. This may cause
+the application to not detect failures and lock. In order to avoid these
+problems, it is preferred that you use <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> within an allocation
+(e.g., <code class="docutils literal notranslate"><span class="pre">salloc</span></code>, <code class="docutils literal notranslate"><span class="pre">sbatch</span></code>, <code class="docutils literal notranslate"><span class="pre">qsub</span></code>) rather than a direct launch.</p>
+<ul>
+<li><p>SLURM is tested and supported with fault tolerance.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> in an <code class="docutils literal notranslate"><span class="pre">salloc</span></code> or <code class="docutils literal notranslate"><span class="pre">sbatch</span></code> allocation.
+Direct launch with <code class="docutils literal notranslate"><span class="pre">srun</span></code> is not supported.</p>
+</div>
+</li>
+<li><p>PBS/Torque is tested and supported with fault tolerance.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> in a <code class="docutils literal notranslate"><span class="pre">qsub</span></code> allocation. Direct launch
+with <code class="docutils literal notranslate"><span class="pre">aprun</span></code> is not supported.</p>
+</div>
+</li>
+<li><p>LSF is untested with fault tolerance.</p></li>
+</ul>
+</section>
+<section id="run-time-tuning-knobs">
+<h3><span class="section-number">5.3.7.4. </span>Run-time tuning knobs<a class="headerlink" href="#run-time-tuning-knobs" title="Link to this heading"></a></h3>
+<p>ULFM comes with a variety of knobs for controlling how it runs. The
+default parameters are sane and should result in good performance in
+most cases. You can change the default settings with <code class="docutils literal notranslate"><span class="pre">--mca</span>
+<span class="pre">mpi_ft_foo</span> <span class="pre">&lt;value&gt;</span></code> for Open MPI options, and with <code class="docutils literal notranslate"><span class="pre">--prtemca</span>
+<span class="pre">errmgr_detector_bar</span> <span class="pre">&lt;value&gt;</span></code> for PRTE options.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The main control for enabling/disabling fault tolerance
+at runtime is the <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code> (or its synonym <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">mpi</span></code>)
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code> CLI option. This option sets up multiple subsystems in
+Open MPI to enable fault tolerance. The options described below are
+best used to override the default behavior after the <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code>
+opion is used.</p>
+</div>
+<section id="prte-level-options">
+<h4><span class="section-number">5.3.7.4.1. </span>PRTE level options<a class="headerlink" href="#prte-level-options" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">prrte_enable_ft</span> <span class="pre">&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code> controls
+automatic cleanup of apps with failed processes within
+<code class="docutils literal notranslate"><span class="pre">mpirun</span></code>. This option is automatically set to <code class="docutils literal notranslate"><span class="pre">true</span></code> when using
+<code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">errmgr_detector_priority</span> <span class="pre">&lt;int&gt;</span> <span class="pre">(default</span> <span class="pre">1005</span></code>) selects the
+PRRTE-based failure detector. Only available when
+<code class="docutils literal notranslate"><span class="pre">prte_enable_recovery</span></code> is <code class="docutils literal notranslate"><span class="pre">true</span></code>. You can set this to <code class="docutils literal notranslate"><span class="pre">0</span></code> when
+using the (experimental) Open MPI detector instead.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">errmgr_detector_heartbeat_period</span> <span class="pre">&lt;float&gt;</span> <span class="pre">(default:</span> <span class="pre">5e0)</span></code> controls
+the heartbeat period. Recommended value is 1/2 of the timeout.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">errmgr_detector_heartbeat_timeout</span> <span class="pre">&lt;float&gt;</span> <span class="pre">(default:</span> <span class="pre">1e1</span> <span class="pre">seconds)</span></code>
+heartbeat timeout (i.e. failure detection speed). Recommended value
+is 2 times the heartbeat period. The default setup is tuned for
+failure-free performance at the expense of fault detection
+reactivity. In environments where faults are expected to be common,
+less conservative values can be used (e.g., 100ms); Values lower
+than the TCP poll rate (typically 10ms) can cause false positive.</p></li>
+</ul>
+</section>
+<section id="open-mpi-level-options">
+<h4><span class="section-number">5.3.7.4.2. </span>Open MPI level options<a class="headerlink" href="#open-mpi-level-options" title="Link to this heading"></a></h4>
+<p>Default values are applied to some Open MPI parameters when using
+<code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--with-ft</span> <span class="pre">ulfm</span></code>. These defaults are obtained from the <code class="docutils literal notranslate"><span class="pre">ft-mpi</span></code>
+aggregate MCA param file
+<code class="docutils literal notranslate"><span class="pre">$installdir/share/openmpi/amca-param-sets/ft-mpi</span></code>. You can tune the
+runtime behavior of ULFM by either setting or unsetting variables in
+this file, or by overriding the variable on the command line (e.g.,
+<code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">btl</span> <span class="pre">ofi,self</span></code>).</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Note that if fault tolerance is disabled at runtime,
+(that is, when not using <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code>), the <code class="docutils literal notranslate"><span class="pre">ft-mpi</span></code> AMCA
+param file is not loaded, thus components that are unsafe for fault
+tolerance will load normally (this may change observed performance
+when comparing with and without fault tolerance).</p>
+</div>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_ft_enable</span> <span class="pre">&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code>
+permits turning on/off fault tolerance at runtime. This option is
+automatically set to <code class="docutils literal notranslate"><span class="pre">true</span></code> from the aggregate MCA param file
+<code class="docutils literal notranslate"><span class="pre">ft-mpi</span></code> loaded when using <code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code>. When false, failure
+detection is disabled; Interfaces defined by the fault tolerance extensions
+are substituted with dummy non-fault tolerant implementations (e.g.,
+<code class="docutils literal notranslate"><span class="pre">MPIX_Comm_agree</span></code> is implemented with <code class="docutils literal notranslate"><span class="pre">MPI_Allreduce</span></code>); All other
+controls below become irrelevant.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_ft_verbose</span> <span class="pre">&lt;int&gt;</span> <span class="pre">(default:</span> <span class="pre">0)</span></code> increases the output of the
+fault tolerance activities. A value of 1 will report detected
+failures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_ft_detector</span> <span class="pre">&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code>, <strong>DEPRECATED</strong>
+controls the activation of the Open MPI level failure detector. When
+this detector is turned off, all failure detection is delegated to
+PRTE (see above).  The Open MPI level fault detector is
+experimental. There is a tradeoff between failure detection accuracy
+and performance with this detector. Users that experience accuracy
+issues may enable a more precise mode.  See the tuning knobs below
+to adjust to taste; The Open MPI failure detector operates on
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_WORLD</span></code> exclusively.  Processes connected from
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_CONNECT</span></code>/<code class="docutils literal notranslate"><span class="pre">ACCEPT</span></code> and <code class="docutils literal notranslate"><span class="pre">MPI_COMM_SPAWN</span></code> may
+occasionally not be detected when they fail.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>This component is deprecated. Failure detection is now
+performed at the PRTE level. See the section above on controlling
+PRTE behavior for information about how to tune the failure detector.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_ft_detector_thread</span> <span class="pre">&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code> controls
+the use of a thread to emit and receive failure detector’s
+heartbeats. <em>Setting this value to “true” will also set
+MPI_THREAD_MULTIPLE support, which has a noticeable effect on
+latency (typically 1us increase).</em> You may want to <strong>enable this
+option if you experience false positive</strong> processes incorrectly
+reported as failed with the Open MPI failure detector.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This option is only relevant when <code class="docutils literal notranslate"><span class="pre">mpi_ft_detector</span></code> is <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_ft_detector_period</span> <span class="pre">&lt;float&gt;</span> <span class="pre">(default:</span> <span class="pre">3e0</span> <span class="pre">seconds)</span></code> heartbeat
+period. Recommended value is 1/3 of the timeout. _Values lower than
+100us may impart a noticeable effect on latency (typically a 3us
+increase)._</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This option is only relevant when <code class="docutils literal notranslate"><span class="pre">mpi_ft_detector</span></code> is <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_ft_detector_timeout</span> <span class="pre">&lt;float&gt;</span> <span class="pre">(default:</span> <span class="pre">1e1</span> <span class="pre">seconds)</span></code> heartbeat
+timeout (i.e. failure detection speed). Recommended value is 3 times
+the heartbeat period.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This option is only relevant when <code class="docutils literal notranslate"><span class="pre">mpi_ft_detector</span></code> is <code class="docutils literal notranslate"><span class="pre">true</span></code>.</p>
+</div>
+</li>
+</ul>
+</section>
+</section>
+</section>
+<section id="known-limitations-in-ulfm">
+<h2><span class="section-number">5.3.8. </span>Known Limitations in ULFM<a class="headerlink" href="#known-limitations-in-ulfm" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>InfiniBand support is provided through the UCT BTL; fault tolerant
+operation over the UCX PML is not yet supported for production runs.</p></li>
+<li><p>TOPO, FILE, RMA are not fault tolerant. They are expected to work
+properly before the occurrence of the first failure.</p></li>
+</ul>
+</section>
+<section id="modified-untested-and-disabled-components">
+<h2><span class="section-number">5.3.9. </span>Modified, Untested and Disabled Components<a class="headerlink" href="#modified-untested-and-disabled-components" title="Link to this heading"></a></h2>
+<p>Frameworks and components are listed below and categorized into one of
+three classifications:</p>
+<ol class="arabic simple">
+<li><p><strong>Modified:</strong> This framework/component has been specifically modified
+such that it will continue to work after a failure.</p></li>
+<li><p><strong>Untested:</strong> This framework/component has not been modified and/or
+tested with fault tolerance scenarios, and _may_ malfunction
+after a failure.</p></li>
+<li><p><strong>Disabled:</strong> This framework/component will cause unspecified behavior when
+fault tolerance is enabled. As a consequence, it will be disabled when the
+<code class="docutils literal notranslate"><span class="pre">--with-ft</span> <span class="pre">ulfm</span></code> option is used (see above for details about implicit
+parameters loaded from the <code class="docutils literal notranslate"><span class="pre">ft-mpi</span></code> aggregate param file).</p></li>
+</ol>
+<p>Any framework or component not listed below are categorized as <strong>Unmodified</strong>,
+meaning that it is unmodified for fault tolerance, but will continue to work
+correctly after a failure.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pml</span></code>: MPI point-to-point management layer</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">monitoring</span></code>, <code class="docutils literal notranslate"><span class="pre">v</span></code>: <strong>untested</strong> (they have not been modified to handle
+faults)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cm</span></code>, <code class="docutils literal notranslate"><span class="pre">crcpw</span></code>, <code class="docutils literal notranslate"><span class="pre">ucx</span></code>: <strong>disabled</strong></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">btl</span></code>: Point-to-point Byte Transfer Layer</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ofi</span></code>, <code class="docutils literal notranslate"><span class="pre">portals4</span></code>, <code class="docutils literal notranslate"><span class="pre">smcuda</span></code>, <code class="docutils literal notranslate"><span class="pre">usnic</span></code>, <code class="docutils literal notranslate"><span class="pre">sm(+knem)</span></code>: <strong>untested</strong>
+(they may work properly, please report)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mtl</span></code>: Matching transport layer Used for MPI point-to-point messages on
+some types of networks</p>
+<ul>
+<li><p>All <code class="docutils literal notranslate"><span class="pre">mtl</span></code> components are <strong>disabled</strong></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coll</span></code>: MPI collective algorithms</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">cuda</span></code>, <code class="docutils literal notranslate"><span class="pre">inter</span></code>, <code class="docutils literal notranslate"><span class="pre">sync</span></code>, <code class="docutils literal notranslate"><span class="pre">sm</span></code>: <strong>untested</strong> (they have not
+been modified to handle faults, but we expect correct post-fault
+behavior)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hcoll</span></code>, <code class="docutils literal notranslate"><span class="pre">portals4</span></code> <strong>disabled</strong> (they have not been modified
+to handle faults, and we expect unspecified post-fault behavior)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">osc</span></code>: MPI one-sided communications</p>
+<ul>
+<li><p>All <code class="docutils literal notranslate"><span class="pre">osc</span></code> components are <strong>untested</strong> (they have not been
+modified to handle faults, and we expect unspecified post-fault
+behavior)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">io</span></code>: MPI I/O and dependent components</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">fs</span></code>: File system functions for MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fbtl</span></code>: File byte transfer layer: abstraction for individual
+read/write operations for OMPIO</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fcoll</span></code>: Collective read and write operations for MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sharedfp</span></code>: Shared file pointer operations for MPI I/O</p></li>
+<li><p>All components in these frameworks are unmodified, <strong>untested</strong>
+(we expect clean post-failure abort)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vprotocol</span></code>: Checkpoint/Restart components</p>
+<ul>
+<li><p>All <code class="docutils literal notranslate"><span class="pre">vprotocol</span></code> components are <strong>untested</strong></p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">threads</span></code>, <code class="docutils literal notranslate"><span class="pre">wait-sync</span></code>: Multithreaded wait-synchronization
+object</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">argotbots</span></code>, <code class="docutils literal notranslate"><span class="pre">qthreads</span></code>: <strong>disabled</strong> (these components have
+not been modified to handle faults; we expect post-failure
+deadlock)</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="changelog">
+<h2><span class="section-number">5.3.10. </span>Changelog<a class="headerlink" href="#changelog" title="Link to this heading"></a></h2>
+<section id="ulfm-integrated-in-open-mpi">
+<h3><span class="section-number">5.3.10.1. </span>ULFM Integrated in Open MPI<a class="headerlink" href="#ulfm-integrated-in-open-mpi" title="Link to this heading"></a></h3>
+<p>As of v5.0.11, ULFM is now integrated directly in to the community
+release of Open MPI.  The following sections describe previous ULFM
+standalone releases.</p>
+</section>
+<section id="ulfm-standalone-release-4-0-2u1">
+<h3><span class="section-number">5.3.10.2. </span>ULFM Standalone Release 4.0.2u1<a class="headerlink" href="#ulfm-standalone-release-4-0-2u1" title="Link to this heading"></a></h3>
+<p>This is a stability and upstream parity upgrade. It is based on the
+most current Open MPI Release (v4.0.2, October 2019).</p>
+<ul class="simple">
+<li><p>This release is based on Open MPI release v4.0.2 (ompi #cb5f4e737a).</p></li>
+<li><p>This release is based on ULFM master (ulfm #0e249ca1).</p></li>
+<li><p>New features</p>
+<ul>
+<li><p>Support for the UCT BTL enters beta stage.</p></li>
+</ul>
+</li>
+<li><p>Bugfixes</p>
+<ul>
+<li><p>High sensitivity to noise in the failure detector.</p></li>
+<li><p>Deadlocks when revoking while BTL progress threads are updating messages.</p></li>
+<li><p>A case where the failure detector would keep observing a dead
+process forever.</p></li>
+<li><p>Disable the use of external pmix/libevent by default (the
+internals are modified to handle error cases).</p></li>
+<li><p>Clean error paths leaving some rdma registration dangling.</p></li>
+<li><p>Do not remove the orte job/proc session dir prematurely upon
+error.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="ulfm-standalone-release-4-0-1u1">
+<h3><span class="section-number">5.3.10.3. </span>ULFM Standalone Release 4.0.1u1<a class="headerlink" href="#ulfm-standalone-release-4-0-1u1" title="Link to this heading"></a></h3>
+<p>This is a stability and upstream parity upgrade. It improves
+stability, performance and is based on the most current Open MPI
+Release (v4.0.1, May 2019).</p>
+<ul class="simple">
+<li><p>This release is based on Open MPI release v4.0.1 (ompi #b780667).</p></li>
+<li><p>This release is based on ULFM master (ulfm #cf8dc43f).</p></li>
+<li><p>New features</p>
+<ul>
+<li><p>Addition of the <code class="docutils literal notranslate"><span class="pre">MPI_Comm_is_revoked</span></code> function</p></li>
+<li><p>Renamed <code class="docutils literal notranslate"><span class="pre">ftbasic</span></code> collective component to <code class="docutils literal notranslate"><span class="pre">ftagree</span></code></p></li>
+<li><p>Restored the <code class="docutils literal notranslate"><span class="pre">pcollreq</span></code> extension</p></li>
+</ul>
+</li>
+<li><p>Bugfixes</p>
+<ul>
+<li><p>Failures of node-local siblings were not always detected</p></li>
+<li><p>Failure propagation and detection was slowed down by trying to
+notify known dead processes</p></li>
+<li><p>There were deadlocks in multithreaded programs</p></li>
+<li><p>There were issues with PMPI when compiling Fortran Interfaces</p></li>
+<li><p>There were deadlocks on OS-X</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="ulfm-standalone-release-2-1">
+<h3><span class="section-number">5.3.10.4. </span>ULFM Standalone Release 2.1<a class="headerlink" href="#ulfm-standalone-release-2-1" title="Link to this heading"></a></h3>
+<p>This release is a bugfix and upstream parity upgrade. It improves
+stability, performance and is based on the most current Open MPI
+main (November 2018).</p>
+<ul class="simple">
+<li><p>ULFM is now based upon Open MPI main branch (#37954b5f).</p></li>
+<li><p>ULFM tuning MCA parameters are exposed by <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code>.</p></li>
+<li><p>Fortran 90 bindings have been updated</p></li>
+<li><p>Bugfixes:</p>
+<ul>
+<li><p>Correct the behavior of process placement during an MPI_COMM_SPAWN
+when some slots were occupied by failed processes.</p></li>
+<li><p>MPI_COMM_SPAWN accepts process placement directives in the Info object.</p></li>
+<li><p>Fixed deadlocks in some NBC collective operations.</p></li>
+<li><p>Crashes and deadlocks in MPI_FINALIZE have been resolved.</p></li>
+<li><p>Any-source requests that returned with an error status of
+MPIX_PROC_FAILED_PENDING can now correctly complete during later
+MPI_WAIT/TEST.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="ulfm-standalone-release-2-0">
+<h3><span class="section-number">5.3.10.5. </span>ULFM Standalone Release 2.0<a class="headerlink" href="#ulfm-standalone-release-2-0" title="Link to this heading"></a></h3>
+<p>Focus has been toward integration with current Open MPI main
+(November 2017), performance, and stability.</p>
+<ul class="simple">
+<li><p>ULFM is now based upon Open MPI main branch (#689f1be9). It will
+be regularly updated until it will eventually be merged.</p></li>
+<li><p>Fault Tolerance is enabled by default and is controlled with MCA variables.</p></li>
+<li><p>Added support for multithreaded modes (MPI_THREAD_MULTIPLE, etc.)</p></li>
+<li><p>Added support for non-blocking collective operations (NBC).</p></li>
+<li><p>Added support for CMA shared memory transport (Vader).</p></li>
+<li><p>Added support for advanced failure detection at the MPI level.
+Implements the algorithm described in “Failure detection and
+propagation in HPC systems,” DOI <a class="extlink-doi reference external" href="https://doi.org/10.1109/SC.2016.26">10.1109/SC.2016.26</a>.</p></li>
+<li><p>Removed the need for special handling of CID allocation.</p></li>
+<li><p>Non-usable components are automatically removed from the build
+during configure</p></li>
+<li><p>RMA, FILES, and TOPO components are enabled by default, and usage in
+a fault tolerant execution warns that they may cause undefined
+behavior after a failure.</p></li>
+<li><p>Bugfixes:</p>
+<ul>
+<li><p>Code cleanup and performance cleanup in non-FT builds; –without-ft at
+configure time gives an almost stock Open MPI.</p></li>
+<li><p>Code cleanup and performance cleanup in FT builds with FT runtime disabled;
+–mca ft_enable_mpi false thoroughly disables FT runtime activities.</p></li>
+<li><p>Some error cases would return ERR_PENDING instead of ERR_PROC_FAILED in
+collective operations.</p></li>
+<li><p>Some test could set ERR_PENDING or ERR_PROC_FAILED instead of
+ERR_PROC_FAILED_PENDING for ANY_SOURCE receptions.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="ulfm-standalone-release-1-1">
+<h3><span class="section-number">5.3.10.6. </span>ULFM Standalone Release 1.1<a class="headerlink" href="#ulfm-standalone-release-1-1" title="Link to this heading"></a></h3>
+<p>Focus has been toward improving stability, feature coverage for
+intercomms, and following the updated specification for
+MPI_ERR_PROC_FAILED_PENDING.</p>
+<ul class="simple">
+<li><p>Forked from Open MPI 1.5.5 devel branch</p></li>
+<li><p>Addition of the MPI_ERR_PROC_FAILED_PENDING error code, as per newer
+specification revision. Properly returned from point-to-point,
+non-blocking ANY_SOURCE operations.</p></li>
+<li><p>Alias MPI_ERR_PROC_FAILED, MPI_ERR_PROC_FAILED_PENDING and
+MPI_ERR_REVOKED to the corresponding standard blessed -extension-
+names MPIX_ERR_xxx.</p></li>
+<li><p>Support for Intercommunicators:</p>
+<ul>
+<li><p>Support for the blocking version of the agreement, MPI_COMM_AGREE
+on Intercommunicators.</p></li>
+<li><p>MPI_COMM_REVOKE tested on intercommunicators.</p></li>
+</ul>
+</li>
+<li><p>Disabled completely (.ompi_ignore) many untested components.</p></li>
+<li><p>Changed the default ORTE failure notification propagation
+aggregation delay from 1s to 25ms.</p></li>
+<li><p>Added an Open MPI internal failure propagator; failure propagation
+between SM domains is now immediate.</p></li>
+<li><p>Bugfixes:</p>
+<ul>
+<li><p>SendRecv would not always report MPI_ERR_PROC_FAILED correctly.</p></li>
+<li><p>SendRecv could incorrectly update the status with errors
+pertaining to the Send portion of the Sendrecv.</p></li>
+<li><p>Revoked send operations are now always completed or remote
+cancelled and may not deadlock anymore.</p></li>
+<li><p>Cancelled send operations to a dead peer will not trigger an
+assert when the BTL reports that same failure.</p></li>
+<li><p>Repeat calls to operations returning MPI_ERR_PROC_FAILED will
+eventually return MPI_ERR_REVOKED when another process revokes the
+communicator.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="ulfm-standalone-release-1-0">
+<h3><span class="section-number">5.3.10.7. </span>ULFM Standalone Release 1.0<a class="headerlink" href="#ulfm-standalone-release-1-0" title="Link to this heading"></a></h3>
+<p>Focus has been toward improving performance, both before and after the
+occurrence of failures.  The list of new features includes:</p>
+<ul class="simple">
+<li><p>Support for the non-blocking version of the agreement, MPI_COMM_IAGREE.</p></li>
+<li><p>Compliance with the latest ULFM specification draft. In particular,
+the MPI_COMM_(I)AGREE semantic has changed.</p></li>
+<li><p>New algorithm to perform agreements, with a truly logarithmic
+complexity in number of ranks, which translates into huge
+performance boosts in MPI_COMM_(I)AGREE and MPI_COMM_SHRINK.</p></li>
+<li><p>New algorithm to perform communicator revocation. MPI_COMM_REVOKE
+performs a reliable broadcast with a fixed maximum output degree,
+which scales logarithmically with the number of ranks.</p></li>
+<li><p>Improved support for our traditional network layer:</p>
+<ul>
+<li><p>TCP: fully tested</p></li>
+<li><p>SM: fully tested (with the exception of XPMEM, which remains unsupported)</p></li>
+</ul>
+</li>
+<li><p>Added support for High Performance networks</p>
+<ul>
+<li><p>Open IB: reasonably tested</p></li>
+<li><p>uGNI: reasonably tested</p></li>
+</ul>
+</li>
+<li><p>The tuned collective module is now enabled by default (reasonably
+tested), expect a huge performance boost compared to the former
+basic default setting</p>
+<ul>
+<li><p>Back-ported PBS/ALPS fixes from Open MPI</p></li>
+<li><p>Back-ported OpenIB bug/performance fixes from Open MPI</p></li>
+<li><p>Improve Context ID allocation algorithm to reduce overheads of
+Shrink</p></li>
+<li><p>Miscellaneous bug fixes</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="binary-compatibility">
+<h3><span class="section-number">5.3.10.8. </span>Binary Compatibility<a class="headerlink" href="#binary-compatibility" title="Link to this heading"></a></h3>
+<p>ULFM Open MPI is binary compatible with any version of Open MPI
+compatible with the underlying Open MPI main branch or release (see
+the binary compatibility and version number section in the upstream
+Open MPI README). That is, applications compiled with a compatible
+Open MPI can run with the ULFM Open MPI <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> and MPI
+libraries. Conversely, <em>as long as the application does not employ one
+of the MPIX functions,</em> which are exclusively defined in ULFM Open
+MPI, an application compiled with ULFM Open MPI can be launched with a
+compatible Open MPI <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> and run with the non-fault tolerant MPI
+library.</p>
+</section>
+</section>
+<section id="contacting-the-authors">
+<h2><span class="section-number">5.3.11. </span>Contacting the Authors<a class="headerlink" href="#contacting-the-authors" title="Link to this heading"></a></h2>
+<p>Found a bug?  Got a question?  Want to make a suggestion?  Want to
+contribute to ULFM Open MPI?  Working on a cool use-case?
+Please let us know!</p>
+<p>The best way to report bugs, send comments, or ask questions is to
+sign up on the user’s mailing list: <a class="reference external" href="mailto:ulfm+subscribe&#37;&#52;&#48;googlegroups&#46;com">ulfm+subscribe<span>&#64;</span>googlegroups<span>&#46;</span>com</a></p>
+<p>Because of spam, only subscribers are allowed to post to these lists
+(ensure that you subscribe with and post from exactly the same e-mail
+address — <a class="reference external" href="mailto:joe&#37;&#52;&#48;example&#46;com">joe<span>&#64;</span>example<span>&#46;</span>com</a> is considered different than
+<a class="reference external" href="mailto:joe&#37;&#52;&#48;mycomputer&#46;example&#46;com">joe<span>&#64;</span>mycomputer<span>&#46;</span>example<span>&#46;</span>com</a>!).  Visit these pages to subscribe to the
+lists: <a class="reference external" href="https://groups.google.com/forum/#!forum/ulfm">https://groups.google.com/forum/#!forum/ulfm</a></p>
+<p>When submitting questions and problems, be sure to include as much
+extra information as possible.  See the <a class="reference internal" href="../getting-help.html"><span class="doc">Getting help</span></a> section for more details.</p>
+<p>Thanks for your time.</p>
+</section>
+<section id="ulfm-copyright">
+<h2><span class="section-number">5.3.12. </span>ULFM Copyright<a class="headerlink" href="#ulfm-copyright" title="Link to this heading"></a></h2>
+<p>Copyright (c) 2012-2026 The University of Tennessee and The
+University of Tennessee Research Foundation.  All rights reserved.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="extensions.html" class="btn btn-neutral float-left" title="5.2. Open MPI extensions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="java.html" class="btn btn-neutral float-right" title="5.4. Open MPI Java bindings" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

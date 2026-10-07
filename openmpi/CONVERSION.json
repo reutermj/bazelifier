@@ -1,0 +1,1022 @@
+{
+  "config_headers": 24,
+  "escalations": [
+    {
+      "digest": "cf0d3fd0314dffe7",
+      "kind": "ctest_command_not_a_target",
+      "subject": "strsep"
+    },
+    {
+      "digest": "5d62ee84fcb38939",
+      "kind": "generated_headers",
+      "subject": "3rd-party/romio341/mpl/include/mplconfig.h, 3rd-party/treematch/config.h, ompi/include/mpi_portable_platform.h, ompi/include/mpif-c-constants.h, ompi/mca/bml/base/static-components.h, ompi/mca/coll/base/static-components.h, ompi/mca/fbtl/base/static-components.h, ompi/mca/fcoll/base/static-components.h, ompi/mca/fs/base/static-components.h, ompi/mca/hook/base/static-components.h, ompi/mca/io/base/static-components.h, ompi/mca/mtl/base/static-components.h, ompi/mca/op/base/static-components.h, ompi/mca/osc/base/static-components.h, ompi/mca/osc/monitoring/osc_monitoring_template_gen.h, ompi/mca/part/base/static-components.h, ompi/mca/pml/base/static-components.h, ompi/mca/sharedfp/base/static-components.h, ompi/mca/topo/base/static-components.h, ompi/mca/vprotocol/base/static-components.h, ompi/mpiext/static-components.h, opal/mca/accelerator/base/static-components.h, opal/mca/allocator/base/static-components.h, opal/mca/backtrace/base/static-components.h, opal/mca/btl/base/static-components.h, opal/mca/dl/base/static-components.h, opal/mca/if/base/static-components.h, opal/mca/installdirs/base/static-components.h, opal/mca/memchecker/base/static-components.h, opal/mca/memcpy/base/static-components.h, opal/mca/memory/base/static-components.h, opal/mca/mpool/base/static-components.h, opal/mca/patcher/base/static-components.h, opal/mca/rcache/base/static-components.h, opal/mca/reachable/base/static-components.h, opal/mca/shmem/base/static-components.h, opal/mca/smsc/base/static-components.h, opal/mca/threads/base/static-components.h, opal/mca/timer/base/static-components.h"
+    },
+    {
+      "digest": "46e3fbf741e442dd",
+      "kind": "shared_library_absorbs_static",
+      "subject": "libmpi.la"
+    },
+    {
+      "digest": "ee9f718652ecfd0e",
+      "kind": "shared_library_absorbs_static",
+      "subject": "libopen-pal.la"
+    },
+    {
+      "digest": "80125ce600a735b5",
+      "kind": "shell_expanded_defines",
+      "subject": "OMPI_BUILD_DATE, OMPI_BUILD_HOST, OMPI_BUILD_USER"
+    },
+    {
+      "digest": "4ede6177bf703a65",
+      "kind": "unmapped_config_macros",
+      "subject": "3rd-party/romio341/adio/include/romioconf.h"
+    },
+    {
+      "digest": "d4cc4b0b6dfaf49c",
+      "kind": "unmapped_config_macros",
+      "subject": "3rd-party/romio341/include/mpio.h"
+    },
+    {
+      "digest": "0e22120db9d5091a",
+      "kind": "unmapped_config_macros",
+      "subject": "3rd-party/romio341/mpl/include/config.h"
+    },
+    {
+      "digest": "f42aff2a1506a6d4",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/include/mpi.h"
+    },
+    {
+      "digest": "b1dfe56949167a48",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/include/mpif-config.h"
+    },
+    {
+      "digest": "17294e997bfcaa0b",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/include/ompi/version.h"
+    },
+    {
+      "digest": "2f4db945590cfcfd",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/mpi/fortran/configure-fortran-output.h"
+    },
+    {
+      "digest": "b91a5efd8886c1c4",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/mpi/fortran/use-mpi-f08/mod/mpi-f08-interfaces.h"
+    },
+    {
+      "digest": "e8ee11a4db22b3a0",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-file-interfaces.h"
+    },
+    {
+      "digest": "6a70f8686c0891f7",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-interfaces.h"
+    },
+    {
+      "digest": "7aad7f69be54d36d",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/mpi/fortran/use-mpi-ignore-tkr/mpi-ignore-tkr-removed-interfaces.h"
+    },
+    {
+      "digest": "5a240028b7d9d369",
+      "kind": "unmapped_config_macros",
+      "subject": "ompi/mpiext/shortfloat/mpif-h/mpiext_shortfloat_mpifh.h"
+    },
+    {
+      "digest": "31281250b18ce9b9",
+      "kind": "unmapped_config_macros",
+      "subject": "opal/include/opal/version.h"
+    },
+    {
+      "digest": "dc520f5ae89069cf",
+      "kind": "unmapped_config_macros",
+      "subject": "opal/include/opal_config.h"
+    },
+    {
+      "digest": "b84eeb63efdefcb2",
+      "kind": "unmapped_config_macros",
+      "subject": "oshmem/include/oshmem/version.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "ctest_command_not_a_target": 1,
+    "generated_headers": 1,
+    "shared_library_absorbs_static": 2,
+    "shell_expanded_defines": 1,
+    "unmapped_config_macros": 15
+  },
+  "module": "openmpi",
+  "targets": [
+    {
+      "kind": "executable",
+      "name": "atomic_barrier",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "atomic_barrier_noinline",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "atomic_cmpset",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "atomic_cmpset_noinline",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "atomic_math",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "atomic_math_noinline",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "atomic_spinlock",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "atomic_spinlock_noinline",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "bipartite_graph",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "check_monitoring",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "checksum",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "ddt_pack",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "ddt_raw",
+      "sources": 1087
+    },
+    {
+      "kind": "executable",
+      "name": "ddt_raw2",
+      "sources": 1087
+    },
+    {
+      "kind": "executable",
+      "name": "ddt_test",
+      "sources": 1087
+    },
+    {
+      "kind": "executable",
+      "name": "dlopen_test",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "example_reduce_count",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "external32",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "large_data",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libdatatype_reliable.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libdebuggers.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "liblocal_ops_avx.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "liblocal_ops_avx2.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "liblocal_ops_avx512.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_accelerator.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_accelerator_null.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_allocator.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_allocator_basic.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_allocator_bucket.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_backtrace.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_backtrace_execinfo.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_base.la",
+      "sources": 1101
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_bml.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_bml_r2.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_btl.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_btl_self.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_btl_sm.la",
+      "sources": 1090
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_btl_tcp.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll.la",
+      "sources": 1105
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_adapt.la",
+      "sources": 1093
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_basic.la",
+      "sources": 1107
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_ftagree.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_han.la",
+      "sources": 1098
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_inter.la",
+      "sources": 1094
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_libnbc.la",
+      "sources": 1110
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_monitoring.la",
+      "sources": 1106
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_self.la",
+      "sources": 1101
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_sm.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_sync.la",
+      "sources": 1094
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_coll_tuned.la",
+      "sources": 1103
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_common_monitoring_noinst.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_common_ompio_noinst.la",
+      "sources": 1092
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_dl.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_dl_dlopen.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fbtl.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fbtl_posix.la",
+      "sources": 1090
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fcoll.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fcoll_dynamic.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fcoll_dynamic_gen2.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fcoll_individual.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fcoll_vulcan.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fs.la",
+      "sources": 1093
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_fs_ufs.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_hook.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_hook_comm_method.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_hwloc.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_if.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_if_linux_ipv6.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_if_posix_ipv4.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_installdirs.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_installdirs_config.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_installdirs_env.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_io.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_io_ompio.la",
+      "sources": 1090
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_io_romio341.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_memchecker.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_memcpy.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_memory.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_memory_patcher.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_mpool.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_mpool_hugepage.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_mtl.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_op.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_op_avx.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_osc.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_osc_monitoring.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_osc_rdma.la",
+      "sources": 1095
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_osc_sm.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_part.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_part_persist.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_patcher.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_patcher_overwrite.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pmix.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pml.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pml_cm.la",
+      "sources": 1090
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pml_monitoring.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pml_ob1.la",
+      "sources": 1097
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_pml_v.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_rcache.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_rcache_grdma.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_reachable.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_reachable_weighted.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_sharedfp.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_sharedfp_individual.la",
+      "sources": 1094
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_sharedfp_lockedfile.la",
+      "sources": 1093
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_sharedfp_sm.la",
+      "sources": 1093
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_shmem.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_shmem_mmap.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_shmem_posix.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_shmem_sysv.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_smsc.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_smsc_cma.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_threads.la",
+      "sources": 1088
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_threads_pthreads.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_timer.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_timer_linux.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_topo.la",
+      "sources": 1105
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_topo_basic.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_topo_treematch.la",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_vprotocol.la",
+      "sources": 1087
+    },
+    {
+      "kind": "static_library",
+      "name": "libmca_vprotocol_pessimist.la",
+      "sources": 1097
+    },
+    {
+      "kind": "shared_library",
+      "name": "libmpi.la",
+      "sources": 1131
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpi_c.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpi_c_profile.la",
+      "sources": 1520
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpi_mpit.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpi_mpit_profile.la",
+      "sources": 1114
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpiext_affinity_c.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpiext_cuda_c.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpiext_ftmpi_c.la",
+      "sources": 1092
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpiext_rocm_c.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libmpl.la",
+      "sources": 85
+    },
+    {
+      "kind": "shared_library",
+      "name": "libompi_dbg_msgq.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libompi_debugger_canary.la",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libopalutil.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libopalutil_core.la",
+      "sources": 1113
+    },
+    {
+      "kind": "static_library",
+      "name": "libopalutilkeyval.la",
+      "sources": 1084
+    },
+    {
+      "kind": "shared_library",
+      "name": "libopen-pal.la",
+      "sources": 1089
+    },
+    {
+      "kind": "static_library",
+      "name": "libopen-pal_core.la",
+      "sources": 1102
+    },
+    {
+      "kind": "static_library",
+      "name": "libopen-palmca_common_sm_noinst.la",
+      "sources": 1085
+    },
+    {
+      "kind": "static_library",
+      "name": "libpmpiext_ftmpi_c.la",
+      "sources": 0
+    },
+    {
+      "kind": "static_library",
+      "name": "libromio_dist.la",
+      "sources": 1247
+    },
+    {
+      "kind": "static_library",
+      "name": "libsupport.a",
+      "sources": 1084
+    },
+    {
+      "kind": "static_library",
+      "name": "libtreematch.la",
+      "sources": 1098
+    },
+    {
+      "kind": "executable",
+      "name": "monitoring_test",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "mpirun",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "mpool_memkind",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "ompi_datatype_libdatatype.la",
+      "sources": 1097
+    },
+    {
+      "kind": "executable",
+      "name": "ompi_info",
+      "sources": 1087
+    },
+    {
+      "kind": "executable",
+      "name": "ompi_rb_tree",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_atomic_thread_bench",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_bit_ops",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_bitmap",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_condition",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_cstring",
+      "sources": 1086
+    },
+    {
+      "kind": "static_library",
+      "name": "opal_datatype_libdatatype.la",
+      "sources": 1103
+    },
+    {
+      "kind": "executable",
+      "name": "opal_datatype_test",
+      "sources": 1087
+    },
+    {
+      "kind": "executable",
+      "name": "opal_fifo",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_hash_table",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_lifo",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_list",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_path_nfs",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_pointer_array",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_proc_table",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_sha256",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_thread",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_value_array",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "opal_wrapper",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "parrived_null_inactive",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "partial",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "partitioned_proc_null",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "position",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "position_noncontig",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "predefined_gap_test",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "predefined_pad_test",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "reduce_local",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "spc_test",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "test_overhead",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "test_pvar_access",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "to_self",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "unpack_hetero",
+      "sources": 1086
+    },
+    {
+      "kind": "executable",
+      "name": "unpack_ooo",
+      "sources": 1087
+    }
+  ],
+  "tests": 44,
+  "version": "5.0.11"
+}

@@ -1,0 +1,376 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.10. Installation location &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="5.11. Advice for packagers" href="packagers.html" />
+    <link rel="prev" title="5.9. make targets" href="make-targets.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">5. Building and installing PMIx</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">5.1. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="definitions.html">5.2. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filesystem-requirements.html">5.3. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vpath-builds.html">5.4. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compilers-and-flags.html">5.5. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="required-support-libraries.html">5.6. Required support libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configure-cli-options/index.html">5.7. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configure-output-summary.html">5.8. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="make-targets.html">5.9. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">5.10. Installation location</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#filesystem-types">5.10.1. Filesystem types</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#network-filesystem">5.10.1.1. Network filesystem</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#local-filesystem">5.10.1.2. Local filesystem</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#installing-over-a-prior-pmix-installation">5.10.2. Installing over a prior PMIx installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#relocating-an-pmix-installation">5.10.3. Relocating an PMIx installation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#move-an-existing-pmix-installation-to-a-new-prefix">5.10.3.1. Move an existing PMIx installation to a new prefix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#stage-an-pmix-installation-in-a-temporary-location">5.10.3.2. “Stage” an PMIx installation in a temporary location</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#overriding-individual-directories">5.10.3.3. Overriding individual directories</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="packagers.html">5.11. Advice for packagers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">5. </span>Building and installing PMIx</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.10. </span>Installation location</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/installing-pmix/installation-location.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="installation-location">
+<span id="building-pmix-installation-location-label"></span><h1><span class="section-number">5.10. </span>Installation location<a class="headerlink" href="#installation-location" title="Link to this heading"></a></h1>
+<p>A common environment to run PMIx is in a “Beowulf”-class or
+similar cluster (e.g., a bunch of 1U servers in a bunch of racks).
+Simply stated, PMIx can run on a group of servers or workstations
+connected by a network.</p>
+<p>This raises the question for PMIx system administrators: where to
+install the PMIx binaries, header files, etc.?  This discussion
+mainly addresses this question for homogeneous clusters (i.e., where
+all nodes and operating systems are the same), although elements of
+this discussion apply to heterogeneous clusters as well.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>For simplicity, the PMIx team <em>strongly</em> recommends
+that you install PMIx at the same path location on all nodes in
+your cluster.  This <em>greatly</em> simplifies the user experience of
+running jobs across multiple nodes in your cluster.</p>
+<p>It is <em>possible</em> to install PMIx in unique path locations in
+the different nodes in your cluster, but it is not <em>advisable</em>.</p>
+</div>
+<section id="filesystem-types">
+<h2><span class="section-number">5.10.1. </span>Filesystem types<a class="headerlink" href="#filesystem-types" title="Link to this heading"></a></h2>
+<p>There are two common approaches.</p>
+<section id="network-filesystem">
+<h3><span class="section-number">5.10.1.1. </span>Network filesystem<a class="headerlink" href="#network-filesystem" title="Link to this heading"></a></h3>
+<p>Have a common filesystem, such as NFS, between all the machines to be
+used.  Install PMIx such that the installation directory is the
+<em>same value</em> on each node.  This will <em>greatly</em> simplify user’s shell
+startup scripts (e.g., <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code>, <code class="docutils literal notranslate"><span class="pre">.cshrc</span></code>, <code class="docutils literal notranslate"><span class="pre">.profile</span></code> etc.)
+— the <code class="docutils literal notranslate"><span class="pre">PATH</span></code> can be set without checking which machine the
+user is on.  It also simplifies the system administrator’s job; when
+the time comes to patch or otherwise upgrade PMIx, only one copy
+needs to be modified.</p>
+<p>For example, consider a cluster of four machines: <code class="docutils literal notranslate"><span class="pre">inky</span></code>,
+<code class="docutils literal notranslate"><span class="pre">blinky</span></code>, <code class="docutils literal notranslate"><span class="pre">pinky</span></code>, and <code class="docutils literal notranslate"><span class="pre">clyde</span></code>.</p>
+<ul>
+<li><p>Install PMIx on <code class="docutils literal notranslate"><span class="pre">inky</span></code>’s local hard drive in the directory
+<code class="docutils literal notranslate"><span class="pre">/opt/pmix-VERSION</span></code>.  The system administrator then mounts
+<code class="docutils literal notranslate"><span class="pre">inky:/opt/pmix-VERSION</span></code> on the remaining three machines, such
+that <code class="docutils literal notranslate"><span class="pre">/opt/pmix-VERSION</span></code> on all machines is effectively “the
+same”.  That is, the following directories all contain the PMIx
+installation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inky</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+<span class="n">blinky</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+<span class="n">pinky</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+<span class="n">clyde</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+</pre></div>
+</div>
+</li>
+<li><p>Install PMIx on <code class="docutils literal notranslate"><span class="pre">inky</span></code>’s local hard drive in the directory
+<code class="docutils literal notranslate"><span class="pre">/usr/local/pmix-VERSION</span></code>.  The system administrator then
+mounts <code class="docutils literal notranslate"><span class="pre">inky:/usr/local/pmix-VERSION</span></code> on <em>all four</em> machines in
+some other common location, such as <code class="docutils literal notranslate"><span class="pre">/opt/pmix-VERSION</span></code> (a
+symbolic link can be installed on <code class="docutils literal notranslate"><span class="pre">inky</span></code> instead of a mount point
+for efficiency).  This strategy is typically used for environments
+where one tree is NFS exported, but another tree is typically used
+for the location of actual installation.  For example, the following
+directories all contain the PMIx installation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">inky</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+<span class="n">blinky</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+<span class="n">pinky</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+<span class="n">clyde</span><span class="p">:</span><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">pmix</span><span class="o">-</span><span class="n">VERSION</span>
+</pre></div>
+</div>
+<p>Notice that there are the same four directories as the previous
+example, but on <code class="docutils literal notranslate"><span class="pre">inky</span></code>, the directory is <em>actually</em> located in
+<code class="docutils literal notranslate"><span class="pre">/usr/local/pmix-VERSION</span></code>.</p>
+</li>
+</ul>
+<p>There is a bit of a disadvantage in this approach; each of the remote
+nodes have to incur NFS (or whatever filesystem is used) delays to
+access the PMIx directory tree.  However, both the administration
+ease and low cost (relatively speaking) of using a networked file
+system usually greatly outweighs the cost.</p>
+</section>
+<section id="local-filesystem">
+<h3><span class="section-number">5.10.1.2. </span>Local filesystem<a class="headerlink" href="#local-filesystem" title="Link to this heading"></a></h3>
+<p>If you are concerned with networked filesystem costs of accessing the
+PMIx binaries, you can install PMIx on the local hard drive of
+each node in your system.  Again, it is <em>highly</em> advisable to install
+PMIx in the <em>same</em> directory on each node so that each user’s
+<code class="docutils literal notranslate"><span class="pre">PATH</span></code> can be set to the same value, regardless of the node that a
+user has logged on to.</p>
+<p>This approach will save some network latency of accessing the PMIx
+binaries, but is typically only used where users are very concerned
+about squeezing every single cycle out of their machines, or are
+running at extreme scale where a networked filesystem may get
+overwhelmed by filesystem requests for PMIx binaries when running
+very large parallel jobs.</p>
+</section>
+</section>
+<section id="installing-over-a-prior-pmix-installation">
+<span id="building-pmix-install-overwrite-label"></span><h2><span class="section-number">5.10.2. </span>Installing over a prior PMIx installation<a class="headerlink" href="#installing-over-a-prior-pmix-installation" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The PMIx team does not recommend installing a new
+version of PMIx over an existing / older installation of PMIx.</p>
+</div>
+<p>In its default configuration, an PMIx installation consists of
+several shared libraries, header files, executables, and plugins
+(dynamic shared objects — DSOs).  These installation files act
+together as a single entity.  The specific filenames and
+contents of these files are subject to change between different
+versions of PMIx.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Installing one version of PMIx does <em>not</em> uninstall
+another version.</p>
+</div>
+<p>If you install a new version of PMIx over an older version, this
+may not overwrite all the files from the older version.  Hence, you
+may end up with an incompatible muddle of files from two different
+installations — which can cause problems.</p>
+<p>The PMIx team recommends one of the following methods for
+upgrading your PMIx installation:</p>
+<ul class="simple">
+<li><p>Install newer versions of PMIx into a different directory. For
+example, install into <code class="docutils literal notranslate"><span class="pre">/opt/pmix-a.b.c</span></code> and
+<code class="docutils literal notranslate"><span class="pre">/opt/pmix-x.y.z</span></code> for versions a.b.c and x.y.z, respectively.</p></li>
+<li><p>Completely uninstall the old version of PMIx before installing
+the new version.  The <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">uninstall</span></code> process from PMIx a.b.c
+build tree should completely uninstall that version from the
+installation tree, making it safe to install a new version (e.g.,
+version x.y.z) into the same installation tree.</p></li>
+<li><p>Remove the old installation directory entirely and then install the
+new version.  For example <code class="docutils literal notranslate"><span class="pre">rm</span> <span class="pre">-rf</span> <span class="pre">/opt/pmix</span></code> <em>(assuming that
+there is nothing else of value in this tree!)</em> The installation of
+PMIx x.y.z will safely re-create the <code class="docutils literal notranslate"><span class="pre">/opt/pmix</span></code> tree.
+This method is preferable if you no longer have the source and build
+trees to PMIx a.b.c available from which to <code class="docutils literal notranslate"><span class="pre">make</span>
+<span class="pre">uninstall</span></code>.</p></li>
+<li><p>Go into the PMIx a.b.c installation directory and manually
+remove all old PMIx files.  Then install PMIx x.y.z into the
+same installation directory.  This can be a somewhat painful,
+annoying, and error-prone process.  <em>We do not recommend it.</em>
+Indeed, if you no longer have access to the original PMIx a.b.c
+source and build trees, it may be far simpler to download PMIx
+version a.b.c again from the PMIx web site, configure it with
+the same installation prefix, and then run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">uninstall</span></code>.  Or
+use one of the other methods, above.</p></li>
+</ul>
+</section>
+<section id="relocating-an-pmix-installation">
+<h2><span class="section-number">5.10.3. </span>Relocating an PMIx installation<a class="headerlink" href="#relocating-an-pmix-installation" title="Link to this heading"></a></h2>
+<p>It can be desirable to initially install PMIx to one location
+(e.g., <code class="docutils literal notranslate"><span class="pre">/path/to/pmix</span></code>) and then later move it to another
+location (e.g., <code class="docutils literal notranslate"><span class="pre">/opt/myproduct/bundled-pmix-a.b.c</span></code>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>PMIx hard-codes some directory paths in its executables
+based on installation paths specified by the <code class="docutils literal notranslate"><span class="pre">configure</span></code>
+script.  For example, if you configure with an installation
+prefix of <code class="docutils literal notranslate"><span class="pre">/opt/pmix/</span></code>, PMIx encodes in its
+executables that it should be able to find its help files in
+<code class="docutils literal notranslate"><span class="pre">/opt/pmix/share/pmix</span></code>.</p>
+</div>
+<p>The “installdirs” functionality in PMIx lets you change any of
+these hard-coded directory paths at run time (<em>assuming</em> that you have
+already adjusted your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> and/or <code class="docutils literal notranslate"><span class="pre">LD_LIBRARY_PATH</span></code> environment
+variables to the new location where PMIx now resides).</p>
+<p>There are three methods.</p>
+<section id="move-an-existing-pmix-installation-to-a-new-prefix">
+<h3><span class="section-number">5.10.3.1. </span>Move an existing PMIx installation to a new prefix<a class="headerlink" href="#move-an-existing-pmix-installation-to-a-new-prefix" title="Link to this heading"></a></h3>
+<p>Set the <code class="docutils literal notranslate"><span class="pre">PMIX_PREFIX</span></code> environment variable before launching a
+PMIx-based application.  For example, if PMIx had initially been installed to
+<code class="docutils literal notranslate"><span class="pre">/opt/pmix</span></code> and the entire <code class="docutils literal notranslate"><span class="pre">pmix</span></code> tree was later moved to
+<code class="docutils literal notranslate"><span class="pre">/home/pmix</span></code>, setting <code class="docutils literal notranslate"><span class="pre">PMIX_PREFIX</span></code> to <code class="docutils literal notranslate"><span class="pre">/home/pmix</span></code> will
+enable PMIx to function properly.</p>
+</section>
+<section id="stage-an-pmix-installation-in-a-temporary-location">
+<h3><span class="section-number">5.10.3.2. </span>“Stage” an PMIx installation in a temporary location<a class="headerlink" href="#stage-an-pmix-installation-in-a-temporary-location" title="Link to this heading"></a></h3>
+<p>When <em>creating</em> self-contained installation packages, systems such as
+RPM install PMIx into temporary locations.  The package system
+then bundles up everything under the temporary location into a package
+that can be installed into its real location later.  For example, when
+<em>creating</em> an RPM that will be installed to <code class="docutils literal notranslate"><span class="pre">/opt/pmix</span></code>, the RPM
+system will transparently prepend a “destination directory” (or
+“destdir”) to the installation directory.  As such, PMIx will
+think that it is installed in <code class="docutils literal notranslate"><span class="pre">/opt/pmix</span></code>, but it is actually
+temporarily installed in (for example)
+<code class="docutils literal notranslate"><span class="pre">/var/rpm/build.1234/opt/pmix</span></code>.  If it is necessary to <em>use</em> PMIx
+while it is installed in this staging area, the <code class="docutils literal notranslate"><span class="pre">PMIX_DESTDIR</span></code>
+environment variable can be used; setting <code class="docutils literal notranslate"><span class="pre">PMIX_DESTDIR</span></code> to
+<code class="docutils literal notranslate"><span class="pre">/var/rpm/build.1234</span></code> will automatically prefix every directory such
+that PMIx can function properly.</p>
+</section>
+<section id="overriding-individual-directories">
+<h3><span class="section-number">5.10.3.3. </span>Overriding individual directories<a class="headerlink" href="#overriding-individual-directories" title="Link to this heading"></a></h3>
+<p>PMIx uses the GNU-specified directories (per Autoconf/Automake),
+and can be overridden by setting environment variables directly
+related to their common names.  The list of environment variables that
+can be used is:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PREFIX</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_EXEC_PREFIX</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_BINDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_SBINDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_LIBEXECDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DATAROOTDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_DATADIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_SYSCONFDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_SHAREDSTATEDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_LOCALSTATEDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_LIBDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INCLUDEDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_INFODIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_MANDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PKGDATADIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PKGLIBDIR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIX_PKGINCLUDEDIR</span></code></p></li>
+</ul>
+<p>Note that not all of the directories listed above are used by PMIx;
+they are listed here in entirety for completeness.</p>
+<p>Also note that several directories listed above are defined in terms
+of other directories.  For example, the <code class="docutils literal notranslate"><span class="pre">$bindir</span></code> is defined by
+default as <code class="docutils literal notranslate"><span class="pre">$prefix/bin</span></code>.  Hence, overriding the <code class="docutils literal notranslate"><span class="pre">$prefix</span></code> (via
+<code class="docutils literal notranslate"><span class="pre">PMIX_PREFIX</span></code>) will automatically change the first part of the
+<code class="docutils literal notranslate"><span class="pre">$bindir</span></code> (which is how method 1 described above works).
+Alternatively, <code class="docutils literal notranslate"><span class="pre">PMIX_BINDIR</span></code> can be set to an absolute value that
+ignores <code class="docutils literal notranslate"><span class="pre">$prefix</span></code> altogether.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="make-targets.html" class="btn btn-neutral float-left" title="5.9. make targets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="packagers.html" class="btn btn-neutral float-right" title="5.11. Advice for packagers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

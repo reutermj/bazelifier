@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.10. Installing and running Sphinx (building the OpenPMIx docs) &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.11. ReStructured Text for those who know Markdown" href="rst-for-markdown-expats.html" />
+    <link rel="prev" title="12.9. Manually installing the GNU Autootools" href="gnu-autotools.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">12.6. OpenPMIx terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html">12.7. Source code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installing-python">12.10.1. Installing Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installing-sphinx">12.10.2. Installing Sphinx</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#install-sphinx-in-a-python-virtual-environment">12.10.2.1. Install Sphinx in a Python virtual environment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#install-sphinx-globally">12.10.2.2. Install Sphinx globally</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#install-sphinx-locally">12.10.2.3. Install Sphinx locally</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#running-sphinx">12.10.3. Running Sphinx</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#sphinx-execution-time">12.10.3.1. Sphinx execution time</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#checking-sphinx-html-links">12.10.3.2. Checking Sphinx HTML links</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#viewing-docs-locally">12.10.3.3. Viewing docs locally</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.10. </span>Installing and running Sphinx (building the OpenPMIx docs)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/sphinx.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="installing-and-running-sphinx-building-the-openpmix-docs">
+<span id="developers-installing-sphinx-label"></span><h1><span class="section-number">12.10. </span>Installing and running Sphinx (building the OpenPMIx docs)<a class="headerlink" href="#installing-and-running-sphinx-building-the-openpmix-docs" title="Link to this heading"></a></h1>
+<p>As with all content in the Developer’s Guide, this section is only
+relevant for developers who work in the OpenPMIx code base itself.
+End users who install a binary OpenPMIx package or build from an
+official OpenPMIx distribution tarball do not need to have Sphinx
+installed.</p>
+<section id="installing-python">
+<h2><span class="section-number">12.10.1. </span>Installing Python<a class="headerlink" href="#installing-python" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://www.sphinx-doc.org/">Sphinx tool</a> is written in Python,
+and therefore needs to have Python available.  As of late 2022, Sphinx
+requires Python &gt;= v3.7.</p>
+<p>This documentation does not contain detailed instructions for
+installing a Python version sufficient for using Sphinx.  Consult your
+local OS documentation for how to obtain Python &gt;= v3.7, or search the
+internet for further information.</p>
+</section>
+<section id="installing-sphinx">
+<h2><span class="section-number">12.10.2. </span>Installing Sphinx<a class="headerlink" href="#installing-sphinx" title="Link to this heading"></a></h2>
+<p><a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/installation.html">The Sphinx documentation</a>
+recommends installing Sphinx (and its required Python dependencies)
+via <code class="docutils literal notranslate"><span class="pre">pip</span></code>, which typically requires connectivity to the general
+internet.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you are running on MacOS, you may be tempted to use
+Homebrew or MacPorts to install Sphinx.  The Sphinx documentation
+recommends <strong>against</strong> this.  Instead, you should use <code class="docutils literal notranslate"><span class="pre">pip</span></code> to
+install Sphinx.</p>
+</div>
+<p>There are three general ways to install Sphinx; you only need one of
+them.</p>
+<section id="install-sphinx-in-a-python-virtual-environment">
+<h3><span class="section-number">12.10.2.1. </span>Install Sphinx in a Python virtual environment<a class="headerlink" href="#install-sphinx-in-a-python-virtual-environment" title="Link to this heading"></a></h3>
+<p>The preferred method of installing Sphinx for OpenPMIx documentation
+development is to install Sphinx in a Python virtual environment.
+This places Sphinx in a sandbox that will not conflict with other
+<code class="docutils literal notranslate"><span class="pre">pip</span></code>-installed Python modules.  This example installs Sphinx and
+other Python modules in the <code class="docutils literal notranslate"><span class="pre">ompi-docs-venv</span></code> tree under your OpenPMIx
+Git clone directory:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the Python virtual environment</span>
+shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>TOP_OF_OpenPMIx_GIT_CLONE
+shell$<span class="w"> </span>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>ompi-docs-venv
+<span class="c1"># Or: python3 -m virtualenv ompi-docs-venv</span>
+<span class="c1"># Or: virtualenv --python=python3 ompi-docs-venv</span>
+
+<span class="c1"># Activate the virtual environment</span>
+shell$<span class="w"> </span>.<span class="w"> </span>./ompi-docs-venv/bin/activate
+
+<span class="c1"># Notice that the shell prompt changes</span>
+<span class="c1"># Now install the required Python modules</span>
+<span class="o">(</span>ompi-docs-venv<span class="o">)</span><span class="w"> </span>shell$<span class="w"> </span>pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/requirements.txt
+<span class="c1"># Or: python3 -m pip install install -r docs/requirements.txt</span>
+</pre></div>
+</div>
+<p>Note that sourcing the <code class="docutils literal notranslate"><span class="pre">activate</span></code> script will change your prompt to
+put the name of your virtual environment directory at the front, just
+as a visual reminder that you are operating in a Python virtual
+environment.  You can run <code class="docutils literal notranslate"><span class="pre">deactivate</span></code> to leave the virtual
+environment.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You will need to source the <code class="docutils literal notranslate"><span class="pre">activate</span></code> script to put
+Sphinx in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> <em>before</em> running <code class="docutils literal notranslate"><span class="pre">configure</span></code>.</p>
+</div>
+</section>
+<section id="install-sphinx-globally">
+<h3><span class="section-number">12.10.2.2. </span>Install Sphinx globally<a class="headerlink" href="#install-sphinx-globally" title="Link to this heading"></a></h3>
+<p>If Python virtual environments are not desirable on your system, you
+can install Sphinx globally on your system (you may need to run with
+root privileges):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>TOP_OF_OpenPMIx_GIT_CLONE
+shell$<span class="w"> </span>pip3<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>docs/requirements.txt
+<span class="c1"># Or: python3 -m pip install install -r docs/requirements.txt</span>
+</pre></div>
+</div>
+<p>This will install Sphinx and some Python modules required for building
+the OpenPMIx documentation in a system-wide location.</p>
+<p>This will likely install the <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> executable in a location
+that is already in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>.  If the location is not already in
+your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>, then you need to add it to your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You will need to ensure that Sphinx is in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>
+<em>before</em> running <code class="docutils literal notranslate"><span class="pre">configure</span></code>.</p>
+</div>
+</section>
+<section id="install-sphinx-locally">
+<h3><span class="section-number">12.10.2.3. </span>Install Sphinx locally<a class="headerlink" href="#install-sphinx-locally" title="Link to this heading"></a></h3>
+<p>If you cannot or do not want to install Sphinx globally on your
+system, the following will install Sphinx somewhere under your
+<code class="docutils literal notranslate"><span class="pre">$HOME</span></code>.  It is the same <code class="docutils literal notranslate"><span class="pre">pip</span></code> command as shown above, but with
+the addition of the <code class="docutils literal notranslate"><span class="pre">--user</span></code> flag (you should not need <code class="docutils literal notranslate"><span class="pre">root</span></code>
+permissions to run this command):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>TOP_OF_OpenPMIx_GIT_CLONE
+shell$<span class="w"> </span>pip3<span class="w"> </span>install<span class="w"> </span>--user<span class="w"> </span>-r<span class="w"> </span>docs/requirements.txt
+<span class="c1"># Or: python3 -m pip install install -r docs/requirements.txt</span>
+</pre></div>
+</div>
+<p>This will install Sphinx and some Python modules required for building
+the OpenPMIx documentation in a system-wide location.</p>
+<p>You will likely need to find the location where <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> was
+installed and add it to your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On MacOS, look for <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> under
+<code class="docutils literal notranslate"><span class="pre">$HOME/Library/Python/VERSION/bin</span></code> (where <code class="docutils literal notranslate"><span class="pre">VERSION</span></code> is
+the version number of Python).  Or it may have installed to
+<code class="docutils literal notranslate"><span class="pre">/usr/local/bin/sphinx-build</span></code>.  YMMV.</p>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You will need to ensure that Sphinx is in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>
+<em>before</em> running <code class="docutils literal notranslate"><span class="pre">configure</span></code>.</p>
+</div>
+</section>
+</section>
+<section id="running-sphinx">
+<h2><span class="section-number">12.10.3. </span>Running Sphinx<a class="headerlink" href="#running-sphinx" title="Link to this heading"></a></h2>
+<p>OpenPMIx’s build environment is setup to invoke Sphinx automatically;
+you should not need to invoke Sphinx manually.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You will need to ensure that Sphinx is in your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>
+<em>before</em> running <code class="docutils literal notranslate"><span class="pre">configure</span></code>.</p>
+</div>
+<p>As long as <code class="docutils literal notranslate"><span class="pre">configure</span></code> found Sphinx, <code class="docutils literal notranslate"><span class="pre">make</span></code> will invoke Sphinx to
+build the documentation.  You can also run <code class="docutils literal notranslate"><span class="pre">make</span></code> directly in the
+<code class="docutils literal notranslate"><span class="pre">docs/</span></code> directory to build <em>just</em> the docs and skip building the
+rest of the OpenPMIx software.  This can be a huge time-saver when
+iteratively writing, rendering, and viewing/proofing documentation.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The fully-built HTML and man page docs are included in
+official OpenPMIx distribution tarballs.  Meaning: if you
+download an official distribution OpenPMIx tarball,
+the pre-built HTML and man page files are included
+in the tarball.</p>
+<p>Sphinx is a requirement for <em>developers</em> who want to build
+the OpenPMIx docs.  End users do <em>not</em> need to have Sphinx
+available to build OpenPMIx or have its docs installed from
+an official distribution tarball.</p>
+</div>
+<section id="sphinx-execution-time">
+<h3><span class="section-number">12.10.3.1. </span>Sphinx execution time<a class="headerlink" href="#sphinx-execution-time" title="Link to this heading"></a></h3>
+<p>Sphinx is stateful: subsequent runs can be significantly faster
+because Sphinx will only re-render HTML files that have changes.  This
+is a nice time saver for OpenPMIx (e.g., if you are iterating over
+writing the docs and running <code class="docutils literal notranslate"><span class="pre">make</span></code> to see how they rendered in
+HTML).</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>Sphinx is only <em>somewhat</em> smart in its partial
+re-rendering.  If you change a title in an RST file, for
+example, Sphinx will (by default) only re-render <em>that</em>
+page.  The Tables of Contents / left hand navigation on
+other pages may not be updated.</p>
+<p>You can always force a full re-render via:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docs
+shell$<span class="w"> </span>rm<span class="w"> </span>-rf<span class="w"> </span>_build
+shell$<span class="w"> </span>make
+</pre></div>
+</div>
+</div>
+</section>
+<section id="checking-sphinx-html-links">
+<h3><span class="section-number">12.10.3.2. </span>Checking Sphinx HTML links<a class="headerlink" href="#checking-sphinx-html-links" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">linkcheck</span></code> will invoke Sphinx’s functionality to check all the
+external links in the documentation:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docs
+shell$<span class="w"> </span>make<span class="w"> </span>linkcheck
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>You will need to be on a computer that has good access
+to the internet when running this command.</p>
+</div>
+</section>
+<section id="viewing-docs-locally">
+<h3><span class="section-number">12.10.3.3. </span>Viewing docs locally<a class="headerlink" href="#viewing-docs-locally" title="Link to this heading"></a></h3>
+<p>Once you have built the docs in your local Git clone, you can view
+them locally in the build tree:</p>
+<ol class="arabic">
+<li><p>Open <code class="docutils literal notranslate"><span class="pre">docs/_build/html/index.html</span></code> in a browser to view the HTML
+docs.  For example, on MacOS, the following command opens the build
+tree docs in the default web browser:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>open<span class="w"> </span>docs/_build/html/index.html
+</pre></div>
+</div>
+</li>
+<li><p>Use the <code class="docutils literal notranslate"><span class="pre">man</span></code> command to view the Nroff files in
+<code class="docutils literal notranslate"><span class="pre">docs/_build/man</span></code> (you may need to use an absolute or relative
+filename to prevent <code class="docutils literal notranslate"><span class="pre">man</span></code> from using its search paths).  For
+example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>docs/_build/man
+shell$<span class="w"> </span>man<span class="w"> </span>./PMIx_Abort.3
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Alternatively, you can view these files in their installed locations
+after running <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code>:</p>
+<ol class="arabic">
+<li><p>The HTML docs are installed (by default) to
+<code class="docutils literal notranslate"><span class="pre">$prefix/share/doc/pmix/html</span></code>.  You can use a web browser to
+open the <code class="docutils literal notranslate"><span class="pre">index.html</span></code> in that directory to view the docs locally.
+For example, on MacOS, the following command opens the installed
+docs in the default web browser:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>open<span class="w"> </span><span class="nv">$prefix</span>/share/doc/pmix/html/index.html
+</pre></div>
+</div>
+</li>
+<li><p>The man pages are installed (by default) to <code class="docutils literal notranslate"><span class="pre">$preix/share/man</span></code>.
+If your man page search path includes this location, you can invoke
+commands similar to the following to see the same content that you
+see in these HTML pages:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>man<span class="w"> </span>PMIx_Abort
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="gnu-autotools.html" class="btn btn-neutral float-left" title="12.9. Manually installing the GNU Autootools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rst-for-markdown-expats.html" class="btn btn-neutral float-right" title="12.11. ReStructured Text for those who know Markdown" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

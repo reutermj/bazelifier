@@ -1,0 +1,564 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.11. ReStructured Text for those who know Markdown &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="13. Contributing to OpenPMIx" href="../contributing.html" />
+    <link rel="prev" title="12.10. Installing and running Sphinx (building the OpenPMIx docs)" href="sphinx.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">12.6. OpenPMIx terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html">12.7. Source code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.11. ReStructured Text for those who know Markdown</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#whitespace-and-indenting">12.11.1. Whitespace and indenting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fixed-width-font">12.11.2. Fixed width font</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#italics">12.11.3. Italics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#boldface">12.11.4. Boldface</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#chapter-and-section-delimiters">12.11.5. Chapter and section delimiters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-line-code-fixed-width-font">12.11.6. Multi-line code/fixed-width font</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#un-numbered-bullets">12.11.7. Un-numbered bullets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#numbered-bullets">12.11.8. Numbered bullets:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comments">12.11.9. Comments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#including-files">12.11.10. Including files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyperlinks-to-urls">12.11.11. Hyperlinks to URLs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyperlinks-to-anchors">12.11.12. Hyperlinks to anchors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#hyperlinks-to-other-rst-pages">12.11.13. Hyperlinks to other (RST) pages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#macros">12.11.14. Macros</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#brightly-colored-boxes">12.11.15. Brightly-colored boxes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.11. </span>ReStructured Text for those who know Markdown</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/rst-for-markdown-expats.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="restructured-text-for-those-who-know-markdown">
+<span id="developers-rst-for-markdown-expats"></span><h1><span class="section-number">12.11. </span>ReStructured Text for those who know Markdown<a class="headerlink" href="#restructured-text-for-those-who-know-markdown" title="Link to this heading"></a></h1>
+<p>You can think of RST as “Markdown, but much better”.  Meaning:</p>
+<ol class="arabic simple">
+<li><p>RST is basically just as simple as Markdown</p></li>
+<li><p>But RST is both more precise, and has more available formatting
+constructs (without getting crazy complicated)</p></li>
+</ol>
+<p>The full Sphinx / RST documentation is available here:
+<a class="reference external" href="https://www.sphinx-doc.org/en/master/index.html">https://www.sphinx-doc.org/en/master/index.html</a></p>
+<p>If you’re familiar with Markdown, the following sections contain some
+tips to get you started in RST.</p>
+<section id="whitespace-and-indenting">
+<h2><span class="section-number">12.11.1. </span>Whitespace and indenting<a class="headerlink" href="#whitespace-and-indenting" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: Whitespace and indenting generally doesn’t matter in most
+cases.  It does matter with bullets and sub bullets, but the rules
+get pretty weird, and vary between different Markdown renderers.</p></li>
+<li><p>RST: <strong>Indenting matters</strong>.  A lot.  Just like Python.  In
+general, you indent all RST text to keep it within the same level.
+For example, all this text would be a single paragraph</p>
+<p><strong>Blank lines also matter</strong>.  A lot.  You use blank lines to
+delimit sections within an indenting level.  For example, the
+blank line before this paragraph denotes a paragraph break.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>RST was created by the Python community.  Hence,
+whitespace is quite important.</p>
+<ul class="simple">
+<li><p>Indenting matters</p></li>
+<li><p>Blank lines between content matter</p></li>
+</ul>
+</div>
+</li>
+</ul>
+<p>Using a blank line and outdenting indicates the end of the previous
+item.  For example, this paragraph is not part of the MD/RST
+bulleted list.</p>
+</section>
+<section id="fixed-width-font">
+<h2><span class="section-number">12.11.2. </span>Fixed width font<a class="headerlink" href="#fixed-width-font" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: Use single quotes:</p>
+<div class="highlight-md notranslate"><div class="highlight"><pre><span></span><span class="sb">`hello world`</span>
+</pre></div>
+</div>
+</li>
+<li><p>RST: Use a pair of single quotes:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="s">``hello world``</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="italics">
+<h2><span class="section-number">12.11.3. </span>Italics<a class="headerlink" href="#italics" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>MD: <code class="docutils literal notranslate"><span class="pre">*hello</span> <span class="pre">world*</span></code> or <code class="docutils literal notranslate"><span class="pre">_hello</span> <span class="pre">world_</span></code></p></li>
+<li><p>RST: <code class="docutils literal notranslate"><span class="pre">*hello</span> <span class="pre">world*</span></code></p></li>
+</ul>
+</section>
+<section id="boldface">
+<h2><span class="section-number">12.11.4. </span>Boldface<a class="headerlink" href="#boldface" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>MD: <code class="docutils literal notranslate"><span class="pre">**hello</span> <span class="pre">world**</span></code></p></li>
+<li><p>RST: Same as MD</p></li>
+</ul>
+</section>
+<section id="chapter-and-section-delimiters">
+<h2><span class="section-number">12.11.5. </span>Chapter and section delimiters<a class="headerlink" href="#chapter-and-section-delimiters" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: Either use one or more pound signs (#, ##, ###) to the left of
+the line of text, or underline the line of text with pound signs</p></li>
+<li><p>RST: Have a single line of text, underlined by non-ASCII
+characters.</p>
+<ul>
+<li><p>The length of the underlying <em>must</em> be at least as long as the
+line of text</p></li>
+<li><p>Which non-ASCII character is used for the underlying does not
+matter, but the order in which they are used denotes chapters
+/ sections / subsections / etc.</p>
+<p>In these OpenPMIx docs, the sequence of underline characters we use
+are:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="gh">Chapter 1: hello world</span>
+<span class="gh">======================</span>
+</pre></div>
+</div>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="gh">Section 1: hello world</span>
+<span class="gh">----------------------</span>
+</pre></div>
+</div>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="gh">Subsection 1: hello world</span>
+<span class="gh">^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+</pre></div>
+</div>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="gh">Subsubsection 1: hello world</span>
+<span class="gh">++++++++++++++++++++++++++++</span>
+</pre></div>
+</div>
+<p>Meaning: underlines made of <code class="docutils literal notranslate"><span class="pre">=</span></code> denotes chapters, underlines
+made of <code class="docutils literal notranslate"><span class="pre">-</span></code> denotes sections, underlines made of <code class="docutils literal notranslate"><span class="pre">^</span></code> denotes
+subsections, and underlines made of <code class="docutils literal notranslate"><span class="pre">+</span></code> denote subsubsections.</p>
+</li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="multi-line-code-fixed-width-font">
+<h2><span class="section-number">12.11.6. </span>Multi-line code/fixed-width font<a class="headerlink" href="#multi-line-code-fixed-width-font" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: Use three single quotes to delimit blocks of text.  Optionally
+include a token keyword to denote the syntax highlighting to use
+inside that block.</p>
+<div class="highlight-md notranslate"><div class="highlight"><pre><span></span><span class="sb">```c</span>
+<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;Hello world</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">);</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="p">}</span>
+<span class="sb">```</span>
+</pre></div>
+</div>
+</li>
+<li><p>RST: Use <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">code-block::</span> <span class="pre">KEYWORD</span></code> to start a section of code.</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">code-block</span><span class="p">::</span> c
+
+   int main() { printf(&quot;Hello world\n&quot;); return 0 }
+</pre></div>
+</div>
+<ul>
+<li><p>KEYWORD indicates which syntax highlighting to use (e.g., <code class="docutils literal notranslate"><span class="pre">c</span></code>,
+<code class="docutils literal notranslate"><span class="pre">c++</span></code> <code class="docutils literal notranslate"><span class="pre">make</span></code>, <code class="docutils literal notranslate"><span class="pre">sh</span></code>, <code class="docutils literal notranslate"><span class="pre">ini</span></code>, <code class="docutils literal notranslate"><span class="pre">Fortran</span></code>, <code class="docutils literal notranslate"><span class="pre">diff</span></code>,
+<code class="docutils literal notranslate"><span class="pre">python</span></code>, <code class="docutils literal notranslate"><span class="pre">java</span></code>, <code class="docutils literal notranslate"><span class="pre">rst</span></code>, … etc.).</p></li>
+<li><p>KEYWORD can be omitted if no specific highlighting is to be
+used.</p></li>
+<li><p>There <em>MUST</em> be a blank line after the <code class="docutils literal notranslate"><span class="pre">code-block</span></code> line.</p></li>
+<li><p>The lines in the block must be indented to the same column as the
+first <code class="docutils literal notranslate"><span class="pre">c</span></code> in <code class="docutils literal notranslate"><span class="pre">code-block</span></code>.  For example:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">code-block</span><span class="p">::</span> <span class="k">sh</span>
+
+   shell$<span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span>pmix-&lt;version&gt;.tar.bz2
+   shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>pmix-&lt;version&gt;
+   shell$<span class="w"> </span>./configure<span class="w"> </span>--prefix<span class="o">=</span>&lt;path&gt;<span class="w"> </span><span class="p">|&amp;</span><span class="w"> </span>tee<span class="w"> </span>config.out
+</pre></div>
+</div>
+<p>Note that the code block will be rendered at the same level as
+where the first <code class="docutils literal notranslate"><span class="pre">.</span></code> of <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">code-block::</span></code> starts.  In this
+case, the example code block will be rendered in the bulleted
+item.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>Whereas this parargraph and code block will be outside of the
+above bulleted list:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>tar<span class="w"> </span>xf<span class="w"> </span>pmix-&lt;version&gt;.tar.bz2
+shell$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>pmix-&lt;version&gt;
+shell$<span class="w"> </span>./configure<span class="w"> </span>--prefix<span class="o">=</span>&lt;path&gt;<span class="w"> </span><span class="p">|&amp;</span><span class="w"> </span>tee<span class="w"> </span>config.out
+
+<span class="c1"># Fun note: the code-block can contain blank lines.</span>
+</pre></div>
+</div>
+<p>The code-block is terminated by a blank line and then outdent back
+to the same level as the first <code class="docutils literal notranslate"><span class="pre">.</span></code> in <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">code-block::</span></code>.</p>
+</section>
+<section id="un-numbered-bullets">
+<h2><span class="section-number">12.11.7. </span>Un-numbered bullets<a class="headerlink" href="#un-numbered-bullets" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: Start lines with <code class="docutils literal notranslate"><span class="pre">*</span></code> or <code class="docutils literal notranslate"><span class="pre">-</span></code></p></li>
+<li><p>RST: Start lines with <code class="docutils literal notranslate"><span class="pre">*</span></code>.  You can wrap lines at the same
+indenting level to make paragraphs in the same bullet.</p>
+<p>Having a blank line and then more text at the same indenting level
+makes another paragraph in the same bullet.  You even put other
+directives in this same indenting level.</p>
+<ul>
+<li><p>For example, you can start a sub bullet.</p>
+<p>This text is the next paragraph in the same sub bullet.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>This is a verbatim code block within this same sub bullet.
+More about code-blocks below.
+</pre></div>
+</div>
+<p>This is the next paragraph (after the code block) in the same
+sub bullet.</p>
+</li>
+<li><p>If you start a new bullet, that terminates the previous bullet.</p></li>
+<li><p>You <strong>MUST</strong> put blank lines between bullets!</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="numbered-bullets">
+<h2><span class="section-number">12.11.8. </span>Numbered bullets:<a class="headerlink" href="#numbered-bullets" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: Start lines with <code class="docutils literal notranslate"><span class="pre">#</span></code></p></li>
+<li><p>RST: Start lines with <code class="docutils literal notranslate"><span class="pre">#.</span></code></p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Yes, the trailing <code class="docutils literal notranslate"><span class="pre">.</span></code> is important</p>
+</div>
+<p>For example:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="m">#.</span> Item number 1
+<span class="m">#.</span> The second item
+<span class="m">#.</span> A third item
+</pre></div>
+</div>
+<p>All the same rules for indentation apply as described above.</p>
+</li>
+</ul>
+</section>
+<section id="comments">
+<h2><span class="section-number">12.11.9. </span>Comments<a class="headerlink" href="#comments" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: Enclose content in <code class="docutils literal notranslate"><span class="pre">&lt;!--</span></code> and <code class="docutils literal notranslate"><span class="pre">--&gt;</span></code> (i.e., HTML comments,
+but they are included in the output)</p></li>
+<li><p>RST: Start a line with two periods and a space.</p>
+<p>For example, the following block is a comment, and will not be
+included in the output:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="c">.. Hello world.  This is a comment.  This whole block is a</span>
+<span class="c">   comment.  You can leave it here in the final document, and it</span>
+<span class="c">   will not be included in the rendered output.</span>
+
+<span class="c">   Your comment can even include blank lines.  You terminate a</span>
+<span class="c">   comment -- just like most other things in RST -- by a blank</span>
+<span class="c">   line and then outdenting back out to the same column as the</span>
+<span class="c">   first &quot;.&quot;.</span>
+
+This line is no longer part of the comment.
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="including-files">
+<h2><span class="section-number">12.11.10. </span>Including files<a class="headerlink" href="#including-files" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: You cannot include files in Markdown.</p></li>
+<li><p>RST: Use the <code class="docutils literal notranslate"><span class="pre">..</span> <span class="pre">include::</span> <span class="pre">FILENAME</span></code> directive.  For example:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">include</span><span class="p">::</span> features-extensions.rst
+<span class="p">..</span> <span class="ow">include</span><span class="p">::</span> features-java.rst
+</pre></div>
+</div>
+<p>Those directives include those 2 files right here in this RST file.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Chapter/section/subsection delimiters will be
+continued in those files as part of rendering this
+file.</p>
+</div>
+</li>
+</ul>
+</section>
+<section id="hyperlinks-to-urls">
+<h2><span class="section-number">12.11.11. </span>Hyperlinks to URLs<a class="headerlink" href="#hyperlinks-to-urls" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD:</p>
+<div class="highlight-md notranslate"><div class="highlight"><pre><span></span>[<span class="nt">this is the link text</span>](<span class="na">https://example.com/</span>)
+</pre></div>
+</div>
+</li>
+<li><p>RST:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="s">`this is the link text </span><span class="si">&lt;https://example.com/&gt;</span><span class="s">`_</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Yes, the trailing underscore in RST is important.
+It’s a little weird, but you’ll cope.</p>
+</div>
+</li>
+</ul>
+</section>
+<section id="hyperlinks-to-anchors">
+<h2><span class="section-number">12.11.12. </span>Hyperlinks to anchors<a class="headerlink" href="#hyperlinks-to-anchors" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: I forget offhand how to make anchors and links to them in MD.</p></li>
+<li><p>RST: Use the <code class="docutils literal notranslate"><span class="pre">:ref:</span></code> directive.</p>
+<p>Make an anchor like this:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="nt">_ANCHOR_NAME:</span>
+</pre></div>
+</div>
+<p>It <em>must</em> start with and underscore and end with a colon.</p>
+<p>I’ve typically used anchor names that either begin with <code class="docutils literal notranslate"><span class="pre">label-</span></code>
+or end in <code class="docutils literal notranslate"><span class="pre">-label</span></code> to make it blatantly obvious that it’s a
+label. For example:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="nt">_building-and-installing-section-label:</span>
+</pre></div>
+</div>
+<p>Then you can use the <code class="docutils literal notranslate"><span class="pre">:ref:</span></code> directive:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span>be sure to see :ref:`the VPATH build section
+<span class="nt">&lt;building-and-installing-section-label&gt;</span>`.
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="hyperlinks-to-other-rst-pages">
+<h2><span class="section-number">12.11.13. </span>Hyperlinks to other (RST) pages<a class="headerlink" href="#hyperlinks-to-other-rst-pages" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD:</p>
+<div class="highlight-md notranslate"><div class="highlight"><pre><span></span>[<span class="nt">link text</span>](<span class="na">page_name</span>)
+</pre></div>
+</div>
+</li>
+<li><p>RST: Use the <code class="docutils literal notranslate"><span class="pre">:doc:</span></code> directive.</p>
+<p>General format:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="na">:doc:</span><span class="nv">`link text &lt;PAGE_PATH&gt;`</span>
+</pre></div>
+</div>
+<p>For example:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span>You should read <span class="na">:doc:</span><span class="nv">`the Developer&#39;s Guide &lt;/developers&gt;`</span>.
+</pre></div>
+</div>
+<p>The page path is relative to the <code class="docutils literal notranslate"><span class="pre">docs</span></code> dir in the OpenPMIx git tree.</p>
+</li>
+</ul>
+</section>
+<section id="macros">
+<h2><span class="section-number">12.11.14. </span>Macros<a class="headerlink" href="#macros" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: There are no macros in Markdown.</p></li>
+<li><p>RST: We have defined a few OpenPMIx-specific macros in RST.  You can
+insert these macros anywhere in RST content text.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">|ompi_ver|</span></code> is the full OpenPMIx version number, including
+alpha/beta/rc/greek denotation.  For example <code class="docutils literal notranslate"><span class="pre">5.0.0rc1</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|ompi_series|</span></code> is the major/minor OpenPMIx version, e.g.,
+<code class="docutils literal notranslate"><span class="pre">5.0.x</span></code>.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Think twice about hard-coding the OpenPMIx version
+number or series when referring to the current
+version or series.  It can be appropriate to
+hard-code an “x.y.0” version to denote a
+generational epoch, but in most other cases, you
+probably want to use one of the macros.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|mdash|</span></code> is a unicode long dash, an “em” dash.  Use it instead
+of <code class="docutils literal notranslate"><span class="pre">--</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|rarrow|</span></code> is a unicode right arrow.  Use it instead of <code class="docutils literal notranslate"><span class="pre">-&gt;</span></code>
+or <code class="docutils literal notranslate"><span class="pre">--&gt;</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="brightly-colored-boxes">
+<h2><span class="section-number">12.11.15. </span>Brightly-colored boxes<a class="headerlink" href="#brightly-colored-boxes" title="Link to this heading"></a></h2>
+<ul>
+<li><p>MD: There are no brightly-colored boxes in MD.</p></li>
+<li><p>RST: You can use various directives to make brightly-colored
+“note” boxes (Called admonitions) in RST.  For example:</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>a green box with a “!” icon</p>
+<p>Standard indenting rules apply for the content in the box.  You
+can have multiple lines and multiple paragraphs, for example.</p>
+<p>Yippee.</p>
+<ul>
+<li><p>You can even have bullets.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>You can even have code blocks inside the bullet inside the
+caution box.
+</pre></div>
+</div>
+</li>
+<li><p>All the standard indenting rules apply.</p></li>
+</ul>
+</div>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>a green box with a “!” icon</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>a blue box with a “!” icon</p>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>an orange box with a “!” icon</p>
+</div>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>an orange box with a “!” icon</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>an orange box with a “!” icon</p>
+</div>
+<div class="admonition error">
+<p class="admonition-title">Error</p>
+<p>a red box with a “!” icon</p>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>a red box with a “!” icon</p>
+</div>
+<div class="tip admonition">
+<p class="admonition-title">Custom title</p>
+<p>You can name this box whatever you want:</p>
+<div class="highlight-rst notranslate"><div class="highlight"><pre><span></span><span class="p">..</span> <span class="ow">admonition</span><span class="p">::</span> Custom title
+   <span class="nc">:class:</span> tip
+
+   Content of your box here.
+</pre></div>
+</div>
+<p>Custom text for this custom admonition.  Note that the <code class="docutils literal notranslate"><span class="pre">:class:</span> <span class="pre">&lt;type&gt;</span></code>
+will change the coloring to the color for the basic admonition of that
+type.  E.g., <code class="docutils literal notranslate"><span class="pre">:class:</span> <span class="pre">tip</span></code> makes the box be green.</p>
+</div>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="sphinx.html" class="btn btn-neutral float-left" title="12.10. Installing and running Sphinx (building the OpenPMIx docs)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../contributing.html" class="btn btn-neutral float-right" title="13. Contributing to OpenPMIx" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

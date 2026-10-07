@@ -1,0 +1,254 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "OSHMEM-WRAPPER-COMPILER" "1" "Sep 16, 2026" "" "Open MPI"
+.sp
+oshcc, oshcxx, oshc++, oshfort, shmemcc, shmemcxx, shmemc++, shmemfort — OpenSHMEM wrapper compilers
+.SH SYNTAX
+.sp
+\fBoshcc [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.sp
+\fBoshcxx [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.sp
+\fBoshc++ [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.sp
+\fBoshfort [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.sp
+\fBshmemcc [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.sp
+\fBshmemcxx [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.sp
+\fBshmemc++ [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.sp
+\fBshmemfort [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.SH OPTIONS
+.sp
+The options below apply to all of the wrapper compilers:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-showme\fP: This option comes in several different variants (see
+below). None of the variants invokes the underlying compiler; they
+all provide information on how the underlying compiler would have
+been invoked had \fB\-\-showme\fP not been used. The basic \fB\-\-showme\fP
+option outputs the command line that would be executed to compile
+the program.
+.sp
+\fBNOTE:\fP
+.INDENT 2.0
+.INDENT 3.5
+If a non\-filename argument is passed on the command line,
+the \fB\-\-showme\fP option will \fInot\fP display any additional
+flags. For example, both \fB\(dqoshcc \-\-showme\fP and
+\fBoshcc \-\-showme my_source.c\fP will show all the
+wrapper\-supplied flags. But \fBoshcc
+\-\-showme \-v\fP will only show the underlying compiler name
+and \fB\-v\fP\&.
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+\fB\-\-showme:compile\fP: Output the compiler flags that would have been
+supplied to the underlying compiler.
+.IP \(bu 2
+\fB\-\-showme:link\fP: Output the linker flags that would have been
+supplied to the underlying compiler.
+.IP \(bu 2
+\fB\-\-showme:command\fP: Outputs the underlying compiler
+command (which may be one or more tokens).
+.IP \(bu 2
+\fB\-\-showme:incdirs\fP: Outputs a space\-delimited (but otherwise
+undecorated) list of directories that the wrapper compiler would
+have provided to the underlying compiler to indicate
+where relevant header files are located.
+.IP \(bu 2
+\fB\-\-showme:libdirs\fP: Outputs a space\-delimited (but otherwise
+undecorated) list of directories that the wrapper compiler would
+have provided to the underlying linker to indicate where relevant
+libraries are located.
+.IP \(bu 2
+\fB\-\-showme:libs\fP Outputs a space\-delimited (but otherwise
+undecorated) list of library names that the wrapper compiler would
+have used to link an application. For example: \fBmpi open\-pal
+util\fP\&.
+.IP \(bu 2
+\fB\-\-showme:version\fP: Outputs the version number of Open MPI.
+.IP \(bu 2
+\fB\-\-showme:help\fP: Output a brief usage help message.
+.UNINDENT
+.sp
+See the man page for your underlying compiler for other
+options that can be passed through oshcc.
+.SH DESCRIPTION
+.sp
+Conceptually, the role of these commands is quite simple: transparently
+add relevant compiler and linker flags to the user’s command line that
+are necessary to compile / link OpenSHMEM programs, and then invoke the
+underlying compiler to actually perform the command.
+.sp
+As such, these commands are frequently referred to as “wrapper”
+compilers because they do not actually compile or link applications
+themselves; they only add in command line flags and invoke the back\-end
+compiler.
+.SH BACKGROUND
+.sp
+Open MPI provides wrapper compilers for several languages:
+.INDENT 0.0
+.IP \(bu 2
+\fBoshcc\fP, \fBshmemcc\fP: C
+.IP \(bu 2
+\fBoshc++\fP, \fBoshcxx\fP, \fBshmemc++\fP, shmemcxx\(ga:: C++
+.IP \(bu 2
+\fBoshfort\fP, \fBshmemfort\fP: Fortran
+.UNINDENT
+.sp
+The wrapper compilers for each of the languages are identical; they
+can be used interchangeably.  The different names are provided solely
+for backwards compatibility.
+.SH FORTRAN NOTES
+.sp
+The Fortran wrapper compiler for OpenSHMEM (\fBoshfort\fP and
+\fBshmemfort\fP) can compile and link OpenSHMEM applications that use
+any/all of the OpenSHMEM Fortran bindings.
+.sp
+Note, however, that the Fortran compiler may require additional
+command\-line options to enforce a specific Fortran dialect. For
+example, in some versions of the IBM XLF compiler, if \fBxlf90\fP is the
+underlying Fortran compiler, \fB\-qfixed\fP may be necessary to compile
+fixed\-format Fortran source files.
+.sp
+Finally, note that \fBoshfort\fP will be inoperative and will return an
+error on use if Fortran support was not built into the OpenSHMEM
+layer.
+.SH OVERVIEW
+.sp
+\fBoshcc\fP and \fBshmemcc\fP are convenience wrappers for the underlying
+C compiler.  Translation of an OpenSHMEM program requires the linkage
+of the OpenSHMEM\-specific libraries which may not reside in one of the
+standard search directories of \fBld(1)\fP\&. It also often requires the
+inclusion of header files what may also not be found in a standard
+location.
+.sp
+\fBoshcc\fP and \fBshmemcc\fP pass their arguments to the underlying C
+compiler along with the \fB\-I\fP, \fB\-L\fP and \fB\-l\fP options required by
+OpenSHMEM programs.
+.sp
+The same is true for all the other language wrapper compilers.
+.sp
+The OpenSHMEM Team \fIstrongly\fP encourages using the wrapper compilers
+instead of attempting to link to the OpenSHMEM libraries manually. This
+allows the specific implementation of OpenSHMEM to change without
+forcing changes to linker directives in users’ Makefiles. Indeed, the
+specific set of flags and libraries used by the wrapper compilers
+depends on how OpenSHMEM was configured and built; the values can change
+between different installations of the same version of OpenSHMEM.
+.sp
+Indeed, since the wrappers are simply thin shells on top of an
+underlying compiler, there are very, very few compelling reasons \fInot\fP
+to use \fBoshcc\fP\&. When it is not possible to use the wrappers
+directly, the \fB\-\-showme:compile\fP and \fB\-\-showme:link\fP options should be
+used to determine what flags the wrappers would have used. For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ cc \-c file1.c \(gashmemcc \-\-showme:compile\(ga
+
+shell$ cc \-c file2.c \(gashmemcc \-\-showme:compile\(ga
+
+shell$ cc file1.o file2.o \(gashmemcc \-\-showme:link\(ga \-o my_oshmem_program
+.EE
+.UNINDENT
+.UNINDENT
+.SH NOTES
+.sp
+It is possible to make the wrapper compilers multi\-lib aware. That is,
+the libraries and includes specified may differ based on the compiler
+flags specified (for example, with the GNU compilers on Linux, a
+different library path may be used if \fB\-m32\fP is seen versus \fB\-m64\fP
+being seen). This is not the default behavior in a standard build, but
+can be activated (for example, in a binary package providing both 32
+and 64 bit support). \X'tty: link https://github.com/open-mpi/ompi/wiki/compilerwrapper3264'\fI\%More information can be found here\fP\X'tty: link'\&.
+.SH FILES
+.sp
+The strings that the wrapper compilers insert into the command line
+before invoking the underlying compiler are stored in a text file
+created by OpenSHMEM and installed to
+\fB$pkgdata/NAME\-wrapper\-data.txt\fP, where:
+.INDENT 0.0
+.IP \(bu 2
+\fB$pkgdata\fP is typically \fB$prefix/share/openmpi\fP
+.IP \(bu 2
+\fB$prefix\fP is the top installation directory of OpenSHMEM
+.IP \(bu 2
+\fBNAME\fP is the name of the wrapper compiler (e.g.,
+\fB$pkgdata/shmemcc\-wrapper\-data.txt\fP)
+.UNINDENT
+.sp
+It is rarely necessary to edit these files, but they can be examined to
+gain insight into what flags the wrappers are placing on the command
+line.
+.SH ENVIRONMENT VARIABLES
+.sp
+By default, the wrappers use the compilers that were selected when
+OpenSHMEM was configured. These compilers were either found
+automatically by Open MPI’s “configure” script, or were selected by
+the user in the \fBCC\fP, \fBCXX\fP, and/or \fBFC\fP environment variables
+before \fBconfigure\fP was invoked. Additionally, other arguments specific
+to the compiler may have been selected by configure.
+.sp
+These values can be selectively overridden by either editing the text
+files containing this configuration information (see the \fI\%FILES\fP section), or by setting selected
+environment variables of the form \fBoshmem_value\fP\&.
+.sp
+Valid value names are:
+.INDENT 0.0
+.IP \(bu 2
+\fBCPPFLAGS\fP: Flags added when invoking the preprocessor (C or C++)
+.IP \(bu 2
+\fBLDFLAGS\fP: Flags added when invoking the linker (C, C++, or
+Fortran)
+.IP \(bu 2
+\fBLIBS\fP: Libraries added when invoking the linker (C, C++, or
+Fortran)
+.IP \(bu 2
+\fBCC\fP: C compiler
+.IP \(bu 2
+\fBCFLAGS\fP: C compiler flags
+.IP \(bu 2
+\fBCXX\fP: C++ compiler
+.IP \(bu 2
+\fBCXXFLAGS\fP: C++ compiler flags
+.IP \(bu 2
+\fBFC\fP: Fortran compiler
+.IP \(bu 2
+\fBFCFLAGS\fP: Fortran compiler flags
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

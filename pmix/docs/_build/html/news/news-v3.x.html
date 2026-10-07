@@ -1,0 +1,481 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>16.3. PMIx v3.x series &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="16.4. PMIx v2.x series" href="news-v2.x.html" />
+    <link rel="prev" title="16.2. PMIx v4.x series" href="news-v4.x.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">16. News</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="news-v5.x.html">16.1. PMIx v5.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v4.x.html">16.2. PMIx v4.x series</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">16.3. PMIx v3.x series</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dec-2020">16.3.1. 3.2.2 – 7 Dec 2020</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nov-2020">16.3.2. 3.2.1 – 12 Nov 2020</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#oct-2020">16.3.3. 3.2.0 – 22 Oct 2020</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#feb-2020">16.3.4. 3.1.5 – 14 Feb 2020</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aug-2019">16.3.5. 3.1.4 – 9 Aug 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#july-2019">16.3.6. 3.1.3 – 2 July 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jan-2019">16.3.7. 3.1.2 – 24 Jan 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">16.3.8. 3.1.1 – 18 Jan 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">16.3.9. 3.1.0 – 17 Jan 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sept-2018">16.3.10. 3.0.2 – 18 Sept 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aug-2018">16.3.11. 3.0.1 – 23 Aug 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#july-2018">16.3.12. 3.0.0 – 6 July 2018</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="news-v2.x.html">16.4. PMIx v2.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v1.x.html">16.5. PMIx v1.x series</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">16. </span>News</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">16.3. </span>PMIx v3.x series</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/news/news-v3.x.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="pmix-v3-x-series">
+<h1><span class="section-number">16.3. </span>PMIx v3.x series<a class="headerlink" href="#pmix-v3-x-series" title="Link to this heading"></a></h1>
+<p>This file contains all the NEWS updates for the PMIx v3.x
+series, in reverse chronological order.</p>
+<section id="dec-2020">
+<h2><span class="section-number">16.3.1. </span>3.2.2 – 7 Dec 2020<a class="headerlink" href="#dec-2020" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>PR #1930: Remove man page setup as there are no manpages in v3.2</p></li>
+<li><p>PR #1933: Remove stale config command</p></li>
+<li><p>PR #1940: Fix dependency issue with hwloc</p></li>
+<li><p>PR #1941: .spec: add <code class="docutils literal notranslate"><span class="pre">*-devel</span></code> packages</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="nov-2020">
+<h2><span class="section-number">16.3.2. </span>3.2.1 – 12 Nov 2020<a class="headerlink" href="#nov-2020" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>PR #1890:
+- Fix Issue #1889: Fix symlinks in unit tests to include new timeout
+- Fix Issue #1891: Remove pnet/opa component that should not be in v3.2</p></li>
+<li><p>PR #1904: Add more metadata to string generated from preg/compress</p></li>
+<li><p>PR #1919: Fix memory leak in PMIx_Get/fastpath</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="oct-2020">
+<h2><span class="section-number">16.3.3. </span>3.2.0 – 22 Oct 2020<a class="headerlink" href="#oct-2020" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul>
+<li><p>PR #1402/#1403/#1421/#1423: Modex size reductions</p></li>
+<li><p>PR #1752: Convert man pages to Markdown (pandoc)</p></li>
+<li><p>PR #1766: Move from -levent to -levent_core for linking Libevent</p></li>
+<li><p>PR #1832: Sync 3.2 branch with master
+- New attributes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>PMIX_HOSTNAME_ALIASES</p></li>
+<li><p>PMIX_HOSTNAME_KEEP_FQDN</p></li>
+<li><p>PMIX_GET_REFRESH_CACHE</p></li>
+<li><p>PMIX_REQUIRED_KEY</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>Removed PMIX_VALUE_COMPRESSED_STRING_UNPACK macro from pmix_common.h</p></li>
+<li><p>New frameworks
+- PR #1139: pcompress - Compression methods
+- PR #1423: psquash - Flexible integer packing</p></li>
+<li><p>New components
+- PR #1139: preg/compress - regular expression methods</p></li>
+<li><p>PR #1422 Modified string representations produced by PMIx_generate_regex
+and PMIx_generate_ppn.</p></li>
+<li><p>Issue #1586: Fixed dmodex support and PMIx_Get behavior</p></li>
+<li><p>PR #1748: Removed –with-pmix-symbol-rename configure option</p></li>
+</ul>
+</li>
+<li><p>PR #1848: Expose PMIX_REGEX constant per v3.2 standard</p></li>
+<li><p>PR #1885: Fix immediate flag behavior at the server</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="feb-2020">
+<h2><span class="section-number">16.3.4. </span>3.1.5 – 14 Feb 2020<a class="headerlink" href="#feb-2020" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The signature of the PMIx_Allocation_request has changed
+in accordance with an Errata update of the PMIx v3 Standard</p>
+</div>
+<ul class="simple">
+<li><p>PR #1413/#1465: Remove unnecessary error log</p></li>
+<li><p>PR #1433: Return the correct status from PMIx_Publish</p></li>
+<li><p>PR #1445: Sync. with master to fix ‘get’ of data for unknown namespace
+Includes the following PRs from master
+- PR #1382: dstore: fixed truncate key-names while restoring
+- PR #1405: Fix xnspace dmodex and add verbose debug
+- PR #1406: Resolve request for job-level data
+- PR #1407/#1409/#1411: Fix dmodex across nspaces
+- PR #1434/#1436: Cleanup handling of info arrays
+- PR #1435: Cleanup example and remove debug
+- PR #1437: Update blocking Allocation_request signature
+- PR #1440: Fix ‘get’ of data for unknown namespace
+- PR #1442: Fix fences with namespaces where no local processes are running</p></li>
+<li><p>PR #1472: Initialize nlocal and local in the tracker</p></li>
+<li><p>PR #1487: Sync. with master to fix info array and cross-version issues</p></li>
+<li><p>PR #1493/#1497/#1501/#1505/#1589: Info array and Cross-version fixes</p></li>
+<li><p>PR #1511/#1517/#1520/#1523/#1534/#1565: Fix pmix tests</p></li>
+<li><p>PR #1530: Improve handling of servers piror to v3.1.5</p></li>
+<li><p>PR #1531: Update transfer from hash to dstore</p></li>
+<li><p>PR #1538: Fix singleton initialization</p></li>
+<li><p>PR #1547: Add missing PMIx_IOF_deregister function</p></li>
+<li><p>PR #1554/#1591: Fix memory leak on namespace deregister</p></li>
+<li><p>PR #1561: Configury fix for reproducible builds</p></li>
+<li><p>PR #1579: Protect pthread setpshared calls</p></li>
+<li><p>PR #1587: Fix to gds/dstore configure logic</p></li>
+<li><p>PR #1610: Adjust hotel timeout to be in whole seconds</p></li>
+<li><p>PR #1613: dstore: Fix cache size calculation</p></li>
+<li><p>PR #1622: Fix multiple occurrences of unaligned access in pmix tests</p></li>
+<li><p>PR #1620: Re-address the collective tracker problem</p></li>
+</ul>
+</section>
+<section id="aug-2019">
+<h2><span class="section-number">16.3.5. </span>3.1.4 – 9 Aug 2019<a class="headerlink" href="#aug-2019" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #1342: Fix if_linux_ipv6_open interface filter</p></li>
+<li><p>PR #1344: Remove unnecessary libtool init for c++</p></li>
+<li><p>PR #1346: Fix incorrect pointer casts/deref</p></li>
+<li><p>PR #1347/#1348: Fix use of gethostname</p></li>
+<li><p>PR #1353/#1357: util/environ: use setenv() if available</p></li>
+<li><p>PR #1354: Plug a misc memory leak in the pmix_query_caddy_t destructor</p></li>
+<li><p>PR #1356: Fix another pointer cast/deref in test suite</p></li>
+<li><p>PR #1358: Implement support for class-based info arrays</p></li>
+<li><p>PR #1359: Plug misc minor memory leaks</p></li>
+<li><p>PR #1368: Backport support for libev</p></li>
+<li><p>PR #1369: Fix legacy support for PMI-1</p></li>
+<li><p>PR #1370: Cleanup handling of data requests for different nspaces</p></li>
+<li><p>PR #1193: Resolve get of proc-specific job-level info from another nspace</p></li>
+<li><p>PR #1376: Fix problems in the Log code path, updates to simple test suite</p></li>
+<li><p>PR #1377: Skip fastpath/dstore for NULL keys</p></li>
+<li><p>PR #1379: Change IF_NAMESIZE to PMIX_IF_NAMESIZE and set to safe size</p></li>
+<li><p>PR #1385: Check for EINVAL return from posix_fallocate</p></li>
+<li><p>PR #1389: Plug misc memory leaks in configure</p></li>
+</ul>
+</section>
+<section id="july-2019">
+<h2><span class="section-number">16.3.6. </span>3.1.3 – 2 July 2019<a class="headerlink" href="#july-2019" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #1096: Restore PMIX_NUM_SLOTS for backward compatibility</p></li>
+<li><p>PR #1106: Automatically generate PMIX_NUMERIC_VERSION</p></li>
+<li><p>PR #1143: Fix tool connection handshake for tools that are registered
+clients</p></li>
+<li><p>PR #1163: Fix a compiler warning in atomics on POWER arch</p></li>
+<li><p>PR #1162: Fix race condition when clients fail while in a PMIx
+collective operation</p></li>
+<li><p>PR #1166: Fix a regression in spinlock atomics</p></li>
+<li><p>PR #1159: Fix missing pointer update when shared memory segment
+was re-attached</p></li>
+<li><p>PR #1180: Remove dependency on C++ compiler for thread detection</p></li>
+<li><p>PR #1180: Add detection for Flex when building in non-tarball situations</p></li>
+<li><p>PR #1165: Add dependency on libevent-devel to rpm spec file</p></li>
+<li><p>PR #1188: Link libpmix.so to MCA component libraries</p></li>
+<li><p>PR #1194: Ensure any cached notifications arrive after registration completes</p></li>
+<li><p>PR #1205: Add “make check” support</p></li>
+<li><p>PR #1209: Update configure logic for clock_gettime</p></li>
+<li><p>PR #1213/#1217/#1221: Add configure option “–enable-nonglobal-dlopen”
+If the MCA component libraries should link back to libpmix.so</p></li>
+<li><p>PR #1231: SPEC: Allow splitting PMIx in pmix and pmix-libpmi packages</p></li>
+<li><p>PR #1222: Fix case of multiple launcher calls in job script</p></li>
+<li><p>PR #1237: Avoid double-free of collective tracker</p></li>
+<li><p>PR #1237: Ensure all participants are notified of fence complete</p></li>
+<li><p>PR #1237: Ensure all participants are notified of connect and disconnect complete</p></li>
+<li><p>PR #1250: Fix PMIx_server_finalize hang (rare)</p></li>
+<li><p>PR #1271: PTL/usock doesn’t support tools</p></li>
+<li><p>PR #1280: Fix the PTL connection establishment protocol</p></li>
+<li><p>PR #1280: Fix tool connection in psec/handshake mode</p></li>
+<li><p>PR #1289: Avoid output_verbose overhead when it won’t print</p></li>
+<li><p>PR #1296: Allow setup_fork to proceed even if gdds and pnet don’t contribute</p></li>
+<li><p>PR #1296: Allow servers to pass NULL module</p></li>
+<li><p>PR #1297: Provide internal blocking ability to the register/deregister fns</p></li>
+<li><p>PR #1298: Add dummy handshake component to psec framework for testing</p></li>
+<li><p>PR #1303: Allow jobs to not specify proc-level info</p></li>
+<li><p>PR #1304: Provide proc data in cases where host does not</p></li>
+<li><p>PR #1305: Add some more values that can be computed</p></li>
+<li><p>PR #1308: Add missing tool rendezvous file</p></li>
+<li><p>PR #1309: Fix potential integer overflow in regex</p></li>
+<li><p>PR #1311: Work around memory bug in older gcc compilers</p></li>
+<li><p>PR #1321: Provide memory op hooks in user-facing macros</p></li>
+<li><p>PR #1329: Add -fPIC to static builds</p></li>
+<li><p>PR #1340: Do not use ‘==’ in m4 test statements</p></li>
+</ul>
+</section>
+<section id="jan-2019">
+<h2><span class="section-number">16.3.7. </span>3.1.2 – 24 Jan 2019<a class="headerlink" href="#jan-2019" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Fix a bug in macro identifying system events</p></li>
+<li><p>Restore some non-standard macros to the pmix_extend.h
+header - these are considered “deprecated” and will be
+removed from public-facing headers in future releases</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="id1">
+<h2><span class="section-number">16.3.8. </span>3.1.1 – 18 Jan 2019<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Fix a bug in registration of default event handlers
+that somehow slipped thru testing</p></li>
+</ul>
+</section>
+<section id="id2">
+<h2><span class="section-number">16.3.9. </span>3.1.0 – 17 Jan 2019<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>THIS RELEASE MARKS THE STARTING POINT FOR FULL COMPLIANCE
+WITH THE PMIX v3 STANDARD. ALL API BEHAVIORS AND ATTRIBUTE
+DEFINITIONS MEET THE v3 STANDARD SPECIFICATIONS.</p>
+</div>
+<ul class="simple">
+<li><p>Add a new, faster dstore GDS component ‘ds21’</p></li>
+<li><p>Performance optimizations for the dstore GDS components.</p></li>
+<li><p>Plug miscellaneous memory leaks</p></li>
+<li><p>Silence an unnecessary warning message when checking connection
+to a non-supporting server</p></li>
+<li><p>Ensure lost-connection events get delivered to default event
+handlers</p></li>
+<li><p>Correctly handle cache refresh for queries</p></li>
+<li><p>Protect against race conditions between host and internal library
+when dealing with async requests</p></li>
+<li><p>Cleanup tool operations and add support for connections to
+remote servers. Initial support for debugger direct/indirect
+launch verified with PRRTE. Cleanup setting of tmpdir options.
+Drop rendezvous files when acting as a launcher</p></li>
+<li><p>Automatically store the server URI for easy access by client</p></li>
+<li><p>Provide MCA parameter to control TCP connect retry/timeout</p></li>
+<li><p>Update event notification system to properly evict oldest events
+when more space is needed</p></li>
+<li><p>Fix a number of error paths</p></li>
+<li><p>Update IOF cache code to properly drop oldest message. Provide
+MCA parameter for setting cache size.</p></li>
+<li><p>Handle setsockopt(SO_RCVTIMEO) not being supported</p></li>
+<li><p>Ensure that epilogs get run even when connections unexpectedly
+terminate. Properly split epilog strings to process multiple
+paths</p></li>
+<li><p>Pass the tool’s command line to the server so it can be returned
+in queries</p></li>
+<li><p>Add support for C11 atomics</p></li>
+<li><p>Support collection and forwarding of fabric-specific envars</p></li>
+<li><p>Improve handling of hwloc configure option</p></li>
+<li><p>Fix PMIx_server_generate_regex to preserve node ordering</p></li>
+<li><p>Fix a bug when registering default event handlers</p></li>
+</ul>
+</section>
+<section id="sept-2018">
+<h2><span class="section-number">16.3.10. </span>3.0.2 – 18 Sept 2018<a class="headerlink" href="#sept-2018" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Ensure we cleanup any active sensors when a peer departs. Allow the
+heartbeat monitor to “reset” if a process stops beating and subsequently
+returns</p></li>
+<li><p>Fix a few bugs in the event notification system and provide some
+missing implementation (support for specifying target procs to
+receive the event).</p></li>
+<li><p>Add PMIX_PROC_TERMINATED constant</p></li>
+<li><p>Properly deal with EOPNOTSUPP from getsockopt() on ARM</p></li>
+</ul>
+</section>
+<section id="aug-2018">
+<h2><span class="section-number">16.3.11. </span>3.0.1 – 23 Aug 2018<a class="headerlink" href="#aug-2018" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>DEPRECATION WARNING The pmix_info_array_t struct was
+initially marked for deprecation in the v2.x series.
+We failed to provide clear warning at that time. This
+therefore serves as warning of intended removal of
+pmix_info_array_t in the future v4 release series.</p>
+</div>
+<ul class="simple">
+<li><p>Fixed memory corruption bug in event notification
+system due to uninitialized variable</p></li>
+<li><p>Add numeric version field to pmix_version.h</p></li>
+<li><p>Transfer all cached data to client dstore upon first connect</p></li>
+<li><p>Implement missing job control and sensor APIs</p></li>
+</ul>
+</section>
+<section id="july-2018">
+<h2><span class="section-number">16.3.12. </span>3.0.0 – 6 July 2018<a class="headerlink" href="#july-2018" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release implements the complete PMIX v3.0 Standard
+and therefore includes a number of new APIs and features. These
+can be tracked by their RFC’s on the community website:
+<a class="reference external" href="https://pmix.org/pmix-standard">https://pmix.org/pmix-standard</a>.</p>
+</div>
+<ul class="simple">
+<li><dl class="simple">
+<dt>Added blocking forms of several existing APIs:</dt><dd><ul>
+<li><p>PMIx_Log</p></li>
+<li><p>PMIx_Allocation_request</p></li>
+<li><p>PMIx_Job_control</p></li>
+<li><p>PMIx_Process_monitor</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Added support for getting/validating security credentials</dt><dd><ul>
+<li><p>PMIx_Get_credential, PMIx_Validate_credential</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Extended support for debuggers/tools</dt><dd><ul>
+<li><p>Added IO forwarding support allowing tools to request
+forwarding of output from specific application procs,
+and to forward their input to specified target procs</p></li>
+<li><p>Extended tool attributes to support synchronization
+during startup of applications. This includes the
+ability to modify an application’s environment
+(including support for LD_PRELOAD) and define an
+alternate fork/exec agent</p></li>
+<li><p>Added ability for a tool to switch server connections
+so it can first connect to a system-level server to
+launch a starter program, and then reconnect to that
+starter for debugging purposes</p></li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Extended network support to collect network inventory by</dt><dd><p>either rolling it up from individual nodes or by direct
+query of fabric managers. Added an API by which the
+host can inject any rolled up inventory into the local
+PMIx server. Applications and/or the host RM can access
+the inventory via the PMIx_Query function.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Added the ability for applications and/or tools to register</dt><dd><p>files and directories for cleanup upon their termination</p>
+</dd>
+</dl>
+</li>
+<li><p>Added support for inter-library coordination within a process</p></li>
+<li><dl class="simple">
+<dt>Extended PMIx_Log support by adding plugin support for new</dt><dd><p>channels, including local/remote syslog and email. Added
+attributes to query available channels and to tag and
+format output.</p>
+</dd>
+</dl>
+</li>
+<li><p>Fix several memory and file descriptor leaks</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="news-v4.x.html" class="btn btn-neutral float-left" title="16.2. PMIx v4.x series" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="news-v2.x.html" class="btn btn-neutral float-right" title="16.4. PMIx v2.x series" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

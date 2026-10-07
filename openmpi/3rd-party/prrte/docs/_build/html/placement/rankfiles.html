@@ -1,0 +1,198 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8.8. Rankfiles &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.9. Deprecated options" href="deprecated.html" />
+    <link rel="prev" title="8.7. Diagnostics" href="diagnostics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Process placement</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-slot">8.2. Definition of ‘slot’</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-processor-element">8.3. Definition of “processor element”</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">8.4. Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fundamentals.html">8.5. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="limits.html">8.6. Overloading and Oversubscribing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="diagnostics.html">8.7. Diagnostics</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.8. Rankfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecated.html">8.9. Deprecated options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">8. </span>Process placement</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8.8. </span>Rankfiles</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/placement/rankfiles.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="rankfiles">
+<h1><span class="section-number">8.8. </span>Rankfiles<a class="headerlink" href="#rankfiles" title="Link to this heading"></a></h1>
+<p>Another way to specify arbitrary mappings is with a rankfile, which
+gives you detailed control over process binding as well.</p>
+<p>Rankfiles are text files that specify detailed information about how
+individual processes should be mapped to nodes, and to which
+processor(s) they should be bound. Each line of a rankfile specifies
+the location of one process. The general form of each line in the
+rankfile is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rank</span> <span class="o">&lt;</span><span class="n">N</span><span class="o">&gt;=&lt;</span><span class="n">hostname</span><span class="o">&gt;</span> <span class="n">slot</span><span class="o">=&lt;</span><span class="n">slot</span> <span class="nb">list</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myrankfile
+rank 0=aa slot=10-12
+rank 1=bb slot=0,1,4
+rank 2=cc slot=1-2
+$ prun --host aa,bb,cc,dd --map-by rankfile:FILE=myrankfile ./a.out
+</pre></div>
+</div>
+<p>Means that:</p>
+<ul class="simple">
+<li><p>Rank 0 runs on node aa, bound to logical cores 10-12.</p></li>
+<li><p>Rank 1 runs on node bb, bound to logical cores 0, 1, and 4.</p></li>
+<li><p>Rank 2 runs on node cc, bound to logical cores 1 and 2.</p></li>
+</ul>
+<p>Similarly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myrankfile
+rank 0=aa slot=1:0-2
+rank 1=bb slot=0:0,1,4
+rank 2=cc slot=1-2
+$ prun --host aa,bb,cc,dd --map-by rankfile:FILE=myrankfile ./a.out
+</pre></div>
+</div>
+<p>Means that:</p>
+<ul class="simple">
+<li><p>Rank 0 runs on node aa, bound to logical package 1, cores 10-12 (the
+0th through 2nd cores on that package).</p></li>
+<li><p>Rank 1 runs on node bb, bound to logical package 0, cores 0, 1,
+and 4.</p></li>
+<li><p>Rank 2 runs on node cc, bound to logical cores 1 and 2.</p></li>
+</ul>
+<p>The hostnames listed above are “absolute,” meaning that actual
+resolvable hostnames are specified. However, hostnames can also be
+specified as “relative,” meaning that they are specified in relation
+to an externally-specified list of hostnames (e.g., by <code class="docutils literal notranslate"><span class="pre">prun</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">--host</span></code> argument, a hostfile, or a job scheduler).</p>
+<p>The “relative” specification is of the form “<code class="docutils literal notranslate"><span class="pre">+n&lt;X&gt;</span></code>”, where <code class="docutils literal notranslate"><span class="pre">X</span></code>
+is an integer specifying the Xth hostname in the set of all available
+hostnames, indexed from 0. For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cat myrankfile
+rank 0=+n0 slot=10-12
+rank 1=+n1 slot=0,1,4
+rank 2=+n2 slot=1-2
+$ prun --host aa,bb,cc,dd --map-by rankfile:FILE=myrankfile ./a.out
+</pre></div>
+</div>
+<p>All package/core slot locations are be specified as <em>logical</em>
+indexes. You can use tools such as HWLOC’s <code class="docutils literal notranslate"><span class="pre">lstopo</span></code> to find the
+logical indexes of packages and cores.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="diagnostics.html" class="btn btn-neutral float-left" title="8.7. Diagnostics" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deprecated.html" class="btn btn-neutral float-right" title="8.9. Deprecated options" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

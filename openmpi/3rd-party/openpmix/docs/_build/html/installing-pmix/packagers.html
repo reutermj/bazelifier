@@ -1,0 +1,212 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5.11. Advice for packagers &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="6. How Things Work" href="../how-things-work/index.html" />
+    <link rel="prev" title="5.10. Installation location" href="installation-location.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">5. Building and installing PMIx</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">5.1. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="definitions.html">5.2. Definitions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="filesystem-requirements.html">5.3. Filesystem requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vpath-builds.html">5.4. VPATH builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compilers-and-flags.html">5.5. Specifying compilers and flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="required-support-libraries.html">5.6. Required support libraries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configure-cli-options/index.html">5.7. <code class="docutils literal notranslate"><span class="pre">configure</span></code> command line options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configure-output-summary.html">5.8. <code class="docutils literal notranslate"><span class="pre">configure</span></code> output summary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="make-targets.html">5.9. <code class="docutils literal notranslate"><span class="pre">make</span></code> targets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation-location.html">5.10. Installation location</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">5.11. Advice for packagers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#components-plugins-dso-or-no">5.11.1. Components (“plugins”): DSO or no?</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">5. </span>Building and installing PMIx</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5.11. </span>Advice for packagers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/installing-pmix/packagers.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="advice-for-packagers">
+<h1><span class="section-number">5.11. </span>Advice for packagers<a class="headerlink" href="#advice-for-packagers" title="Link to this heading"></a></h1>
+<section id="components-plugins-dso-or-no">
+<span id="label-install-packagers-dso-or-not"></span><h2><span class="section-number">5.11.1. </span>Components (“plugins”): DSO or no?<a class="headerlink" href="#components-plugins-dso-or-no" title="Link to this heading"></a></h2>
+<p>PMIx contains a large number of components (sometimes called
+“plugins”) to effect different types of functionality in PMIx.  For
+example, some components provide support for networks and
+may link against specialized libraries to do so.</p>
+<p>PMIx v5.0.11rc1 has two <code class="docutils literal notranslate"><span class="pre">configure</span></code>-time defaults regarding the
+treatment of components that may be of interest to packagers:</p>
+<ol class="arabic">
+<li><p>PMIx’s libraries default to building as shared libraries
+(vs. static libraries).  For example, on Linux, PMIx will
+default to building <code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code> (vs. <code class="docutils literal notranslate"><span class="pre">libpmix.a</span></code>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See the descriptions of <code class="docutils literal notranslate"><span class="pre">--disable-shared</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--enable-static</span></code> <a class="reference internal" href="configure-cli-options/installation.html#label-building-installation-cli-options"><span class="std std-ref">in this section</span></a> for more
+details about how to change this default.</p>
+<p>Also be sure to <a class="reference internal" href="../building-apps/building-static-apps.html#label-building-fully-static-apps"><span class="std std-ref">see this warning about building
+static apps</span></a>.</p>
+</div>
+</li>
+<li><p>PMIx will default to including its components in its libraries
+(as opposed to being compiled as dynamic shared objects, or DSOs).
+For example, <code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code> on Linux systems will contain the OPA
+PNET component, instead of the OPA PNET being compiled into
+<code class="docutils literal notranslate"><span class="pre">mca_pnet_opa.so</span></code> and dynamically opened at run time via
+<code class="docutils literal notranslate"><span class="pre">dlopen(3)</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See the descriptions of <code class="docutils literal notranslate"><span class="pre">--enable-mca-dso</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--enable-mca-static</span></code> <a class="reference internal" href="configure-cli-options/installation.html#label-building-installation-cli-options"><span class="std std-ref">in this section</span></a> for more
+details about how to change this defaults.</p>
+</div>
+</li>
+</ol>
+<p>A side effect of these two defaults is that all the components
+included in the PMIx libraries will bring their dependencies with
+them.  For example (on Linux), if the XYZ PNET component
+requires <code class="docutils literal notranslate"><span class="pre">libXYZ.so</span></code>, then these defaults mean that
+<code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code> will depend on <code class="docutils literal notranslate"><span class="pre">libXYZ.so</span></code>.  This dependency will
+likely be telegraphed into the PMIx binary package that includes
+<code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code>.</p>
+<p>Conversely, if the XYZ PNET component was built as a DSO, then —
+assuming no other parts of PMIx require <code class="docutils literal notranslate"><span class="pre">libXYZ.so</span></code> —
+<code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code> would <em>not</em> be dependent on <code class="docutils literal notranslate"><span class="pre">libXYZ.so</span></code>.  Instead, the
+<code class="docutils literal notranslate"><span class="pre">mca_pnet_xyz.so</span></code> DSO would have the dependency upon <code class="docutils literal notranslate"><span class="pre">libXYZ.so</span></code>.</p>
+<p>Packagers can use these facts to potentially create multiple binary
+PMIx packages, each with different dependencies by, for example,
+using <code class="docutils literal notranslate"><span class="pre">--enable-mca-dso</span></code> to selectively build some components as
+DSOs and leave the others included in their respective PMIx
+libraries.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build all the "pnet" components as DSOs (all other</span>
+<span class="c1"># components will default to being built in their respective</span>
+<span class="c1"># libraries)</span>
+shell$<span class="w"> </span>./configure<span class="w"> </span>--enable-mca-dso<span class="o">=</span>pnet<span class="w"> </span>...
+</pre></div>
+</div>
+<p>This allows packaging <code class="docutils literal notranslate"><span class="pre">$libdir</span></code> as part of the “main” PMIx
+binary package, but then packaging
+<code class="docutils literal notranslate"><span class="pre">$libdir/pmix/mca_pnet_*.so</span></code> as sub-packages.  These
+sub-packages may inherit dependencies on their own.
+Users can always install the “main” PMIx
+binary package, and can install the additional “pnet” PMIx
+binary sub-package if they actually have network hardware
+installed (which will cause the installation of additional
+dependencies).</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="installation-location.html" class="btn btn-neutral float-left" title="5.10. Installation location" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../how-things-work/index.html" class="btn btn-neutral float-right" title="6. How Things Work" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

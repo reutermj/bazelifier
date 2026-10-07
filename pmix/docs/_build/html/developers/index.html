@@ -1,0 +1,216 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12. Developer’s guide &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.1. Prerequisites" href="prerequisites.html" />
+    <link rel="prev" title="11.5. Building fully-static PMIx applications" href="../building-apps/building-static-apps.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">12. Developer’s guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">12.6. OpenPMIx terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html">12.7. Source code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12. </span>Developer’s guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="developer-s-guide">
+<h1><span class="section-number">12. </span>Developer’s guide<a class="headerlink" href="#developer-s-guide" title="Link to this heading"></a></h1>
+<p>This section is here for those who are building/exploring the
+internals of PMIx in its source code form, most likely through a
+developer’s tree (i.e., a Git clone).</p>
+<p>If you are simply <em>using</em> PMIx, you probably don’t need to read this
+section.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html#compilers">12.1.1. Compilers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html#gnu-autotools">12.1.2. GNU Autotools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html#perl">12.1.3. Perl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html#flex">12.1.4. Flex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html#sphinx-and-therefore-python">12.1.5. Sphinx (and therefore Python)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html#github">12.2.1. GitHub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html#git-commits-open-source-contributor-s-declaration">12.2.2. Git commits: open source / contributor’s declaration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html#git-branch-scheme">12.2.3. Git branch scheme</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html#ci-testing">12.2.4. CI (testing)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="terminology.html">12.6. OpenPMIx terminology</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html#modular-component-architecture-mca">12.6.1. Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html#required-3rd-party-libraries">12.6.2. Required 3rd party libraries</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="source-code.html">12.7. Source code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html#code-style">12.7.1. Code style</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html#tree-layout">12.7.2. Tree layout</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html#symbol-visibility">12.7.3. Symbol Visibility</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html#framework-notes">12.8.1. Framework notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html#mca-parameter-notes">12.8.2. MCA parameter notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html#use-a-package-manager">12.9.1. Use a package manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html#autotools-versions">12.9.2. Autotools versions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html#checking-your-versions">12.9.3. Checking your versions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html#installing-the-gnu-autotools-from-source">12.9.4. Installing the GNU Autotools from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html#build-and-install-ordering">12.9.5. Build and install ordering</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="sphinx.html">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html#installing-python">12.10.1. Installing Python</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html#installing-sphinx">12.10.2. Installing Sphinx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html#running-sphinx">12.10.3. Running Sphinx</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rst-for-markdown-expats.html">12.11. ReStructured Text for those who know Markdown</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#whitespace-and-indenting">12.11.1. Whitespace and indenting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#fixed-width-font">12.11.2. Fixed width font</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#italics">12.11.3. Italics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#boldface">12.11.4. Boldface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#chapter-and-section-delimiters">12.11.5. Chapter and section delimiters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#multi-line-code-fixed-width-font">12.11.6. Multi-line code/fixed-width font</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#un-numbered-bullets">12.11.7. Un-numbered bullets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#numbered-bullets">12.11.8. Numbered bullets:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#comments">12.11.9. Comments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#including-files">12.11.10. Including files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#hyperlinks-to-urls">12.11.11. Hyperlinks to URLs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#hyperlinks-to-anchors">12.11.12. Hyperlinks to anchors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#hyperlinks-to-other-rst-pages">12.11.13. Hyperlinks to other (RST) pages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#macros">12.11.14. Macros</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html#brightly-colored-boxes">12.11.15. Brightly-colored boxes</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../building-apps/building-static-apps.html" class="btn btn-neutral float-left" title="11.5. Building fully-static PMIx applications" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="prerequisites.html" class="btn btn-neutral float-right" title="12.1. Prerequisites" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

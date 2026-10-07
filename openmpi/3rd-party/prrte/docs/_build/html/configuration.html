@@ -1,0 +1,244 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>5. PRRTE DVM Configuration &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2efb4362"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="6. How Things Work" href="how-things-work/index.html" />
+    <link rel="prev" title="4. Installing PRRTE" href="install.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">5. PRRTE DVM Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#configuration-options">5.1. Configuration Options</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#bootstrap-options">5.1.1. Bootstrap Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#operational-options">5.1.2. Operational Options</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logging-options">5.1.3. Logging Options</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#configurator-tool">5.2. Configurator Tool</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="placement/index.html">8. Process placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active"><span class="section-number">5. </span>PRRTE DVM Configuration</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/configuration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="prrte-dvm-configuration">
+<h1><span class="section-number">5. </span>PRRTE DVM Configuration<a class="headerlink" href="#prrte-dvm-configuration" title="Link to this heading"></a></h1>
+<p>The PMIx Reference RunTime Environment (PRRTE) can be instantiated
+as a Distributed Virtual Machine (DVM) in two ways. First, the
+<code class="docutils literal notranslate"><span class="pre">prte</span></code> command can be executed at a shell prompt. This will discover
+the available resources (either from hostfile or as allocated by a
+resource manager) and start a PRRTE shepherd daemon (<a class="reference internal" href="man/man1/prted.1.html#man1-prted"><span class="std std-ref">prted(1)</span></a>) on each of the indicated nodes.</p>
+<p>The other method, however, is to bootstrap the DVM at time of cluster
+startup. Bootstrapping PRRTE allows the DVM to serve as the system-level
+runtime, providing a full-service PMIx environment to sessions under
+its purview. Integration to an appropriately enabled scheduler can
+provide a full workload managed environment for users.</p>
+<p>Establishing the DVM using the bootstrap method requires that a PRRTE
+configuration file be created and made available on every node of the
+cluster at node startup. The configuration file provides necessary
+information for establishing the communication infrastructure between
+the DVM controller and the compute node daemons. It also provides a
+means for easily defining DVM behavior for options such as logging,
+system-level prolog and epilog scripts for each session, and other
+PRRTE features.</p>
+<p>The configuration file can be manually created or can be created using
+the <a class="reference external" href="configurator.html">PRRTE configuration tool</a>.
+Manual creation can best be done
+by editing the example configuration file (<code class="docutils literal notranslate"><span class="pre">&lt;source-location&gt;/src/etc/prte.conf</span></code>).
+This file contains all the supported configuration options, with all
+entries commented out. Simply uncomment the options of interest and
+set them to appropriate values. The file will be installed into the
+final <code class="docutils literal notranslate"><span class="pre">&lt;install-location&gt;/etc</span></code> when <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> is performed.</p>
+<section id="configuration-options">
+<h2><span class="section-number">5.1. </span>Configuration Options<a class="headerlink" href="#configuration-options" title="Link to this heading"></a></h2>
+<p>The following options are supported by PRRTE v3.0.14.
+While we make every effort to maintain compatibility with prior versions,
+we recommend that you check options when installing new versions to
+see what may have changed and/or been added. We also recommend that
+you use the <a class="reference external" href="configurator.html">PRRTE DVM configurator</a> for the
+version you are using to ensure that it is fully compatible.</p>
+<section id="bootstrap-options">
+<h3><span class="section-number">5.1.1. </span>Bootstrap Options<a class="headerlink" href="#bootstrap-options" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ClusterName=&lt;string&gt;</span> <span class="pre">(default:</span> <span class="pre">&quot;cluster&quot;)</span></code> is the name of the cluster upon
+which the DVM is executing. This is used by PRRTE to form the namespace
+for the DVM daemons, which is taken as <code class="docutils literal notranslate"><span class="pre">&lt;clustername&gt;-prte-dvm</span></code>.
+Using different names for each of your clusters is important if you use a single
+database to record information from multiple PRRTE-managed clusters.</p>
+<p><code class="docutils literal notranslate"><span class="pre">DVMControllerHost=&lt;hostname&gt;</span></code> is the host upon which the DVM controller
+will be executing. The <code class="docutils literal notranslate"><span class="pre">prted</span></code> that finds itself booting onto this host
+will declare itself to be the system controller and will initialize itself
+accordingly.</p>
+<p><code class="docutils literal notranslate"><span class="pre">DVMControllerPort=&lt;number&gt;</span> <span class="pre">(default:</span> <span class="pre">7817)</span></code> is the TCP port upon which the
+DVM controller will be listening for connections from its <code class="docutils literal notranslate"><span class="pre">prted</span></code> daemons
+on the remaining system nodes.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PRTEDPort=&lt;number</span> <span class="pre">(default:</span> <span class="pre">7818)</span></code> is the TCP port upon which each
+<code class="docutils literal notranslate"><span class="pre">prted</span></code> daemon will be listening for connections from its peer daemons
+on the other system nodes.</p>
+<p><code class="docutils literal notranslate"><span class="pre">DVMNodes=&lt;regex</span> <span class="pre">of</span> <span class="pre">DVM</span> <span class="pre">nodes&gt;</span> <span class="pre">(default:</span> <span class="pre">none)</span></code> provides a regular expression
+identifying the nodes that upon which user applications can run. IP addresses can
+be provided in place of hostnames if desired.The regular expression can consist of
+a simple comma-delimited list of hostnames, or a comma-delimited list of hostname
+ranges (e.g., “linux0,linux[2-10]”), or a PMIx “native” regular expression.</p>
+</section>
+<section id="operational-options">
+<h3><span class="section-number">5.1.2. </span>Operational Options<a class="headerlink" href="#operational-options" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">DVMTempDir=&lt;path&gt;</span> <span class="pre">(default:</span> <span class="pre">/tmp)</span></code> is the temporary directory that the
+DVM daemons and controller are to use as the base for their session directories.
+Working files/directories for the DVM will be placed under this location.</p>
+<p><code class="docutils literal notranslate"><span class="pre">SessionTmpDir=&lt;path&gt;</span> <span class="pre">(default:</span> <span class="pre">DVMTempDir)</span></code> is the temporary directory that
+the DVM daemons are to use as the base for session directories for all
+application sessions. Working files for each session will be placed under
+this location, separated out into a directory for each session.</p>
+</section>
+<section id="logging-options">
+<h3><span class="section-number">5.1.3. </span>Logging Options<a class="headerlink" href="#logging-options" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ControllerLogJobState=&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code> directs the DVM
+controller to log each DVM-launched job state transition. Log entry includes
+the namespace of the job, the state to which it is transitioning, and the
+date/time stamp when the transition was ordered.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ControllerLogProcState=&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code> directs the DVM
+controller to log each process (in a DVM-launched job) state transition.
+Log entry includes the namespace and rank of the process, the state to
+which it is transitioning, and the date/time stamp when the transition was
+ordered.</p>
+<p><code class="docutils literal notranslate"><span class="pre">ControllerLogPath=&lt;path&gt;</span> <span class="pre">(default:</span> <span class="pre">DVMTempDir)</span></code> is the path to where the logs are to
+be written. If a relative path is provided,
+then the directory will be created under the <code class="docutils literal notranslate"><span class="pre">DVMTempDir</span></code> location. The
+path defaults to the specified SessionTmpDir in the absence of any input
+to this field. The log filename is formatted as <code class="docutils literal notranslate"><span class="pre">prtectrlr-&lt;hostname&gt;-log&lt;</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PRTEDLogJobState=&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code> directs each <code class="docutils literal notranslate"><span class="pre">prted</span></code>
+in the DVM to log each DVM-launched job state transition. Log entry includes
+the namespace of the job, the state to which it is transitioning, and the
+date/time stamp when the transition was ordered.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PRTEDLogProcState=&lt;true|false&gt;</span> <span class="pre">(default:</span> <span class="pre">false)</span></code> directs each <code class="docutils literal notranslate"><span class="pre">prted</span></code>
+in the DVM to log each process (in a DVM-launched job) state transition.
+Log entry includes the namespace and rank of the process, the state to
+which it is transitioning, and the date/time stamp when the transition was
+ordered.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PRRTEDLogPath=&lt;path&gt;</span> <span class="pre">(default:</span> <span class="pre">DVMTempDir)</span></code> is the path to where the logs are to
+be written. If a relative path is provided,
+then the directory will be created under the <code class="docutils literal notranslate"><span class="pre">DVMTempDir</span></code> location. The
+path defaults to the specified SessionTmpDir in the absence of any input
+to this field. The log filename is formatted as <code class="docutils literal notranslate"><span class="pre">prted-&lt;hostname&gt;-log&lt;</span></code>.</p>
+</section>
+</section>
+<section id="configurator-tool">
+<h2><span class="section-number">5.2. </span>Configurator Tool<a class="headerlink" href="#configurator-tool" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="configurator.html">PRRTE configuration tool</a> contains all the supported options in an
+easy-to-use form. Once you have filled out the desired entries, the
+“submit” button will show the resulting configuration file on the
+browser window — a simple “copy/paste” operation into your target
+configuration file will yield the final result.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="install.html" class="btn btn-neutral float-left" title="4. Installing PRRTE" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="how-things-work/index.html" class="btn btn-neutral float-right" title="6. How Things Work" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

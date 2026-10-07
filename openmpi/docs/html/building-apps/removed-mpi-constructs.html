@@ -1,0 +1,607 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9.5. Removed MPI constructs &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="9.6. Deprecation warnings while compiling MPI applications" href="deprecation-warnings.html" />
+    <link rel="prev" title="9.4. ABI compatibility to previous versions of Open MPI" href="abi-compatibility.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">9. Building MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html">9.1. Quick start: Building MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="customizing-wrappers.html">9.2. Customizing wrapper compiler behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="extracting-wrapper-flags.html">9.3. Extracting flags from the wrapper compilers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="abi-compatibility.html">9.4. ABI compatibility to previous versions of Open MPI</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">9.5. Removed MPI constructs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#why-is-open-mpi-breaking-the-compilation-of-mpi-applications">9.5.1. Why is Open MPI breaking the compilation of MPI applications?</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-address">9.5.2. Stop using MPI_ADDRESS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-errhandler-create">9.5.3. Stop using MPI_ERRHANDLER_CREATE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-errhandler-get">9.5.4. Stop using MPI_ERRHANDLER_GET</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-errhandler-set">9.5.5. Stop using MPI_ERRHANDLER_SET</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-type-hindexed">9.5.6. Stop using MPI_TYPE_HINDEXED</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-type-hvector">9.5.7. Stop using MPI_TYPE_HVECTOR</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-type-struct">9.5.8. Stop using MPI_TYPE_STRUCT</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-type-extent">9.5.9. Stop using MPI_TYPE_EXTENT</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-type-lb">9.5.10. Stop using MPI_TYPE_LB</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-type-ub">9.5.11. Stop using MPI_TYPE_UB</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-lb-mpi-ub">9.5.12. Stop using MPI_LB / MPI_UB</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-combiner-hindexed-integer-mpi-combiner-hvector-integer-and-mpi-combiner-struct-integer">9.5.13. Stop using MPI_COMBINER_HINDEXED_INTEGER, MPI_COMBINER_HVECTOR_INTEGER, and MPI_COMBINER_STRUCT_INTEGER</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-using-mpi-handler-function">9.5.14. Stop using MPI_Handler_function</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="deprecation-warnings.html">9.6. Deprecation warnings while compiling MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-static-apps.html">9.7. Building fully-static MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">9. </span>Building MPI applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">9.5. </span>Removed MPI constructs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/building-apps/removed-mpi-constructs.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="removed-mpi-constructs">
+<span id="label-removed-mpi-constructs"></span><h1><span class="section-number">9.5. </span>Removed MPI constructs<a class="headerlink" href="#removed-mpi-constructs" title="Link to this heading"></a></h1>
+<p>Starting with v4.0.0, Open MPI — by default — removes the
+prototypes from <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code> for MPI symbols that were deprecated in 1996
+in the MPI-2.0 standard, and finally removed from the MPI-3.0 standard
+(2012).</p>
+<p>Specifically, the following symbols (specified in the MPI
+language-neutral names) are no longer prototyped in <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code> by
+default:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You may need to scroll right in the following table.</p>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Removed symbol</p>
+<p>(click for more details, below)</p>
+</th>
+<th class="head"><p>Replaced with</p>
+<p>(click to go to the corresponding man page)</p>
+</th>
+<th class="head"><p>Deprecated</p></th>
+<th class="head"><p>Removed</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-address"><span class="std std-ref">MPI_ADDRESS</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Get_address.3.html#mpi-get-address"><span class="std std-ref">MPI_GET_ADDRESS</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-errhandler-create"><span class="std std-ref">MPI_ERRHANDLER_CREATE</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_create_errhandler.3.html#mpi-comm-create-errhandler"><span class="std std-ref">MPI_COMM_CREATE_ERRHANDLER</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-errhandler-get"><span class="std std-ref">MPI_ERRHANDLER_GET</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_get_errhandler.3.html#mpi-comm-get-errhandler"><span class="std std-ref">MPI_COMM_GET_ERRHANDLER</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-errhandler-set"><span class="std std-ref">MPI_ERRHANDLER_SET</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_set_errhandler.3.html#mpi-comm-set-errhandler"><span class="std std-ref">MPI_COMM_SET_ERRHANDLER</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-type-extent"><span class="std std-ref">MPI_TYPE_EXTENT</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_get_extent.3.html#mpi-type-get-extent"><span class="std std-ref">MPI_TYPE_GET_EXTENT</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-type-hindexed"><span class="std std-ref">MPI_TYPE_HINDEXED</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_create_hindexed.3.html#mpi-type-create-hindexed"><span class="std std-ref">MPI_TYPE_CREATE_HINDEXED</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-type-hvector"><span class="std std-ref">MPI_TYPE_HVECTOR</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_create_hvector.3.html#mpi-type-create-hvector"><span class="std std-ref">MPI_TYPE_CREATE_HVECTOR</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-type-lb"><span class="std std-ref">MPI_TYPE_LB</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_get_extent.3.html#mpi-type-get-extent"><span class="std std-ref">MPI_TYPE_GET_EXTENT</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-type-struct"><span class="std std-ref">MPI_TYPE_STRUCT</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_create_struct.3.html#mpi-type-create-struct"><span class="std std-ref">MPI_TYPE_CREATE_STRUCT</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-type-ub"><span class="std std-ref">MPI_TYPE_UB</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_get_extent.3.html#mpi-type-get-extent"><span class="std std-ref">MPI_TYPE_GET_EXTENT</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-lb-ub"><span class="std std-ref">MPI_LB</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_create_resized.3.html#mpi-type-create-resized"><span class="std std-ref">MPI_TYPE_CREATE_RESIZED</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-lb-ub"><span class="std std-ref">MPI_UB</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_create_resized.3.html#mpi-type-create-resized"><span class="std std-ref">MPI_TYPE_CREATE_RESIZED</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-combiner-fortran-integers"><span class="std std-ref">MPI_COMBINED_HINDEXED_INTEGER</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_get_envelope.3.html#mpi-type-get-envelope"><span class="std std-ref">MPI_COMBINER_HINDEXED</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-combiner-fortran-integers"><span class="std std-ref">MPI_COMBINED_HVECTOR_INTEGER</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_get_envelope.3.html#mpi-type-get-envelope"><span class="std std-ref">MPI_COMBINER_HVECTOR</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#label-mpi-combiner-fortran-integers"><span class="std std-ref">MPI_COMBINED_STRUCT_INTEGER</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Type_get_envelope.3.html#mpi-type-get-envelope"><span class="std std-ref">MPI_COMBINER_STRUCT</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#label-mpi-handler-function"><span class="std std-ref">MPI_HANDLER_FUNCTION</span></a></p></td>
+<td><p><a class="reference internal" href="../man-openmpi/man3/MPI_Comm_create_errhandler.3.html#mpi-comm-create-errhandler"><span class="std std-ref">MPI_COMM_ERRHANDLER_FUNCTION</span></a></p></td>
+<td><p>MPI-2.0 (1996)</p></td>
+<td><p>MPI-3.0 (2012)</p></td>
+</tr>
+</tbody>
+</table>
+<p>Although these symbols are no longer prototyped in <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code>, <em>they are
+still present in the MPI library in Open MPI</em> v5.0.x. This enables
+legacy MPI applications to <em>link and run</em> successfully with Open MPI
+v5.0.x, even though they will fail to <em>compile</em>.</p>
+<p>Furthermore, the MPI C++ interfaces were deprecated in version
+2.2, and then were removed in MPI-3.0.  Starting
+from v5.0.0, Open MPI does not support the C++ interfaces
+any more. Users who would like to continue using the C++ interfaces of
+MPI will need to use an older release of Open MPI.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The Open MPI team <strong>strongly</strong> encourages all
+MPI application developers to stop using these constructs that were
+first deprecated over 20 years ago, and finally removed from the MPI
+specification in MPI-3.0 (in 2012).</p>
+</div>
+<p>The FAQ items in this category show how to update your application to
+stop using these removed symbols.</p>
+<p>All that being said, if you are unable to immediately update your
+application to stop using these removed MPI-1 symbols, you can
+re-enable them in <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code> by configuring Open MPI with the
+<code class="docutils literal notranslate"><span class="pre">--enable-mpi1-compatibility</span></code> flag.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Future releases of Open MPI may remove these symbols
+altogether.</p>
+</div>
+<section id="why-is-open-mpi-breaking-the-compilation-of-mpi-applications">
+<h2><span class="section-number">9.5.1. </span>Why is Open MPI breaking the compilation of MPI applications?<a class="headerlink" href="#why-is-open-mpi-breaking-the-compilation-of-mpi-applications" title="Link to this heading"></a></h2>
+<p>The Open MPI developer community decided to take a first step of
+removing prototypes of deprecated functions from <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code> starting
+with the Open MPI v4.0.x series for the following reasons:</p>
+<ol class="arabic simple">
+<li><p>The first set of symbols have been deprecated since <em>1996.</em> It’s
+time to start raising awareness for developers who are
+inadvertently still using these removed symbols.</p></li>
+<li><p>The MPI Forum removed a substantial set of symbols from the MPI-3.0
+specification in 2012. This is a sign that the Forum itself
+recognizes that these removed symbols are no longer needed.</p></li>
+<li><p>More functions have been deprecated in MPI 2.2 and MPI 4.0, and
+additional functions are expected to be deprecated and removed in
+future MPI versions. It is in the interest of both, developers and
+end-users, to minimize confusion as much as possible, and stick
+closely to the MPI specification.</p></li>
+<li><p>Note that Open MPI <em>did not fully remove</em> these removed symbols: we
+just made it slightly more painful to get to them.  This is an
+attempt to raise awareness so that MPI application developers can
+update their applications (it’s easy!).</p></li>
+</ol>
+<p>In short: the only way to finally be able to remove these removed
+symbols from Open MPI someday is to have a “grace period” where the
+MPI application developers are a) made aware that they are using
+removed symbols, and b) educated how to update their applications.</p>
+<p>We, the Open MPI developers, recognize that your MPI application
+failing to compile with Open MPI may be a nasty surprise.  We
+apologize for that.</p>
+<p>Our intent is simply to use this minor shock to raise awareness and
+use it as an educational opportunity to show you how to update your
+application (or direct your friendly neighborhood MPI application
+developer to this FAQ) to stop using these removed MPI symbols.</p>
+<p>Thank you!</p>
+</section>
+<section id="stop-using-mpi-address">
+<span id="label-mpi-address"></span><h2><span class="section-number">9.5.2. </span>Stop using MPI_ADDRESS<a class="headerlink" href="#stop-using-mpi-address" title="Link to this heading"></a></h2>
+<p>In C, the only thing that changed was the function name:
+<code class="docutils literal notranslate"><span class="pre">MPI_Address()</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_Get_address()</span></code>.  Nothing else needs
+to change:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">char</span><span class="w"> </span><span class="n">buffer</span><span class="p">[</span><span class="mi">30</span><span class="p">];</span>
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">address</span><span class="p">;</span>
+
+<span class="c1">// Old way</span>
+<span class="n">MPI_Address</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">address</span><span class="p">);</span>
+
+<span class="c1">// New way</span>
+<span class="n">MPI_Get_address</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">address</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>In Fortran, the type of the parameter changed from <code class="docutils literal notranslate"><span class="pre">INTEGER</span></code>
+→ <code class="docutils literal notranslate"><span class="pre">INTEGER(KIND=MPI_ADDRESS_KIND)</span></code> so that it can hold
+larger values (e.g., 64 bit pointers):</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">USE </span><span class="n">mpi</span>
+<span class="kt">REAL </span><span class="n">buffer</span>
+<span class="kt">INTEGER </span><span class="n">ierror</span>
+<span class="kt">INTEGER </span><span class="n">old_address</span>
+<span class="kt">INTEGER</span><span class="p">(</span><span class="nb">KIND</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">MPI_ADDRESS_KIND</span><span class="p">)</span><span class="w"> </span><span class="n">new_address</span>
+
+<span class="c">! Old way</span>
+<span class="k">CALL </span><span class="n">MPI_ADDRESS</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="n">old_address</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+
+<span class="c">! New way</span>
+<span class="k">CALL </span><span class="n">MPI_GET_ADDRESS</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span><span class="w"> </span><span class="n">new_address</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="stop-using-mpi-errhandler-create">
+<span id="label-mpi-errhandler-create"></span><h2><span class="section-number">9.5.3. </span>Stop using MPI_ERRHANDLER_CREATE<a class="headerlink" href="#stop-using-mpi-errhandler-create" title="Link to this heading"></a></h2>
+<p>In C, <em>effectively</em> the only thing that changed was the name of the
+function: <code class="docutils literal notranslate"><span class="pre">MPI_Errhandler_create()</span></code> →
+<code class="docutils literal notranslate"><span class="pre">MPI_Comm_create_errhandler()</span></code>.</p>
+<p><em>Technically</em>, the type of the first parameter also changed
+(<code class="docutils literal notranslate"><span class="pre">MPI_Handler_function</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_Comm_errhandler_function</span></code>),
+but most applications do not use this type directly and may not even
+notice the change.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">my_errhandler_function</span><span class="p">(</span><span class="n">MPI_Comm</span><span class="w"> </span><span class="o">*</span><span class="n">comm</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">code</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Do something useful to handle the error</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">some_function</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">MPI_Errhandler</span><span class="w"> </span><span class="n">my_handler</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Old way</span>
+<span class="w">    </span><span class="n">MPI_Errhandler_create</span><span class="p">(</span><span class="n">my_errhandler_function</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">my_handler</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// New way</span>
+<span class="w">    </span><span class="n">MPI_Comm_create_errhandler</span><span class="p">(</span><span class="n">my_errhandler_function</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">my_handler</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In Fortran, only the subroutine name changed:
+<code class="docutils literal notranslate"><span class="pre">MPI_ERRHANDLER_CREATE</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_COMM_CREATE_ERRHANDLER</span></code>.</p>
+<div class="highlight-Fortran notranslate"><div class="highlight"><pre><span></span><span class="k">USE </span><span class="n">mpi</span>
+<span class="k">EXTERNAL </span><span class="n">my_errhandler_function</span>
+<span class="kt">INTEGER </span><span class="n">ierror</span>
+<span class="kt">INTEGER </span><span class="n">my_handler</span>
+
+<span class="c">! Old way</span>
+<span class="k">CALL </span><span class="n">MPI_ERRHANDLER_CREATE</span><span class="p">(</span><span class="n">my_errhandler_function</span><span class="p">,</span><span class="w"> </span><span class="n">my_handler</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+
+<span class="c">! New way</span>
+<span class="k">CALL </span><span class="n">MPI_COMM_CREATE_ERRHANDLER</span><span class="p">(</span><span class="n">my_errhandler_function</span><span class="p">,</span><span class="w"> </span><span class="n">my_handler</span><span class="p">,</span><span class="w"> </span><span class="n">ierror</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="stop-using-mpi-errhandler-get">
+<span id="label-mpi-errhandler-get"></span><h2><span class="section-number">9.5.4. </span>Stop using MPI_ERRHANDLER_GET<a class="headerlink" href="#stop-using-mpi-errhandler-get" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, the only thing that changed with regards to
+<code class="docutils literal notranslate"><span class="pre">MPI_ERRHANDLER_GET</span></code> is the name: <code class="docutils literal notranslate"><span class="pre">MPI_ERRHANDLER_GET</span></code> →
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_GET_ERRHANDLER</span></code>.</p>
+<p>All parameter types stayed the same.</p>
+</section>
+<section id="stop-using-mpi-errhandler-set">
+<span id="label-mpi-errhandler-set"></span><h2><span class="section-number">9.5.5. </span>Stop using MPI_ERRHANDLER_SET<a class="headerlink" href="#stop-using-mpi-errhandler-set" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, the only thing that changed with regards to
+<code class="docutils literal notranslate"><span class="pre">MPI_ERRHANDLER_SET</span></code> is the name: <code class="docutils literal notranslate"><span class="pre">MPI_ERRHANDLER_SET</span></code> →
+<code class="docutils literal notranslate"><span class="pre">MPI_COMM_SET_ERRHANDLER</span></code>.</p>
+<p>All parameter types stayed the same.</p>
+</section>
+<section id="stop-using-mpi-type-hindexed">
+<span id="label-mpi-type-hindexed"></span><h2><span class="section-number">9.5.6. </span>Stop using MPI_TYPE_HINDEXED<a class="headerlink" href="#stop-using-mpi-type-hindexed" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, <em>effectively</em> the only change is the name of
+the function: <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_HINDEXED</span></code> →
+<code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_HINDEXED</span></code>.</p>
+<p>In C, the new function also has a <code class="docutils literal notranslate"><span class="pre">const</span></code> attribute on the two array
+parameters, but most applications won’t notice the difference.</p>
+<p>All other parameter types stayed the same.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">displacements</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Datatype</span><span class="w"> </span><span class="n">newtype</span><span class="p">;</span>
+
+<span class="c1">// Old way</span>
+<span class="n">MPI_Type_hindexed</span><span class="p">(</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">displacements</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+
+<span class="c1">// New way</span>
+<span class="n">MPI_Type_create_hindexed</span><span class="p">(</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">displacements</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="stop-using-mpi-type-hvector">
+<span id="label-mpi-type-hvector"></span><h2><span class="section-number">9.5.7. </span>Stop using MPI_TYPE_HVECTOR<a class="headerlink" href="#stop-using-mpi-type-hvector" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, the only change is the name of the function:
+<code class="docutils literal notranslate"><span class="pre">MPI_TYPE_HVECTOR</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_HVECTOR</span></code>.</p>
+<p>All parameter types stayed the same.</p>
+</section>
+<section id="stop-using-mpi-type-struct">
+<span id="label-mpi-type-struct"></span><h2><span class="section-number">9.5.8. </span>Stop using MPI_TYPE_STRUCT<a class="headerlink" href="#stop-using-mpi-type-struct" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, <em>effectively</em> the only change is the name of
+the function: <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_STRUCT</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_STRUCT</span></code>.</p>
+<p>In C, the new function also has a <code class="docutils literal notranslate"><span class="pre">const</span></code> attribute on the three
+array parameters, but most applications won’t notice the difference.</p>
+<p>All other parameter types stayed the same.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">displacements</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Datatype</span><span class="w"> </span><span class="n">datatypes</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_DOUBLE</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Datatype</span><span class="w"> </span><span class="n">newtype</span><span class="p">;</span>
+
+<span class="c1">// Old way</span>
+<span class="n">MPI_Type_struct</span><span class="p">(</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">displacements</span><span class="p">,</span><span class="w"> </span><span class="n">datatypes</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+
+<span class="c1">// New way</span>
+<span class="n">MPI_Type_create_struct</span><span class="p">(</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">displacements</span><span class="p">,</span><span class="w"> </span><span class="n">datatypes</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="stop-using-mpi-type-extent">
+<span id="label-mpi-type-extent"></span><h2><span class="section-number">9.5.9. </span>Stop using MPI_TYPE_EXTENT<a class="headerlink" href="#stop-using-mpi-type-extent" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, the <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_EXTENT</span></code> function is superseded
+by the slightly-different <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_GET_EXTENT</span></code> function: the new
+function also returns the lower bound.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">MPI_Aint</span><span class="w"> </span><span class="n">lb</span><span class="p">;</span>
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">extent</span><span class="p">;</span>
+
+<span class="c1">// Old way</span>
+<span class="n">MPI_Type_extent</span><span class="p">(</span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">extent</span><span class="p">);</span>
+
+<span class="c1">// New way</span>
+<span class="n">MPI_Type_get_extent</span><span class="p">(</span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">extent</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="stop-using-mpi-type-lb">
+<span id="label-mpi-type-lb"></span><h2><span class="section-number">9.5.10. </span>Stop using MPI_TYPE_LB<a class="headerlink" href="#stop-using-mpi-type-lb" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, the <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_LB</span></code> function is superseded by
+the slightly-different <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_GET_EXTENT</span></code> function: the new
+function also returns the extent.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">MPI_Aint</span><span class="w"> </span><span class="n">lb</span><span class="p">;</span>
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">extent</span><span class="p">;</span>
+
+<span class="c1">// Old way</span>
+<span class="n">MPI_Type_lb</span><span class="p">(</span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">lb</span><span class="p">);</span>
+
+<span class="c1">// New way</span>
+<span class="n">MPI_Type_get_extent</span><span class="p">(</span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">extent</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="stop-using-mpi-type-ub">
+<span id="label-mpi-type-ub"></span><h2><span class="section-number">9.5.11. </span>Stop using MPI_TYPE_UB<a class="headerlink" href="#stop-using-mpi-type-ub" title="Link to this heading"></a></h2>
+<p>In both C and Fortran, the <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_UB</span></code> function is superseded by
+the slightly-different <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_GET_EXTENT</span></code> function: the new
+function returns the lower bound and the extent, which can be used to
+compute the upper bound.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">MPI_Aint</span><span class="w"> </span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="n">ub</span><span class="p">;</span>
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">extent</span><span class="p">;</span>
+
+<span class="c1">// Old way</span>
+<span class="n">MPI_Type_ub</span><span class="p">(</span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ub</span><span class="p">);</span>
+
+<span class="c1">// New way</span>
+<span class="n">MPI_Type_get_extent</span><span class="p">(</span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">extent</span><span class="p">);</span>
+<span class="n">ub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lb</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">extent</span>
+</pre></div>
+</div>
+<p>Note the <code class="docutils literal notranslate"><span class="pre">ub</span></code> calculation after calling <code class="docutils literal notranslate"><span class="pre">MPI_Type_get_extent()</span></code>.</p>
+</section>
+<section id="stop-using-mpi-lb-mpi-ub">
+<span id="label-mpi-lb-ub"></span><h2><span class="section-number">9.5.12. </span>Stop using MPI_LB / MPI_UB<a class="headerlink" href="#stop-using-mpi-lb-mpi-ub" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">MPI_LB</span></code> and <code class="docutils literal notranslate"><span class="pre">MPI_UB</span></code> positional markers were fully replaced
+with <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_RESIZED</span></code> in MPI-2.0.</p>
+<p>Prior to MPI-2.0, <code class="docutils literal notranslate"><span class="pre">MPI_UB</span></code> and <code class="docutils literal notranslate"><span class="pre">MPI_LB</span></code> were intended to be used
+as input to <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_STRUCT</span></code> (which, itself, has been deprecated
+and renamed to <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_STRUCT</span></code>).  The same end effect can
+now be achieved with <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_RESIZED</span></code>.  For example, using
+the old method:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">displacements</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="mi">-2</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Datatype</span><span class="w"> </span><span class="n">datatypes</span><span class="p">[]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">MPI_LB</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="n">MPI_UB</span><span class="w"> </span><span class="p">};</span>
+<span class="n">MPI_Datatype</span><span class="w"> </span><span class="n">newtype</span><span class="p">;</span>
+
+<span class="n">MPI_Type_struct</span><span class="p">(</span><span class="n">count</span><span class="p">,</span><span class="w"> </span><span class="n">block_lengths</span><span class="p">,</span><span class="w"> </span><span class="n">displacements</span><span class="p">,</span><span class="w"> </span><span class="n">datatypes</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+<span class="n">MPI_Type_commit</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">ub</span><span class="p">,</span><span class="w"> </span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="n">extent</span><span class="p">;</span>
+<span class="n">MPI_Type_lb</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">lb</span><span class="p">);</span>
+<span class="n">MPI_Type_ub</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ub</span><span class="p">);</span>
+<span class="n">MPI_Type_extent</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">extent</span><span class="p">);</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"OLD: LB=%d, UB=%d, extent=%d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+<span class="w">       </span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="n">ub</span><span class="p">,</span><span class="w"> </span><span class="n">extent</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>If we run the above, we get an output of:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>OLD: LB=-2, UB=10, extent=12
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_RESIZED</span></code> function allows us to take any arbitrary
+datatype and set the lower bound and extent directly (which indirectly
+sets the upper bound), without needing to set up the arrays and
+computing the displacements necessary to invoke
+<code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_STRUCT</span></code>.</p>
+<p>Aside from the <code class="docutils literal notranslate"><span class="pre">printf</span></code> statement, the following example is exactly
+equivalent to the prior example (<a class="reference internal" href="#label-mpi-type-ub"><span class="std std-ref">see the MPI_TYPE_UB section</span></a> for a mapping of <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_UB</span></code> to
+<code class="docutils literal notranslate"><span class="pre">MPI_TYPE_GET_EXTENT</span></code>):</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">MPI_Datatype</span><span class="w"> </span><span class="n">newtype</span><span class="p">;</span>
+
+<span class="n">MPI_Type_create_resized</span><span class="p">(</span><span class="n">MPI_INT</span><span class="p">,</span><span class="w"> </span><span class="mi">-2</span><span class="p">,</span><span class="w"> </span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+<span class="n">MPI_Type_commit</span><span class="p">(</span><span class="o">&amp;</span><span class="n">newtype</span><span class="p">);</span>
+
+<span class="n">MPI_Aint</span><span class="w"> </span><span class="n">ub</span><span class="p">,</span><span class="w"> </span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="n">extent</span><span class="p">;</span>
+<span class="n">MPI_Type_get_extent</span><span class="p">(</span><span class="n">newtype</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">extent</span><span class="p">);</span>
+<span class="n">ub</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">lb</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">extent</span><span class="p">;</span>
+<span class="n">printf</span><span class="p">(</span><span class="s">"NEW: LB=%d, UB=%d, extent=%d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span>
+<span class="w">       </span><span class="n">lb</span><span class="p">,</span><span class="w"> </span><span class="n">ub</span><span class="p">,</span><span class="w"> </span><span class="n">extent</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>If we run the above, we get an output of:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>NEW: LB=-2, UB=10, extent=12
+</pre></div>
+</div>
+</section>
+<section id="stop-using-mpi-combiner-hindexed-integer-mpi-combiner-hvector-integer-and-mpi-combiner-struct-integer">
+<span id="label-mpi-combiner-fortran-integers"></span><h2><span class="section-number">9.5.13. </span>Stop using MPI_COMBINER_HINDEXED_INTEGER, MPI_COMBINER_HVECTOR_INTEGER, and MPI_COMBINER_STRUCT_INTEGER<a class="headerlink" href="#stop-using-mpi-combiner-hindexed-integer-mpi-combiner-hvector-integer-and-mpi-combiner-struct-integer" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HINDEXED_INTEGER</span></code>,
+<code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HVECTOR_INTEGER</span></code>, and <code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_STRUCT_INTEGER</span></code>
+constants could previously be returned from <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_GET_ENVELOPE</span></code>.</p>
+<p>Starting with MPI-3.0, these values will never be returned.  Instead,
+they will just return the same names, but without the <code class="docutils literal notranslate"><span class="pre">_INTEGER</span></code>
+suffix.  Specifically:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HINDEXED_INTEGER</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HINDEXED</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HVECTOR_INTEGER</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_HVECTOR</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_STRUCT_INTEGER</span></code> → <code class="docutils literal notranslate"><span class="pre">MPI_COMBINER_STRUCT</span></code></p></li>
+</ul>
+<p>If your Fortran code is using any of the <code class="docutils literal notranslate"><span class="pre">_INTEGER</span></code>-suffixed names,
+you can just delete the <code class="docutils literal notranslate"><span class="pre">_INTEGER</span></code> suffix.</p>
+</section>
+<section id="stop-using-mpi-handler-function">
+<span id="label-mpi-handler-function"></span><h2><span class="section-number">9.5.14. </span>Stop using MPI_Handler_function<a class="headerlink" href="#stop-using-mpi-handler-function" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">MPI_Handler_function</span></code> C type is only used in the
+deprecated/removed function <code class="docutils literal notranslate"><span class="pre">MPI_Errhandler_create()</span></code>, as described
+<a class="reference internal" href="#label-mpi-errhandler-create"><span class="std std-ref">in the MPI_ERRHANDLER_CREATE section</span></a>.</p>
+<p>Most MPI applications likely won’t use this type at all.  But if they
+do, they can simply use the new, exactly-equivalent type name (i.e.,
+the return type, number, and type of parameters didn’t change):
+<code class="docutils literal notranslate"><span class="pre">MPI_Comm_errhandler_function</span></code>.</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">my_errhandler_function</span><span class="p">(</span><span class="n">MPI_Comm</span><span class="w"> </span><span class="o">*</span><span class="n">comm</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">code</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Do something useful to handle the error</span>
+<span class="p">}</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="nf">some_function</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="c1">// Old way</span>
+<span class="w">    </span><span class="n">MPI_Handler_function</span><span class="w"> </span><span class="o">*</span><span class="n">old_ptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">my_errhandler_function</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// New way</span>
+<span class="w">    </span><span class="n">MPI_Comm_errhandler_function</span><span class="w"> </span><span class="o">*</span><span class="n">new_ptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">my_errhandler_function</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">MPI_Handler_function</span></code> type isn’t used at all in the Fortran
+bindings.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="abi-compatibility.html" class="btn btn-neutral float-left" title="9.4. ABI compatibility to previous versions of Open MPI" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="deprecation-warnings.html" class="btn btn-neutral float-right" title="9.6. Deprecation warnings while compiling MPI applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

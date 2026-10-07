@@ -1,0 +1,324 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.2. GitHub, Git, and related topics &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.3. Compiler Pickyness by Default" href="compiler-pickyness.html" />
+    <link rel="prev" title="12.1. Prerequisites" href="prerequisites.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.2. GitHub, Git, and related topics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#github">12.2.1. GitHub</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#git-commits-open-source-contributor-s-declaration">12.2.2. Git commits: open source / contributor’s declaration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#git-branch-scheme">12.2.3. Git branch scheme</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ci-testing">12.2.4. CI (testing)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">12.6. OpenPMIx terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html">12.7. Source code</a></li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.2. </span>GitHub, Git, and related topics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/git-github.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="github-git-and-related-topics">
+<h1><span class="section-number">12.2. </span>GitHub, Git, and related topics<a class="headerlink" href="#github-git-and-related-topics" title="Link to this heading"></a></h1>
+<section id="github">
+<h2><span class="section-number">12.2.1. </span>GitHub<a class="headerlink" href="#github" title="Link to this heading"></a></h2>
+<p>PMIx’s Git repository is <a class="reference external" href="https://github.com/openpmix/openpmix">hosted at GitHub</a>.</p>
+<ol class="arabic">
+<li><p>First, you will need a Git client. We recommend getting the latest
+version available. If you do not have the command <code class="docutils literal notranslate"><span class="pre">git</span></code> in your
+path, you will likely need to download and install Git.</p></li>
+<li><p><a class="reference external" href="https://github.com/openpmix/openpmix/">openpmix</a> is the main PMIx
+repository where most active development is done.  Git clone this
+repository.  Note that the use of the <code class="docutils literal notranslate"><span class="pre">--recursive</span></code> CLI option is
+necessary because PMIx uses Git submodules:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>shell$ git clone --recursive https://github.com/openpmix/openpmix.git
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Note that Git is natively capable of using many forms of web
+proxies. If your network setup requires the user of a web proxy,
+<a class="reference external" href="https://git-scm.com/">consult the Git documentation for more details</a>.</p>
+</section>
+<section id="git-commits-open-source-contributor-s-declaration">
+<h2><span class="section-number">12.2.2. </span>Git commits: open source / contributor’s declaration<a class="headerlink" href="#git-commits-open-source-contributor-s-declaration" title="Link to this heading"></a></h2>
+<p>In order to remain open source, all new commits to the PMIx
+repository must include a <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line, indicating the
+submitter’s agreement to the <a class="reference internal" href="../contributing.html#contributing-contributors-declaration-label"><span class="std std-ref">PMIx Contributor’s Declaration</span></a>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">-s</span></code> option to <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span></code> to
+automatically add the <code class="docutils literal notranslate"><span class="pre">Signed-off-by:</span></code> line to your commit
+message.</p>
+</div>
+</section>
+<section id="git-branch-scheme">
+<span id="git-github-branch-scheme-label"></span><h2><span class="section-number">12.2.3. </span>Git branch scheme<a class="headerlink" href="#git-branch-scheme" title="Link to this heading"></a></h2>
+<p>Generally, PMIx has two types of branches in its Git repository:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">master</span></code>:</p>
+<ul class="simple">
+<li><p>All active development occurs on the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch (new features,
+bug fixes, etc.).</p></li>
+</ul>
+</li>
+<li><p>Release branches of the form <code class="docutils literal notranslate"><span class="pre">vMAJOR.MINOR.x</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">v4.0.x</span></code>,
+<code class="docutils literal notranslate"><span class="pre">v4.1.x</span></code>, <code class="docutils literal notranslate"><span class="pre">v5.0.x</span></code>).</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">.x</span></code> suffix indicates that this branch is used to create
+all releases in the PMIx vMAJOR.MINOR series.</p></li>
+<li><p>Periodically, the PMIx community will make a new release
+branch, typically from <code class="docutils literal notranslate"><span class="pre">master</span></code>.</p></li>
+<li><p>A Git tag of the form <code class="docutils literal notranslate"><span class="pre">vMAJOR.MINOR.RELEASE</span></code> is used to
+indicate the specific commit on a release branch from where
+official PMIx release tarball was created (e.g., <code class="docutils literal notranslate"><span class="pre">v4.1.0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">v4.1.1</span></code>, <code class="docutils literal notranslate"><span class="pre">v4.1.2</span></code>, etc.).</p></li>
+</ul>
+</li>
+</ol>
+<p>Once a bug is fixed or a new feature is implemented on <code class="docutils literal notranslate"><span class="pre">master</span></code>, it is
+cherry-picked over to the relevant release branch(es).</p>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>It may seem odd to some, but the PMIx community
+development model does <em>not</em> PR bug fixes or new
+features directly to release branches.  Instead,
+initial bug-fix / feature PRs are generally first made
+to <code class="docutils literal notranslate"><span class="pre">master</span></code>.</p>
+<p>This helps us ensure that future releases (with
+<code class="docutils literal notranslate"><span class="pre">master</span></code> as a Git ancestor) will contain the bug fix /
+feature.</p>
+</div>
+<p>For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>git<span class="w"> </span>checkout<span class="w"> </span>master
+shell$<span class="w"> </span>git<span class="w"> </span>pull<span class="w"> </span>--rebase
+shell$<span class="w"> </span>git<span class="w"> </span>checkout<span class="w"> </span>pr/bug-fix
+
+<span class="c1"># ... make changes / fix a bug / etc. ...</span>
+
+shell$<span class="w"> </span>git<span class="w"> </span>add<span class="w"> </span>...
+shell$<span class="w"> </span>git<span class="w"> </span>commit<span class="w"> </span>-s<span class="w"> </span>...
+shell$<span class="w"> </span>git<span class="w"> </span>push<span class="w"> </span>myfork
+</pre></div>
+</div>
+<p>At this point, you go create a PR from your fork’s <code class="docutils literal notranslate"><span class="pre">pr/bug-fix</span></code>
+branch to the PMIx community GitHub repo <code class="docutils literal notranslate"><span class="pre">master</span></code> branch.  Work
+with the community to get the PR completed and merged.  Then you can
+open a new PR to cherry pick the Git commits from that bug fix to each
+of the relevant release branches.</p>
+<p>Depending on how far the release branch has diverged from <code class="docutils literal notranslate"><span class="pre">master</span></code>,
+there may be some porting effort involved in the cherry-pick.</p>
+<p>For example, if your bug fix on <code class="docutils literal notranslate"><span class="pre">master</span></code> is comprised of a single Git
+commit hash <code class="docutils literal notranslate"><span class="pre">123abc</span></code>:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fetch all upstream git activity, including the merge of the &quot;master&quot; PR.</span>
+shell$<span class="w"> </span>get<span class="w"> </span>fetch<span class="w"> </span>--all
+
+<span class="c1"># Check out the target release branch, and advance to the most recent commit.</span>
+shell$<span class="w"> </span>git<span class="w"> </span>checkout<span class="w"> </span>v5.0.x
+shell$<span class="w"> </span>git<span class="w"> </span>pull<span class="w"> </span>--rebase
+
+<span class="c1"># Make a branch for your bug fix</span>
+shell$<span class="w"> </span>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>pr/v5.0.x/bug-fix
+<span class="c1"># Cherry pick the commit from the &quot;master&quot; branch</span>
+shell$<span class="w"> </span>git<span class="w"> </span>cherry-pick<span class="w"> </span>-x<span class="w"> </span>123abc
+<span class="c1"># Push to your fork</span>
+shell$<span class="w"> </span>git<span class="w"> </span>push<span class="w"> </span>myfork
+</pre></div>
+</div>
+<p>The PMIx development community <em>requires</em> adding the following
+line to the commit message of cherry-picked commits on release
+branches:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>(cherry picked from commit [git_hash_of_original_commit])
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Note the use of the <code class="docutils literal notranslate"><span class="pre">-x</span></code> option to <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">cherry-pick</span></code>.
+This option automatically adds the <code class="docutils literal notranslate"><span class="pre">(cherry</span> <span class="pre">picked</span> <span class="pre">from</span>
+<span class="pre">...)</span></code> line to your commit message.</p>
+</div>
+<div class="tip admonition">
+<p class="admonition-title">Rationale</p>
+<p>Git does not actually store any meta data about Git cherry-picks in
+the commit.  Having a standardized text line containing the source
+Git commit hash in the commit messages helps the PMIx
+development community track where commits came from on release
+branches, and therefore allows us to check whether all relevant
+commits have been ported to a given release branch.</p>
+</div>
+<p>Once your commits are ready and pushed up to your fork, make a PR to
+the target release branch.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>A GitHub PR CI job checks all commits on release branches
+for the <code class="docutils literal notranslate"><span class="pre">(cherry</span> <span class="pre">picked</span> <span class="pre">from...)</span></code> line. It will also
+ensure that the Git hash cited in that line actually
+exists on the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch.</p>
+<p>This check ensures that commits are not made to release
+branches before their corresponding <code class="docutils literal notranslate"><span class="pre">master</span></code> PR was
+merged.</p>
+</div>
+<p>All this being said, sometimes there is a need for a non-cherry-picked
+commit on a release branch. E.g., sometimes a release branch has
+diverged so much that the bug no longer exists on <code class="docutils literal notranslate"><span class="pre">master</span></code>.  It would
+therefore not make sense — or even be impossible — to
+commit the bug fix in question to <code class="docutils literal notranslate"><span class="pre">master</span></code>.</p>
+<p>In such cases, make a regular PR to the target branch (with commits
+that do <em>not</em> include <code class="docutils literal notranslate"><span class="pre">(cherry</span> <span class="pre">picked</span> <span class="pre">from</span> <span class="pre">...)</span></code> lines).  In the PR
+description, add a line with the following token:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>bot:notacherrypick
+</pre></div>
+</div>
+<p>This tells the GitHub CI job that this PR contains commits that are
+not cherry-picked from <code class="docutils literal notranslate"><span class="pre">master</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">bot:notacherrypick</span></code> should only be used when
+absolutely necessary.  It is not a license to avoid
+the process of PR’ing to <code class="docutils literal notranslate"><span class="pre">master</span></code> first.</p>
+</div>
+</section>
+<section id="ci-testing">
+<h2><span class="section-number">12.2.4. </span>CI (testing)<a class="headerlink" href="#ci-testing" title="Link to this heading"></a></h2>
+<p>The PMIx community generally runs a bunch of tests on each PR
+(Continuous Integration / CI).  These tests are a mixture of
+GitHub Actions and other CI systems (e.g., Jenkins).  Examples
+include (but are not limited to):</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Check each Git commit for bozo email addresses</p></li>
+<li><p>Check that each Git commit contains a <code class="docutils literal notranslate"><span class="pre">Signed-off-by</span></code> line</p></li>
+<li><p>Check that commits on release branches contain a cherry-pick
+notice</p></li>
+<li><p>Build and publish the docs</p></li>
+<li><p>Build PMIx in a variety of environments and run sanity tests
+with that installation</p></li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="prerequisites.html" class="btn btn-neutral float-left" title="12.1. Prerequisites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="compiler-pickyness.html" class="btn btn-neutral float-right" title="12.3. Compiler Pickyness by Default" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

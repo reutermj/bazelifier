@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>17.1.4. ompi_info &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="17.1.5. opal_wrapper" href="opal_wrapper.1.html" />
+    <link rel="prev" title="17.1.3. mpisync" href="mpisync.1.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">17. Open MPI manual pages</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">17.1. Commands (section 1)</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ompi-wrapper-compiler.1.html">17.1.1. Open MPI Wrapper Compilers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mpirun.1.html">17.1.2. mpirun / mpiexec</a></li>
+<li class="toctree-l3"><a class="reference internal" href="mpisync.1.html">17.1.3. mpisync</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">17.1.4. ompi_info</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#synopsis">17.1.4.1. SYNOPSIS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#description">17.1.4.2. DESCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#options">17.1.4.3. OPTIONS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#levels">17.1.4.4. LEVELS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples">17.1.4.5. EXAMPLES</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="opal_wrapper.1.html">17.1.5. opal_wrapper</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../man3/index.html">17.2. MPI API manual pages (section 3)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../man7/index.html">17.3. General information manual pages (section 7)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">17. </span>Open MPI manual pages</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">17.1. </span>Commands (section 1)</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">17.1.4. </span>ompi_info</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/man-openmpi/man1/ompi_info.1.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="ompi-info">
+<span id="man1-ompi-info"></span><h1><span class="section-number">17.1.4. </span>ompi_info<a class="headerlink" href="#ompi-info" title="Link to this heading"></a></h1>
+<p>ompi_info — Display information about the Open MPI installation</p>
+<section id="synopsis">
+<h2><span class="section-number">17.1.4.1. </span>SYNOPSIS<a class="headerlink" href="#synopsis" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ompi_info</span> <span class="pre">[options]</span></code></p>
+</section>
+<section id="description">
+<h2><span class="section-number">17.1.4.2. </span>DESCRIPTION<a class="headerlink" href="#description" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> provides detailed information about the Open MPI
+installation. It can be useful for at least three common scenarios:</p>
+<ol class="arabic simple">
+<li><p>Checking local configuration and seeing how Open MPI was installed.</p></li>
+<li><p>Submitting bug reports / help requests to the Open MPI community
+(see <a class="reference internal" href="../../getting-help.html"><span class="doc">Getting help</span></a>).</p></li>
+<li><p>Seeing a list of installed Open MPI plugins and querying what MCA
+parameters they support.</p></li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> defaults to only showing a few MCA parameters
+by default (i.e., level 1 parameters). Use the <code class="docutils literal notranslate"><span class="pre">--level</span></code>
+option to enable showing more options (see the <a class="reference internal" href="#man1-ompi-info-levels"><span class="std std-ref">LEVELS</span></a> section for more information).</p>
+</div>
+</section>
+<section id="options">
+<h2><span class="section-number">17.1.4.3. </span>OPTIONS<a class="headerlink" href="#options" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> accepts the following options:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-a</span></code>, <code class="docutils literal notranslate"><span class="pre">--all</span></code>: Show all configuration options and MCA
+parameters. Also changes the default MCA parameter level to 9,
+unless <code class="docutils literal notranslate"><span class="pre">--level</span></code> is also specified.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--arch</span></code>: Show architecture on which Open MPI was compiled.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-c</span></code>, <code class="docutils literal notranslate"><span class="pre">--config</span></code>: Show configuration options</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-gmca</span></code>, <code class="docutils literal notranslate"><span class="pre">--gmca</span> <span class="pre">&lt;param&gt;</span> <span class="pre">&lt;value&gt;</span></code>: Pass global MCA parameters
+that are applicable to all contexts.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code>: Shows help / usage message.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--hostname</span></code>: Show the hostname on which Open MPI was configured
+and built.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--internal</span></code>: Show internal MCA parameters (not meant to be
+modified by users).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--level</span> <span class="pre">&lt;level&gt;</span></code>: Show only variables with at most this level
+(1-9). The default is 1 unless <code class="docutils literal notranslate"><span class="pre">--all</span></code> is specified without
+<code class="docutils literal notranslate"><span class="pre">--level</span></code>, in which case the default is 9. See the <a class="reference internal" href="#man1-ompi-info-levels"><span class="std std-ref">LEVELS</span></a> section for more information.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-mca</span></code>, <code class="docutils literal notranslate"><span class="pre">--mca</span> <span class="pre">&lt;param&gt;</span> <span class="pre">&lt;value&gt;</span></code>: Pass context-specific MCA
+parameters; they are considered global if <code class="docutils literal notranslate"><span class="pre">--gmca</span></code> is not used and
+only one context is specified.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--param</span> <span class="pre">&lt;type&gt;</span> <span class="pre">&lt;component&gt;</span></code>: Show MCA parameters. The first
+parameter is the type of the component to display; the second
+parameter is the specific component to display (or the keyword
+<code class="docutils literal notranslate"><span class="pre">all</span></code>, meaning “display all components of this type”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-t</span></code>, <code class="docutils literal notranslate"><span class="pre">--type</span></code>: Show MCA parameters of the type specified in the
+parameter. Accepts the following parameters: <code class="docutils literal notranslate"><span class="pre">unsigned_int</span></code>,
+<code class="docutils literal notranslate"><span class="pre">unsigned_long</span></code>, <code class="docutils literal notranslate"><span class="pre">unsigned_long_long</span></code>, <code class="docutils literal notranslate"><span class="pre">size_t</span></code>, <code class="docutils literal notranslate"><span class="pre">string</span></code>,
+<code class="docutils literal notranslate"><span class="pre">version_string</span></code>, <code class="docutils literal notranslate"><span class="pre">bool</span></code>, <code class="docutils literal notranslate"><span class="pre">double</span></code>. By default level is 1
+unless it is specified with <code class="docutils literal notranslate"><span class="pre">--level</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--parsable</span></code>: When used in conjunction with other parameters, the
+output is displayed in a machine-parsable format <code class="docutils literal notranslate"><span class="pre">--parseable</span></code>
+Synonym for <code class="docutils literal notranslate"><span class="pre">--parsable</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--path</span> <span class="pre">&lt;type&gt;</span></code>: Show paths that Open MPI was configured
+with. Accepts the following parameters: <code class="docutils literal notranslate"><span class="pre">prefix</span></code>, <code class="docutils literal notranslate"><span class="pre">bindir</span></code>,
+<code class="docutils literal notranslate"><span class="pre">libdir</span></code>, <code class="docutils literal notranslate"><span class="pre">incdir</span></code>, <code class="docutils literal notranslate"><span class="pre">pkglibdir</span></code>, <code class="docutils literal notranslate"><span class="pre">sysconfdir</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--pretty</span></code>: When used in conjunction with other parameters, the output is
+displayed in “prettyprint” format (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--selected-only</span></code>: Show only variables from selected components.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-V</span></code>, <code class="docutils literal notranslate"><span class="pre">--version</span></code>: Show version of Open MPI.</p></li>
+</ul>
+</section>
+<section id="levels">
+<span id="man1-ompi-info-levels"></span><h2><span class="section-number">17.1.4.4. </span>LEVELS<a class="headerlink" href="#levels" title="Link to this heading"></a></h2>
+<p>Open MPI has many, many run-time tunable parameters (called “MCA
+parameters”), and usually only a handful of them are useful to a given
+user.</p>
+<p>As such, Open MPI has divided these parameters up into nine distinct
+levels, broken down into three categories, each with three
+sub-categories.</p>
+<p>Note that since each MCA parameter is accessible through the MPI_T
+control variable API (introduced in MPI-3.0), these levels exactly
+correspond to the nine MPI_T cvar levels.</p>
+<p>The three categories are:</p>
+<ol class="arabic simple">
+<li><p><strong>End user</strong>: Generally, these are parameters that are required for
+correctness, meaning that a user may need to set these just to get
+their MPI application to run correctly. For example, BTL
+<code class="docutils literal notranslate"><span class="pre">if_include</span></code> and <code class="docutils literal notranslate"><span class="pre">if_exclude</span></code> parameters fit into this
+category.</p></li>
+<li><p><strong>Application tuner</strong>: Generally, these are parameters that can be
+used to tweak MPI application performance. This even includes
+parameters that control resource exhaustion levels (e.g., number of
+free list entries, size of buffers, etc.), and could be considered
+“correctness” parameters if they’re set too low. But, really —
+they’re tuning parameters.</p></li>
+<li><p><strong>Open MPI developer</strong>: Parameters in this category either don’t
+fit in the other two, or are specifically intended for debugging /
+development of Open MPI itself.</p></li>
+</ol>
+<p>And within each category, there are three sub-categories:</p>
+<ol class="arabic simple">
+<li><p><strong>Basic</strong>: This sub-category is for parameters that everyone in
+this category will want to see — even less-advanced end users,
+application tuners, and new OMPI developers.</p></li>
+<li><p><strong>Detailed</strong>: This sub-category is for parameters that are
+generally useful, but users probably won’t need to change them
+often.</p></li>
+<li><p><strong>All</strong>: This sub-category is for all other parameters. Such
+parameters are likely fairly esoteric.</p></li>
+</ol>
+<p>Combining the categories and sub-categories, here’s how Open MPI
+defines all nine levels:</p>
+<ol class="arabic simple">
+<li><p>Basic information of interest to end users.</p></li>
+<li><p>Detailed information of interest to end users.</p></li>
+<li><p>All remaining information of interest to end users.</p></li>
+<li><p>Basic information required for application tuners.</p></li>
+<li><p>Detailed information required for application tuners.</p></li>
+<li><p>All remaining information required for application tuners.</p></li>
+<li><p>Basic information for Open MPI implementors.</p></li>
+<li><p>Detailed information for Open MPI implementors.</p></li>
+<li><p>All remaining information for Open MPI implementors.</p></li>
+</ol>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> only shows level 1 MCA parameters. To see
+more MCA parameters, use the <code class="docutils literal notranslate"><span class="pre">--level</span></code> command line option.</p>
+</section>
+<section id="examples">
+<h2><span class="section-number">17.1.4.5. </span>EXAMPLES<a class="headerlink" href="#examples" title="Link to this heading"></a></h2>
+<p>Show the default output of options and listing of installed
+components in a human-readable / prettyprint format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info
+</pre></div>
+</div>
+<p>Show the default output of options and listing of installed components
+in a machine-parsable format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --parsable
+</pre></div>
+</div>
+<p>Show the level 1 MCA parameters of the “tcp” BTL component in a
+human-readable / prettyprint format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --param btl tcp
+</pre></div>
+</div>
+<p>Show the level 1 through level 6 MCA parameters of the “tcp” BTL
+component in a human-readable / prettyprint format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --param btl tcp --level 6
+</pre></div>
+</div>
+<p>Show the level 1 MCA parameters of the “tcp” BTL component in a
+machine-parsable format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --param btl tcp --parsable
+</pre></div>
+</div>
+<p>Show the level 1 through level 3 MCA parameters of string type in a
+human-readable / prettyprint format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --type string --pretty-print --level 3
+</pre></div>
+</div>
+<p>Show the “bindir” that Open MPI was configured with:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --path bindir
+</pre></div>
+</div>
+<p>Show the version of Open MPI version numbers in a prettyprint format:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --version
+</pre></div>
+</div>
+<p>Show <em>all</em> information about the Open MPI installation, including all
+components that can be found, all the MCA parameters that they support
+(i.e., levels 1 through 9), versions of Open MPI and the components,
+etc.:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>ompi_info --all
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="mpisync.1.html" class="btn btn-neutral float-left" title="17.1.3. mpisync" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="opal_wrapper.1.html" class="btn btn-neutral float-right" title="17.1.5. opal_wrapper" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

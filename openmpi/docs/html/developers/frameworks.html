@@ -1,0 +1,291 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>13.8. Internal frameworks &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="13.9. Manually installing the GNU Autootools" href="gnu-autotools.html" />
+    <link rel="prev" title="13.7. Source code" href="source-code.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">13. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">13.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">13.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">13.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">13.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-open-mpi.html">13.5. Building Open MPI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">13.6. Open MPI terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source-code.html">13.7. Source code</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">13.8. Internal frameworks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#mpi-layer-frameworks">13.8.1. MPI layer frameworks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#openshmem-component-frameworks">13.8.2. OpenSHMEM component frameworks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#miscellaneous-frameworks">13.8.3. Miscellaneous frameworks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#framework-notes">13.8.4. Framework notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mca-parameter-notes">13.8.5. MCA parameter notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">13.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">13.10. Installing and running Sphinx (building the Open MPI docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">13.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">13. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">13.8. </span>Internal frameworks</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/frameworks.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="internal-frameworks">
+<span id="label-frameworks"></span><h1><span class="section-number">13.8. </span>Internal frameworks<a class="headerlink" href="#internal-frameworks" title="Link to this heading"></a></h1>
+<p>The Modular Component Architecture (MCA) is the backbone of Open MPI
+– most services and functionality are implemented through MCA
+components.</p>
+<section id="mpi-layer-frameworks">
+<h2><span class="section-number">13.8.1. </span>MPI layer frameworks<a class="headerlink" href="#mpi-layer-frameworks" title="Link to this heading"></a></h2>
+<p>Here is a list of all the component frameworks in the MPI layer of
+Open MPI:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bml</span></code>: BTL management layer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coll</span></code>: MPI collective algorithms</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fbtl</span></code>: point to point file byte transfer layer: abstraction for
+individual read: collective read and write operations for MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fcoll</span></code>: collective file system functions for MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fs</span></code>: file system functions for MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hook</span></code>: Generic hooks into Open MPI</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">io</span></code>: MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mtl</span></code>: Matching transport layer, used for MPI point-to-point
+messages on some types of networks</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">op</span></code>: Back end computations for intrinsic MPI_Op operators</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">osc</span></code>: MPI one-sided communications</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pml</span></code>: MPI point-to-point management layer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sharedfp</span></code>: shared file pointer operations for MPI I/O</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">topo</span></code>: MPI topology routines</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vprotocol</span></code>: Protocols for the “v” PML</p></li>
+</ul>
+</section>
+<section id="openshmem-component-frameworks">
+<h2><span class="section-number">13.8.2. </span>OpenSHMEM component frameworks<a class="headerlink" href="#openshmem-component-frameworks" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">atomic</span></code>: OpenSHMEM atomic operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">memheap</span></code>: OpenSHMEM memory allocators that support the
+PGAS memory model</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scoll</span></code>: OpenSHMEM collective operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">spml</span></code>: OpenSHMEM “pml-like” layer: supports one-sided,
+point-to-point operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sshmem</span></code>: OpenSHMEM shared memory backing facility</p></li>
+</ul>
+</section>
+<section id="miscellaneous-frameworks">
+<h2><span class="section-number">13.8.3. </span>Miscellaneous frameworks<a class="headerlink" href="#miscellaneous-frameworks" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">allocator</span></code>: Memory allocator</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">backtrace</span></code>: Debugging call stack backtrace support</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">btl</span></code>: Point-to-point Byte Transfer Layer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dl</span></code>: Dynamic loading library interface</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hwloc</span></code>: Hardware locality (hwloc) versioning support</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">if</span></code>: OS IP interface support</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">installdirs</span></code>: Installation directory relocation services</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">memchecker</span></code>: Run-time memory checking</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">memcpy</span></code>: Memory copy support</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">memory</span></code>: Memory management hooks</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpool</span></code>: Memory pooling</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">patcher</span></code>: Symbol patcher hooks</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pmix</span></code>: Process management interface (exascale)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rcache</span></code>: Memory registration cache</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">reachable</span></code>: Network reachability determination</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">shmem</span></code>: Shared memory support (NOT related to OpenSHMEM)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">smsc</span></code>: Shared memory single-copy support</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">threads</span></code>: OS and userspace thread support</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timer</span></code>: High-resolution timers</p></li>
+</ul>
+</section>
+<section id="framework-notes">
+<h2><span class="section-number">13.8.4. </span>Framework notes<a class="headerlink" href="#framework-notes" title="Link to this heading"></a></h2>
+<p>Each framework typically has one or more components that are used at
+run-time.  For example, the <code class="docutils literal notranslate"><span class="pre">btl</span></code> framework is used by the MPI layer
+to send bytes across different types underlying networks.  The <code class="docutils literal notranslate"><span class="pre">tcp</span></code>
+<code class="docutils literal notranslate"><span class="pre">btl</span></code>, for example, sends messages across TCP-based networks; the
+<code class="docutils literal notranslate"><span class="pre">ucx</span></code> <code class="docutils literal notranslate"><span class="pre">pml</span></code> sends messages across InfiniBand-based networks.</p>
+</section>
+<section id="mca-parameter-notes">
+<h2><span class="section-number">13.8.5. </span>MCA parameter notes<a class="headerlink" href="#mca-parameter-notes" title="Link to this heading"></a></h2>
+<p>Each component typically has some tunable parameters that can be
+changed at run-time.  Use the <a class="reference internal" href="../man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a>
+command to check a component to see what its tunable parameters are.
+For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>btl<span class="w"> </span>tcp
+</pre></div>
+</div>
+<p>shows some of the parameters (and default values) for the <code class="docutils literal notranslate"><span class="pre">tcp</span></code> <code class="docutils literal notranslate"><span class="pre">btl</span></code>
+component (use <code class="docutils literal notranslate"><span class="pre">--all</span></code> or <code class="docutils literal notranslate"><span class="pre">--level</span> <span class="pre">9</span></code> to show <em>all</em> the parameters).</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">ompi_info</span></code> (without <code class="docutils literal notranslate"><span class="pre">--all</span></code> or a specified level) only
+shows a small number a component’s MCA parameters by default.  Each
+MCA parameter has a “level” value from 1 to 9, corresponding to the
+MPI-3 MPI_T tool interface levels.  <a class="reference internal" href="../man-openmpi/man1/ompi_info.1.html#man1-ompi-info-levels"><span class="std std-ref">See the LEVELS section in
+the ompi_info(1) man page</span></a> for an explanation
+of the levels and how they correspond to Open MPI’s code.</p>
+<p>Here’s rules of thumb to keep in mind when using Open MPI’s levels:</p>
+<ul class="simple">
+<li><p>Levels 1-3:</p>
+<ul>
+<li><p>These levels should contain only a few MCA parameters.</p></li>
+<li><p>Generally, only put MCA parameters in these levels that matter to
+users who just need to <em>run</em> Open MPI applications (and don’t
+know/care anything about MPI).  Examples (these are not
+comprehensive):</p>
+<ul>
+<li><p>Selection of which network interfaces to use.</p></li>
+<li><p>Selection of which MCA components to use.</p></li>
+<li><p>Selective disabling of warning messages (e.g., show warning
+message XYZ unless a specific MCA parameter is set, which
+disables showing that warning message).</p></li>
+<li><p>Enabling additional stderr logging verbosity.  This allows a
+user to run with this logging enabled, and then use that output
+to get technical assistance.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Levels 4-6:</p>
+<ul>
+<li><p>These levels should contain any other MCA parameters that are
+useful to expose to end users.</p></li>
+<li><p>There is an expectation that “power users” will utilize these MCA
+parameters — e.g., those who are trying to tune the system
+and extract more performance.</p></li>
+<li><p>Here’s some examples of MCA parameters suitable for these levels
+(these are not comprehensive):</p>
+<ul>
+<li><p>When you could have hard-coded a constant size of a resource
+(e.g., a resource pool size or buffer length), make it an MCA
+parameter instead.</p></li>
+<li><p>When there are multiple different algorithms available for a
+particular operation, code them all up and provide an MCA
+parameter to let the user select between them.</p></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>Levels 7-9:</p>
+<ul>
+<li><p>Put any other MCA parameters here.</p></li>
+<li><p>It’s ok for these MCA parameters to be esoteric and only relevant
+to deep magic / the internals of Open MPI.</p></li>
+<li><p>There is little expectation of users using these MCA parameters.</p></li>
+</ul>
+</li>
+</ul>
+<p>See <a class="reference internal" href="../mca.html#label-running-setting-mca-param-values"><span class="std std-ref">this section</span></a> for
+details on how to set MCA parameters at run time.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="source-code.html" class="btn btn-neutral float-left" title="13.7. Source code" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gnu-autotools.html" class="btn btn-neutral float-right" title="13.9. Manually installing the GNU Autootools" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

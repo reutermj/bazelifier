@@ -1,0 +1,383 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>11.9.1. Open MPI IO (“OMPIO”) &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="11.9.2. ROMIO" href="romio.html" />
+    <link rel="prev" title="11.9. MPI-IO tuning options" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">11. Run-time operation and tuning MPI applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../environment-var.html">11.1. Environment variables set for MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../networking/index.html">11.2. Networking support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../multithreaded.html">11.3. Running multi-threaded MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../dynamic-loading.html">11.4. Dynamically loading <code class="docutils literal notranslate"><span class="pre">libmpi</span></code> at runtime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fork-system-popen.html">11.5. Calling fork(), system(), or popen() in MPI processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../fault-tolerance/index.html">11.6. Fault tolerance</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../large-clusters/index.html">11.7. Large Clusters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../affinity.html">11.8. Processor and memory affinity</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">11.9. MPI-IO tuning options</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">11.9.1. Open MPI IO (“OMPIO”)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#mca-parameters-of-ompio-and-associated-frameworks">11.9.1.1. MCA parameters of OMPIO and associated frameworks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ompio-sub-framework-components">11.9.1.2. OMPIO sub-framework components</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tuning-ompio-performance">11.9.1.3. Tuning OMPIO performance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#setting-stripe-size-and-stripe-width-on-parallel-file-systems">11.9.1.4. Setting stripe size and stripe width on parallel file systems</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-gpu-device-buffers-in-mpi-file-i-o-operations">11.9.1.5. Using GPU device buffers in MPI File I/O operations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#using-the-individual-sharedfp-component-and-its-limitations">11.9.1.6. Using the <code class="docutils literal notranslate"><span class="pre">individual</span></code> <code class="docutils literal notranslate"><span class="pre">sharedfp</span></code> component and its limitations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#other-features-of-ompio">11.9.1.7. Other features of OMPIO</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="romio.html">11.9.2. ROMIO</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../coll-tuned.html">11.10. Tuning Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../benchmarking.html">11.11. Benchmarking Open MPI applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../heterogeneity.html">11.12. Building heterogeneous MPI applications</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">11. </span>Run-time operation and tuning MPI applications</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">11.9. </span>MPI-IO tuning options</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">11.9.1. </span>Open MPI IO (“OMPIO”)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tuning-apps/mpi-io/ompio.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="open-mpi-io-ompio">
+<h1><span class="section-number">11.9.1. </span>Open MPI IO (“OMPIO”)<a class="headerlink" href="#open-mpi-io-ompio" title="Link to this heading"></a></h1>
+<p>OMPIO is an Open MPI-native implementation of the MPI I/O functions
+defined in the MPI specification.</p>
+<p>The main goals of OMPIO are:</p>
+<ol class="arabic simple">
+<li><p>Increase the modularity of the parallel I/O library by separating
+MPI I/O functionality into sub-frameworks.</p></li>
+<li><p>Allow frameworks to utilize different run-time decision algorithms
+to determine which module to use in a particular scenario, enabling
+non-file-system-specific decisions.</p></li>
+<li><p>Improve the integration of parallel I/O functions with other
+components of Open MPI, most notably the derived data type engine
+and the progress engine. The integration with the derived data type
+engine allows for faster decoding of derived data types and the
+usage of optimized data type to data type copy operations.</p></li>
+</ol>
+<p>OMPIO is fundamentally a component of the <code class="docutils literal notranslate"><span class="pre">io</span></code> framework in Open
+MPI.  Upon opening a file, the OMPIO component initializes a number of
+sub-frameworks and their components, namely:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fs</span></code>: responsible for all file management operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fbtl</span></code>: support for blocking and non-blocking individual
+I/O operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fcoll</span></code>: support for blocking and non-blocking collective I/O
+operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sharedfp</span></code>: support for all shared file pointer operations.</p></li>
+</ul>
+<section id="mca-parameters-of-ompio-and-associated-frameworks">
+<h2><span class="section-number">11.9.1.1. </span>MCA parameters of OMPIO and associated frameworks<a class="headerlink" href="#mca-parameters-of-ompio-and-associated-frameworks" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="../../man-openmpi/man1/ompi_info.1.html#man1-ompi-info"><span class="std std-ref">ompi_info(1)</span></a> command can display all the
+parameters available for the OMPIO <code class="docutils literal notranslate"><span class="pre">io</span></code>, <code class="docutils literal notranslate"><span class="pre">fcoll</span></code>, <code class="docutils literal notranslate"><span class="pre">fs</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fbtl</span></code>, and <code class="docutils literal notranslate"><span class="pre">sharedfp</span></code> components:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>io<span class="w">       </span>ompio<span class="w"> </span>--level<span class="w"> </span><span class="m">9</span>
+shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>fcoll<span class="w">    </span>all<span class="w"> </span>--level<span class="w"> </span><span class="m">9</span>
+shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>fs<span class="w">       </span>all<span class="w"> </span>--level<span class="w"> </span><span class="m">9</span>
+shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>fbtl<span class="w">     </span>all<span class="w"> </span>--level<span class="w"> </span><span class="m">9</span>
+shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>sharedfp<span class="w"> </span>all<span class="w"> </span>--level<span class="w"> </span><span class="m">9</span>
+</pre></div>
+</div>
+</section>
+<section id="ompio-sub-framework-components">
+<h2><span class="section-number">11.9.1.2. </span>OMPIO sub-framework components<a class="headerlink" href="#ompio-sub-framework-components" title="Link to this heading"></a></h2>
+<p>The OMPIO architecture is designed around sub-frameworks, which allow
+you to develop a relatively small amount of code optimized for a
+particular environment, application, or infrastructure.  Although
+significant efforts have been invested into making good decisions for
+default values and switching points between components, users and/or
+system administrators might occasionally want to tune the selection
+logic of the components and force the utilization of a particular
+component.</p>
+<p>The simplest way to force the usage of a component is to simply
+restrict the list of available components for that framework. For
+example, an application wanting to use the <code class="docutils literal notranslate"><span class="pre">dynamic</span></code> <code class="docutils literal notranslate"><span class="pre">fcoll</span></code>
+component simply has to pass the name of the component as a value to
+the corresponding MCA parameter during <code class="docutils literal notranslate"><span class="pre">mpirun</span></code> or any other
+mechanism available in Open MPI to influence a parameter value, e.g.:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>shell$<span class="w"> </span>mpirun<span class="w"> </span>--mca<span class="w"> </span>fcoll<span class="w"> </span>dynamic<span class="w"> </span>-n<span class="w"> </span><span class="m">64</span><span class="w"> </span>./a.out
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">fs</span></code> and <code class="docutils literal notranslate"><span class="pre">fbtl</span></code> components are typically chosen based on the file
+system type utilized (e.g. the <code class="docutils literal notranslate"><span class="pre">pvfs2</span></code> component is chosen when the
+file is located on an PVFS2/OrangeFS file system, the <code class="docutils literal notranslate"><span class="pre">lustre</span></code>
+component is chosen for Lustre file systems, etc.). The <code class="docutils literal notranslate"><span class="pre">ufs</span></code> <code class="docutils literal notranslate"><span class="pre">fs</span></code>
+component is used if no file system specific component is available
+(e.g. local file systems, NFS, BeefFS, etc.), and the <code class="docutils literal notranslate"><span class="pre">posix</span></code>
+<code class="docutils literal notranslate"><span class="pre">fbtl</span></code> component is used as the default component for read/write
+operations.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">fcoll</span></code> framework provides several different components. The
+current decision logic in OMPIO uses the file view provided by the
+application as well as file system level characteristics (e.g. file
+system, stripe width) to determine which component to use. The most
+important <code class="docutils literal notranslate"><span class="pre">fcoll</span></code> components are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_gen2</span></code>: the default component used on lustre file
+system. This component is based on the two-phase I/O algorithm with
+a static file partitioning strategy, i.e. an aggregator processes will
+by default only write data to a single storage server.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">vulcan</span></code>: the default component used on all other file
+systems. This component is based on the two-phase I/O algorithm with
+an even file partitioning strategy, i.e. each of the n aggregators
+will write 1/n th of the overall file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">individual</span></code>: this components executes all collective I/O
+operations in terms of individual I/O operations.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">sharedfp</span></code> framework provides a different implementation of the
+shared file pointer operations depending on file system features.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">lockedfile</span></code>: this component will be used on file systems which
+support file locking.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sm</span></code>: component used in scenarios in which all processes of the
+communicator are on the same physical node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">individual</span></code>: a component that can be used if neither of the other
+two components are available. This component provides however only
+limited functionality (i.e. write operations only).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>See <a class="reference internal" href="#label-ompio-individual-sharedfp"><span class="std std-ref">the section on the individual sharedfp component</span></a> to understand
+functionality and limitations.</p>
+</div>
+</li>
+</ul>
+</section>
+<section id="tuning-ompio-performance">
+<h2><span class="section-number">11.9.1.3. </span>Tuning OMPIO performance<a class="headerlink" href="#tuning-ompio-performance" title="Link to this heading"></a></h2>
+<p>The most important parameters influencing the performance of an I/O
+operation are listed below:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">io_ompio_cycle_buffer_size</span></code>: Data size issued by individual
+reads/writes per call. By default, an individual read/write
+operation will be executed as one chunk. Splitting the operation up
+into multiple, smaller chunks can lead to performance improvements
+in certain scenarios.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">io_ompio_bytes_per_agg</span></code>: Size of temporary buffer for collective
+I/O operations on aggregator processes. Default value is 32MB.
+Tuning this parameter has a very high impact on the performance of
+collective operations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">io_ompio_num_aggregators</span></code>: Number of aggregators used in
+collective I/O operations.  Setting this parameter to a value
+larger zero disables the internal automatic aggregator selection
+logic of OMPIO.  Tuning this parameter has a very high impact on
+the performance of collective operations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">io_ompio_grouping_option</span></code>: Algorithm used to automatically
+decide the number of aggregators used. Applications working with
+regular 2-D or 3-D data decomposition can try changing this
+parameter to 4 (hybrid) algorithm.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fs_ufs_lock_algorithm</span></code>: Parameter used to determine what part of
+a file needs to be locked for a file operation. Since the <code class="docutils literal notranslate"><span class="pre">ufs</span></code>
+<code class="docutils literal notranslate"><span class="pre">fs</span></code> component is used on multiple file systems, OMPIO
+automatically chooses the value required for correctness on all
+file systems, e.g. enforcing locking on an NFS file system, while
+disabling locking on a local file system. Users can adjust the
+required locking behavior based on their use case, since the
+default value might often be too restrictive for their application.</p></li>
+</ol>
+</section>
+<section id="setting-stripe-size-and-stripe-width-on-parallel-file-systems">
+<h2><span class="section-number">11.9.1.4. </span>Setting stripe size and stripe width on parallel file systems<a class="headerlink" href="#setting-stripe-size-and-stripe-width-on-parallel-file-systems" title="Link to this heading"></a></h2>
+<p>Many <code class="docutils literal notranslate"><span class="pre">fs</span></code> components allow you to manipulate the layout of a new
+file on a parallel file system.  Note, that many file systems only
+allow changing these setting upon file creation, i.e. modifying these
+values for an already existing file might not be possible.</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fs_pvfs2_stripe_size</span></code>: Sets the number of storage servers for a
+new file on a PVFS2/OrangeFS  file system. If not set, system default will be
+used. Note that this parameter can also be set through the
+<code class="docutils literal notranslate"><span class="pre">stripe_size</span></code> MPI Info value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fs_pvfs2_stripe_width</span></code>: Sets the size of an individual block for
+a new file on a PVFS2 file system. If not set, system default will
+be used. Note that this parameter can also be set through the
+<code class="docutils literal notranslate"><span class="pre">stripe_width</span></code> MPI Info value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fs_lustre_stripe_size</span></code>: Sets the number of storage servers for a
+new file on a Lustre file system. If not set, system default will
+be used. Note that this parameter can also be set through the
+<code class="docutils literal notranslate"><span class="pre">stripe_size</span></code> MPI Info value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fs_lustre_stripe_width</span></code>: Sets the size of an individual block
+for a new file on a Lustre file system. If not set, system default
+will be used. Note that this parameter can also be set through the
+<code class="docutils literal notranslate"><span class="pre">stripe_width</span></code> MPI Info value.</p></li>
+</ol>
+</section>
+<section id="using-gpu-device-buffers-in-mpi-file-i-o-operations">
+<h2><span class="section-number">11.9.1.5. </span>Using GPU device buffers in MPI File I/O operations<a class="headerlink" href="#using-gpu-device-buffers-in-mpi-file-i-o-operations" title="Link to this heading"></a></h2>
+<p>OMPIO supports reading and writing directly to/from GPU buffers using
+the MPI I/O interfaces. Using this feature simplifies managing buffers
+that are exclusively used on GPU devices, and hence there is no need to
+implement staging through host memory for file I/O operations.</p>
+<p>Internally, OMPIO splits a user buffer into chunks for performing the
+read/write operation. The chunk-size used by OMPIO can have a
+significant influence on the performance of the file I/O operation
+from device buffers, and can be controlled using the
+<code class="docutils literal notranslate"><span class="pre">io_ompio_pipeline_buffer_size</span></code> MCA parameter.</p>
+</section>
+<section id="using-the-individual-sharedfp-component-and-its-limitations">
+<span id="label-ompio-individual-sharedfp"></span><h2><span class="section-number">11.9.1.6. </span>Using the <code class="docutils literal notranslate"><span class="pre">individual</span></code> <code class="docutils literal notranslate"><span class="pre">sharedfp</span></code> component and its limitations<a class="headerlink" href="#using-the-individual-sharedfp-component-and-its-limitations" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">individual</span></code> sharedfp component provides an approximation of
+shared file pointer operations that can be used for <em>write operations
+only</em>. It is only recommended in scenarios, where neither the <code class="docutils literal notranslate"><span class="pre">sm</span></code>
+nor the <code class="docutils literal notranslate"><span class="pre">lockedfile</span></code> component can be used, e.g., due to the fact
+that more than one node are being used and the file system does not
+support locking.</p>
+<p>Conceptually, each process writes the data of a write_shared operation
+into a separate file along with a time stamp. In every collective
+operation (or during the file_close operation), data from all
+individual files are merged into the actual output file, using the
+time stamps as the main criteria.</p>
+<p>The component has certain limitations and restrictions, such as its
+reliance on the synchronization clocks on the individual cluster nodes
+to determine the order between entries in the final file, which might
+lead to some deviations compared to the actual calling sequence.</p>
+<p>Furthermore, the component only supports <code class="docutils literal notranslate"><span class="pre">write</span></code> operations, read
+operations are not supported.</p>
+</section>
+<section id="other-features-of-ompio">
+<h2><span class="section-number">11.9.1.7. </span>Other features of OMPIO<a class="headerlink" href="#other-features-of-ompio" title="Link to this heading"></a></h2>
+<p>OMPIO has a number of additional features, mostly directed towards
+developers, which could occasionally also be useful to interested
+end-users. These can typically be controlled through MCA parameters.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">io_ompio_coll_timing_info</span></code>: Setting this parameter will lead to a
+short report upon closing a file indicating the amount of time spent
+in communication and I/O operations of collective I/O operations
+only.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">io_ompio_record_file_offset_info</span></code>: Setting this parameter will
+report neighborhood relationship of processes based on the file view
+used. This is occasionally important for understanding performance
+characteristics of I/O operations.  Note, that using this features
+requires an additional compile time flag when compiling <code class="docutils literal notranslate"><span class="pre">ompio</span></code>.</p>
+<p>The output file generated as a result of this flag provides the
+access pattern of processes to the file recorded as neighborhood
+relationships of processes as a matrix. For example, if the first
+four bytes of a file are being accessed by process 0 and the next
+four bytes by process 1, processes 0 and 1 are said to have a
+neighborhood relationship since they access neighboring elements of
+the file.  For each neighborhood relation detected in the file, the
+value for the corresponding pair of processes is increased by one.</p>
+<p>Data is provided in compressed row storage format. To minimize the
+amount of data written using this feature, only non-zero values are
+output.  The first row in the output file indicates the number of
+non-zero elements in the matrix; the second number is the number of
+elements in the row index.  The third row of the output file gives
+all the column indexes. The fourth row lists all the values and the
+fifth row gives the row index. A row index represents the position
+in the value array where a new row starts.</p>
+</li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="11.9. MPI-IO tuning options" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="romio.html" class="btn btn-neutral float-right" title="11.9.2. ROMIO" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

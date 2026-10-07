@@ -1,0 +1,190 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.2. Open MPI Runtime Debugging Options &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.3. Using Serial Debuggers to Debug Open MPI Applications" href="serial-debug.html" />
+    <link rel="prev" title="12.1. Parallel Debugging Tools" href="debug-tools.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Debugging Open MPI Parallel Applications</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="debug-tools.html">12.1. Parallel Debugging Tools</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.2. Open MPI Runtime Debugging Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="serial-debug.html">12.3. Using Serial Debuggers to Debug Open MPI Applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="parallel-debug.html">12.4. Using Parallel Debuggers to Debug Open MPI Applications</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lost-output.html">12.5. Application Output Lost with Abnormal Termination</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memchecker.html">12.6. Using Memchecker</a></li>
+<li class="toctree-l2"><a class="reference internal" href="valgrind.html">12.7. Using Valgrind to Find Open MPI Application Errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mpir-tools.html">12.8. Using MPIR-based tools with Open MPI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Debugging Open MPI Parallel Applications</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.2. </span>Open MPI Runtime Debugging Options</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/app-debug/debug-options.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="open-mpi-runtime-debugging-options">
+<h1><span class="section-number">12.2. </span>Open MPI Runtime Debugging Options<a class="headerlink" href="#open-mpi-runtime-debugging-options" title="Link to this heading"></a></h1>
+<p>Open MPI has a series of MCA parameters for the MPI layer
+itself that are designed to help with debugging.
+These parameters <a class="reference internal" href="../mca.html#label-running-setting-mca-param-values"><span class="std std-ref">can be set</span></a>
+in the usual ways.  MPI-level MCA parameters can be
+displayed by invoking the following command:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Use "--level 9" to see all the MCA parameters</span>
+<span class="c1"># (the default is "--level 1"):</span>
+shell$<span class="w"> </span>ompi_info<span class="w"> </span>--param<span class="w"> </span>mpi<span class="w"> </span>all<span class="w"> </span>--level<span class="w"> </span><span class="m">9</span>
+</pre></div>
+</div>
+<p>Here is a summary of the debugging parameters for the MPI layer:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_param_check</span></code>: If set to true (any positive value), and when
+Open MPI is compiled with parameter checking enabled (the default),
+the parameters to each MPI function can be passed through a series
+of correctness checks.  Problems such as passing illegal values
+(e.g., NULL or <code class="docutils literal notranslate"><span class="pre">MPI_DATATYPE_NULL</span></code> or other “bad” values) will be
+discovered at run time and an MPI exception will be invoked (the
+default of which is to print a short message and abort the entire
+MPI job).  If set to false, these checks are disabled, slightly
+increasing performance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_show_handle_leaks</span></code>: If set to true (any positive value),
+Open MPI will display lists of any MPI handles that were not freed before
+<a class="reference internal" href="../man-openmpi/man3/MPI_Finalize.3.html#mpi-finalize"><span class="std std-ref">MPI_Finalize(3)</span></a>  (e.g., communicators,
+datatypes, requests, etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_no_free_handles</span></code>: If set to true (any positive value), do not
+actually free MPI objects when their corresponding MPI “free”
+function is invoked (e.g., do not free communicators when
+<a class="reference internal" href="../man-openmpi/man3/MPI_Comm_free.3.html#mpi-comm-free"><span class="std std-ref">MPI_Comm_free(3)</span></a>.  This can be helpful in tracking down
+applications that accidentally continue to use MPI handles after
+they have been freed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_show_mca_params</span></code>: If set to true (any positive value), show a
+list of all MCA parameters and their values when MPI is initialized.
+This can be quite helpful for reproducibility of MPI applications.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_show_mca_params_file</span></code>: If set to a non-empty value, and if
+the value of <code class="docutils literal notranslate"><span class="pre">mpi_show_mca_params</span></code> is true, then output the list
+of MCA parameters to the filename value.  If this parameter is an
+empty value, the list is sent to <code class="docutils literal notranslate"><span class="pre">stderr</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_abort_delay</span></code>: If nonzero, print out an identifying message
+when <a class="reference internal" href="../man-openmpi/man3/MPI_Abort.3.html#mpi-abort"><span class="std std-ref">MPI_Abort(3)</span></a> is invoked showing the hostname and PID of the
+process that invoked <a class="reference internal" href="../man-openmpi/man3/MPI_Abort.3.html#mpi-abort"><span class="std std-ref">MPI_Abort(3)</span></a>, and then delay that many seconds
+before exiting.  A negative value means to delay indefinitely.  This
+allows a user to manually come in and attach a debugger when an
+error occurs.  Remember that the default MPI error handler —
+<code class="docutils literal notranslate"><span class="pre">MPI_ERRORS_ABORT</span></code> — invokes <a class="reference internal" href="../man-openmpi/man3/MPI_Abort.3.html#mpi-abort"><span class="std std-ref">MPI_Abort(3)</span></a>, so this
+parameter can be useful to discover problems identified by
+<code class="docutils literal notranslate"><span class="pre">mpi_param_check</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mpi_abort_print_stack</span></code>: If nonzero, print out a stack trace (on
+supported systems) when <a class="reference internal" href="../man-openmpi/man3/MPI_Abort.3.html#mpi-abort"><span class="std std-ref">MPI_Abort(3)</span></a> is invoked.</p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="debug-tools.html" class="btn btn-neutral float-left" title="12.1. Parallel Debugging Tools" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="serial-debug.html" class="btn btn-neutral float-right" title="12.3. Using Serial Debuggers to Debug Open MPI Applications" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

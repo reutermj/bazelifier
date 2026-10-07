@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>12.7. Source code &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12.8. Internal frameworks" href="frameworks.html" />
+    <link rel="prev" title="12.6. OpenPMIx terminology" href="terminology.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">12. Developer’s guide</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">12.1. Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="git-github.html">12.2. GitHub, Git, and related topics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="compiler-pickyness.html">12.3. Compiler Pickyness by Default</a></li>
+<li class="toctree-l2"><a class="reference internal" href="autogen.html">12.4. Running <code class="docutils literal notranslate"><span class="pre">autogen.pl</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="building-pmix.html">12.5. Building PMIx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="terminology.html">12.6. OpenPMIx terminology</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">12.7. Source code</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#code-style">12.7.1. Code style</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#all-languages">12.7.1.1. All languages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#c-c">12.7.1.2. C / C++</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#shell-scripting">12.7.1.3. Shell scripting</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#m4">12.7.1.4. m4</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#tree-layout">12.7.2. Tree layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#symbol-visibility">12.7.3. Symbol Visibility</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="frameworks.html">12.8. Internal frameworks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gnu-autotools.html">12.9. Manually installing the GNU Autootools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sphinx.html">12.10. Installing and running Sphinx (building the OpenPMIx docs)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rst-for-markdown-expats.html">12.11. ReStructured Text for those who know Markdown</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">12. </span>Developer’s guide</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">12.7. </span>Source code</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/developers/source-code.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="source-code">
+<h1><span class="section-number">12.7. </span>Source code<a class="headerlink" href="#source-code" title="Link to this heading"></a></h1>
+<section id="code-style">
+<h2><span class="section-number">12.7.1. </span>Code style<a class="headerlink" href="#code-style" title="Link to this heading"></a></h2>
+<p>We intentionally do not have too many code conventions in the PMIx
+code base.</p>
+<section id="all-languages">
+<h3><span class="section-number">12.7.1.1. </span>All languages<a class="headerlink" href="#all-languages" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>4 space tabs.  No more, no less.</p></li>
+<li><p><strong>NEVER</strong> use actual tab characters; always use spaces.  Both emacs
+and vim have secret mojo that can automatically use spaces when you
+hit the <code class="docutils literal notranslate"><span class="pre">&lt;TAB&gt;</span></code> key.  This makes the code look the same in every
+browser, regardless of individual tab display settings.</p></li>
+</ul>
+</section>
+<section id="c-c">
+<h3><span class="section-number">12.7.1.2. </span>C / C++<a class="headerlink" href="#c-c" title="Link to this heading"></a></h3>
+<ul>
+<li><p>When comparing constants for equality or inequality, always put the
+constant on the left.  This is defensive programming: if you have a
+typo in the test and miss a <code class="docutils literal notranslate"><span class="pre">!</span></code> or <code class="docutils literal notranslate"><span class="pre">=</span></code>, you’ll get a compiler error.
+For example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cm">/* Do this */</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">NULL</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">foo</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+
+<span class="cm">/* Because if you have a typo (i.e., = instead of ==), this will</span>
+<span class="cm">   be a compile error rather than a subtle bug */</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">NULL</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">foo</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p>More defensive programming: <em>always</em> include blocks in curly braces
+<code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">}</span></code>, even if they are only one line long.  For example:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cm">/* Do this */</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whatever</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">OMPI_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="cm">/* Not this */</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">whatever</span><span class="p">)</span>
+<span class="w">   </span><span class="k">return</span><span class="w"> </span><span class="n">OMPI_SUCCESS</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p>PMIx requires a C99-compliant compiler.</p>
+<ul class="simple">
+<li><p>C++-style comments are now allowed (and preferred).</p></li>
+<li><p>C99-style mixing declarations are allow allowable (and preferred).</p></li>
+</ul>
+</li>
+<li><p><strong>ALWAYS</strong> include <code class="docutils literal notranslate"><span class="pre">pmix_config.h</span></code> as your first #include file.
+There are very, very few cases where
+this is not true (E.g., some bizarre Windows scenarios).  But in
+99.9999% of cases, this file should be included <strong>first</strong> so that it
+can affect system-level #include files if necessary.</p></li>
+<li><p>Filenames and symbols must follow the <strong>prefix rule</strong> (see [e-mail
+thread](<a class="reference external" href="http://www.open-mpi.org/community/lists/devel/2009/07/6389.php">http://www.open-mpi.org/community/lists/devel/2009/07/6389.php</a>)):</p>
+<ul class="simple">
+<li><p>Filenames must be prefixed with <code class="docutils literal notranslate"><span class="pre">&lt;framework&gt;_&lt;component&gt;</span></code>.</p></li>
+<li><p>Public symbols must be prefixed in components with
+<code class="docutils literal notranslate"><span class="pre">pmix_&lt;framework&gt;_&lt;component&gt;</span></code>. When in doubt about
+whether a symbol is public, be safe and add the prefix.</p></li>
+<li><p>Non-public symbols must be declared <code class="docutils literal notranslate"><span class="pre">static</span></code> or otherwise made to
+not appear in the global scope.</p></li>
+</ul>
+</li>
+<li><p><strong>ALWAYS</strong> #define macros, even for logical values.</p>
+<ul>
+<li><p>The GNU Way is to <code class="docutils literal notranslate"><span class="pre">#define</span></code> a macro when it is “true” and to
+<code class="docutils literal notranslate"><span class="pre">#undef</span></code> it when it is “false”.</p></li>
+<li><p>In PMIx, we <strong>always</strong> <code class="docutils literal notranslate"><span class="pre">#define</span></code> a logical macro to be
+either 0 or 1 – we never <code class="docutils literal notranslate"><span class="pre">#undef</span></code> it.</p></li>
+<li><p>The reason for this is defensive programming: if you are only
+checking if a preprocessor macro is defined (via <code class="docutils literal notranslate"><span class="pre">#ifdef</span> <span class="pre">FOO</span></code> or
+<code class="docutils literal notranslate"><span class="pre">#if</span> <span class="pre">defined(FOO)</span></code>), you will get no warning when compiling if
+you accidentally misspell the macro name.  However, if you use the
+logic test <code class="docutils literal notranslate"><span class="pre">#if</span> <span class="pre">FOO</span></code> with an undefined macro (e.g., because you
+misspelled it), you’ll get a compiler warning or error.</p>
+<div class="tip admonition">
+<p class="admonition-title">Rationale</p>
+<p>Misspelled macro names can be tremendously difficult to find
+when they are buried in thousands of lines of code; we will
+take all the help from the preprocessor/compiler that we can
+get!</p>
+</div>
+</li>
+</ul>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="cm">/* GNU Way - you will get no warning from the compiler if you</span>
+<span class="cm">   misspell "FOO"; the test will simply be false */</span>
+<span class="cp">#ifdef FOO</span>
+<span class="p">...</span>
+<span class="cp">#else</span>
+<span class="p">...</span>
+<span class="cp">#endif</span>
+
+<span class="cm">/* PMIx Way - you will get a warning from the compiler if you</span>
+<span class="cm">   misspell "FOO"; the result of the test is a different value</span>
+<span class="cm">   than whether you spelled the macro name right or not */</span>
+<span class="cp">#if FOO</span>
+<span class="p">...</span>
+<span class="cp">#else</span>
+<span class="p">...</span>
+<span class="cp">#endif</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="shell-scripting">
+<h3><span class="section-number">12.7.1.3. </span>Shell scripting<a class="headerlink" href="#shell-scripting" title="Link to this heading"></a></h3>
+<p>Please read some of the existing shell code in the source code tree
+and try to use a similar style.</p>
+<ul>
+<li><p>Always enclose evaluated shell variables in quotes to ensure that
+multi-token values are handled properly.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is bad</span>
+<span class="k">if</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="nv">$foo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>bar<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+
+<span class="c1"># This is good</span>
+<span class="k">if</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="nv">$foo</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"bar"</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+</pre></div>
+</div>
+<ul>
+<li><p>The one exception to this is that when doing an assignment to a
+shell variable from another shell variable, it is not necessary to
+use quotes on the right hand side:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is harmless, but unnecessary</span>
+<span class="nv">foo</span><span class="o">=</span><span class="s2">"</span><span class="nv">$bar</span><span class="s2">"</span>
+
+<span class="c1"># This is actually sufficient, even for multi-token values of $bar</span>
+<span class="nv">foo</span><span class="o">=</span><span class="nv">$bar</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</li>
+<li><p>Do not use the <code class="docutils literal notranslate"><span class="pre">==</span></code> operator for <code class="docutils literal notranslate"><span class="pre">test</span></code> — this is a GNU
+extension and can cause portability problems on BSD systems.
+Instead, use the single <code class="docutils literal notranslate"><span class="pre">=</span></code> operator.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is bad</span>
+<span class="k">if</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="nv">$foo</span><span class="s2">"</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">"bar"</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+
+<span class="c1"># This is good</span>
+<span class="k">if</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">"</span><span class="nv">$foo</span><span class="s2">"</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"bar"</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="m4">
+<h3><span class="section-number">12.7.1.4. </span>m4<a class="headerlink" href="#m4" title="Link to this heading"></a></h3>
+<p>We do not have specific coding style guidelines for m4 (the language
+used to create the <code class="docutils literal notranslate"><span class="pre">configure</span></code> script).  Please read some of the
+existing m4 code in the source code tree and try to use a similar
+style.</p>
+</section>
+</section>
+<section id="tree-layout">
+<h2><span class="section-number">12.7.2. </span>Tree layout<a class="headerlink" href="#tree-layout" title="Link to this heading"></a></h2>
+<p>There are a few notable top-level directories in the source
+tree:</p>
+<ul class="simple">
+<li><p>The main PMIx source is under the <code class="docutils literal notranslate"><span class="pre">src</span></code> directory</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">config</span></code>: M4 scripts supporting the top-level <code class="docutils literal notranslate"><span class="pre">configure</span></code> script</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">etc</span></code>: Some miscellaneous text files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">docs</span></code>: Source code for PMIx documentation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">examples</span></code>: Trivial example programs</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include</span></code>: The public PMIx headers</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">src</span></code> directory generates a top-level library named <code class="docutils literal notranslate"><span class="pre">libpmix</span></code>.
+It can be built as either a static or shared library. The directory
+structure under it includes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">class</span></code>: C++-like “classes” (using the OPAL class system)
+specific to this project</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include</span></code>: Top-level internal include files</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mca</span></code>: MCA frameworks and components specific to PMIx</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">runtime</span></code>: Startup and shutdown of PMIx at runtime</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tools</span></code>: Executables specific to PMIx</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">util</span></code>: Random utility code</p></li>
+</ul>
+<p>The layout of the <code class="docutils literal notranslate"><span class="pre">mca</span></code> tree is strictly defined to be of the
+form:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>mca/FRAMEWORK/COMPONENT
+</pre></div>
+</div>
+<p>To be explicit: it is forbidden to have a directory under the <code class="docutils literal notranslate"><span class="pre">mca</span></code>
+tree that does not meet this template (with the exception of <code class="docutils literal notranslate"><span class="pre">base</span></code>
+directories, explained below).  Hence, only framework and component
+code can be in the <code class="docutils literal notranslate"><span class="pre">mca</span></code> tree.</p>
+<p>That is, framework and component names must be valid directory names
+(and C variables; more on that later).  For example, the CLIENT PTL
+component is located in <code class="docutils literal notranslate"><span class="pre">mca/ptl/client/</span></code>.</p>
+<p>The name <code class="docutils literal notranslate"><span class="pre">base</span></code> is reserved; there cannot be a framework or component
+named <code class="docutils literal notranslate"><span class="pre">base</span></code>. Directories named <code class="docutils literal notranslate"><span class="pre">base</span></code> are reserved for the
+implementation of the MCA and frameworks.  Here are a few examples (as
+of the v5.0.x source tree):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Main implementation of the MCA</span>
+mca/base
+
+<span class="c1"># Implementation of the ptl framework</span>
+mca/ptl/base
+
+<span class="c1"># Implementation of the client component of the ptl framework</span>
+mca/ptl/client
+</pre></div>
+</div>
+<p>Under these mandated directories, frameworks and/or components may have
+arbitrary directory structures, however.</p>
+</section>
+<section id="symbol-visibility">
+<h2><span class="section-number">12.7.3. </span>Symbol Visibility<a class="headerlink" href="#symbol-visibility" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">PMIX_EXPORT</span></code> macro provides a method to annotate symbols to indicate
+their intended visibility when compiling dynamically shared object files
+(e.g., <code class="docutils literal notranslate"><span class="pre">libpmix.so</span></code>).</p>
+<p>The macro expands to the appropriate compiler and platform flags for marking
+whether a symbol should be explicitly made public in the PMIx
+library namespace.
+The <code class="docutils literal notranslate"><span class="pre">PMIX_EXPORT</span></code> attribute is used to declare that a symbol is to be
+visible outside of the PMIx DSO’s scope.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is entirely related to dynamic library compilation and does not
+apply to static compilation.</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="terminology.html" class="btn btn-neutral float-left" title="12.6. OpenPMIx terminology" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="frameworks.html" class="btn btn-neutral float-right" title="12.8. Internal frameworks" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

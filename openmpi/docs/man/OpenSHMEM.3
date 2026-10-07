@@ -1,0 +1,1094 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "OPENSHMEM" "3" "Sep 16, 2026" "" "Open MPI"
+.INDENT 0.0
+.INDENT 3.5
+.UNINDENT
+.UNINDENT
+.sp
+intro_shmem \- Introduction to the OpenSHMEM programming model
+.SH DESCRIPTION
+.sp
+The SHMEM programming model consists of library routines that provide
+low\-latency, high\-bandwidth communication for use in highly parallelized
+scalable programs. The routines in the OpenSHMEM application programming
+interface (API) provide a programming model for exchanging data between
+cooperating parallel processes. The resulting programs are similar in
+style to Message Passing Interface (MPI) programs. The SHMEM API can be
+used either alone or in combination with MPI routines in the same
+parallel program.
+.sp
+An OpenSHMEM program is SPMD (single program, multiple data) in style.
+The SHMEM processes, called processing elements or PEs, all start at the
+same time and they all run the same program. Usually the PEs perform
+computation on their own subdomains of the larger problem and
+periodically communicate with other PEs to exchange information on which
+the next computation phase depends.
+.sp
+The OpenSHMEM routines minimize the overhead associated with data
+transfer requests, maximize bandwidth and minimize data latency. Data
+latency is the period of time that starts when a PE initiates a transfer
+of data and ends when a PE can use the data. OpenSHMEM routines support
+remote data transfer through put operations, which transfer data to a
+different PE, get operations, which transfer data from a different PE,
+and remote pointers, which allow direct references to data objects owned
+by another PE. Other operations supported are collective broadcast and
+reduction, barrier synchronization, and atomic memory operations. An
+atomic memory operation is an atomic read\-and\-update operation, such as
+a fetch\-and\-increment, on a remote or local data object.
+.SH OPENSHMEM ROUTINES
+.sp
+This section lists the significant OpenSHMEM message\-passing routines.
+.sp
+PE queries
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI_num_pes\fP(3)
+.IP \(bu 2
+\fI_my_pe\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fINUM_PES\fP(3)
+.IP \(bu 2
+\fIMY_PE\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Elemental data put routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_double_p\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_p\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_p\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_p\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_p\fP\&.*(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Block data put routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_put32\fP(3)
+.IP \(bu 2
+\fI\%shmem_put64\fP(3)
+.IP \(bu 2
+\fI\%shmem_put128\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_double_put\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_put\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_put\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_put\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_put\fP\&.*(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_complex_put(3)
+.IP \(bu 2
+shmem_integer_put(3)
+.IP \(bu 2
+shmem_logical_put(3)
+.IP \(bu 2
+shmem_real_put(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Elemental data get routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_double_g\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_g\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_g\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_g\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_g\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Block data get routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_get32\fP(3)
+.IP \(bu 2
+\fI\%shmem_get64\fP(3)
+.IP \(bu 2
+\fI\%shmem_get128\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_double_get\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_get\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_get\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_get\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_get\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_complex_get(3)
+.IP \(bu 2
+shmem_integer_get(3)
+.IP \(bu 2
+shmem_logical_get(3)
+.IP \(bu 2
+shmem_real_get(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Strided put routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_iput32\fP(3)
+.IP \(bu 2
+\fI\%shmem_iput64\fP(3)
+.IP \(bu 2
+\fI\%shmem_iput128\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_double_iput\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_iput\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_iput\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_iput\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_iput\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_complex_iput(3)
+.IP \(bu 2
+shmem_integer_iput(3)
+.IP \(bu 2
+shmem_logical_iput(3)
+.IP \(bu 2
+shmem_real_iput(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Strided get routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_iget32\fP(3)
+.IP \(bu 2
+\fI\%shmem_iget64\fP(3)
+.IP \(bu 2
+\fI\%shmem_iget128\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_double_iget\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_iget\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_iget\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_iget\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_iget\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_complex_iget(3)
+.IP \(bu 2
+shmem_integer_iget(3)
+.IP \(bu 2
+shmem_logical_iget(3)
+.IP \(bu 2
+shmem_real_iget(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Point\-to\-point synchronization routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_int_wait\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_wait_until\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_wait\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_wait_until\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_wait\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_wait_until\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_wait\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_wait_until\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_int4_wait(3)
+.IP \(bu 2
+shmem_int4_wait_until(3)
+.IP \(bu 2
+shmem_int8_wait(3)
+.IP \(bu 2
+shmem_int8_wait_until(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Barrier synchronization routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_barrier_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_barrier\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Atomic memory fetch\-and\-operate (fetch\-op) routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_swap\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Reduction routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_int_and_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_and_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_and_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_and_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_double_max_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_max_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_max_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_max_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_max_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_max_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_double_min_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_min_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_min_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_min_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_min_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_min_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_double_sum_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_sum_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_sum_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_sum_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_sum_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_sum_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_double_prod_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_prod_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_prod_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_prod_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_prod_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_prod_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_or_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_or_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_or_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_or_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_xor_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_xor_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_xor_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_short_xor_to_all\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_int4_and_to_all(3)
+.IP \(bu 2
+shmem_int8_and_to_all(3)
+.IP \(bu 2
+shmem_real4_max_to_all(3)
+.IP \(bu 2
+shmem_real8_max_to_all(3)
+.IP \(bu 2
+shmem_int4_max_to_all(3)
+.IP \(bu 2
+shmem_int8_max_to_all(3)
+.IP \(bu 2
+shmem_real4_min_to_all(3)
+.IP \(bu 2
+shmem_real8_min_to_all(3)
+.IP \(bu 2
+shmem_int4_min_to_all(3)
+.IP \(bu 2
+shmem_int8_min_to_all(3)
+.IP \(bu 2
+shmem_real4_sum_to_all(3)
+.IP \(bu 2
+shmem_real8_sum_to_all(3)
+.IP \(bu 2
+shmem_int4_sum_to_all(3)
+.IP \(bu 2
+shmem_int8_sum_to_all(3)
+.IP \(bu 2
+shmem_real4_prod_to_all(3)
+.IP \(bu 2
+shmem_real8_prod_to_all(3)
+.IP \(bu 2
+shmem_int4_prod_to_all(3)
+.IP \(bu 2
+shmem_int8_prod_to_all(3)
+.IP \(bu 2
+shmem_int4_or_to_all(3)
+.IP \(bu 2
+shmem_int8_or_to_all(3)
+.IP \(bu 2
+shmem_int4_xor_to_all(3)
+.IP \(bu 2
+shmem_int8_xor_to_all(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Broadcast routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_broadcast32\fP(3)
+.IP \(bu 2
+\fI\%shmem_broadcast64\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Cache management routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_udcflush\fP(3)
+.IP \(bu 2
+\fI\%shmem_udcflush_line\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Byte\-granularity block put routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_putmem\fP(3)
+.IP \(bu 2
+\fI\%shmem_getmem\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_character_put(3)
+.IP \(bu 2
+shmem_character_get(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Collect routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_collect32\fP(3)
+.IP \(bu 2
+\fI\%shmem_collect64\fP(3)
+.IP \(bu 2
+\fI\%shmem_fcollect32\fP(3)
+.IP \(bu 2
+\fI\%shmem_fcollect64\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Atomic memory fetch\-and\-operate (fetch\-op) routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_double_swap\fP(3)
+.IP \(bu 2
+\fI\%shmem_float_swap\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_cswap\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_fadd\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_finc\fP(3)
+.IP \(bu 2
+\fI\%shmem_int_swap\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_cswap\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_fadd\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_finc\fP(3)
+.IP \(bu 2
+\fI\%shmem_long_swap\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_cswap\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_fadd\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_finc\fP(3)
+.IP \(bu 2
+\fI\%shmem_longlong_swap\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_int4_cswap(3)
+.IP \(bu 2
+shmem_int4_fadd(3)
+.IP \(bu 2
+shmem_int4_finc(3)
+.IP \(bu 2
+shmem_int4_swap(3)
+.IP \(bu 2
+shmem_int8_swap(3)
+.IP \(bu 2
+shmem_real4_swap(3)
+.IP \(bu 2
+shmem_real8_swap(3)
+.IP \(bu 2
+shmem_int8_cswap(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Atomic memory operation routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_int4_add(3)
+.IP \(bu 2
+shmem_int4_inc(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Remote memory pointer function
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_ptr\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Reduction routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_longdouble_max_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longdouble_min_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longdouble_prod_to_all\fP(3)
+.IP \(bu 2
+\fI\%shmem_longdouble_sum_to_all\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+Fortran only:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+shmem_real16_max_to_all(3)
+.IP \(bu 2
+shmem_real16_min_to_all(3)
+.IP \(bu 2
+shmem_real16_prod_to_all(3)
+.IP \(bu 2
+shmem_real16_sum_to_all(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Accessibility query routines
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+C/C++ and Fortran:
+.INDENT 2.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%shmem_pe_accessible\fP(3)
+.IP \(bu 2
+\fI\%shmem_addr_accessible\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+Symmetric Data Objects
+.sp
+Consistent with the SPMD nature of the OpenSHMEM programming model is
+the concept of symmetric data objects. These are arrays or variables
+that exist with the same size, type, and relative address on all PEs.
+Another term for symmetric data objects is “remotely accessible data
+objects”. In the interface definitions for OpenSHMEM data transfer
+routines, one or more of the parameters are typically required to be
+symmetric or remotely accessible.
+.sp
+The following kinds of data objects are symmetric:
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+Fortran data objects in common blocks or with the SAVE
+attribute. These data objects must not be defined in a dynamic
+shared object (DSO).
+.IP \(bu 2
+Non\-stack C and C++ variables. These data objects must not be
+defined in a DSO.
+.IP \(bu 2
+Fortran arrays allocated with \fIshpalloc\fP(3)
+.IP \(bu 2
+C and C++ data allocated by \fIshmalloc\fP(3)
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+.TP
+.B Collective Routines
+Some SHMEM routines, for example, shmem_broadcast(3) and
+\fI\%shmem_float_sum_to_all\fP(3), are classified as collective routines
+because they distribute work across a set of PEs. They must be called
+concurrently by all PEs in the active set defined by the PE_start,
+logPE_stride, PE_size argument triplet. The following man pages
+describe the OpenSHMEM collective routines:
+.INDENT 7.0
+.IP \(bu 2
+shmem_and(3)
+.IP \(bu 2
+\fI\%shmem_barrier\fP(3)
+.IP \(bu 2
+shmem_broadcast(3)
+.IP \(bu 2
+shmem_collect(3)
+.IP \(bu 2
+shmem_max(3)
+.IP \(bu 2
+shmem_min(3)
+.IP \(bu 2
+shmem_or(3)
+.IP \(bu 2
+shmem_prod(3)
+.IP \(bu 2
+shmem_sum(3)
+.IP \(bu 2
+shmem_xor(3)
+.UNINDENT
+.UNINDENT
+.SH USING THE SYMMETRIC WORK ARRAY, PSYNC
+.sp
+Multiple pSync arrays are often needed if a particular PE calls as
+OpenSHMEM collective routine twice without intervening barrier
+synchronization. Problems would occur if some PEs in the active set for
+call 2 arrive at call 2 before processing of call 1 is complete by all
+PEs in the call 1 active set. You can use \fI\%shmem_barrier\fP(3) or
+\fI\%shmem_barrier_all\fP(3) to perform a barrier synchronization between
+consecutive calls to OpenSHMEM collective routines.
+.sp
+There are two special cases:
+.INDENT 0.0
+.IP \(bu 2
+The \fI\%shmem_barrier\fP(3) routine allows the same pSync array to be
+used on consecutive calls as long as the active PE set does not
+change.
+.IP \(bu 2
+If the same collective routine is called multiple times with the same
+active set, the calls may alternate between two pSync arrays. The
+SHMEM routines guarantee that a first call is completely finished by
+all PEs by the time processing of a third call begins on any PE.
+.UNINDENT
+.sp
+Because the SHMEM routines restore pSync to its original contents,
+multiple calls that use the same pSync array do not require that pSync
+be reinitialized after the first call.
+.SH SHMEM ENVIRONMENT VARIABLES
+.sp
+This section lists the significant SHMEM environment variables.
+.INDENT 0.0
+.IP \(bu 2
+\fBSMA_VERSION\fP print the library version at start\-up.
+.IP \(bu 2
+\fBSMA_INFO\fP print helpful text about all these environment
+variables.
+.IP \(bu 2
+\fBSMA_SYMMETRIC_SIZE\fP number of bytes to allocate for the symmetric
+heap.
+.IP \(bu 2
+\fBSMA_DEBUG\fP enable debugging messages.
+.UNINDENT
+.sp
+The first call to SHMEM must be \fIstart_pes\fP(3). This routines
+initialize the SHMEM runtime.
+.sp
+Calling any other SHMEM routines beforehand has undefined behavior.
+Multiple calls to this routine is not allowed.
+.SH COMPILING AND RUNNING OPENSHMEM PROGRAMS
+.sp
+The OpenSHMEM specification is silent regarding how OpenSHMEM programs
+are compiled, linked and run. This section shows some examples of how
+wrapper programs could be utilized to compile and launch applications.
+The commands are styled after wrapper programs found in many MPI
+implementations.
+.sp
+The following sample command line demonstrates running an OpenSHMEM
+Program using a wrapper script (\fBoshrun\fP in this case):
+.INDENT 0.0
+.IP \(bu 2
+C/C++:
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+oshcc c_program.c
+.EE
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+.IP \(bu 2
+FORTRAN:
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+oshfort fortran_program.f
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+The following sample command line demonstrates running an OpenSHMEM
+Program assuming that the library provides a wrapper script for such
+purpose (named \fBoshrun\fP for this example):
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+oshrun \-n 32 ./a.out
+.EE
+.UNINDENT
+.UNINDENT
+.SH EXAMPLES
+.sp
+\fBExample 1\fP: The following Fortran OpenSHMEM program directs all PEs
+to sum simultaneously the numbers in the VALUES variable across all PEs:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+PROGRAM REDUCTION
+  REAL VALUES, SUM
+  COMMON /C/ VALUES
+  REAL WORK
+
+  CALL START_PES(0)
+  VALUES = MY_PE()
+  CALL SHMEM_BARRIER_ALL ! Synchronize all PEs
+  SUM = 0.0
+  DO I = 0, NUM_PES()\-1
+    CALL SHMEM_REAL_GET(WORK, VALUES, 1, I) ! Get next value
+    SUM = SUM + WORK                ! Sum it
+  ENDDO
+  PRINT *, \(aqPE \(aq, MY_PE(), \(aq COMPUTED SUM=\(aq, SUM
+  CALL SHMEM_BARRIER_ALL
+END
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+\fBExample 2\fP: The following C OpenSHMEM program transfers an array of
+10 longs from PE 0 to PE 1:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpp/shmem.h>
+
+main() {
+  long source[10] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+  static long target[10];
+
+  shmem_init();
+  if (shmem_my_pe() == 0) {
+    /* put 10 elements into target on PE 1 */
+    shmem_long_put(target, source, 10, 1);
+  }
+  shmem_barrier_all(); /* sync sender and receiver */
+  if (shmem_my_pe() == 1)
+    printf(\(dqtarget[0] on PE %d is %d\en\(dq, shmem_my_pe(), target[0]);
+}
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+The following man pages also contain information on OpenSHMEM routines.
+See the specific man pages for implementation information.
+.sp
+shmem_add(3) shmem_and(3) \fI\%shmem_barrier\fP(3)
+\fI\%shmem_barrier_all\fP(3) shmem_broadcast(3) shmem_cache(3)
+shmem_collect(3) shmem_cswap(3) shmem_fadd(3)
+\fI\%shmem_fence\fP(3) shmem_finc(3) shmem_get(3) shmem_iget(3)
+shmem_inc(3) shmem_iput(3) shmem_lock(3) shmem_max(3)
+shmem_min(3) \fI\%shmem_my_pe\fP(3) shmem_or(3) shmem_prod(3)
+shmem_put(3) \fI\%shmem_quiet\fP(3) \fI\%shmem_short_g\fP(3)
+\fI\%shmem_short_p\fP(3) shmem_sum(3) \fI\%shmem_swap\fP(3)
+\fI\%shmem_wait\fP(3) shmem_xor(3) \fI\%shmem_pe_accessible\fP(3)
+\fI\%shmem_addr_accessible\fP(3) \fI\%shmem_init\fP(3) \fI\%shmem_malloc\fP(3)
+\fIshmem_my_pe\fP(3) \fIshmem_n_pes\fP(3)
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

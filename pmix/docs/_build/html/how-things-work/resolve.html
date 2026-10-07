@@ -1,0 +1,163 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>6.2. Resolving Peers and Nodes &mdash; OpenPMIx 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7. Release Notes" href="../release-notes.html" />
+    <link rel="prev" title="6.1. Session Directories" href="session_dirs.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">6. How Things Work</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="session_dirs.html">6.1. Session Directories</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">6.2. Resolving Peers and Nodes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">16. News</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">6. </span>How Things Work</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">6.2. </span>Resolving Peers and Nodes</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/how-things-work/resolve.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="resolving-peers-and-nodes">
+<h1><span class="section-number">6.2. </span>Resolving Peers and Nodes<a class="headerlink" href="#resolving-peers-and-nodes" title="Link to this heading"></a></h1>
+<p>PMIx provides two functions (<code class="docutils literal notranslate"><span class="pre">PMIx_Resolve_peers</span></code> and <code class="docutils literal notranslate"><span class="pre">PMIx_Resolve_nodes</span></code>) for discovering information about a given namespace. These are considered “convenience routines” as they are simple wrappers around basic PMIx APIs, designed to simplify access to commonly requested queries. However, providing that simplification results in a corresponding loss of clarity in the interpretation of any returned error code. Understanding the return status from these functions therefore requires a little knowledge of the underlying implementation.</p>
+<p>The PMIx library is architected around the concept of organizing data by level - i.e., session-level information is collected in a corresponding session object, job-level information in a job object, etc. Both of the “resolve” functions address job-level information:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIx_Resolve_peers</span></code> - return the array of processes within the specified namespace that are executing on a given node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PMIx_Resolve_nodes</span></code> - return a list of nodes hosting processes within the given namespace.</p></li>
+</ul>
+<p>Knowledge regarding job-level layout is distributed across three layers:</p>
+<ul class="simple">
+<li><p>the host environment, which is considered the source of “absolute truth”. The host is responsible for starting jobs and therefore must know where the processes for any given job are located. However, there is no requirement that every host daemon have complete knowledge of what is happening across the cluster, nor that it communicate that information to its PMIx server. Thus, it is left to the host to determine (a) what information it can provide, and (b) if it lacks information about a specified node or namespace, whether or not to generate a host-level query to obtain it. Note that the host will have up-to-the-moment information regarding changes to job layout - e.g., relocation or termination of a process due to faults. Such state changes may or may not have been communicated to the host’s PMIx server (there is no requirement that the host do so, especially for jobs that have no local processes on that node).</p></li>
+<li><p>the PMIx server, which only has information about namespaces and nodes it was told about by the host. The PMIx server generally will not inform its clients about process distribution for namespaces other than the client’s own. Thus, the server typically has a broader view of the situation than the client - but (as noted above) may not have as much information as its host.</p></li>
+<li><p>the PMIx client, which starts with information about its own job. Calls to <code class="docutils literal notranslate"><span class="pre">PMIx_Connect</span></code> and <code class="docutils literal notranslate"><span class="pre">PMIx_Group_construct</span></code> can expand that knowledge to include jobs that participate in those calls.</p></li>
+</ul>
+<p>Given that hierarchy of knowledge, calls to the “resolve” APIs will attempt to retrieve the response from the highest available level:</p>
+<ol class="arabic simple">
+<li><p>If the client is <em>not</em> connected to a server, then the PMIx client library will provide an answer based on its own available (and somewhat limited) information. If the client <em>is</em> connected, then it will forward the request to the server.</p></li>
+<li><p>When the server receives a request, or if the server generates its own “resolve” request, it first checks to see if its host supports the <code class="docutils literal notranslate"><span class="pre">query</span></code> upcall. If the host does support it, then the server will relay the request to the host via that interface. If the host does not support that interface, or if the host indicates it does not support that particular query, then the server will construct the response.</p></li>
+<li><p>If the host does support the <code class="docutils literal notranslate"><span class="pre">query</span></code> upcall and the “resolve” request, then it constructs the response and returns it to the PMIx server for relay to the requesting client.</p></li>
+</ol>
+<p>The status code returned by the APIs therefore depends somewhat on which level of the hierarchy generates the response. If the PMIx server or client is generating it, then the library follows some simple rules:</p>
+<ul>
+<li><p>Responding to either of these requests begins by finding the job object corresponding to the provided namespace. There is no parameter by which one can specify a session within which the job should be found, so the APIs are restricted to searching within the current session (remember, namespaces are only required to be unique within a session). If the namespace cannot be found, then the API will return the <code class="docutils literal notranslate"><span class="pre">PMIX_ERR_INVALID_NAMESPACE</span></code> status.</p></li>
+<li><p>If the namespace is found, then the search progresses to the node level. The PMIx library stores a list of nodes assigned to a given namespace on the corresponding job object. Only nodes assigned to that namespace are on the list. Thus, the response for <code class="docutils literal notranslate"><span class="pre">PMIx_Resolve_nodes</span></code> is constructed by simply collecting the hostnames from the nodes on the job object’s list. In the event that the namespace has not currently been assigned any nodes, then <code class="docutils literal notranslate"><span class="pre">PMIX_SUCCESS</span></code> will be returned (to indicate that the request was successfully executed) and a <code class="docutils literal notranslate"><span class="pre">NULL</span></code> will be returned in the <cite>nodelist</cite> argument.</p>
+<p>Likewise, <code class="docutils literal notranslate"><span class="pre">PMIx_Resolve_peers</span></code> scans the list of nodes attached to the job object to find the specified node. If that node isn’t found on the list, then the specified node is not currently assigned to the given namespace. In this case, the internal “fetch” operation will return a “not found” status to indicate that the node was not found on the list, and the <code class="docutils literal notranslate"><span class="pre">PMIx_Resolve_peers</span></code> function shall interpret this appropriately by returning <code class="docutils literal notranslate"><span class="pre">PMIX_SUCCESS</span></code> to the caller, with the <cite>procs</cite> array argument set to <code class="docutils literal notranslate"><span class="pre">NULL</span></code> and the <cite>nprocs</cite> argument set to zero.</p>
+<p>Note that it is possible that the specified node is not known to this PMIx server (e.g., the host didn’t include it in any provided information, or the caller made a simple typo in the nspace parameter). There currently is no way for the library to return an error status indicating this situation. It will be treated as in the preceding paragraph.</p>
+</li>
+<li><p>Once the node has been found on the list, the next step of the procedure is to scan the node-level values for that node to find the <code class="docutils literal notranslate"><span class="pre">PMIX_LOCAL_PEERS</span></code> attribute. This is the value the function is actually attempting to return to the caller. If the host provided it, then the function will return <code class="docutils literal notranslate"><span class="pre">PMIX_SUCCESS</span></code> and an array of the process IDs will be returned to the caller. Note that the host may have indicated that the node has been assigned to the namespace, but no processes are currently mapped to it. In this case, the <code class="docutils literal notranslate"><span class="pre">PMIX_LOCAL_PEERS</span></code> attribute will have a <code class="docutils literal notranslate"><span class="pre">NULL</span></code> value, and so the process ID array will be <code class="docutils literal notranslate"><span class="pre">NULL</span></code>.</p>
+<p>If the host failed to provide the <code class="docutils literal notranslate"><span class="pre">PMIX_LOCAL_PEERS</span></code> attribute, then the function will return <code class="docutils literal notranslate"><span class="pre">PMIX_ERR_DATA_VALUE_NOT_FOUND</span></code> to indicate that the local peer information was not provided. It is possible that the PMIx library could reconstruct the local peers from other provided data. For example, the host may have provided a map of the individual process locations and not bothered with the specific <code class="docutils literal notranslate"><span class="pre">PMIX_LOCAL_PEERS</span></code> attribute for each node. While this might be an interesting extension to the current support, it is not presently available.</p>
+</li>
+</ul>
+<p>If the host is generating the response, it is solely responsible for determining the status code it will return. We strongly suggest that hosts follow the above logic to avoid confusion. The only requirement, however, is that the API return <code class="docutils literal notranslate"><span class="pre">PMIX_SUCCESS</span></code> if the API was successfully executed, even if no processes or no nodes were found.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="session_dirs.html" class="btn btn-neutral float-left" title="6.1. Session Directories" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../release-notes.html" class="btn btn-neutral float-right" title="7. Release Notes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-06-23 17:11:23 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

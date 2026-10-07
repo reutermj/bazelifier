@@ -1,0 +1,321 @@
+{
+  "config_headers": 4,
+  "escalations": [
+    {
+      "digest": "be10b7264966744f",
+      "kind": "generated_headers",
+      "subject": "src/mca/errmgr/base/static-components.h, src/mca/ess/base/static-components.h, src/mca/filem/base/static-components.h, src/mca/grpcomm/base/static-components.h, src/mca/iof/base/static-components.h, src/mca/odls/base/static-components.h, src/mca/oob/base/static-components.h, src/mca/plm/base/static-components.h, src/mca/prtebacktrace/base/static-components.h, src/mca/prtedl/base/static-components.h, src/mca/prteinstalldirs/base/static-components.h, src/mca/prtereachable/base/static-components.h, src/mca/ras/base/static-components.h, src/mca/rmaps/base/static-components.h, src/mca/rtc/base/static-components.h, src/mca/schizo/base/static-components.h, src/mca/state/base/static-components.h"
+    },
+    {
+      "digest": "db702bf2a98eae9d",
+      "kind": "shared_library_absorbs_static",
+      "subject": "libprrte.la"
+    },
+    {
+      "digest": "22ee7fa0e2560f73",
+      "kind": "shell_expanded_defines",
+      "subject": "PRTE_BUILD_DATE, PRTE_BUILD_HOST, PRTE_BUILD_USER, PRTE_BUILD_DATE, PRTE_BUILD_HOST, PRTE_BUILD_USER, PRTE_BUILD_DATE, PRTE_BUILD_HOST, PRTE_BUILD_USER, PRTE_BUILD_DATE, PRTE_BUILD_HOST, PRTE_BUILD_USER"
+    },
+    {
+      "digest": "2fbca04ce805a8d4",
+      "kind": "unmapped_config_macros",
+      "subject": "src/include/prte_config.h"
+    },
+    {
+      "digest": "894b6eb192d49d90",
+      "kind": "unmapped_config_macros",
+      "subject": "src/include/version.h"
+    }
+  ],
+  "escalations_by_kind": {
+    "generated_headers": 1,
+    "shared_library_absorbs_static": 1,
+    "shell_expanded_defines": 1,
+    "unmapped_config_macros": 2
+  },
+  "module": "prrte",
+  "targets": [
+    {
+      "kind": "shared_library",
+      "name": "libprrte.la",
+      "sources": 189
+    },
+    {
+      "kind": "static_library",
+      "name": "libprrteutil.la",
+      "sources": 166
+    },
+    {
+      "kind": "static_library",
+      "name": "libprrteutilhostfile.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_errmgr.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_errmgr_dvm.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_errmgr_prted.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ess.la",
+      "sources": 154
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ess_env.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ess_hnp.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ess_slurm.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_filem.la",
+      "sources": 153
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_filem_raw.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_grpcomm.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_grpcomm_direct.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_iof.la",
+      "sources": 153
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_iof_hnp.la",
+      "sources": 154
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_iof_prted.la",
+      "sources": 153
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_odls.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_odls_default.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_oob.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_oob_tcp.la",
+      "sources": 155
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_plm.la",
+      "sources": 155
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_plm_slurm.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_plm_ssh.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prtebacktrace.la",
+      "sources": 150
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prtebacktrace_execinfo.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prtedl.la",
+      "sources": 153
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prtedl_dlopen.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prteinstalldirs.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prteinstalldirs_config.la",
+      "sources": 150
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prteinstalldirs_env.la",
+      "sources": 150
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prtereachable.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_prtereachable_weighted.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ras.la",
+      "sources": 153
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ras_pbs.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ras_simulator.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ras_slurm.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_ras_testrm.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_rmaps.la",
+      "sources": 156
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_rmaps_ppr.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_rmaps_rank_file.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_rmaps_round_robin.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_rmaps_seq.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_rtc.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_rtc_hwloc.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_schizo.la",
+      "sources": 152
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_schizo_ompi.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_schizo_prte.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_state.la",
+      "sources": 153
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_state_dvm.la",
+      "sources": 151
+    },
+    {
+      "kind": "static_library",
+      "name": "libprtemca_state_prted.la",
+      "sources": 151
+    },
+    {
+      "kind": "executable",
+      "name": "prte",
+      "sources": 151
+    },
+    {
+      "kind": "executable",
+      "name": "prte_info",
+      "sources": 155
+    },
+    {
+      "kind": "executable",
+      "name": "prted",
+      "sources": 151
+    },
+    {
+      "kind": "executable",
+      "name": "prun",
+      "sources": 152
+    },
+    {
+      "kind": "executable",
+      "name": "pterm",
+      "sources": 151
+    }
+  ],
+  "tests": 0,
+  "version": "3.0.14"
+}

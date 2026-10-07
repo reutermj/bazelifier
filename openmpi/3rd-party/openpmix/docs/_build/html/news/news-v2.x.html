@@ -1,0 +1,447 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>16.4. PMIx v2.x series &mdash; OpenPMIx 5.0.11rc1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=786a2b67"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="16.5. PMIx v1.x series" href="news-v1.x.html" />
+    <link rel="prev" title="16.3. PMIx v3.x series" href="news-v3.x.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            OpenPMIx
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes/index.html">3. Release notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../exceptions.html">4. Exceptions to the PMIx Standard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installing-pmix/index.html">5. Building and installing PMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">7. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../history.html">8. History</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">9. Version Numbers and Binary Compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../mca.html">10. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../building-apps/index.html">11. Building PMIx applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to OpenPMIx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../security.html">15. OpenPMIx Security Policy</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">16. News</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="news-v5.x.html">16.1. PMIx v5.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v4.x.html">16.2. PMIx v4.x series</a></li>
+<li class="toctree-l2"><a class="reference internal" href="news-v3.x.html">16.3. PMIx v3.x series</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">16.4. PMIx v2.x series</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#jun-2020">16.4.1. 2.2.4 – 07 Jun 2020</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aug-2019">16.4.2. 2.2.3 – 15 Aug 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jan-2019">16.4.3. 2.2.2 – 24 Jan 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">16.4.4. 2.2.1 – 18 Jan 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">16.4.5. 2.2.0 – 17 Jan 2019</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sep-2018">16.4.6. 2.1.4 – 18 Sep 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aug-2018">16.4.7. 2.1.3 – 23 Aug 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#july-2018">16.4.8. 2.1.2 – 6 July 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#feb-2018">16.4.9. 2.1.1 – 23 Feb 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">16.4.10. 2.1.0 – 1 Feb 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">16.4.11. 2.0.3 – 1 Feb 2018</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#oct-2017">16.4.12. 2.0.2 – 19 Oct 2017</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#aug-2017">16.4.13. 2.0.1 – 24 Aug. 2017</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#jun-2017">16.4.14. 2.0.0 – 22 Jun 2017</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="news-v1.x.html">16.5. PMIx v1.x series</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">17. OpenPMIx manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">OpenPMIx</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">16. </span>News</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">16.4. </span>PMIx v2.x series</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/news/news-v2.x.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="pmix-v2-x-series">
+<h1><span class="section-number">16.4. </span>PMIx v2.x series<a class="headerlink" href="#pmix-v2-x-series" title="Link to this heading"></a></h1>
+<p>This file contains all the NEWS updates for all the PMIx v2.x
+series, in reverse chronological order.</p>
+<section id="jun-2020">
+<h2><span class="section-number">16.4.1. </span>2.2.4 – 07 Jun 2020<a class="headerlink" href="#jun-2020" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #1466: Silence spurious error log</p></li>
+<li><p>PR #1489: Allow specification of hostname to use by client</p></li>
+<li><p>PR #1499/#1512/#1518/#1525/#1528/#1533/#1553: Fix internal tests</p></li>
+<li><p>PR #1678: Update “check_vendor” for PGI problem</p></li>
+<li><p>PR #1734: Fix resource leaks in ptl/usock component</p></li>
+<li><p>PR #1777: Fix crash of dstor locks destructor in ds12</p></li>
+<li><p>PR #1788: Remove unnecessary error logs</p></li>
+</ul>
+</section>
+<section id="aug-2019">
+<h2><span class="section-number">16.4.2. </span>2.2.3 – 15 Aug 2019<a class="headerlink" href="#aug-2019" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PR #1162: Fix race condition when clients fail while in a PMIx
+collective operation</p></li>
+<li><p>PR #1163: Fix a compiler warning in atomics on POWER arch</p></li>
+<li><p>PR #1165: Add BuildRequires: libevent-devel to spec file</p></li>
+<li><p>PR #1180: Remove dependency on C++ compiler for thread detection</p></li>
+<li><p>PR #1180: Add detection for Flex when building in non-tarball situations</p></li>
+<li><p>PR #1182: configury: use PMIX_ENABLE_DLOPEN_SUPPORT instead of enable_dlopen</p></li>
+<li><p>PR #1188: Link libpmix.so to MCA component libraries</p></li>
+<li><p>PR #1190: Ensure any cached notifications arrive after reg completes</p></li>
+<li><p>PR #1194: Ensure any cached notifications arrive after registration completes</p></li>
+<li><p>PR #1209: Update configure logic for clock_gettime</p></li>
+<li><p>PR #1213/#1217/#1221: Add configure option “–enable-nonglobal-dlopen”
+If the MCA component libraries should link back to libpmix.so</p></li>
+<li><p>PR #1231: SPEC: Allow splitting PMIx in pmix and pmix-libpmi packages</p></li>
+<li><p>PR #1253: Preserve user-provided CFLAGS to protect autotools</p></li>
+<li><p>PR #1267: Correct dmodex example</p></li>
+<li><p>PR #1275: IPv6 IF Read: Buffer Overflow</p></li>
+<li><p>PR #1295: Fix comment: IPv6 IF_NAMESIZE</p></li>
+<li><p>PR #1296: Allow setup_fork to proceed even if gdds and pnet don’t contribute</p></li>
+<li><p>PR #1296: Allow servers to pass NULL module</p></li>
+<li><p>PR #1297: Provide internal blocking ability to the register/deregister fns</p></li>
+<li><p>PR #1298: Add dummy handshake component to psec framework for testing</p></li>
+<li><p>PR #1303: Allow jobs to not specify proc-level info</p></li>
+<li><p>PR #1304: Provide proc data in cases where host does not</p></li>
+<li><p>PR #1305: Add some more values that can be computed</p></li>
+<li><p>PR #1308: Add missing tool rendezvous file</p></li>
+<li><p>PR #1309: Fix potential integer overflow in regex</p></li>
+<li><p>PR #1311: Work around memory bug in older gcc compilers</p></li>
+<li><p>PR #1329: Add -fPIC to static builds</p></li>
+<li><p>PR #1334: Cache only -W CFLAG entries to fix 32-bit builds</p></li>
+<li><p>PR #1341: Do not use ‘==’ in m4 test statements</p></li>
+<li><p>PR #1342: Fix if_linux_ipv6_open interface filter</p></li>
+<li><p>PR #1344: Remove unnecessary libtool init for c++</p></li>
+<li><p>PR #1346: Fix incorrect pointer casts/deref</p></li>
+<li><p>PR #1347/#1348: Fix use of gethostname</p></li>
+<li><p>PR #1353/#1357: util/environ: use setenv() if available</p></li>
+<li><p>PR #1354: Plug a misc memory leak in the pmix_query_caddy_t destructor</p></li>
+<li><p>PR #1356: Fix another pointer cast/deref in test suite</p></li>
+<li><p>PR #1358: Implement support for class-based info arrays</p></li>
+<li><p>PR #1359: Plug misc minor memory leaks</p></li>
+<li><p>PR #1369: Fix legacy support for PMI-1</p></li>
+<li><p>PR #1370: Cleanup handling of data requests for different nspaces</p></li>
+<li><p>PR #1193: Resolve get of proc-specific job-level info from another nspace</p></li>
+<li><p>PR #1377: Skip fastpath/dstore for NULL keys</p></li>
+<li><p>PR #1379: Change IF_NAMESIZE to PMIX_IF_NAMESIZE and set to safe size</p></li>
+<li><p>PR #1385: Check for EINVAL return from posix_fallocate</p></li>
+<li><p>PR #1389: Plug misc memory leaks in configure</p></li>
+</ul>
+</section>
+<section id="jan-2019">
+<h2><span class="section-number">16.4.3. </span>2.2.2 – 24 Jan 2019<a class="headerlink" href="#jan-2019" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Fix a bug in macro identifying system events</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="id1">
+<h2><span class="section-number">16.4.4. </span>2.2.1 – 18 Jan 2019<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<blockquote>
+<div><ul class="simple">
+<li><p>Fix a bug in registration of default event handlers
+that somehow slipped thru testing</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="id2">
+<h2><span class="section-number">16.4.5. </span>2.2.0 – 17 Jan 2019<a class="headerlink" href="#id2" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>THIS RELEASE MARKS THE STARTING POINT FOR FULL COMPLIANCE
+WITH THE PMIX v2.2 STANDARD. ALL API BEHAVIORS AND ATTRIBUTE
+DEFINITIONS MEET THE v2.2 STANDARD SPECIFICATIONS.</p>
+</div>
+<ul class="simple">
+<li><p>Add a new, faster dstore GDS component ‘ds21’</p></li>
+<li><p>Performance optimizations for the dstore GDS components.</p></li>
+<li><p>Plug miscellaneous memory leaks</p></li>
+<li><p>Silence an unnecessary warning message when checking connection
+to a non-supporting server</p></li>
+<li><p>Ensure lost-connection events get delivered to default event
+handlers</p></li>
+<li><p>Correctly handle cache refresh for queries</p></li>
+<li><p>Protect against race conditions between host and internal library
+when dealing with async requests</p></li>
+<li><p>Cleanup tool operations and add support for connections to
+remote servers.</p></li>
+<li><p>Automatically store the server URI for easy access by client</p></li>
+<li><p>Provide MCA parameter to control TCP connect retry/timeout</p></li>
+<li><p>Update event notification system to properly evict oldest events
+when more space is needed</p></li>
+<li><p>Fix a number of error paths</p></li>
+<li><p>Handle setsockopt(SO_RCVTIMEO) not being supported</p></li>
+<li><p>Pass the tool’s command line to the server so it can be returned
+in queries</p></li>
+<li><p>Add support for C11 atomics</p></li>
+<li><p>Fix a bug when registering default event handlers</p></li>
+</ul>
+</section>
+<section id="sep-2018">
+<h2><span class="section-number">16.4.6. </span>2.1.4 – 18 Sep 2018<a class="headerlink" href="#sep-2018" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Updated configury to silence warnings on older compilers</p></li>
+<li><p>Implement job control and sensor APIs</p></li>
+<li><p>Update sensor support</p></li>
+<li><p>Fix a few bugs in the event notification system and provide some
+missing implementation (support for specifying target procs to
+receive the event).</p></li>
+<li><p>Add PMIX_PROC_TERMINATED constant</p></li>
+<li><p>Properly deal with EOPNOTSUPP from getsockopt() on ARM</p></li>
+</ul>
+</section>
+<section id="aug-2018">
+<h2><span class="section-number">16.4.7. </span>2.1.3 – 23 Aug 2018<a class="headerlink" href="#aug-2018" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Fixed memory corruption bug in event notification
+system due to uninitialized variable</p></li>
+<li><p>Add numeric version definition</p></li>
+<li><p>Transfer all cached data to client dstore upon first connect</p></li>
+</ul>
+</section>
+<section id="july-2018">
+<h2><span class="section-number">16.4.8. </span>2.1.2 – 6 July 2018<a class="headerlink" href="#july-2018" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Added PMIX_VERSION_RELEASE string to pmix_version.h</p></li>
+<li><p>Added PMIX_SPAWNED and PMIX_PARENT_ID keys to all procs
+started via PMIx_Spawn</p></li>
+<li><p>Fixed faulty compares in PMI/PMI2 tests</p></li>
+<li><p>Fixed bug in direct modex for data on remote node</p></li>
+<li><p>Correctly transfer all cached job info to the client’s
+shared memory region upon first connection</p></li>
+<li><p>Fix potential deadlock in PMIx_server_init in an error case</p></li>
+<li><p>Fix uninitialized variable</p></li>
+<li><p>Fix several memory and file descriptor leaks</p></li>
+</ul>
+</section>
+<section id="feb-2018">
+<h2><span class="section-number">16.4.9. </span>2.1.1 – 23 Feb 2018<a class="headerlink" href="#feb-2018" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Fix direct modex when receiving new nspace</p></li>
+<li><p>Resolve direct modex of job-level info</p></li>
+<li><p>Fix a bug in attribute configuration checks</p></li>
+<li><p>Fix a couple of bugs in unpacking of direct modex job-level data</p></li>
+<li><p>Correcly handle application setup data during “instant on” launch</p></li>
+<li><p>add a PMIX_BYTE_OBJECT_LOAD convenience macro</p></li>
+<li><p>Fix two early “free” bugs</p></li>
+<li><p>Add an example PMI-1 client program</p></li>
+</ul>
+</section>
+<section id="id3">
+<h2><span class="section-number">16.4.10. </span>2.1.0 – 1 Feb 2018<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release contains the first implementation of cross-version
+support. Servers using v2.1.0 are capable of supporting clients using
+PMIx versions v1.2 and above. Clients using v2.1.0 are able to interact
+with servers based on v1.2 and above.</p>
+</div>
+<ul class="simple">
+<li><p>Added cross-version communication support</p></li>
+<li><p>Enable reporting of contact URI to stdout, stderr, or file (PR #538)</p></li>
+<li><p>Enable support for remote tool connections (PR #540, #542)</p></li>
+<li><p>Cleanup libevent configure logi to support default install paths (PR #541)</p></li>
+<li><p>Debounce “unreachable” notifications for tools when they disconnect (PR #544)</p></li>
+<li><p>Enable the regex generator to support node names that include multiple
+sets of numbers</p></li>
+</ul>
+</section>
+<section id="id4">
+<h2><span class="section-number">16.4.11. </span>2.0.3 – 1 Feb 2018<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Fix event notification so all sides of multi-library get notified
+of other library’s existence</p></li>
+<li><p>Update syslog protection to support Mac High Sierra OS</p></li>
+<li><p>Remove usock component - unable to support v1.x clients due
+to datatype differences</p></li>
+<li><p>Cleanup security handshake</p></li>
+<li><p>Cleanup separation of PMI-1/2 libraries and PMIx symbols</p></li>
+<li><p>Protect against overly-large messages</p></li>
+<li><p>Update data buffer APIs to support cross-version operations</p></li>
+<li><p>Protect receive callbacks from NULL and/or empty buffers as this
+can occur when the peer on a connection disappears.</p></li>
+<li><p>Fix tool connection search so it properly descends into the directory
+tree while searching for the server’s contact file.</p></li>
+<li><p>Fix store_local so it doesn’t reject a new nspace as that can happen
+when working with tools</p></li>
+<li><p>Ensure we always complete PMIx_Finalize - don’t return if something
+goes wrong in the middle of the procedure</p></li>
+<li><p>Fix several tool connection issues</p></li>
+</ul>
+</section>
+<section id="oct-2017">
+<h2><span class="section-number">16.4.12. </span>2.0.2 – 19 Oct 2017<a class="headerlink" href="#oct-2017" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Update RPM spec file (rpmbuild -ta, and –rebuild fixes) (PR #523)</p></li>
+<li><p>Support singletons in PMI-1/PMI-2 (PR #537)</p></li>
+<li><p>Provide missing implementation support for arrays of pmix_value_t’s (PR #531)</p></li>
+<li><p>Remove unsupported assembly code for MIPS and ARM processors
+prior to v6 (PR #547)</p></li>
+<li><p>Fix path separator for PMIx configuration files (PR #547)</p></li>
+<li><p>Add configure option to enable/disable the default value for the
+show-load-errors MCA param (PR #547)</p></li>
+</ul>
+</section>
+<section id="aug-2017">
+<h2><span class="section-number">16.4.13. </span>2.0.1 – 24 Aug. 2017<a class="headerlink" href="#aug-2017" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Protect PMIX_INFO_FREE macro from NULL data arrays</p></li>
+<li><p>Added attributes to support HWLOC shared memory regions</p></li>
+<li><p>Fixed several syntax errors in configure code</p></li>
+<li><p>Fixed several visibility errors</p></li>
+<li><p>Correctly return status from PMIx_Fence operation</p></li>
+<li><p>Restore tool connection support and implement search
+operations to discover rendezvous files</p></li>
+</ul>
+</section>
+<section id="jun-2017">
+<h2><span class="section-number">16.4.14. </span>2.0.0 – 22 Jun 2017<a class="headerlink" href="#jun-2017" title="Link to this heading"></a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>This release implements the complete PMIX v2.0 Standard
+and therefore includes a number of new APIs and features. These
+can be tracked by their RFC’s in the RFC repository at:
+<a class="reference external" href="https://github.com/pmix/RFCs">https://github.com/pmix/RFCs</a>. A formal standards document will
+be included in a later v2.x release. Some of the changes are
+identified below.</p>
+</div>
+<ul class="simple">
+<li><p>Added the Modular Component Architecture (MCA) plugin manager and
+converted a number of operations to plugins, thereby allowing easy
+customization and extension (including proprietary offerings)</p></li>
+<li><p>Added support for TCP sockets instead of Unix domain sockets for
+client-server communications</p></li>
+<li><p>Added support for on-the-fly Allocation requests, including requests
+for additional resources, extension of time for currently allocated
+resources, and return of identified allocated resources to the scheduler
+(RFC 0005 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0005.md">https://github.com/pmix/RFCs/blob/master/RFC0005.md</a>)</p></li>
+<li><p>Tightened rules on the processing of PMIx_Get requests, including
+reservation of the “pmix” prefix for attribute keys and specifying
+behaviors associated with the PMIX_RANK_WILDCARD value
+(RFC 0009 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0009.md">https://github.com/pmix/RFCs/blob/master/RFC0009.md</a>)</p></li>
+<li><p>Extended support for tool interactions with a PMIx server aimed at
+meeting the needs of debuggers and other tools. Includes support
+for rendezvousing with a system-level PMIx server for interacting
+with the system management stack (SMS) outside of an allocated
+session, and adds two new APIs:</p></li>
+<li><p>PMIx_Query: request general information such as the process
+table for a specified job, and available SMS capabilities</p></li>
+<li><p>PMIx_Log: log messages (e.g., application progress) to a
+system-hosted persistent store
+(RFC 0010 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0010.md">https://github.com/pmix/RFCs/blob/master/RFC0010.md</a>)</p></li>
+<li><p>Added support for fabric/network interactions associated with
+“instant on” application startup
+(RFC 0012 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0012.md">https://github.com/pmix/RFCs/blob/master/RFC0012.md</a>)</p></li>
+<li><p>Added an attribute to support getting the time remaining in an
+allocation via the PMIx_Query interface
+(RFC 0013 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0013.md">https://github.com/pmix/RFCs/blob/master/RFC0013.md</a>)</p></li>
+<li><p>Added interfaces to support job control and monitoring requests,
+including heartbeat and file monitors to detect stalled applications.
+Job control interface supports standard signal-related operations
+(pause, kill, resume, etc.) as well as checkpoint/restart requests.
+The interface can also be used by an application to indicate it is
+willing to be pre-empted, with the host RM providing an event
+notification when the preemption is desired.
+(RFC 0015 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0015.md">https://github.com/pmix/RFCs/blob/master/RFC0015.md</a>)</p></li>
+<li><p>Extended the event notification system to support notifications
+across threads in the same process, and the ability to direct
+ordering of notifications when registering event handlers.
+(RFC 0018 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0018.md">https://github.com/pmix/RFCs/blob/master/RFC0018.md</a>)</p></li>
+<li><p>Expose the buffer manipulation functions via a new set of APIs
+to support heterogeneous data transfers within the host RM
+environment
+(RFC 0020 - <a class="reference external" href="https://github.com/pmix/RFCs/blob/master/RFC0020.md">https://github.com/pmix/RFCs/blob/master/RFC0020.md</a>)</p></li>
+<li><p>Fix a number of race condition issues that arose at scale</p></li>
+<li><p>Enable PMIx servers to generate notifications to the host RM
+and to themselves</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="news-v3.x.html" class="btn btn-neutral float-left" title="16.3. PMIx v3.x series" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="news-v1.x.html" class="btn btn-neutral float-right" title="16.5. PMIx v1.x series" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2014-2026, OpenPMIx Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:31 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

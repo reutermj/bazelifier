@@ -1,0 +1,202 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>8.7. Diagnostics &mdash; PMIx Reference Run Time Environment 3.0.14 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2efb4362"></script>
+      <script src="../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.8. Rankfiles" href="rankfiles.html" />
+    <link rel="prev" title="8.6. Overloading and Oversubscribing" href="limits.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            PMIx Reference Run Time Environment
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../release-notes.html">2. Release Notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-help.html">3. Getting help</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">4. Installing PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../configuration.html">5. PRRTE DVM Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../how-things-work/index.html">6. How Things Work</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hosts/index.html">7. Host specification</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Process placement</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-slot">8.2. Definition of ‘slot’</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#definition-of-processor-element">8.3. Definition of “processor element”</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html">8.4. Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fundamentals.html">8.5. Fundamentals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="limits.html">8.6. Overloading and Oversubscribing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.7. Diagnostics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rankfiles.html">8.8. Rankfiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deprecated.html">8.9. Deprecated options</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../launching-apps/index.html">9. Launching applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../notifications.html">10. Notifications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../session-directory.html">11. Session directory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../developers/index.html">12. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">13. Contributing to PRRTE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">14. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../man/index.html">15. PRRTE manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../versions.html">16. Software Version Numbers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../news/index.html">17. News</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">PMIx Reference Run Time Environment</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">8. </span>Process placement</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">8.7. </span>Diagnostics</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/placement/diagnostics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="diagnostics">
+<h1><span class="section-number">8.7. </span>Diagnostics<a class="headerlink" href="#diagnostics" title="Link to this heading"></a></h1>
+<p>PRRTE provides various diagnostic reports that aid the user in
+verifying and tuning the mapping/ranking/binding for a specific job.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">:REPORT</span></code> qualifier to the <code class="docutils literal notranslate"><span class="pre">--bind-to</span></code> command line option can
+be used to report process bindings.</p>
+<p>As an example, consider a node with:</p>
+<ul class="simple">
+<li><p>2 processor packages,</p></li>
+<li><p>4 cores per package, and</p></li>
+<li><p>8 hardware threads per core.</p></li>
+</ul>
+<p>In each of the examples below the binding is reported in a human readable
+format.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ prun --np 4 --map-by core --bind-to core:REPORT ./a.out
+[node01:103137] MCW rank 0 bound to package[0][core:0]
+[node01:103137] MCW rank 1 bound to package[0][core:1]
+[node01:103137] MCW rank 2 bound to package[0][core:2]
+[node01:103137] MCW rank 3 bound to package[0][core:3]
+</pre></div>
+</div>
+<p>In the example above, processes are bound to successive cores on the
+first package.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ prun --np 4 --map-by package --bind-to package:REPORT ./a.out
+[node01:103115] MCW rank 0 bound to package[0][core:0-9]
+[node01:103115] MCW rank 1 bound to package[1][core:10-19]
+[node01:103115] MCW rank 2 bound to package[0][core:0-9]
+[node01:103115] MCW rank 3 bound to package[1][core:10-19]
+</pre></div>
+</div>
+<p>In the example above, processes are bound to all cores on successive
+packages in a round-robin fashion.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ prun --np 4 --map-by package:PE=2 --bind-to core:REPORT ./a.out
+[node01:103328] MCW rank 0 bound to package[0][core:0-1]
+[node01:103328] MCW rank 1 bound to package[1][core:10-11]
+[node01:103328] MCW rank 2 bound to package[0][core:2-3]
+[node01:103328] MCW rank 3 bound to package[1][core:12-13]
+</pre></div>
+</div>
+<p>The example above shows us that 2 cores have been bound per process.
+The <code class="docutils literal notranslate"><span class="pre">:PE=2</span></code> qualifier states that 2 CPUs underneath the package
+(which would be cores in this case) are mapped to each process.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ prun --np 4 --map-by core:PE=2:HWTCPUS --bind-to :REPORT  hostname
+[node01:103506] MCW rank 0 bound to package[0][hwt:0-1]
+[node01:103506] MCW rank 1 bound to package[0][hwt:8-9]
+[node01:103506] MCW rank 2 bound to package[0][hwt:16-17]
+[node01:103506] MCW rank 3 bound to package[0][hwt:24-25]
+</pre></div>
+</div>
+<p>The example above shows us that 2 hardware threads have been bound per
+process.  In this case <code class="docutils literal notranslate"><span class="pre">prun</span></code> is directing the DVM to map by
+hardware threads since we used the <code class="docutils literal notranslate"><span class="pre">:HWTCPUS</span></code> qualifier. Without
+that qualifier this command would return an error since by default the
+DVM will not map to resources smaller than a core.  The <code class="docutils literal notranslate"><span class="pre">:PE=2</span></code>
+qualifier states that 2 processing elements underneath the core (which
+would be hardware threads in this case) are mapped to each process.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ prun --np 4 --bind-to none:REPORT  hostname
+[node01:107126] MCW rank 0 is not bound (or bound to all available processors)
+[node01:107126] MCW rank 1 is not bound (or bound to all available processors)
+[node01:107126] MCW rank 2 is not bound (or bound to all available processors)
+[node01:107126] MCW rank 3 is not bound (or bound to all available processors)
+</pre></div>
+</div>
+<p>Binding is turned off in the above example, as reported.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="limits.html" class="btn btn-neutral float-left" title="8.6. Overloading and Oversubscribing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="rankfiles.html" class="btn btn-neutral float-right" title="8.8. Rankfiles" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The PRRTE Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:19:44 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

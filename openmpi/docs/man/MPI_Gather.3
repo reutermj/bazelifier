@@ -1,0 +1,364 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_GATHER" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fI\%MPI_Gather\fP, \fI\%MPI_Igather\fP, \fI\%MPI_Gather_init\fP \- Gathers values from a group
+of processes.
+.SH SYNOPSIS
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_Gather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+    void *recvbuf, int recvcount, MPI_Datatype recvtype, int root,
+    MPI_Comm comm)
+
+int MPI_Igather(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+    void *recvbuf, int recvcount, MPI_Datatype recvtype, int root,
+    MPI_Comm comm, MPI_Request *request)
+
+int MPI_Gather_init(const void *sendbuf, int sendcount, MPI_Datatype sendtype,
+    void *recvbuf, int recvcount, MPI_Datatype recvtype, int root,
+    MPI_Comm comm, MPI_Info info, MPI_Request *request)
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE MPI
+! or the older form: INCLUDE \(aqmpif.h\(aq
+
+MPI_GATHER(SENDBUF, SENDCOUNT, SENDTYPE, RECVBUF, RECVCOUNT,
+        RECVTYPE, ROOT, COMM, IERROR)
+    <type>  SENDBUF(*), RECVBUF(*)
+    INTEGER SENDCOUNT, SENDTYPE, RECVCOUNT, RECVTYPE, ROOT
+    INTEGER COMM, IERROR
+
+MPI_IGATHER(SENDBUF, SENDCOUNT, SENDTYPE, RECVBUF, RECVCOUNT,
+        RECVTYPE, ROOT, COMM, REQUEST, IERROR)
+    <type>  SENDBUF(*), RECVBUF(*)
+    INTEGER SENDCOUNT, SENDTYPE, RECVCOUNT, RECVTYPE, ROOT
+    INTEGER COMM, REQUEST, IERROR
+
+MPI_GATHER_INIT(SENDBUF, SENDCOUNT, SENDTYPE, RECVBUF, RECVCOUNT,
+        RECVTYPE, ROOT, COMM, INFO, REQUEST, IERROR)
+    <type>  SENDBUF(*), RECVBUF(*)
+    INTEGER SENDCOUNT, SENDTYPE, RECVCOUNT, RECVTYPE, ROOT
+    INTEGER COMM, INFO, REQUEST, IERROR
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran 2008 Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE mpi_f08
+
+MPI_Gather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
+        root, comm, ierror)
+    TYPE(*), DIMENSION(..), INTENT(IN) :: sendbuf
+    TYPE(*), DIMENSION(..) :: recvbuf
+    INTEGER, INTENT(IN) :: sendcount, recvcount, root
+    TYPE(MPI_Datatype), INTENT(IN) :: sendtype, recvtype
+    TYPE(MPI_Comm), INTENT(IN) :: comm
+    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+
+MPI_Igather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
+        root, comm, request, ierror)
+    TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
+    TYPE(*), DIMENSION(..), ASYNCHRONOUS :: recvbuf
+    INTEGER, INTENT(IN) :: sendcount, recvcount, root
+    TYPE(MPI_Datatype), INTENT(IN) :: sendtype, recvtype
+    TYPE(MPI_Comm), INTENT(IN) :: comm
+    TYPE(MPI_Request), INTENT(OUT) :: request
+    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+
+MPI_Gather_init(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype,
+        root, comm, info, request, ierror)
+    TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: sendbuf
+    TYPE(*), DIMENSION(..), ASYNCHRONOUS :: recvbuf
+    INTEGER, INTENT(IN) :: sendcount, recvcount, root
+    TYPE(MPI_Datatype), INTENT(IN) :: sendtype, recvtype
+    TYPE(MPI_Comm), INTENT(IN) :: comm
+    TYPE(MPI_Info), INTENT(IN) :: info
+    TYPE(MPI_Request), INTENT(OUT) :: request
+    INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBsendbuf\fP : Starting address of send buffer (choice).
+.IP \(bu 2
+\fBsendcount\fP : Number of elements in send buffer (integer).
+.IP \(bu 2
+\fBsendtype\fP : Datatype of send buffer elements (handle).
+.IP \(bu 2
+\fBrecvcount\fP : Number of elements for any single receive (integer,
+significant only at root).
+.IP \(bu 2
+\fBrecvtype\fP : Datatype of recvbuffer elements (handle, significant only
+at root).
+.IP \(bu 2
+\fBroot\fP : Rank of receiving process (integer).
+.IP \(bu 2
+\fBcomm\fP : Communicator (handle).
+.IP \(bu 2
+\fBinfo\fP : Info (handle, persistent only).
+.UNINDENT
+.SH OUTPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+.INDENT 2.0
+.TP
+.B \fBrecvbuf\fP (Address of receive buffer (choice, significant only at)
+root).
+.UNINDENT
+.IP \(bu 2
+\fBrequest\fP : Request (handle, non\-blocking only).
+.IP \(bu 2
+\fBierror\fP : Fortran only: Error status (integer).
+.UNINDENT
+.SH DESCRIPTION
+.sp
+Each process (root process included) sends the contents of its send
+buffer to the root process. The root process receives the messages and
+stores them in rank order. The outcome is as if each of the n processes
+in the group (including the root process) had executed a call to
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+MPI_Send(sendbuf, sendcount, sendtype, root, ...)
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+and the root had executed n calls to
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+MPI_Recv(recfbuf + i * recvcount * extent(recvtype), recvcount,
+         recvtype, i, ...)
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+where extent(recvtype) is the type extent obtained from a call to
+\fI\%MPI_Type_extent\fP\&.
+.sp
+An alternative description is that the n messages sent by the processes
+in the group are concatenated in rank order, and the resulting message
+is received by the root as if by a call to
+\fBMPI_Recv(recvbuf, recvcount * n, recvtype, ... )\fP\&.
+.sp
+The receive buffer is ignored for all nonroot processes.
+.sp
+General, derived datatypes are allowed for both sendtype and recvtype.
+The type signature of sendcount, sendtype on process i must be equal to
+the type signature of recvcount, recvtype at the root. This implies that
+the amount of data sent must be equal to the amount of data received,
+pairwise between each process and the root. Distinct type maps between
+sender and receiver are still allowed.
+.sp
+All arguments to the function are significant on process root, while on
+other processes, only arguments sendbuf, sendcount, sendtype, root, comm
+are significant. The arguments root and comm must have identical values
+on all processes.
+.sp
+The specification of counts and types should not cause any location on
+the root to be written more than once. Such a call is erroneous. Note
+that the recvcount argument at the root indicates the number of items it
+receives from each process, not the total number of items it receives.
+.sp
+Example 1: Gather 100 ints from every process in group to root.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+MPI_Comm comm;
+int gsize, sendarray[100];
+int root, *rbuf;
+\&...
+
+MPI_Comm_size( comm, &gsize);
+rbuf = (int*)malloc(gsize* 100*sizeof(int));
+
+MPI_Gather( sendarray, 100, MPI_INT, rbuf, 100, MPI_INT, root, comm);
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Example 2: Previous example modified — only the root allocates memory
+for the receive buffer.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+MPI_Comm comm;
+int gsize, sendarray[100];
+int root, myrank, *rbuf;
+\&...
+
+MPI_Comm_rank( comm, myrank);
+if ( myrank == root) {
+  MPI_Comm_size( comm, &gsize);
+  rbuf = (int *)malloc(gsize * 100*sizeof(int));
+}
+MPI_Gather( sendarray, 100, MPI_INT, rbuf, 100, MPI_INT, root, comm);
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Example 3: Do the same as the previous example, but use a derived
+datatype. Note that the type cannot be the entire set of \fBgsize * 100\fP
+ints since type matching is defined pairwise between the root and each
+process in the gather.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+MPI_Comm comm;
+int gsize, sendarray[100];
+int root, *rbuf;
+MPI_Datatype rtype;
+\&...
+
+MPI_Comm_size( comm, &gsize);
+MPI_Type_contiguous( 100, MPI_INT, &rtype);
+MPI_Type_commit( &rtype );
+rbuf = (int*)malloc(gsize* 100*sizeof(int));
+MPI_Gather( sendarray, 100, MPI_INT, rbuf, 1, rtype, root, comm);
+.EE
+.UNINDENT
+.UNINDENT
+.SH USE OF IN-PLACE OPTION
+.sp
+When the communicator is an intracommunicator, you can perform a gather
+operation in\-place (the output buffer is used as the input buffer). Use
+the variable MPI_IN_PLACE as the value of the root process sendbuf. In
+this case, sendcount and sendtype are ignored, and the contribution of
+the root process to the gathered vector is assumed to already be in the
+correct place in the receive buffer. Note that MPI_IN_PLACE is a special
+kind of value; it has the same restrictions on its use as MPI_BOTTOM.
+Because the in\-place option converts the receive buffer into a
+send\-and\-receive buffer, a Fortran binding that includes INTENT must
+mark these as INOUT, not OUT.
+.SH WHEN COMMUNICATOR IS AN INTER-COMMUNICATOR
+.sp
+When the communicator is an inter\-communicator, the root process in the
+first group gathers data from all the processes in the second group. The
+first group defines the root process. That process uses MPI_ROOT as the
+value of its root argument. The remaining processes use \fBMPI_PROC_NULL\fP as
+the value of their root argument. All processes in the second group use
+the rank of that root process in the first group as the value of their
+root argument. The send buffer argument of the processes in the first
+group must be consistent with the receive buffer argument of the root
+process in the second group.
+.SH ERRORS
+.sp
+Almost all MPI routines return an error value; C routines as the return result
+of the function and Fortran routines in the last argument.
+.sp
+Before the error value is returned, the current MPI error handler associated
+with the communication object (e.g., communicator, window, file) is called.
+If no communication object is associated with the MPI call, then the call is
+considered attached to MPI_COMM_SELF and will call the associated MPI error
+handler. When MPI_COMM_SELF is not initialized (i.e., before
+\fI\%MPI_Init\fP/\fI\%MPI_Init_thread\fP, after \fI\%MPI_Finalize\fP, or when using the Sessions
+Model exclusively) the error raises the initial error handler. The initial
+error handler can be changed by calling \fI\%MPI_Comm_set_errhandler\fP on
+MPI_COMM_SELF when using the World model, or the mpi_initial_errhandler CLI
+argument to mpiexec or info key to \fI\%MPI_Comm_spawn\fP/\fI\%MPI_Comm_spawn_multiple\fP\&.
+If no other appropriate error handler has been set, then the MPI_ERRORS_RETURN
+error handler is called for MPI I/O functions and the MPI_ERRORS_ABORT error
+handler is called for all other MPI functions.
+.sp
+Open MPI includes three predefined error handlers that can be used:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_ERRORS_ARE_FATAL\fP
+Causes the program to abort all connected MPI processes.
+.IP \(bu 2
+\fBMPI_ERRORS_ABORT\fP
+An error handler that can be invoked on a communicator,
+window, file, or session. When called on a communicator, it
+acts as if \fI\%MPI_Abort\fP was called on that communicator. If
+called on a window or file, acts as if \fI\%MPI_Abort\fP was called
+on a communicator containing the group of processes in the
+corresponding window or file. If called on a session,
+aborts only the local process.
+.IP \(bu 2
+\fBMPI_ERRORS_RETURN\fP
+Returns an error code to the application.
+.UNINDENT
+.sp
+MPI applications can also implement their own error handlers by calling:
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Comm_create_errhandler\fP then \fI\%MPI_Comm_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_File_create_errhandler\fP then \fI\%MPI_File_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_Session_create_errhandler\fP then \fI\%MPI_Session_set_errhandler\fP or at \fI\%MPI_Session_init\fP
+.IP \(bu 2
+\fI\%MPI_Win_create_errhandler\fP then \fI\%MPI_Win_set_errhandler\fP
+.UNINDENT
+.sp
+Note that MPI does not guarantee that an MPI program can continue past
+an error.
+.sp
+See the \fI\%MPI man page\fP for a full list of \fI\%MPI error codes\fP\&.
+.sp
+See the Error Handling section of the MPI\-3.1 standard for
+more information.
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Gatherv\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

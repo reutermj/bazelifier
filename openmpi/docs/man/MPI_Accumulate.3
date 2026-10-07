@@ -1,0 +1,254 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "MPI_ACCUMULATE" "3" "Sep 16, 2026" "" "Open MPI"
+.sp
+\fI\%MPI_Accumulate\fP, \fI\%MPI_Raccumulate\fP \- Combines the contents of the
+origin buffer with that of a target buffer.
+.SH SYNTAX
+.SS C Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+#include <mpi.h>
+
+int MPI_Accumulate(const void *origin_addr, int origin_count,
+     MPI_Datatype origin_datatype, int target_rank,
+     MPI_Aint target_disp, int target_count,
+     MPI_Datatype target_datatype, MPI_Op op, MPI_Win win)
+
+int MPI_Raccumulate(const void *origin_addr, int origin_count,
+     MPI_Datatype origin_datatype, int target_rank,
+     MPI_Aint target_disp, int target_count,
+     MPI_Datatype target_datatype, MPI_Op op, MPI_Win win,
+     MPI_Request *request)
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE MPI
+! or the older form: INCLUDE \(aqmpif.h\(aq
+MPI_ACCUMULATE(ORIGIN_ADDR, ORIGIN_COUNT, ORIGIN_DATATYPE, TARGET_RANK,
+     TARGET_DISP, TARGET_COUNT, TARGET_DATATYPE, OP, WIN, IERROR)
+     <type> ORIGIN_ADDR(*)
+     INTEGER(KIND=MPI_ADDRESS_KIND) TARGET_DISP
+     INTEGER ORIGIN_COUNT, ORIGIN_DATATYPE, TARGET_RANK, TARGET_COUNT,
+     TARGET_DATATYPE, OP, WIN, IERROR
+
+MPI_RACCUMULATE(ORIGIN_ADDR, ORIGIN_COUNT, ORIGIN_DATATYPE, TARGET_RANK,
+     TARGET_DISP, TARGET_COUNT, TARGET_DATATYPE, OP, WIN, REQUEST, IERROR)
+     <type> ORIGIN_ADDR(*)
+     INTEGER(KIND=MPI_ADDRESS_KIND) TARGET_DISP
+     INTEGER ORIGIN_COUNT, ORIGIN_DATATYPE, TARGET_RANK, TARGET_COUNT,
+     TARGET_DATATYPE, OP, WIN, REQUEST, IERROR
+.EE
+.UNINDENT
+.UNINDENT
+.SS Fortran 2008 Syntax
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+USE mpi_f08
+MPI_Accumulate(origin_addr, origin_count, origin_datatype, target_rank,
+             target_disp, target_count, target_datatype, op, win, ierror)
+     TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
+     INTEGER, INTENT(IN) :: origin_count, target_rank, target_count
+     TYPE(MPI_Datatype), INTENT(IN) :: origin_datatype, target_datatype
+     INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: target_disp
+     TYPE(MPI_Op), INTENT(IN) :: op
+     TYPE(MPI_Win), INTENT(IN) :: win
+     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+
+MPI_Raccumulate(origin_addr, origin_count, origin_datatype, target_rank,
+     target_disp, target_count, target_datatype, op, win, request,
+             ierror)
+     TYPE(*), DIMENSION(..), INTENT(IN), ASYNCHRONOUS :: origin_addr
+     INTEGER, INTENT(IN) :: origin_count, target_rank, target_count
+     TYPE(MPI_Datatype), INTENT(IN) :: origin_datatype, target_datatype
+     INTEGER(KIND=MPI_ADDRESS_KIND), INTENT(IN) :: target_disp
+     TYPE(MPI_Op), INTENT(IN) :: op
+     TYPE(MPI_Win), INTENT(IN) :: win
+     TYPE(MPI_Request), INTENT(OUT) :: request
+     INTEGER, OPTIONAL, INTENT(OUT) :: ierror
+.EE
+.UNINDENT
+.UNINDENT
+.SH INPUT PARAMETERS
+.INDENT 0.0
+.IP \(bu 2
+\fBorigin_addr\fP: Initial address of buffer (choice).
+.IP \(bu 2
+\fBorigin_count\fP: Number of entries in buffer (nonnegative integer).
+.IP \(bu 2
+\fBorigin_datatype\fP: Data type of each buffer entry (handle).
+.IP \(bu 2
+\fBtarget_rank\fP: Rank of target (nonnegative integer).
+.IP \(bu 2
+\fBtarget_disp\fP: Displacement from start of window to beginning of target buffer (nonnegative integer).
+.IP \(bu 2
+\fBtarget_count\fP: Number of entries in target buffer (nonnegative integer).
+.IP \(bu 2
+\fBtarget_datatype\fP: Data type of each entry in target buffer (handle).
+.IP \(bu 2
+\fBop\fP: Reduce operation (handle).
+.IP \(bu 2
+\fBwin\fP: Window object (handle).
+.UNINDENT
+.SH OUTPUT PARAMETER
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_Raccumulate\fP:  RMA request
+.IP \(bu 2
+\fBierror\fP: Fortran only: Error status (integer).
+.UNINDENT
+.SH DESCRIPTION
+.sp
+\fI\%MPI_Accumulate\fP is a function used for one\-sided MPI communication
+that adds the contents of the origin buffer (as defined by
+\fIorigin_addr\fP, \fIorigin_count\fP, and \fIorigin_datatype\fP) to the buffer
+specified by the arguments \fItarget_count\fP and \fItarget_datatype\fP, at
+offset \fItarget_disp\fP, in the target window specified by \fItarget_rank\fP
+and \fIwin\fP, using the operation \fIop\fP\&. The target window can only be
+accessed by processes within the same node. This is similar to \fI\%MPI_Put\fP,
+except that data is combined into the target area instead of overwriting
+it.
+.sp
+Any of the predefined operations for \fI\%MPI_Reduce\fP can be used.
+User\-defined functions cannot be used. For example, if \fIop\fP is MPI_SUM,
+each element of the origin buffer is added to the corresponding element
+in the target, replacing the former value in the target.
+.sp
+Each datatype argument must be a predefined data type or a derived data
+type, where all basic components are of the same predefined data type.
+Both datatype arguments must be constructed from the same predefined
+data type. The operation \fIop\fP applies to elements of that predefined
+type. The \fItarget_datatype\fP argument must not specify overlapping
+entries, and the target buffer must fit in the target window.
+.sp
+A new predefined operation, MPI_REPLACE, is defined. It corresponds to
+the associative function f(a, b) =b; that is, the current value in the
+target memory is replaced by the value supplied by the origin.
+.sp
+\fI\%MPI_Raccumulate\fP is similar to \fI\%MPI_Accumulate\fP, except that it
+allocates a communication request object and associates it with the
+request handle (the argument \fIrequest\fP) that can be used to wait or test
+for completion. The completion of an \fI\%MPI_Raccumulate\fP operation
+indicates that the \fIorigin_addr\fP buffer is free to be updated. It does
+not indicate that the operation has completed at the target window.
+.SH NOTES
+.sp
+\fI\%MPI_Put\fP is a special case of \fI\%MPI_Accumulate\fP, with the operation
+MPI_REPLACE. Note, however, that \fI\%MPI_Put\fP and \fI\%MPI_Accumulate\fP have
+different constraints on concurrent updates.
+.sp
+It is the user’s responsibility to guarantee that, when using the
+accumulate functions, the target displacement argument is such that
+accesses to the window are properly aligned according to the data type
+arguments in the call to the \fI\%MPI_Accumulate\fP function.
+.SH ERRORS
+.sp
+Almost all MPI routines return an error value; C routines as the return result
+of the function and Fortran routines in the last argument.
+.sp
+Before the error value is returned, the current MPI error handler associated
+with the communication object (e.g., communicator, window, file) is called.
+If no communication object is associated with the MPI call, then the call is
+considered attached to MPI_COMM_SELF and will call the associated MPI error
+handler. When MPI_COMM_SELF is not initialized (i.e., before
+\fI\%MPI_Init\fP/\fI\%MPI_Init_thread\fP, after \fI\%MPI_Finalize\fP, or when using the Sessions
+Model exclusively) the error raises the initial error handler. The initial
+error handler can be changed by calling \fI\%MPI_Comm_set_errhandler\fP on
+MPI_COMM_SELF when using the World model, or the mpi_initial_errhandler CLI
+argument to mpiexec or info key to \fI\%MPI_Comm_spawn\fP/\fI\%MPI_Comm_spawn_multiple\fP\&.
+If no other appropriate error handler has been set, then the MPI_ERRORS_RETURN
+error handler is called for MPI I/O functions and the MPI_ERRORS_ABORT error
+handler is called for all other MPI functions.
+.sp
+Open MPI includes three predefined error handlers that can be used:
+.INDENT 0.0
+.IP \(bu 2
+\fBMPI_ERRORS_ARE_FATAL\fP
+Causes the program to abort all connected MPI processes.
+.IP \(bu 2
+\fBMPI_ERRORS_ABORT\fP
+An error handler that can be invoked on a communicator,
+window, file, or session. When called on a communicator, it
+acts as if \fI\%MPI_Abort\fP was called on that communicator. If
+called on a window or file, acts as if \fI\%MPI_Abort\fP was called
+on a communicator containing the group of processes in the
+corresponding window or file. If called on a session,
+aborts only the local process.
+.IP \(bu 2
+\fBMPI_ERRORS_RETURN\fP
+Returns an error code to the application.
+.UNINDENT
+.sp
+MPI applications can also implement their own error handlers by calling:
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Comm_create_errhandler\fP then \fI\%MPI_Comm_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_File_create_errhandler\fP then \fI\%MPI_File_set_errhandler\fP
+.IP \(bu 2
+\fI\%MPI_Session_create_errhandler\fP then \fI\%MPI_Session_set_errhandler\fP or at \fI\%MPI_Session_init\fP
+.IP \(bu 2
+\fI\%MPI_Win_create_errhandler\fP then \fI\%MPI_Win_set_errhandler\fP
+.UNINDENT
+.sp
+Note that MPI does not guarantee that an MPI program can continue past
+an error.
+.sp
+See the \fI\%MPI man page\fP for a full list of \fI\%MPI error codes\fP\&.
+.sp
+See the Error Handling section of the MPI\-3.1 standard for
+more information.
+.sp
+\fBSEE ALSO:\fP
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.IP \(bu 2
+\fI\%MPI_Put\fP
+.IP \(bu 2
+\fI\%MPI_Get_accumulate\fP
+.IP \(bu 2
+\fI\%MPI_Reduce\fP
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.SH COPYRIGHT
+2003-2026, The Open MPI Community
+.\" Generated by docutils manpage writer.
+.

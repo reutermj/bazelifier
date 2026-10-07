@@ -1,0 +1,449 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3.1.5. Open MPI v3.0.x series &mdash; Open MPI 5.0.11 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=839faa02"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="3.1.6. Open MPI v2.x series" href="v2.x.html" />
+    <link rel="prev" title="3.1.4. Open MPI v3.1.x series" href="v3.1.x.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Open MPI
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">1. Quick start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-help.html">2. Getting help</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">3. Release notes</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="index.html">3.1. Changelog</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="v5.0.x.html">3.1.1. Open MPI v5.0.x series</a></li>
+<li class="toctree-l3"><a class="reference internal" href="v4.1.x.html">3.1.2. Open MPI v4.1.x series</a></li>
+<li class="toctree-l3"><a class="reference internal" href="v4.0.x.html">3.1.3. Open MPI v4.0.x series</a></li>
+<li class="toctree-l3"><a class="reference internal" href="v3.1.x.html">3.1.4. Open MPI v3.1.x series</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">3.1.5. Open MPI v3.0.x series</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-version-3-0-6">3.1.5.1. Open MPI version 3.0.6</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-version-3-0-5">3.1.5.2. Open MPI version 3.0.5</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-version-3-0-4">3.1.5.3. Open MPI version 3.0.4</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-version-3-0-3">3.1.5.4. Open MPI version 3.0.3</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-version-3-0-2">3.1.5.5. Open MPI version 3.0.2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-version-3-0-1">3.1.5.6. Open MPI version 3.0.1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#open-mpi-version-3-0-0">3.1.5.7. Open MPI version 3.0.0</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="v2.x.html">3.1.6. Open MPI v2.x series</a></li>
+<li class="toctree-l3"><a class="reference internal" href="v1.x.html">3.1.7. Open MPI v1.x series</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../general.html">3.2. General notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../platform.html">3.3. Platform Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../compilers.html">3.4. Compiler Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../run-time.html">3.5. General Run-Time Support Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mpi.html">3.6. MPI Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../openshmem.html">3.7. OpenSHMEM Functionality and Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mpi-collectives.html">3.8. MPI Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../openshmem-collectives.html">3.9. OpenSHMEM Collectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../networks.html">3.10. Network Support</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../extensions.html">3.11. Open MPI Extensions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../installing-open-mpi/index.html">4. Building and installing Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features/index.html">5. Open MPI-specific features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../validate.html">6. Validating your installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../version-numbering.html">7. Version numbers and compatibility</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mca.html">8. The Modular Component Architecture (MCA)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../building-apps/index.html">9. Building MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../launching-apps/index.html">10. Launching MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tuning-apps/index.html">11. Run-time operation and tuning MPI applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../app-debug/index.html">12. Debugging Open MPI Parallel Applications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developers/index.html">13. Developer’s guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">14. Contributing to Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license/index.html">15. License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">16. History of Open MPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openmpi/index.html">17. Open MPI manual pages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../man-openshmem/index.html">18. OpenSHMEM manual pages</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Open MPI</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html"><span class="section-number">3. </span>Release notes</a></li>
+          <li class="breadcrumb-item"><a href="index.html"><span class="section-number">3.1. </span>Changelog</a></li>
+      <li class="breadcrumb-item active"><span class="section-number">3.1.5. </span>Open MPI v3.0.x series</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/release-notes/changelog/v3.0.x.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <style>
+.wy-table-responsive table td,.wy-table-responsive table th{white-space:normal}
+</style><section id="open-mpi-v3-0-x-series">
+<h1><span class="section-number">3.1.5. </span>Open MPI v3.0.x series<a class="headerlink" href="#open-mpi-v3-0-x-series" title="Link to this heading"></a></h1>
+<p>This file contains all the NEWS updates for the Open MPI v3.0.x
+series, in reverse chronological order.</p>
+<section id="open-mpi-version-3-0-6">
+<h2><span class="section-number">3.1.5.1. </span>Open MPI version 3.0.6<a class="headerlink" href="#open-mpi-version-3-0-6" title="Link to this heading"></a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">Date<span class="colon">:</span></dt>
+<dd class="field-odd"><p>March, 2020</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Fix one-sided shared memory window configuration bug.</p></li>
+<li><p>Fix support for PGI’18 compiler.</p></li>
+<li><p>Fix run-time linker issues with OMPIO on newer Linux distros.</p></li>
+<li><p>Allow the user to override modulefile_path in the Open MPI SRPM,
+even if <code class="docutils literal notranslate"><span class="pre">install_in_opt</span></code> is set to 1.</p></li>
+<li><p>Properly detect ConnectX-6 HCAs in the openib BTL.</p></li>
+<li><p>Fix segfault in the MTL/OFI initialization for large jobs.</p></li>
+<li><p>Fix various portals4 control flow bugs.</p></li>
+<li><p>Fix communications ordering for alltoall and Cartesian neighborhood
+collectives.</p></li>
+<li><p>Fix an infinite recursion crash in the memory patcher on systems
+with glibc v2.26 or later (e.g., Ubuntu 18.04) when using certain
+OS-bypass interconnects.</p></li>
+</ul>
+</section>
+<section id="open-mpi-version-3-0-5">
+<h2><span class="section-number">3.1.5.2. </span>Open MPI version 3.0.5<a class="headerlink" href="#open-mpi-version-3-0-5" title="Link to this heading"></a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">Date<span class="colon">:</span></dt>
+<dd class="field-odd"><p>November, 2019</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Fix OMPIO issue limiting file reads/writes to 2GB.  Thanks to
+Richard Warren for reporting the issue.</p></li>
+<li><p>At run time, automatically disable Linux cross-memory attach (CMA)
+for vader BTL (shared memory) copies when running in user namespaces
+(i.e., containers).  Many thanks to Adrian Reber for raising the
+issue and providing the fix.</p></li>
+<li><p>Sending very large MPI messages using the ofi MTL will fail with
+some of the underlying Libfabric transports (e.g., PSM2 with
+messages &gt;=4GB, verbs with messages &gt;=2GB).  Prior version of Open
+MPI failed silently; this version of Open MPI invokes the
+appropriate MPI error handler upon failure.  See
+<a class="reference external" href="https://github.com/open-mpi/ompi/issues/7058">https://github.com/open-mpi/ompi/issues/7058</a> for more details.
+Thanks to Emmanuel Thomé for raising the issue.</p></li>
+<li><p>Fix case where 0-extent datatypes might be eliminated during
+optimization.  Thanks to Github user &#64;tjahns for raising the issue.</p></li>
+<li><p>Ensure that the MPIR_Breakpoint symbol is not optimized out on
+problematic platforms.</p></li>
+<li><p>Fix OMPIO offset calculations with <code class="docutils literal notranslate"><span class="pre">SEEK_END</span></code> and <code class="docutils literal notranslate"><span class="pre">SEEK_CUR</span></code> in
+<code class="docutils literal notranslate"><span class="pre">MPI_FILE_GET_POSITION</span></code>.  Thanks to Wei-keng Liao for raising the
+issue.</p></li>
+<li><p>Fix corner case for datatype extent computations.  Thanks to David
+Dickenson for raising the issue.</p></li>
+<li><p>Fix MPI buffered sends with the “cm” PML.</p></li>
+<li><p>Update to PMIx v2.2.3.</p></li>
+<li><p>Fix ssh-based tree-based spawning at scale.  Many thanks to Github
+user &#64;zrss for the report and diagnosis.</p></li>
+<li><p>Fix the Open MPI RPM spec file to not abort when grep fails.  Thanks
+to Daniel Letai for bringing this to our attention.</p></li>
+<li><p>Handle new SLURM CLI options (SLURM 19 deprecated some options that
+Open MPI was using).  Thanks to Jordan Hayes for the report and the
+initial fix.</p></li>
+<li><p>OMPI: fix division by zero with an empty file view.</p></li>
+<li><p>Also handle <code class="docutils literal notranslate"><span class="pre">shmat()</span></code>/<code class="docutils literal notranslate"><span class="pre">shmdt()</span></code> memory patching with OS-bypass networks.</p></li>
+<li><p>Add support for unwinding info to all files that are present in the
+stack starting from <code class="docutils literal notranslate"><span class="pre">MPI_Init</span></code>, which is helpful with parallel
+debuggers.  Thanks to James Clark for the report and initial fix.</p></li>
+<li><p>Fixed inadvertent use of bitwise operators in the MPI C++ bindings
+header files.  Thanks to Bert Wesarg for the report and the fix.</p></li>
+<li><p>Added configure option <code class="docutils literal notranslate"><span class="pre">--disable-wrappers-runpath</span></code> (alongside the
+already-existing <code class="docutils literal notranslate"><span class="pre">--disable-wrappers-rpath</span></code> option) to prevent Open
+MPI’s configure script from automatically adding runpath CLI options
+to the wrapper compilers.</p></li>
+</ul>
+</section>
+<section id="open-mpi-version-3-0-4">
+<h2><span class="section-number">3.1.5.3. </span>Open MPI version 3.0.4<a class="headerlink" href="#open-mpi-version-3-0-4" title="Link to this heading"></a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">Date<span class="colon">:</span></dt>
+<dd class="field-odd"><p>April, 2019</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Fix compile error when configured with <code class="docutils literal notranslate"><span class="pre">--enable-mpi-java</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--with-devel-headers</span></code>.  Thanks to &#64;g-raffy for reporting the issue.</p></li>
+<li><p>Fix possible floating point rounding and division issues in OMPIO
+which led to crashes and/or data corruption with very large data.
+Thanks to Axel Huebl and René Widera for identifying the issue,
+supplying and testing the fix (** also appeared: v3.0.4).</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">static_cast&lt;&gt;</span></code> in <code class="docutils literal notranslate"><span class="pre">mpi.h</span></code> where appropriate.  Thanks to &#64;shadow-fx
+for identifying the issue.</p></li>
+<li><p>Fix datatype issue with RMA accumulate.  Thanks to Jeff Hammond for
+raising the issue.</p></li>
+<li><p>Fix RMA accumulate of non-predefined datatypes with predefined
+operators.  Thanks to Jeff Hammond for raising the issue.</p></li>
+<li><p>Fix race condition when closing open file descriptors when launching
+MPI processes.  Thanks to Jason Williams for identifying the issue and
+supplying the fix.</p></li>
+<li><p>Fix Valgrind warnings for some <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_*</span></code> functions.  Thanks
+to Risto Toijala for identifying the issue and supplying the fix.</p></li>
+<li><p>Fix <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_CREATE_F90_{REAL,COMPLEX}</span></code> for r=38 and r=308.</p></li>
+<li><p>Fix assembly issues with old versions of gcc (&lt;6.0.0) that affected
+the stability of shared memory communications (e.g., with the vader
+BTL).</p></li>
+<li><p>Fix the OFI MTL handling of <code class="docutils literal notranslate"><span class="pre">MPI_ANY_SOURCE</span></code>.</p></li>
+<li><p>Fix noisy errors in the openib BTL with regards to
+<code class="docutils literal notranslate"><span class="pre">ibv_exp_query_device()</span></code>.  Thanks to Angel Beltre and others who
+reported the issue.</p></li>
+</ul>
+</section>
+<section id="open-mpi-version-3-0-3">
+<h2><span class="section-number">3.1.5.4. </span>Open MPI version 3.0.3<a class="headerlink" href="#open-mpi-version-3-0-3" title="Link to this heading"></a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">Date<span class="colon">:</span></dt>
+<dd class="field-odd"><p>October, 2018</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Fix race condition in <code class="docutils literal notranslate"><span class="pre">MPI_THREAD_MULTIPLE</span></code> support of non-blocking
+send/receive path.</p></li>
+<li><p>Fix error handling <code class="docutils literal notranslate"><span class="pre">SIGCHLD</span></code> forwarding.</p></li>
+<li><p>Add support for <code class="docutils literal notranslate"><span class="pre">CHARACTER</span></code> and <code class="docutils literal notranslate"><span class="pre">LOGICAL</span></code> Fortran datatypes for <code class="docutils literal notranslate"><span class="pre">MPI_SIZEOF</span></code>.</p></li>
+<li><p>Fix compile error when using OpenJDK 11 to compile the Java bindings.</p></li>
+<li><p>Fix crash when using a hostfile with a <a class="reference external" href="mailto:'user&#37;&#52;&#48;host">‘user<span>&#64;</span>host</a>’ line.</p></li>
+<li><p>Numerous Fortran ‘08 interface fixes.</p></li>
+<li><p>TCP BTL error message fixes.</p></li>
+<li><p>OFI MTL now will use any provider other than shm, sockets, tcp, udp, or
+rstream, rather than only supporting gni, psm, and psm2.</p></li>
+<li><p>Disable async receive of CUDA buffers by default, fixing a hang
+on large transfers.</p></li>
+<li><p>Support the BCM57XXX and BCM58XXX Broadcomm adapters.</p></li>
+<li><p>Fix minmax datatype support in ROMIO.</p></li>
+<li><p>Bug fixes in vader shared memory transport.</p></li>
+<li><p>Support very large buffers with <code class="docutils literal notranslate"><span class="pre">MPI_TYPE_VECTOR</span></code>.</p></li>
+<li><p>Fix hang when launching with mpirun on Cray systems.</p></li>
+<li><p>Bug fixes in OFI MTL.</p></li>
+<li><p>Assorted Portals 4.0 bug fixes.</p></li>
+<li><p>Fix for possible data corruption in <code class="docutils literal notranslate"><span class="pre">MPI_BSEND</span></code>.</p></li>
+<li><p>Move shared memory file for vader btl into <code class="docutils literal notranslate"><span class="pre">/dev/shm</span></code> on Linux.</p></li>
+<li><p>Fix for <code class="docutils literal notranslate"><span class="pre">MPI_ISCATTER</span></code>/<code class="docutils literal notranslate"><span class="pre">MPI_ISCATTERV</span></code> Fortran interfaces with <code class="docutils literal notranslate"><span class="pre">MPI_IN_PLACE</span></code>.</p></li>
+<li><p>Upgrade PMIx to v2.1.4.</p></li>
+<li><p>Fix for Power9 built-in atomics.</p></li>
+<li><p>Numerous One-sided bug fixes.</p></li>
+<li><p>Fix for race condition in uGNI BTL.</p></li>
+<li><p>Improve handling of large number of interfaces with TCP BTL.</p></li>
+<li><p>Numerous UCX bug fixes.</p></li>
+<li><p>Add support for QLogic and Broadcom Cumulus RoCE HCAs to Open IB BTL.</p></li>
+<li><p>Add patcher support for aarch64.</p></li>
+<li><p>Fix hang on Power and ARM when Open MPI was built with low compiler
+optimization settings.</p></li>
+</ul>
+</section>
+<section id="open-mpi-version-3-0-2">
+<h2><span class="section-number">3.1.5.5. </span>Open MPI version 3.0.2<a class="headerlink" href="#open-mpi-version-3-0-2" title="Link to this heading"></a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">Date<span class="colon">:</span></dt>
+<dd class="field-odd"><p>June, 2018</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Disable osc/pt2pt when using <code class="docutils literal notranslate"><span class="pre">MPI_THREAD_MULTIPLE</span></code> due to numerous
+race conditions in the component.</p></li>
+<li><p>Fix dummy variable names for the mpi and mpi_f08 Fortran bindings to
+match the MPI standard.  This may break applications which use
+name-based parameters in Fortran which used our internal names
+rather than those documented in the MPI standard.</p></li>
+<li><p>Fixed <code class="docutils literal notranslate"><span class="pre">MPI_SIZEOF</span></code> in the “mpi” Fortran module for the NAG compiler.</p></li>
+<li><p>Fix RMA function signatures for <code class="docutils literal notranslate"><span class="pre">use-mpi-f08</span></code> bindings to have the
+asynchronous property on all buffers.</p></li>
+<li><p>Fix Fortran <code class="docutils literal notranslate"><span class="pre">MPI_COMM_SPAWN_MULTIPLE</span></code> to properly follow the count
+length argument when parsing the array_of_commands variable.</p></li>
+<li><p>Revamp Java detection to properly handle new Java versions which do
+not provide a javah wrapper.</p></li>
+<li><p>Improved configure logic for finding the UCX library.</p></li>
+<li><p>Add support for HDR InfiniBand link speeds.</p></li>
+<li><p>Disable the POWER 7/BE block in configure.  Note that POWER 7/BE is
+still not a supported platform, but it is no longer automatically
+disabled.  See
+<a class="reference external" href="https://github.com/open-mpi/ompi/issues/4349#issuecomment-374970982">https://github.com/open-mpi/ompi/issues/4349#issuecomment-374970982</a>
+for more information.</p></li>
+</ul>
+</section>
+<section id="open-mpi-version-3-0-1">
+<h2><span class="section-number">3.1.5.6. </span>Open MPI version 3.0.1<a class="headerlink" href="#open-mpi-version-3-0-1" title="Link to this heading"></a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">Date<span class="colon">:</span></dt>
+<dd class="field-odd"><p>March, 2018</p>
+</dd>
+</dl>
+<ul class="simple">
+<li><p>Fix ability to attach parallel debuggers to MPI processes.</p></li>
+<li><p>Fix a number of issues in MPI I/O found by the HDF5 test suite.</p></li>
+<li><p>Fix (extremely) large message transfers with shared memory.</p></li>
+<li><p>Fix out of sequence bug in multi-NIC configurations.</p></li>
+<li><p>Fix stdin redirection bug that could result in lost input.</p></li>
+<li><p>Disable the LSF launcher if CSM is detected.</p></li>
+<li><p>Plug a memory leak in <code class="docutils literal notranslate"><span class="pre">MPI_Mem_free()</span></code>.  Thanks to Philip Blakely for reporting.</p></li>
+<li><p>Fix the tree spawn operation when the number of nodes is larger than the radix.
+Thanks to Carlos Eduardo de Andrade for reporting.</p></li>
+<li><p>Fix Fortran 2008 macro in MPI extensions.  Thanks to Nathan T. Weeks for
+reporting.</p></li>
+<li><p>Add UCX to list of interfaces that OpenSHMEM will use by default.</p></li>
+<li><p>Add <code class="docutils literal notranslate"><span class="pre">--{enable|disable}-show-load-errors-by-default</span></code> to control
+default behavior of the load errors option.</p></li>
+<li><p>OFI MTL improvements: handle empty completion queues properly, fix
+incorrect error message around <code class="docutils literal notranslate"><span class="pre">fi_getinfo()</span></code>, use default progress
+option for provider by default, Add support for reading multiple
+CQ events in ofi_progress.</p></li>
+<li><p>PSM2 MTL improvements: Allow use of GPU buffers, thread fixes.</p></li>
+<li><p>Numerous corrections to memchecker behavior.</p></li>
+<li><p>Add a mca parameter <code class="docutils literal notranslate"><span class="pre">ras_base_launch_orted_on_hn</span></code> to allow for launching
+MPI processes on the same node where mpirun is executing using a separate
+orte daemon, rather than the mpirun process.   This may be useful to set to
+true when using SLURM, as it improves interoperability with SLURM’s signal
+propagation tools.  By default it is set to false, except for Cray XC systems.</p></li>
+<li><p>Fix a problem reported on the mailing separately by Kevin McGrattan and Stephen
+Guzik about consistency issues on NFS file systems when using OMPIO. This fix
+also introduces a new mca parameter <code class="docutils literal notranslate"><span class="pre">fs_ufs_lock_algorithm</span></code> which allows users to
+control the locking algorithm used by ompio for read/write operations. By
+default, ompio does not perform locking on local UNIX file systems, locks the
+entire file per operation on NFS file systems, and selective byte-range
+locking on other distributed file systems.</p></li>
+<li><p>Add an mca parameter <code class="docutils literal notranslate"><span class="pre">pmix_server_usock_connections</span></code> to allow mpirun to
+support applications statically built against the Open MPI v2.x release,
+or installed in a container along with the Open MPI v2.x libraries. It is
+set to false by default.</p></li>
+</ul>
+</section>
+<section id="open-mpi-version-3-0-0">
+<h2><span class="section-number">3.1.5.7. </span>Open MPI version 3.0.0<a class="headerlink" href="#open-mpi-version-3-0-0" title="Link to this heading"></a></h2>
+<dl class="field-list simple">
+<dt class="field-odd">Date<span class="colon">:</span></dt>
+<dd class="field-odd"><p>September, 2017</p>
+</dd>
+</dl>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Major new features:</p>
+<ul class="simple">
+<li><p>Use UCX allocator for OSHMEM symmetric heap allocations to optimize intra-node
+data transfers.  UCX SPML only.</p></li>
+<li><p>Use UCX multi-threaded API in the UCX PML.  Requires UCX 1.0 or later.</p></li>
+<li><p>Added support for Flux PMI</p></li>
+<li><p>Update embedded PMIx to version 2.1.0</p></li>
+<li><p>Update embedded hwloc to version 1.11.7</p></li>
+</ul>
+</div>
+<ul class="simple">
+<li><p>Per Open MPI’s versioning scheme (see the README), increasing the
+major version number to 3 indicates that this version is not
+ABI-compatible with prior versions of Open MPI. In addition, there may
+be differences in MCA parameter names and defaults from previous releases.
+Command line options for mpirun and other commands may also differ from
+previous versions. You will need to recompile MPI and OpenSHMEM applications
+to work with this version of Open MPI.</p></li>
+<li><p>With this release, Open MPI supports <code class="docutils literal notranslate"><span class="pre">MPI_THREAD_MULTIPLE</span></code> by default.</p></li>
+<li><p>New configure options have been added to specify the locations of libnl
+and zlib.</p></li>
+<li><p>A new configure option has been added to request Flux PMI support.</p></li>
+<li><p>The help menu for mpirun and related commands is now context based.
+<code class="docutils literal notranslate"><span class="pre">mpirun</span> <span class="pre">--help</span> <span class="pre">compatibility</span></code> generates the help menu in the same format
+as previous releases.</p></li>
+</ul>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>Removed legacy support:</p>
+<ul class="simple">
+<li><p>AIX is no longer supported.</p></li>
+<li><p>Loadlever is no longer supported.</p></li>
+<li><p>OpenSHMEM currently supports the UCX and MXM transports via the ucx and ikrit
+SPMLs respectively.</p></li>
+<li><p>Remove IB XRC support from the OpenIB BTL due to lack of support.</p></li>
+<li><p>Remove support for big endian PowerPC.</p></li>
+<li><p>Remove support for XL compilers older than v13.1</p></li>
+</ul>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Known issues:</p>
+<ul class="simple">
+<li><p>MPI_Connect/accept between applications started by different mpirun
+commands will fail, even if ompi-server is running.</p></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="v3.1.x.html" class="btn btn-neutral float-left" title="3.1.4. Open MPI v3.1.x series" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="v2.x.html" class="btn btn-neutral float-right" title="3.1.6. Open MPI v2.x series" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2003-2026, The Open MPI Community.
+      <span class="lastupdated">Last updated on 2026-09-16 22:20:53 UTC.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

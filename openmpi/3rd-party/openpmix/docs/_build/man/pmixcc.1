@@ -1,0 +1,185 @@
+.\" Man page generated from reStructuredText.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "PMIXCC" "1" "Sep 16, 2026" "" "OpenPMIx"
+.sp
+pmixcc — PMIx wrapper compiler
+.SH SYNTAX
+.sp
+\fBpmixcc [\-\-showme | \-\-showme:compile | \-\-showme:link] ...\fP
+.SH OPTIONS
+.sp
+The options include:
+.INDENT 0.0
+.IP \(bu 2
+\fB\-\-showme\fP: This option comes in several different variants (see
+below). None of the variants invokes the underlying compiler; they
+all provide information on how the underlying compiler would have
+been invoked had \fB\-\-showme\fP not been used. The basic \fB\-\-showme\fP
+option outputs the command line that would be executed to compile
+the program.
+.sp
+\fBNOTE:\fP
+.INDENT 2.0
+.INDENT 3.5
+If a non\-filename argument is passed on the command line,
+the \fB\-\-showme\fP option will \fInot\fP display any additional
+flags. For example, both \fB\(dqpmixcc \-\-showme\fP and
+\fBpmixcc \-\-showme my_source.c\fP will show all the
+wrapper\-supplied flags. But \fBpmixcc
+\-\-showme \-v\fP will only show the underlying compiler name
+and \fB\-v\fP\&.
+.UNINDENT
+.UNINDENT
+.IP \(bu 2
+\fB\-\-showme:compile\fP: Output the compiler flags that would have been
+supplied to the underlying compiler.
+.IP \(bu 2
+\fB\-\-showme:link\fP: Output the linker flags that would have been
+supplied to the underlying compiler.
+.IP \(bu 2
+\fB\-\-showme:command\fP: Outputs the underlying compiler
+command (which may be one or more tokens).
+.IP \(bu 2
+\fB\-\-showme:incdirs\fP: Outputs a space\-delimited (but otherwise
+undecorated) list of directories that the wrapper compiler would
+have provided to the underlying compiler to indicate
+where relevant header files are located.
+.IP \(bu 2
+\fB\-\-showme:libdirs\fP: Outputs a space\-delimited (but otherwise
+undecorated) list of directories that the wrapper compiler would
+have provided to the underlying linker to indicate where relevant
+libraries are located.
+.IP \(bu 2
+\fB\-\-showme:libs\fP Outputs a space\-delimited (but otherwise
+undecorated) list of library names that the wrapper compiler would
+have used to link an application. For example: \fBpmix util\fP\&.
+.IP \(bu 2
+\fB\-\-showme:version\fP: Outputs the version number of PMIx.
+.IP \(bu 2
+\fB\-\-showme:help\fP: Output a brief usage help message.
+.UNINDENT
+.sp
+See the man page for your underlying compiler for other options that
+can be passed through pmixcc.
+.SH DESCRIPTION
+.sp
+Conceptually, the role of these commands is quite simple:
+transparently add relevant compiler and linker flags to the user’s
+command line that are necessary to compile / link PMIx\-based programs,
+and then invoke the underlying compiler to actually perform the
+command.
+.sp
+As such, these commands are frequently referred to as “wrapper”
+compilers because they do not actually compile or link applications
+themselves; they only add in command line flags and invoke the
+back\-end compiler.
+.SH OVERVIEW
+.sp
+\fBpmixcc\fP is a convenience wrapper for the underlying C compiler.
+Translation of a PMIx\-based program requires the linkage of the
+PMIx\-specific libraries which may not reside in one of the standard
+search directories of \fBld(1)\fP\&. It also often requires the inclusion
+of header files what may also not be found in a standard location.
+.sp
+\fBpmixcc\fP passes its arguments to the underlying C compiler along with
+the \fB\-I\fP, \fB\-L\fP and \fB\-l\fP options required by PMIx\-based programs.
+.sp
+The PMIx Team \fIstrongly\fP encourages using the wrapper compiler
+instead of attempting to link to the PMIx library manually. This
+allows the specific implementation of PMIx to change without
+forcing changes to linker directives in users’ Makefiles. Indeed, the
+specific set of flags and libraries used by the wrapper compiler
+depends on how PMIx was configured and built; the values can change
+between different installations of the same version of PMIx.
+.sp
+Indeed, since the wrappers are simply thin shells on top of an
+underlying compiler, there are very, very few compelling reasons \fInot\fP
+to use PMIx’s wrapper compiler. When it is not possible to use
+the wrapper directly, the \fB\-\-showme:compile\fP and \fB\-\-showme:link\fP
+options should be used to determine what flags the wrapper would have
+used. For example:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+shell$ cc \-c file1.c \(gapmixcc \-\-showme:compile\(ga
+
+shell$ cc \-c file2.c \(gapmixcc \-\-showme:compile\(ga
+
+shell$ cc file1.o file2.o \(gapmixcc \-\-showme:link\(ga \-o my_program
+.EE
+.UNINDENT
+.UNINDENT
+.SH FILES
+.sp
+The strings that the wrapper compiler inserts into the command line
+before invoking the underlying compiler are stored in a text file
+created by PMIx and installed to
+\fB$pkgdata/pmixcc\-wrapper\-data.txt\fP, where:
+.INDENT 0.0
+.IP \(bu 2
+\fB$pkgdata\fP is typically \fB$prefix/share/pmix\fP
+.IP \(bu 2
+\fB$prefix\fP is the top installation directory of PMIx
+.UNINDENT
+.sp
+It is rarely necessary to edit this file, but it can be examined to
+gain insight into what flags the wrapper is placing on the command
+line.
+.SH ENVIRONMENT VARIABLES
+.sp
+By default, the wrapper uses the compiler that was selected when
+PMIx was configured. This compiler was either found
+automatically by PMIx’s “configure” script, or was selected by
+the user via the \fBCC\fP environment variable
+before \fBconfigure\fP was invoked. Additionally, other arguments specific
+to the compiler may have been selected by configure.
+.sp
+These values can be selectively overridden by either editing the text
+files containing this configuration information (see the \fI\%FILES\fP section), or by setting selected
+environment variables of the form \fBpmix_value\fP\&.
+.sp
+Valid value names are:
+.INDENT 0.0
+.IP \(bu 2
+\fBCPPFLAGS\fP: Flags added when invoking the preprocessor
+.IP \(bu 2
+\fBLDFLAGS\fP: Flags added when invoking the linker
+.IP \(bu 2
+\fBLIBS\fP: Libraries added when invoking the linker
+.IP \(bu 2
+\fBCC\fP: C compiler
+.IP \(bu 2
+\fBCFLAGS\fP: C compiler flags
+.UNINDENT
+.SH COPYRIGHT
+2014-2026, OpenPMIx Community
+.\" Generated by docutils manpage writer.
+.
