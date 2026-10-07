@@ -1479,7 +1479,14 @@ impl VariableDatabase {
             let Some((name, value)) = line.split_once(" = ") else {
                 continue;
             };
-            if name.is_empty() || !name.chars().all(|c| c.is_alphanumeric() || c == '_') {
+            // `-` is legal in a make variable name, and automake produces one
+            // whenever part of a target name is substituted after it
+            // canonicalised: `libopen-pal_la_SOURCES` (see `target_var`).
+            if name.is_empty()
+                || !name
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
+            {
                 continue;
             }
             let current = stack.last().expect("the root scope is never popped");
@@ -2501,8 +2508,19 @@ pub(crate) fn to_graph_with_dependencies(
     // — see `DeclaredTarget::directory` for the collision that makes the
     // scope necessary. No fallback to any other scope: a name this scope
     // lacks is one the declaring Makefile did not set.
+    //
+    // Falling back to the name as automake left it when PART of it came from
+    // configure: `lib@OPAL_LIB_NAME@_la_SOURCES` is canonicalised before
+    // configure substitutes `open-pal`, so make holds
+    // `libopen-pal_la_SOURCES`, hyphen intact — and the canonical
+    // `libopen_pal_la_SOURCES` finds nothing. Open MPI's opal_init.c and four
+    // other runtime sources were dropped from libopen-pal that way.
     let target_var = |decl: &DeclaredTarget, key: &str| -> Option<&String> {
-        db.scope(&decl.directory).and_then(|scope| scope.get(key))
+        let scope = db.scope(&decl.directory)?;
+        scope.get(key).or_else(|| {
+            let rest = key.strip_prefix(&canonical_name(&decl.name))?;
+            scope.get(&format!("{}{rest}", decl.name.replace(['.', '/'], "_")))
+        })
     };
 
     // The module root, widened to cover anything the build references from
@@ -5292,6 +5310,24 @@ make[1]: Leaving directory '/build/gl'\n\
                 ("COND_W32".to_string(), false),
             ])
         );
+    }
+
+    // A library named by a configure substitution leaves a hyphen in its
+    // variable name (`lib@OPAL_LIB_NAME@_la_SOURCES` becomes
+    // `libopen-pal_la_SOURCES`); the database keeps it. A rule line, which
+    // has a colon, still does not become a variable.
+    #[test]
+    fn a_variable_name_with_a_hyphen_is_a_variable() {
+        let vars = single_scope(concat!(
+            "libopen-pal_la_SOURCES = runtime/opal_init.c\n",
+            "lib_LTLIBRARIES = libopen-pal.la\n",
+            "libopen-pal.la: x.lo y.lo\n",
+        ));
+        assert_eq!(
+            vars.get("libopen-pal_la_SOURCES").map(String::as_str),
+            Some("runtime/opal_init.c")
+        );
+        assert!(vars.keys().all(|k| !k.contains(':')), "{vars:?}");
     }
 
     // A nested configure leaves its own config.status in a subdirectory; the

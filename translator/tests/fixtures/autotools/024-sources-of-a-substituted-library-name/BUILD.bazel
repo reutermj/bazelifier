@@ -1,0 +1,14 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# A library named by a configure substitution, lib@MY_NAME@.la with
+# MY_NAME=my-lib, as Open MPI's lib@OPAL_LIB_NAME@.la (open-pal). automake
+# canonicalises the variable name BEFORE configure substitutes, so make holds
+# libmy-lib_la_SOURCES with the hyphen, and a lookup of the canonical
+# libmy_lib_la_SOURCES found nothing — Open MPI's libopen-pal lost
+# opal_init.c and four more sources. The program needs both of the
+# library's functions.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)
