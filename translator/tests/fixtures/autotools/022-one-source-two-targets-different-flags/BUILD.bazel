@@ -1,0 +1,14 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# One source, two archives, different flags: libone compiles variant.c with
+# -DWHICH=1 -msse4.1, libtwo with -DWHICH=2. Open MPI's op/avx does this
+# with -mavx/-mavx2/-mavx512f. Matched by source rather than by the target's
+# own objects, each archive took BOTH compiles' defines (a redefined WHICH),
+# and -m flags were never carried at all, so intrinsics code did not
+# compile. The comparison prints "one 11 two 20": it fails if libone lost
+# -msse4.1 or either archive got the other's WHICH.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

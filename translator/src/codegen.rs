@@ -1016,6 +1016,7 @@ fn render_cc_rule(
         .map(|d| shell_quote_define(d))
         .collect();
     render_string_list(out, "local_defines", &defines);
+    render_string_list(out, "copts", &target.copts);
     render_string_list(out, "linkopts", &target.linkopts);
     let mut deps: Vec<String> = target
         .dependencies
@@ -2922,6 +2923,34 @@ mod tests {
             "{}",
             plain.build_bazel
         );
+    }
+
+    // A target's machine flags reach its rule; a target with none renders
+    // no attribute.
+    #[test]
+    fn copts_render_only_when_a_target_has_them() {
+        let mut g = graph(None);
+        g.targets = vec![
+            model::Target {
+                name: "liblocal_ops_avx2.la".to_string(),
+                kind: model::TargetKind::Library,
+                sources: vec!["op_avx_functions.c".to_string()],
+                copts: vec!["-mavx2".to_string()],
+                ..Default::default()
+            },
+            model::Target {
+                name: "plain".to_string(),
+                kind: model::TargetKind::Library,
+                sources: vec!["plain.c".to_string()],
+                ..Default::default()
+            },
+        ];
+        let rendered = render(&g).build_bazel;
+        assert!(
+            rendered.contains("    copts = [\n        \"-mavx2\",\n    ],"),
+            "{rendered}"
+        );
+        assert_eq!(rendered.matches("copts").count(), 1, "{rendered}");
     }
 
     #[test]

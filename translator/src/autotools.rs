@@ -2519,7 +2519,7 @@ pub(crate) fn to_graph_with_dependencies(
     // duplicate symbols at libpmix's link. `link_inputs` qualifies a link
     // line's objects the same way, so the two sides meet on the full path.
     let mut source_of: HashMap<String, (String, PathBuf)> = HashMap::new();
-    let mut flags_of: HashMap<String, (Vec<String>, Vec<String>)> = HashMap::new();
+    let mut flags_of: HashMap<String, (Vec<String>, Vec<String>, Vec<String>)> = HashMap::new();
     for cmd in commands.iter().filter(|c| c.program != "ar") {
         let Some(output) = flag_value(&cmd.args, "-o") else {
             continue;
@@ -2530,7 +2530,14 @@ pub(crate) fn to_graph_with_dependencies(
         if let Some(source) = compiled_source(&cmd.args) {
             let key = object_key(&cmd.dir, &output);
             source_of.insert(key.clone(), (source, cmd.dir.clone()));
-            flags_of.insert(key, (includes_of(&cmd.args), defines_of(&cmd.args)));
+            flags_of.insert(
+                key,
+                (
+                    includes_of(&cmd.args),
+                    defines_of(&cmd.args),
+                    machine_flags_of(&cmd.args),
+                ),
+            );
         }
     }
 
@@ -2743,14 +2750,24 @@ pub(crate) fn to_graph_with_dependencies(
         // and miss what configure and AM_CPPFLAGS contributed.
         let mut includes = Vec::new();
         let mut local_defines = Vec::new();
+        let mut copts = Vec::new();
         let mut needs_root_include = false;
+        // The objects this target's own link names. Open MPI's op/avx builds
+        // ONE source into three archives with different defines and -m
+        // flags; matched by source alone, every archive took all three
+        // compiles' flags (GENERATE_AVX512_CODE on the avx2 one).
+        let own_objects: HashSet<String> = link_inputs(link_of(decl)).into_iter().collect();
         for (object, (source, dir)) in &source_of {
             // Compare in module-relative terms: the object map keys sources as
             // the command reported them, which is per-directory.
             if !rebase(source, dir).is_some_and(|s| sources.contains(&s)) {
                 continue;
             }
-            if let Some((inc, def)) = flags_of.get(object) {
+            if !own_objects.is_empty() && !own_objects.contains(object) {
+                continue;
+            }
+            if let Some((inc, def, machine)) = flags_of.get(object) {
+                copts.extend(machine.iter().cloned());
                 // An include dir is likewise relative to the compiling
                 // directory. One that resolves TO the module root is recorded
                 // as `needs_root_include`, the way the CMake frontend records
@@ -2896,6 +2913,8 @@ pub(crate) fn to_graph_with_dependencies(
         includes.dedup();
         local_defines.sort_unstable();
         local_defines.dedup();
+        copts.sort_unstable();
+        copts.dedup();
 
         targets.push(Target {
             name: label_of(decl),
@@ -2947,6 +2966,7 @@ pub(crate) fn to_graph_with_dependencies(
             strip_include_prefix: None,
             includes,
             local_defines,
+            copts,
             needs_root_include,
             artifacts: vec![artifact],
             ..Default::default()
@@ -3642,6 +3662,16 @@ fn shell_expanded_defines(targets: &[Target]) -> Vec<(String, String)> {
 /// autoconf passes a large block of `-DPACKAGE_*` and `-DHAVE_*` on every
 /// compile; those are the config-header facts, kept as-is here and left for a
 /// later pass to route through `cc_config` the way `configure_file` does.
+/// The `-m<x>` machine flags a compile names — see `Target::copts`. Lower
+/// case only: `-MD`/`-MT`/`-MF`/`-MP` are dependency-tracking options, not
+/// code generation.
+fn machine_flags_of(args: &[String]) -> Vec<String> {
+    args.iter()
+        .filter(|a| a.starts_with("-m") && a.len() > 2)
+        .cloned()
+        .collect()
+}
+
 fn defines_of(args: &[String]) -> Vec<String> {
     args.iter()
         .filter_map(|a| a.strip_prefix("-D"))
@@ -5263,6 +5293,31 @@ make[1]: Leaving directory '/build/gl'\n\
             ]
         );
         let _ = std::fs::remove_dir_all(&root);
+    }
+
+    // op/avx's compile line, trimmed: machine flags are kept, automake's
+    // dependency-tracking -M options are not.
+    #[test]
+    fn machine_flags_are_the_lower_case_m_options() {
+        let args: Vec<String> = [
+            "gcc",
+            "-DGENERATE_AVX2_CODE",
+            "-mavx2",
+            "-mcx16",
+            "-MT",
+            "x.lo",
+            "-MD",
+            "-MP",
+            "-MF",
+            ".deps/x.Tpo",
+            "-m",
+            "-c",
+            "op_avx_functions.c",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        assert_eq!(machine_flags_of(&args), vec!["-mavx2", "-mcx16"]);
     }
 
     // Lines captured from hwloc 2.x's config.log. Only the question is kept:

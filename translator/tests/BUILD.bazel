@@ -70,6 +70,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/019-link-finds-a-library-through-an-archives-search-dirs:converted",
         "//translator/tests/fixtures/autotools/020-library-linked-through-a-build-tree-symlink:converted",
         "//translator/tests/fixtures/autotools/021-nested-configure-config-header:converted",
+        "//translator/tests/fixtures/autotools/022-one-source-two-targets-different-flags:converted",
     ],
 )
 

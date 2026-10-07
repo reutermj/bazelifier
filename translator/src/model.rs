@@ -194,6 +194,15 @@ pub struct Target {
     /// inherited; recovering propagation (`defines` vs `local_defines`) via
     /// the backtrace graph is a separate step, tracked in bzl-c54.3.
     pub local_defines: Vec<String>,
+    /// Machine flags (`-m<x>`) the build compiled this target's sources with.
+    ///
+    /// Not the compile line wholesale — optimisation and warning flags are
+    /// the toolchain's business — but the ones that decide what the source
+    /// MEANS: intrinsics behind `-mavx2` do not compile without it. Open
+    /// MPI's op/avx builds one source into several archives, each with its
+    /// own `-mavx*`. Frontend-agnostic: a value, read where a frontend states
+    /// it.
+    pub copts: Vec<String>,
     /// Build-output artifact paths (e.g. the built binary), relative to
     /// the CMake build directory. Used to locate ground-truth artifacts
     /// for validation — see docs/architecture/build-verification.md.
