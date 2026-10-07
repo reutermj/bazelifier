@@ -777,6 +777,13 @@ fn render_sh_test(out: &mut String, test: &model::Test) {
     // `xmltest` test runs the `xmltest` binary), which would collide with
     // the cc_binary target in this same package. Suffix keeps them distinct.
     let test_name = format!("{}_test", test.name);
+    // The project harness's skip code, as an environment variable rather
+    // than a fourth arg: Bazel drops a trailing empty string from `args`,
+    // which the optional pass regex already has to dodge.
+    let skip_env = test
+        .skip_exit_code
+        .map(|code| format!("\n    env = {{\"SKIP_EXIT_CODE\": \"{code}\"}},"))
+        .unwrap_or_default();
 
     out.push_str(&format!(
         "sh_test(\n\
@@ -789,7 +796,7 @@ fn render_sh_test(out: &mut String, test: &model::Test) {
          \x20   ],\n\
          \x20   data = [\n\
          \x20        \"{binary_label}\",\n\
-         \x20   ] + {data_glob},\n\
+         \x20   ] + {data_glob},{skip_env}\n\
          )\n",
     ));
 }
@@ -1339,6 +1346,15 @@ if [[ -n "${pass_regex}" ]]; then
   fi
   # With a pass regex, CTest treats a match as success regardless of exit
   # code; mirror that (many test harnesses signal via output, not status).
+  exit 0
+fi
+
+# The project harness's SKIP: automake's test driver reports exit 77 as a
+# skipped test rather than a failure (Open MPI's mpool_memkind without
+# memkind). Bazel has no skip, so it passes — loudly, so a log reader sees
+# that nothing was tested.
+if [[ -n "${SKIP_EXIT_CODE:-}" && "${exit_code}" == "${SKIP_EXIT_CODE}" ]]; then
+  echo "SKIP: exited ${exit_code}, which the project's own test harness reports as skipped"
   exit 0
 fi
 
@@ -1953,6 +1969,7 @@ mod tests {
             command: "tests/run-xmltest.sh".to_string(),
             working_directory: String::new(),
             pass_regex: None,
+            skip_exit_code: None,
         });
         let generated = render(&graph);
 
@@ -1977,6 +1994,7 @@ mod tests {
             command: "/abs/build/xmltest".to_string(),
             working_directory: String::new(),
             pass_regex: None,
+            skip_exit_code: None,
         });
         let generated = render(&graph);
 
@@ -2021,6 +2039,31 @@ mod tests {
         );
     }
 
+    // A test whose harness states a skip code carries it to the runner as an
+    // environment variable; one that states none renders no env at all.
+    #[test]
+    fn a_skip_exit_code_reaches_the_runner_as_env() {
+        let test = |skip: Option<i32>| model::Test {
+            name: "mpool_memkind".to_string(),
+            target: "mpool_memkind".to_string(),
+            command: "mpool_memkind".to_string(),
+            working_directory: String::new(),
+            pass_regex: None,
+            skip_exit_code: skip,
+        };
+        let with = render(&graph_with_test(test(Some(77)))).build_bazel;
+        assert!(
+            with.contains("    env = {\"SKIP_EXIT_CODE\": \"77\"},"),
+            "{with}"
+        );
+        let without = render(&graph_with_test(test(None))).build_bazel;
+        assert!(!without.contains("SKIP_EXIT_CODE"), "{without}");
+        assert!(
+            render_run_registered_test_sh().contains("\"${SKIP_EXIT_CODE}\""),
+            "the runner reads it"
+        );
+    }
+
     #[test]
     fn renders_sh_test_and_rules_shell_dep_for_a_registered_test() {
         let graph = graph_with_test(model::Test {
@@ -2029,6 +2072,7 @@ mod tests {
             command: "/abs/build/xmltest".to_string(),
             working_directory: String::new(),
             pass_regex: Some(", Fail 0".to_string()),
+            skip_exit_code: None,
         });
         let generated = render(&graph);
 

@@ -286,6 +286,12 @@ pub struct Test {
     /// declares none (then the exit code alone decides). This is the
     /// project's own pass criterion, translated rather than invented.
     pub pass_regex: Option<String>,
+    /// The exit code the project's own harness reports as SKIPPED rather
+    /// than failed, where it has one. automake's test driver treats 77 so
+    /// for every `TESTS` entry; Open MPI's mpool_memkind exits 77 without
+    /// memkind installed, and upstream's own suite records it as a skip.
+    /// `None` for CTest, whose skip code is a per-test property not read yet.
+    pub skip_exit_code: Option<i32>,
 }
 
 /// How a config-header template DECLARES the names it wants resolved, which

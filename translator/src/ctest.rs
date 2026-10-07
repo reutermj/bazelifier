@@ -139,6 +139,8 @@ pub(crate) fn ctest_reply_to_tests(reply: CtestReply) -> Vec<Test> {
             command: executable.clone(),
             working_directory,
             pass_regex,
+            // CTest's SKIP_RETURN_CODE is a per-test property, not read yet.
+            skip_exit_code: None,
         });
     }
     tests
@@ -365,6 +367,7 @@ mod tests {
             command: command.to_string(),
             working_directory: String::new(),
             pass_regex: None,
+            skip_exit_code: None,
         }
     }
 
@@ -493,6 +496,7 @@ mod tests {
                 command: "/proj/build/t".to_string(),
                 working_directory: "/proj".to_string(),
                 pass_regex: None,
+                skip_exit_code: None,
             },
             Test {
                 name: "in_subdir".to_string(),
@@ -500,6 +504,7 @@ mod tests {
                 command: "/proj/build/t".to_string(),
                 working_directory: "/proj/tests/data".to_string(),
                 pass_regex: None,
+                skip_exit_code: None,
             },
         ];
         rebase_tests_to_module_root(&mut tests, Path::new("/proj"));

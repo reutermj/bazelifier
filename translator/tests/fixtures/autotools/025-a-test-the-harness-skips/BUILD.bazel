@@ -1,0 +1,13 @@
+load("//translator/build_defs:convert_cmake_project.bzl", "convert_autotools_project")
+
+# A registered test that exits 77, which automake's test driver reports as
+# SKIP rather than FAIL — Open MPI's mpool_memkind without memkind, which
+# upstream's own make check records as skipped. The module's runner failed
+# it; the Autotools frontend now states automake's skip code on every test
+# and the runner reports SKIP and passes. `works` beside it must still pass
+# on its own exit code.
+convert_autotools_project(
+    name = "converted",
+    srcs = glob(["**"]),
+    visibility = ["//translator/tests:__pkg__"],
+)

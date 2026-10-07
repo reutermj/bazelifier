@@ -74,6 +74,7 @@ validation_workspace(
         "//translator/tests/fixtures/autotools/022-one-source-two-targets-different-flags:converted",
         "//translator/tests/fixtures/autotools/023-substituted-value-with-a-hash:converted",
         "//translator/tests/fixtures/autotools/024-sources-of-a-substituted-library-name:converted",
+        "//translator/tests/fixtures/autotools/025-a-test-the-harness-skips:converted",
     ],
 )
 

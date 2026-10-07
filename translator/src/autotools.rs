@@ -3052,6 +3052,8 @@ pub(crate) fn to_graph_with_dependencies(
                         // the exit code alone decides, which is what None
                         // already means.
                         pass_regex: None,
+                        // automake's test driver: 77 is SKIP, for every test.
+                        skip_exit_code: Some(77),
                     });
                 } else {
                     unexpressed_tests.push(Test {
@@ -3063,6 +3065,7 @@ pub(crate) fn to_graph_with_dependencies(
                         // the exit code alone decides, which is what None
                         // already means.
                         pass_regex: None,
+                        skip_exit_code: None,
                     });
                 }
             }
@@ -3073,6 +3076,7 @@ pub(crate) fn to_graph_with_dependencies(
                     command: path,
                     working_directory: String::new(),
                     pass_regex: None,
+                    skip_exit_code: None,
                 });
             }
         }
